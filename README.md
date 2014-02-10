@@ -1,5 +1,10 @@
+This is a "portable java" version of the Couchbase Lite Android core.  
 
-Once finished, this will be a "portable java" version of the Couchbase Lite Android core.  More info [here](https://github.com/couchbase/couchbase-lite-android/wiki/Proposed-project-restructure).
+To see how this fits into the overall architecture, see the [Couchbase Lite Project Structure](https://github.com/couchbase/couchbase-lite-android/wiki/Project-structure).
+
+# Current status
+
+This is currently just a stub project.  There is code that has been developed that serves as a Java <-> Native SQLite bridge (very similar to [sqlite4java](https://code.google.com/p/sqlite4java)) which will be added to this project to make in functional.
 
 # Run via command line
 
