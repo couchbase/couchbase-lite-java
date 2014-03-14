@@ -6,11 +6,7 @@ import java.util.Map;
 
 public class Test {
     public static void main(String[] args) throws Exception {
-        File file = new File(System.getProperty("java.io.tmpdir"));
-
-        System.out.println("Database Location : " + file.getAbsolutePath());
-
-        Manager manager = new Manager(file, Manager.DEFAULT_OPTIONS);
+        Manager manager = new Manager(new JavaContext(), Manager.DEFAULT_OPTIONS);
 
         Database database = manager.getDatabase("food");
 

@@ -13,9 +13,7 @@ import java.util.Map;
 public class BasicTest extends TestCase {
 
     public void testBasicFunctions() throws Exception {
-        File file = new File(System.getProperty("java.io.tmpdir"));
-
-        Manager manager = new Manager(file, Manager.DEFAULT_OPTIONS);
+        Manager manager = new Manager(new JavaContext(), Manager.DEFAULT_OPTIONS);
         assertNotNull("Cannot create manager.", manager);
 
         Database database = manager.getDatabase("food");
