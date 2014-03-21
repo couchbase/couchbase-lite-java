@@ -1,30 +1,78 @@
 apply plugin: 'java'
 apply plugin: 'java-library-distribution'
+apply plugin: 'maven'
 
-sourceCompatibility = 1.6
-version = '1.0'
+version = System.getenv("UPLOAD_VERSION_CBLITE")
 
 repositories {
+    mavenLocal()
+    maven { url 'http://files.couchbase.com/maven2/' }
     mavenCentral()
 }
 
-jar {
-    baseName = 'couchbase-lite-java'
-    version =  '1.0'
-}
-
-distributions {
-    main{
-        baseName = 'couchbase-lite-java'
-    }
-}
+def buildWithArtifacts = System.getProperty("buildWithArtifacts")
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 
-    //compile group: 'com.almworks.sqlite4java', name: 'libsqlite4java-osx', version: '0.282'
+    //For testing with couchbase-lite-android test suits
+    //testCompile group: 'commons-io', name: 'commons-io', version: '2.0.1'
+    //compile group: 'org.json', name: 'json', version: '20090211'
 
-    compile fileTree(dir: 'libs', include: 'couchbase-lite-java-native-1.0.jar')
+    compile fileTree(dir: 'libs', include: '*.jar')
+
+    compile buildWithArtifacts == null ?
+            project(':libraries:couchbase-lite-java-core') :
+            'com.couchbase.lite:java-core:' + version
 
     compile project(':libraries:couchbase-lite-java-core')
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.java.srcDirs
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+task createMavenDirectory(type: Exec) {
+
+    ext {
+        uploadUser = System.getenv("UPLOAD_USERNAME") + ":" + System.getenv("UPLOAD_PASSWORD")
+        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/lite/java/" + System.getenv("UPLOAD_VERSION_CBLITE") + "/"
+    }
+    commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
+}
+
+// this hack is only needed for apache mod_dav based Maven repo's like file.couchbase.com.  otherwise, skip it
+createMavenDirectory.onlyIf { System.getenv("UPLOAD_MAVEN_REPO_URL").contains("files") }
+
+// first create the directory, then do the upload
+task uploadArchivesWrapper(dependsOn: createMavenDirectory) << {
+    uploadArchives.execute()
+}
+
+// this will upload, but will not first create a directory (which is needed on some servers)
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: System.getenv("UPLOAD_MAVEN_REPO_URL")) {
+                authentication(userName: System.getenv("UPLOAD_USERNAME"), password: System.getenv("UPLOAD_PASSWORD"))
+            }
+            pom.version = System.getenv("UPLOAD_VERSION_CBLITE")
+            pom.groupId = 'com.couchbase.lite'
+            pom.artifactId = 'java'
+            pom.project {
+                licenses {
+                    license {
+                        name 'Couchbase Community Edition License Agreement'
+                        url 'http://www.couchbase.com/agreement/community'
+                        distribution 'repo'
+                    }
+                }
+            }
+        }
+    }
 }
