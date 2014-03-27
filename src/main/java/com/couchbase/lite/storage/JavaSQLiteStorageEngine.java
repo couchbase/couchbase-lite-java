@@ -59,7 +59,10 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
 
         private Connection acquire() throws InterruptedException {
-            // ensure the interrupted flag on the current thread is cleared on.
+            // TODO: Need to have a better way to handle Thread Interruption and
+            // make sure that the implementation is inline with Android SQLite.
+            // There is case in couch-base-lite-java-core that needs to do
+            // some more works after interrupting the thread (See ChangeTracker.stop()).
             Thread.interrupted();
 
             sem.acquire();
