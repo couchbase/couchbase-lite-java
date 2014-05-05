@@ -1,1 +1,1 @@
-include ':libraries:couchbase-lite-java-core'
+include ':libraries:couchbase-lite-java-core', ':libraries:couchbase-lite-java-native' 
