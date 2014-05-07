@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'java-library-distribution'
 apply plugin: 'maven'
 
-version = System.getenv("UPLOAD_VERSION_CBLITE")
+version = System.getenv("MAVEN_UPLOAD_VERSION")
 
 repositories {
     mavenLocal()
@@ -44,14 +44,14 @@ artifacts {
 
 task createMavenDirectory(type: Exec) {
     ext {
-        uploadUser = System.getenv("UPLOAD_USERNAME") + ":" + System.getenv("UPLOAD_PASSWORD")
-        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/lite/java/" + version + "/"
+        uploadUser = System.getenv("MAVEN_UPLOAD_USERNAME") + ":" + System.getenv("MAVEN_UPLOAD_PASSWORD")
+        mkcolPath = System.getenv("MAVEN_UPLOAD_REPO_URL") + "com/couchbase/lite/java/" + version + "/"
     }
     commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
 }
 
 // this hack is only needed for apache mod_dav based Maven repo's like file.couchbase.com.  otherwise, skip it
-createMavenDirectory.onlyIf { System.getenv("UPLOAD_MAVEN_REPO_URL").contains("files") }
+createMavenDirectory.onlyIf { System.getenv("MAVEN_UPLOAD_REPO_URL").contains("files") }
 
 // first create the directory, then do the upload
 task uploadArchivesWrapper(dependsOn: createMavenDirectory) << {
@@ -62,8 +62,8 @@ task uploadArchivesWrapper(dependsOn: createMavenDirectory) << {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: System.getenv("UPLOAD_MAVEN_REPO_URL")) {
-                authentication(userName: System.getenv("UPLOAD_USERNAME"), password: System.getenv("UPLOAD_PASSWORD"))
+            repository(url: System.getenv("MAVEN_UPLOAD_REPO_URL")) {
+                authentication(userName: System.getenv("MAVEN_UPLOAD_USERNAME"), password: System.getenv("MAVEN_UPLOAD_PASSWORD"))
             }
             pom.version = version
             pom.groupId = 'com.couchbase.lite'
