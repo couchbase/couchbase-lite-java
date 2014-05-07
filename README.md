@@ -20,6 +20,7 @@ Currently we are sharing the test suits with [Couchbase-lite-android](https://gi
 5. Create the test configuration file<br>`$ cd src/test/resources/assets`<br>`$ cp test.properties local-test.properties`<br>Open local-test.properteis and edit replicationServer pointing to your Sync-Gateway (eg. 127.0.0.1 if you run the Sync-Gateway locally).
 6. Install and Run Sync-Gateway (See [Getting Started With Sync Gateway](http://docs.couchbase.com/sync-gateway/)).<br>You can use a sample Sync-Gateway configuration to run the test suits from [here](https://friendpaste.com/5Xkuwge1Qx1D6DoIdFiQfc).
 7. Build the project and run the tests<br>`$ ./gradlew clean && ./gradlew test`
+
    Note: On Mac OS X you must have Command Line Tools for Xcode installed: https://developer.apple.com/downloads
 
 # Package the library
