@@ -59,6 +59,12 @@ public class NativeUtils {
     private static String _getLibraryFullName(String libraryName) {
         String name = System.mapLibraryName(libraryName);
 
+        // Workaround discrepancy issue between OSX Java6 (.jnilib) 
+        // and Java7 (.dylib) native library file extension.
+        if (name.endsWith(".jnilib")) {
+            name = name.replace(".jnilib", ".dylib");
+        }
+
         return name;
     }
     
