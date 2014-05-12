@@ -130,7 +130,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         throw new SQLException(msg);
     }
 
-    private synchronized native long _open(String path);
+    private native long _open(String path);
 
     @Override
     public synchronized boolean open(String path) {
@@ -139,10 +139,10 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         return true;
     }
 
-    private synchronized native int _getVersion(long handle);
+    private native int _getVersion(long handle);
 
     @Override
-    public synchronized int getVersion() {
+    public int getVersion() {
         Connection connection = connectionPool.getConnection();
 
         try {
@@ -152,10 +152,10 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native void _setVersion(long handle, int version);
+    private native void _setVersion(long handle, int version);
 
     @Override
-    public synchronized void setVersion(int version) {
+    public void setVersion(int version) {
         Connection connection = connectionPool.getConnection();
 
         try {
@@ -166,7 +166,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     }
 
     @Override
-    public synchronized boolean isOpen() {
+    public boolean isOpen() {
         Connection connection = connectionPool.getConnection();
 
         try {
@@ -176,7 +176,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    public synchronized native void _beginTransaction(long handle);
+    private native void _beginTransaction(long handle);
 
     @Override
     public void beginTransaction() {
@@ -204,12 +204,12 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native void _commit(long handle);
+    private native void _commit(long handle);
 
-    private synchronized native void _rollback(long handle);
+    private native void _rollback(long handle);
 
     @Override
-    public synchronized void endTransaction() {
+    public void endTransaction() {
         // Getting a connection without marking a usage count
         Connection connection = connectionPool.getConnection(false);
 
@@ -233,7 +233,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     }
 
     @Override
-    public synchronized void setTransactionSuccessful() {
+    public void setTransactionSuccessful() {
         Connection connection = connectionPool.getConnection();
 
         try {
@@ -248,10 +248,10 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native void _execute(long handle, String sql) throws SQLException;
+    private native void _execute(long handle, String sql) throws SQLException;
 
     @Override
-    public synchronized void execSQL(String sql) throws SQLException {
+    public void execSQL(String sql) throws SQLException {
         Connection connection = connectionPool.getConnection();
 
         try {
@@ -261,10 +261,10 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native void _execute(long handle, String sql, Object[] bindArgs) throws SQLException;
+    private native void _execute(long handle, String sql, Object[] bindArgs) throws SQLException;
 
     @Override
-    public synchronized void execSQL(String sql, Object[] bindArgs) throws SQLException {
+    public void execSQL(String sql, Object[] bindArgs) throws SQLException {
         Connection connection = connectionPool.getConnection();
         if (connection == null)
             return;
@@ -276,7 +276,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native StatementCursor _query(long handle, String sql, String[] bindArgs);
+    private native StatementCursor _query(long handle, String sql, String[] bindArgs);
 
     @Override
     public StatementCursor rawQuery(String sql, String[] selectionArgs) {
@@ -289,16 +289,16 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native long _insert(long handle, String sql, Object[] bindArgs);
+    private native long _insert(long handle, String sql, Object[] bindArgs);
 
     @Override
-    public synchronized long insert(String table, String nullColumnHack, ContentValues values) {
+    public long insert(String table, String nullColumnHack, ContentValues values) {
         return insertWithOnConflict(table, nullColumnHack, values, CONFLICT_NONE);
     }
 
     // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
     @Override
-    public synchronized long insertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, int conflictAlgorithm) {
+    public long insertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, int conflictAlgorithm) {
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT");
         sql.append(CONFLICT_VALUES[conflictAlgorithm]);
@@ -336,15 +336,15 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native int _update(long handle, String sql, Object[] bindArgs);
+    private native int _update(long handle, String sql, Object[] bindArgs);
 
     @Override
-    public synchronized int update(String table, ContentValues values, String whereClause, String[] whereArgs) {
+    public int update(String table, ContentValues values, String whereClause, String[] whereArgs) {
         return _updateWithOnConflict(table, values, whereClause, whereArgs, CONFLICT_NONE);
     }
 
     // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
-    private synchronized int _updateWithOnConflict(String table, ContentValues values, String whereClause, String[] whereArgs, int conflictAlgorithm) {
+    private int _updateWithOnConflict(String table, ContentValues values, String whereClause, String[] whereArgs, int conflictAlgorithm) {
         if (values == null || values.size() == 0) {
             throw new IllegalArgumentException("Empty values");
         }
@@ -385,11 +385,11 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native int _delete(long handle, String sql, Object[] bindArgs);
+    private native int _delete(long handle, String sql, Object[] bindArgs);
 
     // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
     @Override
-    public synchronized int delete(String table, String whereClause, String[] whereArgs) {
+    public int delete(String table, String whereClause, String[] whereArgs) {
         StringBuilder sql = new StringBuilder(120);
         sql.append("DELETE FROM " + table);
 
@@ -407,7 +407,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         }
     }
 
-    private synchronized native void _close(long handle);
+    private native void _close(long handle);
 
     @Override
     public synchronized void close() {
