@@ -16,6 +16,9 @@ public class LiteTestContextBase {
         if (!rootDirectory.exists()) {
             rootDirectory.mkdir();
         }
+        
+        // ensure to have the absolute file path
+        rootDirectory = rootDirectory.getAbsoluteFile();
     }
 
     public File getRootDirectory() {
