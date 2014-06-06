@@ -17,6 +17,11 @@ dependencies {
 
     // Dependencies for testing with couchbase-lite-android test suits
     testCompile group: 'commons-io', name: 'commons-io', version: '2.0.1'
+
+    testCompile buildAgainstMavenArtifacts == null ?
+            project(':libraries:couchbase-lite-java-listener') :
+            'com.couchbase.lite:java-listener:' + version
+
     compile group: 'org.json', name: 'json', version: '20090211'
 
     // Dependencies required by couchbase-lite-java-core
@@ -28,9 +33,9 @@ dependencies {
             project(':libraries:couchbase-lite-java-core') :
             'com.couchbase.lite:java-core:' + version
 
-	compile buildAgainstMavenArtifacts == null ?
+    compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-native') :
-            'com.couchbase.lite:java-native:' + version            
+            'com.couchbase.lite:java-native:' + version
 }
 
 task sourcesJar(type: Jar) {
