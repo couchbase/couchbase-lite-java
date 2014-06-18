@@ -22,6 +22,8 @@ dependencies {
             project(':libraries:couchbase-lite-java-listener') :
             'com.couchbase.lite:java-listener:' + version
 
+    testCompile 'com.squareup.okhttp:mockwebserver:1.2.1'
+
     compile group: 'org.json', name: 'json', version: '20090211'
 
     // Dependencies required by couchbase-lite-java-core
@@ -93,18 +95,26 @@ uploadArchives {
     }
 }
 
-task copyAndroidTests(type: Copy) {
+task deleteExistingTests(type: Delete) {
+    delete 'src/test/java/com/couchbase/lite'
+}
+
+task deleteExistingAssets(type: Delete, dependsOn: deleteExistingTests) {
+    delete 'src/test/resources/assets'
+}
+
+task copyAndroidTests(type: Copy, dependsOn: deleteExistingAssets) {
     from "../couchbase-lite-android/src/androidTest/java/com/couchbase/lite"
     into 'src/test/java/com/couchbase/lite'
 }
 
-task deleteBrokenTests(type: Delete) {
+task deleteBrokenTests(type: Delete, dependsOn: copyAndroidTests) {
     delete 'src/test/java/com/couchbase/lite/CollationTest.java', 'src/test/java/com/couchbase/lite/Base64Test.java'
 }
 
-task copyAndroidAssets(type: Copy) {
+task copyAndroidAssets(type: Copy, dependsOn: deleteBrokenTests) {
     from "../couchbase-lite-android/src/androidTest/assets"
     into 'src/test/resources/assets'
 }
 
-test.dependsOn(copyAndroidTests, deleteBrokenTests, copyAndroidAssets)
+test.dependsOn(copyAndroidAssets)
