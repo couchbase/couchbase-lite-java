@@ -96,7 +96,7 @@ uploadArchives {
 }
 
 task deleteExistingTests(type: Delete) {
-    delete 'src/test/java/com/couchbase/lite'
+    delete fileTree(dir: "src/test/java/com/couchbase/lite", exclude: "java")  
 }
 
 task deleteExistingAssets(type: Delete, dependsOn: deleteExistingTests) {
