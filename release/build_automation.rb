@@ -10,12 +10,12 @@ end
 
 # upload the archives for a single library,
 def uploadArchivesSingleLibrary(libraryName, buildCommand, systemProperty)
-  cmd = "../gradlew :#{libraryName}:#{buildCommand}"
+  cmd = "./gradlew :#{libraryName}:#{buildCommand}"
   cmd = "#{cmd} -D#{systemProperty}" if !systemProperty.empty?
   puts "-------------------------------------------------------"
   runCommandCheckError cmd
   
-  cmd = "../gradlew :#{libraryName}:uploadArchivesWrapper"
+  cmd = "./gradlew :#{libraryName}:uploadArchivesWrapper"
   cmd = "#{cmd} -D#{systemProperty}" if !systemProperty.empty?
   puts "-------------------------------------------------------"
   runCommandCheckError cmd
@@ -30,13 +30,13 @@ def buildAndPackage()
   # clean
   puts "Cleaning previous build ..."
   puts "-------------------------------------------------------"
-  cmd = "../gradlew clean"
+  cmd = "./gradlew clean"
   runCommandCheckError cmd
 
   # build the code
   puts "Building and Packaging ..."
   puts "-------------------------------------------------------"
-  cmd = "../gradlew distZip"
+  cmd = "./gradlew distZip"
   runCommandCheckError cmd  
 end
 
