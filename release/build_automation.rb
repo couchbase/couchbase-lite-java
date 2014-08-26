@@ -3,9 +3,6 @@ require 'fileutils'
 def uploadArchives() 
   puts ".................................couchbase-lite-java-native"
   uploadArchivesSingleLibrary("libraries:couchbase-lite-java-native",  "build",    "")
-  
-  puts ".................................couchbase-lite-java"
-  uploadArchivesSingleLibrary("libraries:couchbase-lite-java",         "build",    "buildAndroidWithArtifacts")
 end
 
 # upload the archives for a single library,
