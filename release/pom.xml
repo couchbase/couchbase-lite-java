@@ -1,0 +1,167 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.couchbase</groupId>
+    <!--
+    <artifactId>couchbase-lite</artifactId>
+    -->
+    <artifactId>java-native</artifactId>
+    <version>${REVISION}</version>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <local-m2dir>${basedir}/m2</local-m2dir>
+        
+        <LICENSE_DIR>${basedir}</LICENSE_DIR>
+        <LICENSE_FILE>LICENSE.txt</LICENSE_FILE>
+        
+        <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
+        <ZIP_HOME>${basedir}/zip</ZIP_HOME>
+        
+        <JAR_NATIVE>   java-native-${REVISION}.jar                         </JAR_NATIVE>
+        <JAR_SRC_PATH> ${TARGET_DIR}/java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
+        
+        <POM_NATIVE>   java-native-${REVISION}.pom                         </POM_NATIVE>
+        <POM_SRC_PATH> ${TARGET_DIR}/java-native/${REVISION}/${POM_NATIVE} </POM_SRC_PATH>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>couchbase.public.repo</id>
+            <url>http://files.couchbase.com/maven2</url>
+        </repository>
+        <repository>
+            <id>couchbase.local.repo</id>
+            <url>file://${local-m2dir}</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.couchbase.lite</groupId>
+            <artifactId>java-native</artifactId>
+            <type>jar</type>
+            <version>${REVISION}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.1</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <id>validate_m2</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <echo>local-m2dir:   ${local-m2dir}</echo>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    
+                    <execution>
+                        <phase>clean</phase>
+                        <id>clean_derived</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <delete dir="${ZIP_HOME}"         failonerror="true" verbose="true" />
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <phase>clean</phase>
+                        <id>clean_jars</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <delete file="${JAR_NATIVE}"  failonerror="true" verbose="true" />
+                                <delete file="${POM_NATIVE}"  failonerror="true" verbose="true" />
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    
+                    <execution>
+                        <phase>initialize</phase>
+                        <id>creat_dirs</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <mkdir  dir="${ZIP_HOME}"         />
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <id>copy_from_m2</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                 <echo message="DEBUG:::   LICENSE.txt" />
+
+                                 <copy todir="${ZIP_HOME}" preservelastmodified="true" flatten="true" verbose="true">
+                                     <fileset dir="${LICENSE_DIR}">
+                                         <include name="${LICENSE_FILE}"                              />
+                                     </fileset>
+                                 </copy>
+                                 
+                                 <!-- locally built  -->
+                                 <echo message="DEBUG:::   locally built couchbase-lite JARs" />
+                                 
+                                 <copy file="${JAR_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 <copy file="${POM_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    
+    <distributionManagement>
+        <repository>
+            <id>couchbase.public.repo</id>
+            <name>Couchbase Release Repository</name>
+            <url>http://files.couchbase.com/maven2/</url>
+        </repository>
+    </distributionManagement>
+</project>
