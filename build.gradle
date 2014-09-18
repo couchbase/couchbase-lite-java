@@ -10,7 +10,7 @@ repositories {
     mavenCentral()
 }
 
-def buildAgainstMavenArtifacts = System.getProperty("buildAgainstMavenArtifacts")
+def buildAgainstMavenArtifacts = System.getProperty("buildJavaWithArtifacts")
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
