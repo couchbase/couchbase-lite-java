@@ -1,1 +1,1 @@
-include ':libraries:couchbase-lite-java-core', ':libraries:couchbase-lite-java-native', ':libraries:couchbase-lite-java-listener'
+include ':libraries:couchbase-lite-java-core', ':libraries:couchbase-lite-java-native'
