@@ -10,7 +10,7 @@ $ git submodule init && git submodule update
 # Build and test
 
 ### Requirements
-* JDK 1.6+
+* JDK 1.7+
 
 * Toolchains for compiling native libraries as follows :
 
