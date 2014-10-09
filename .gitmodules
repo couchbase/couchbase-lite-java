@@ -4,6 +4,3 @@
 [submodule "libraries/couchbase-lite-java-native"]
 	path = libraries/couchbase-lite-java-native
 	url = https://github.com/couchbase/couchbase-lite-java-native.git
-[submodule "libraries/couchbase-lite-java-listener"]
-	path = libraries/couchbase-lite-java-listener
-	url = https://github.com/couchbase/couchbase-lite-java-listener.git
