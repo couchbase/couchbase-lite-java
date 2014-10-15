@@ -27,7 +27,7 @@ $ git submodule init && git submodule update
 	$ sudo apt-get install g++-multilib
 	``` 
 
-### Build and Test Steps
+### Build and Test Steps - Command Line
 
 Note: Currently we are sharing the test suits with [Couchbase-lite-android](https://github.com/couchbase/couchbase-lite-android.git) project and the following steps will copy the test classes over and run the test suit.
 
@@ -35,6 +35,20 @@ Note: Currently we are sharing the test suits with [Couchbase-lite-android](http
 2. At your couchbase-lite-android folder, create the test configuration file<br>`$ cd couchbase-lite-andriod`<br>`$ cp src/androidTest/assets/test.properties src/androidTest/assets/local-test.properties`<br>Open src/androidTest/assets/local-test.properteis and edit replicationServer pointing to your Sync-Gateway (eg. 127.0.0.1 if you run the Sync-Gateway locally).
 3. Install and Run Sync-Gateway (See [Getting Started With Sync Gateway](http://docs.couchbase.com/sync-gateway/)).<br>You can use a sample Sync-Gateway configuration to run the test suits from [here](https://friendpaste.com/5Xkuwge1Qx1D6DoIdFiQfc).
 4. Go to your couchbase-lite-java, build the project and run the tests<br>`$ ./gradlew clean && ./gradlew test`
+
+### Build and Test Steps - IntelliJ
+
+1. Build on command line - run `$ ./gradlew build`
+2. Clone Couchbase-lite-android project<br>`$ clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
+3. Open IntelliJ and import project
+4. Go to File / Project Structure / Modules
+5. Select couchbase-lite-java
+6. Select dependencies
+7. Click + button, Jars and Libraries
+8. Select libraries/couchbase-lite-java-native/build/libs/couchbase-lite-java-native-0.0.0-463.jar
+9. Check the box to the left / Click OK
+10. In IntelliJ project window, browse to /src/test/java/
+11. Right-click on an individual test or package and choose Run Test ..
 
 # Package the library
 
