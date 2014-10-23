@@ -1,5 +1,8 @@
 package com.couchbase.test.lite;
 
+import com.couchbase.lite.storage.JavaSQLiteStorageEngineFactory;
+import com.couchbase.lite.storage.SQLiteStorageEngineFactory;
+
 import java.io.*;
 
 /**
@@ -23,5 +26,9 @@ public class LiteTestContextBase {
 
     public File getRootDirectory() {
         return rootDirectory;
+    }
+
+    public SQLiteStorageEngineFactory getSQLiteStorageEngineFactory() {
+        return new JavaSQLiteStorageEngineFactory();
     }
 }
