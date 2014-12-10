@@ -29,11 +29,11 @@ dependencies {
 
     compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-core') :
-            'com.couchbase.lite:java-core:' + version
+            'com.couchbase.lite:couchbase-lite-java-core:' + version
 
     compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-native') :
-            'com.couchbase.lite:java-native:' + version
+            'com.couchbase.lite:couchbase-lite-java-native:' + version
 }
 
 task sourcesJar(type: Jar) {
@@ -48,7 +48,7 @@ artifacts {
 task createMavenDirectory(type: Exec) {
     ext {
         uploadUser = System.getenv("MAVEN_UPLOAD_USERNAME") + ":" + System.getenv("MAVEN_UPLOAD_PASSWORD")
-        mkcolPath = System.getenv("MAVEN_UPLOAD_REPO_URL") + "com/couchbase/lite/java/" + version + "/"
+        mkcolPath = System.getenv("MAVEN_UPLOAD_REPO_URL") + "com/couchbase/lite/couchbase-lite-java/" + version + "/"
     }
     commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
 }
@@ -77,7 +77,7 @@ uploadArchives {
 
             pom.version = version
             pom.groupId = 'com.couchbase.lite'
-            pom.artifactId = 'java'
+            pom.artifactId = 'couchbase-lite-java'
             pom.project {
                 licenses {
                     license {
