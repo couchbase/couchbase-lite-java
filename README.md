@@ -8,13 +8,6 @@ $ git clone <this repo>
 $ git submodule init && git submodule update
 ```
 
-# Build on OSX - Command Line
-
-```
-$ ./gradlew build
-```
-
-
 # Build and test
 
 ### Requirements
@@ -41,7 +34,6 @@ $ ./gradlew build
 Note: Currently we are sharing the test suits with [Couchbase-lite-android](https://github.com/couchbase/couchbase-lite-android.git) project and the following steps will copy the test classes over and run the test suit.
 
 1. Clone Couchbase-lite-android project<br>`$ clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
-1. At your couchbase-lite-android folder, create the test configuration file<br>`$ cd couchbase-lite-andriod`<br>`$ cp src/androidTest/assets/test.properties src/androidTest/assets/local-test.properties`<br>Open src/androidTest/assets/local-test.properteis and edit replicationServer pointing to your Sync-Gateway (eg. 127.0.0.1 if you run the Sync-Gateway locally).
 1. Go to your couchbase-lite-java, build the project and run the tests<br>`$ ./gradlew clean && ./gradlew test`
 
 *Note: there seems to be no way to see the test output when using the command line, so if you need to see the test output, use the IntelliJ IDE instead*
