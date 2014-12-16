@@ -8,24 +8,33 @@
     <!--
     <artifactId>couchbase-lite</artifactId>
     -->
-    <artifactId>java-native</artifactId>
+    <artifactId>couchbase-lite-java</artifactId>
     <version>${REVISION}</version>
     <packaging>jar</packaging>
     
     <properties>
         <local-m2dir>${basedir}/m2</local-m2dir>
-        
-        <LICENSE_DIR>${basedir}</LICENSE_DIR>
-        <LICENSE_FILE>LICENSE.txt</LICENSE_FILE>
-        
+
+        <EDITION>${EDITION}</EDITION>
+        <LICENSE_DIR>${basedir}/../build/license/couchbase-lite</LICENSE_DIR>
+        <LICENSE_FILE>LICENSE_${EDITION}.txt</LICENSE_FILE>
+
         <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
         
-        <JAR_NATIVE>   java-native-${REVISION}.jar                         </JAR_NATIVE>
-        <JAR_SRC_PATH> ${TARGET_DIR}/java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
+        <JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
+        <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
         
-        <POM_NATIVE>   java-native-${REVISION}.pom                         </POM_NATIVE>
-        <POM_SRC_PATH> ${TARGET_DIR}/java-native/${REVISION}/${POM_NATIVE} </POM_SRC_PATH>
+        <!--<POM_NATIVE>   couchbase-lite-java-native-${REVISION}.pom                         </POM_NATIVE>
+        <POM_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${POM_NATIVE} </POM_SRC_PATH>-->
+
+        <JAR_JAVA_CORE>   couchbase-lite-java-core-${REVISION}.jar                         </JAR_JAVA_CORE>
+        <JAR_SRC_JAVA_CORE> ${TARGET_DIR}/couchbase-lite-java-core/${REVISION}/${JAR_JAVA_CORE} </JAR_SRC_JAVA_CORE>
+
+        <!--<POM_JAVA_CORE>   couchbase-lite-java-core-${REVISION}.pom                         </POM_JAVA_CORE>
+        <POM_SRC_JAVA_CORE> ${TARGET_DIR}/couchbase-lite-java-core/${REVISION}/${POM_JAVA_CORE} </POM_SRC_JAVA_CORE>-->
+
+
     </properties>
 
     <repositories>
@@ -42,11 +51,25 @@
     <dependencies>
         <dependency>
             <groupId>com.couchbase.lite</groupId>
-            <artifactId>java-native</artifactId>
+            <artifactId>couchbase-lite-java-native</artifactId>
             <type>jar</type>
             <version>${REVISION}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.couchbase.lite</groupId>
+            <artifactId>couchbase-lite-java-core</artifactId>
+            <type>jar</type>
+            <version>${REVISION}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
     
     <build>
@@ -90,7 +113,9 @@
                         <configuration>
                             <tasks>
                                 <delete file="${JAR_NATIVE}"  failonerror="true" verbose="true" />
-                                <delete file="${POM_NATIVE}"  failonerror="true" verbose="true" />
+                                <!--<delete file="${POM_NATIVE}"  failonerror="true" verbose="true" />-->
+                                <delete file="${JAR_JAVA_CORE}"  failonerror="true" verbose="true" />
+                                <!--<delete file="${POM_JAVA_CORE}"  failonerror="true" verbose="true" />-->
                             </tasks>
                         </configuration>
                     </execution>
@@ -123,13 +148,29 @@
                                          <include name="${LICENSE_FILE}"                              />
                                      </fileset>
                                  </copy>
-                                 
+
+                                <move file="${ZIP_HOME}/${LICENSE_FILE}" tofile="${ZIP_HOME}/LICENSE.TXT"/>
+
                                  <!-- locally built  -->
                                  <echo message="DEBUG:::   locally built couchbase-lite JARs" />
-                                 
+
+                                 <copy file="${basedir}/build/libs/couchbase-lite-java-${REVISION}.jar" tofile="${ZIP_HOME}/couchbase-lite-java-${REVISION}.jar"/>
+
                                  <copy file="${JAR_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
-                                 <copy file="${POM_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
-                                 
+                                 <!--<copy file="${POM_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />-->
+                                 <copy file="${JAR_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 <!--<copy file="${POM_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />-->
+                                <copy file="${JAR_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+
+                                <!-- HARDCODE FOR NOW! -->
+                                <copy file="${basedir}/m2/commons-lang/commons-lang/2.1/commons-lang-2.1.jar" tofile="${ZIP_HOME}/commons-lang-2.1.jar"/>
+                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/commons-logging-1.1.3.jar" tofile="${ZIP_HOME}/commons-logging-1.1.3.jar"/>
+                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpclient-4.0-beta1.jar" tofile="${ZIP_HOME}/httpclient-4.0-beta1.jar"/>
+                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpcore-4.0-beta2.jar" tofile="${ZIP_HOME}/httpcore-4.0-beta2.jar"/>
+                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
+                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-mapper-asl/1.9.2/jackson-mapper-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-mapper-asl-1.9.2.jar"/>
+                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
+
                             </tasks>
                         </configuration>
                     </execution>
