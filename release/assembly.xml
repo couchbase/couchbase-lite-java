@@ -42,11 +42,11 @@
         </file>-->
 
 
-        <file>
+        <!--<file>
             <source> ${ZIP_HOME}/commons-lang-2.1.jar   </source>
             <outputDirectory>/</outputDirectory>
             <filtered>false</filtered>
-        </file>
+        </file>-->
         <file>
             <source> ${ZIP_HOME}/commons-logging-1.1.3.jar   </source>
             <outputDirectory>/</outputDirectory>
