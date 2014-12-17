@@ -21,6 +21,8 @@
 
         <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
+
+        <stateless4j.version> 2.4.0 </stateless4j.version>
         
         <JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
         <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
@@ -69,7 +71,6 @@
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
     
     <build>
@@ -183,6 +184,7 @@
                                 <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
                                 <copy file="${basedir}/m2/org/codehaus/jackson/jackson-mapper-asl/1.9.2/jackson-mapper-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-mapper-asl-1.9.2.jar"/>
                                 <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
+                                <copy file="${basedir}/m2/com/github/oxo42/stateless4j/2.4.0/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
 
                             </tasks>
                         </configuration>
