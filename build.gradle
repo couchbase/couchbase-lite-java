@@ -2,6 +2,8 @@ apply plugin: 'java'
 apply plugin: 'java-library-distribution'
 apply plugin: 'maven'
 
+compileJava.options.encoding = 'UTF-8'
+
 version = System.getenv("MAVEN_UPLOAD_VERSION")
 
 repositories {
