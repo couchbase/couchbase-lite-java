@@ -36,6 +36,8 @@ Note: Currently we are sharing the test suits with [Couchbase-lite-android](http
 1. Clone Couchbase-lite-android project<br>`$ clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
 1. Go to your couchbase-lite-java, build the project and run the tests<br>`$ ./gradlew clean && ./gradlew test`
 
+If you need to see the test output to debug them, you can run `./gradlew --debug --info test`
+
 *Note: there seems to be no way to see the test output when using the command line, so if you need to see the test output, use the IntelliJ IDE instead*
 
 ### Build and Test Steps - IntelliJ
