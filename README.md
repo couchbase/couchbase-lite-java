@@ -4,7 +4,8 @@ To see how this fits into the overall architecture, see the [Couchbase Lite Proj
 
 # Get the code
 ```
-$ git clone <this repo>
+$ git clone https://github.com/couchbase/couchbase-lite-java.git
+$ cd couchbase-lite-java
 $ git submodule init && git submodule update
 ```
 
