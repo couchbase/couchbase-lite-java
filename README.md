@@ -34,7 +34,7 @@ $ git submodule init && git submodule update
 
 Note: Currently we are sharing the test suits with [Couchbase-lite-android](https://github.com/couchbase/couchbase-lite-android.git) project and the following steps will copy the test classes over and run the test suit.
 
-1. Clone Couchbase-lite-android project<br>`$ clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
+1. Clone Couchbase-lite-android project<br>`$ git clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
 1. Go to your couchbase-lite-java, build the project and run the tests<br>`$ ./gradlew clean && ./gradlew test`
 
 If you need to see the test output to debug them, you can run `./gradlew --debug --info test`
@@ -44,7 +44,7 @@ If you need to see the test output to debug them, you can run `./gradlew --debug
 ### Build and Test Steps - IntelliJ
 
 1. Build on command line - run `$ ./gradlew build`
-1. Clone Couchbase-lite-android project<br>`$ clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
+1. Clone Couchbase-lite-android project<br>`$ git clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located.
 1. Open IntelliJ and import project
 1. Add couchbase-lite-java-native library dependency
     1. Go to File / Project Structure / Modules
