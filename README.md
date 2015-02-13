@@ -1,3 +1,5 @@
+[![Join the chat at https://gitter.im/couchbase/couchbase-lite-java-core](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/couchbase/couchbase-lite-java-core?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This is a "portable java" version of the Couchbase Lite.  
 
 To see how this fits into the overall architecture, see the [Couchbase Lite Project Structure](https://github.com/couchbase/couchbase-lite-android/wiki/Project-structure).
