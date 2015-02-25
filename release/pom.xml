@@ -182,9 +182,9 @@
                                 <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/commons-logging-1.1.3.jar" tofile="${ZIP_HOME}/commons-logging-1.1.3.jar"/>
                                 <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpclient-4.0-beta1.jar" tofile="${ZIP_HOME}/httpclient-4.0-beta1.jar"/>
                                 <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpcore-4.0-beta2.jar" tofile="${ZIP_HOME}/httpcore-4.0-beta2.jar"/>
-                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
-                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-mapper-asl/1.9.2/jackson-mapper-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-mapper-asl-1.9.2.jar"/>
-                                <copy file="${basedir}/m2/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar" tofile="${ZIP_HOME}/jackson-core-asl-1.9.2.jar"/>
+                                <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-core/2.5.0/jackson-core-2.5.0.jar" tofile="${ZIP_HOME}/jackson-core-2.5.0.jar"/>
+                                <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar" tofile="${ZIP_HOME}/jackson-annotations-2.5.0.jar"/>
+                                <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-databind/2.5.0/jackson-databind-2.5.0.jar" tofile="${ZIP_HOME}/jackson-databind-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/github/oxo42/stateless4j/2.4.0/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
 
                             </tasks>

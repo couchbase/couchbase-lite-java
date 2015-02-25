@@ -4,7 +4,8 @@ import com.couchbase.lite.storage.JavaSQLiteStorageEngine;
 import com.couchbase.lite.util.Log;
 import junit.framework.TestCase;
 import junit.framework.Assert;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * com.couchbase.lite.java.CollationTest is ported from
@@ -17,8 +18,21 @@ public class CollationTest extends TestCase {
     private static final int kTDCollateJSON_Raw = 1;
     private static final int kTDCollateJSON_ASCII = 2;
 
+    /*
     // create the same JSON encoding used by TouchDB
     // this lets us test comparisons as they would be encoded
+    public String encode(NodeCursor.Object obj) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            byte[] bytes = mapper.writeValueAsBytes(obj);
+            String result = new String(bytes);
+            return result;
+        } catch (Exception e) {
+            Log.e(TAG, "Error encoding JSON", e);
+            return null;
+        }
+    }
+    */
     public String encode(Object obj) {
         ObjectMapper mapper = new ObjectMapper();
         try {
