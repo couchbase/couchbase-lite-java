@@ -475,6 +475,12 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
             _close(handle);
             handle = 0;
         }
+
+        @Override
+        public boolean isNull(int columnIndex) {
+            // TODO: Need to implement JNI interface for this method.
+            return false;
+        }
     }
 
     /**
