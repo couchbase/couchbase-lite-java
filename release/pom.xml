@@ -23,7 +23,7 @@
         <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
 
-        <stateless4j.version> 2.4.0 </stateless4j.version>
+        <stateless4j.version> 2.5.0 </stateless4j.version>
         
         <JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
         <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
@@ -185,7 +185,7 @@
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-core/2.5.0/jackson-core-2.5.0.jar" tofile="${ZIP_HOME}/jackson-core-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar" tofile="${ZIP_HOME}/jackson-annotations-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-databind/2.5.0/jackson-databind-2.5.0.jar" tofile="${ZIP_HOME}/jackson-databind-2.5.0.jar"/>
-                                <copy file="${basedir}/m2/com/github/oxo42/stateless4j/2.4.0/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
+                                <copy file="${basedir}/m2/com/github/oxo42/stateless4j/${stateless4j.version}/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
 
                             </tasks>
                         </configuration>
