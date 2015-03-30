@@ -3,5 +3,5 @@ package com.couchbase.lite.util;
 /**
  * Created by hideki on 3/27/15.
  */
-public class LoggerImpl extends SystemLogger {
+public class SimpleLogger extends SystemLogger {
 }
