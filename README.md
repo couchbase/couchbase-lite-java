@@ -23,7 +23,7 @@ $ git submodule init && git submodule update
 	| ---------------- |:----------------:|-------------
 	| Linux            | GCC and G++      |
 	| Mac OSX          | GCC or Clang     | Install Command Line Tools for Xcode available at the [Apple Developer website](https://developer.apple.com/downloads). 
-	| Windows          | Visual C++      | Install Visual C++ 2010 and later.
+	| Windows          | Visual C++      | Install Visual Studio 2013 and later.
 
 * To setup a Linux cross complier to compile both x86 and x86_64 linux native libraries on 64 bit machine, you may setup your toolchain as below :
 
