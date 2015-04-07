@@ -23,7 +23,7 @@
         <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
 
-        <stateless4j.version> 2.5.0 </stateless4j.version>
+        <stateless4j.version> 2.4.0 </stateless4j.version>
         
         <JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
         <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
