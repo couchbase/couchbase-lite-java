@@ -58,7 +58,7 @@ If you need to see the test output to debug them, you can run `./gradlew --debug
 1. In IntelliJ project window, browse to /src/test/java/
 1. Right-click on an individual test or package and choose Run Test ..
 
-# Package the library
+# Build and Package the library
 
 ```
 $ ./gradlew distZip
