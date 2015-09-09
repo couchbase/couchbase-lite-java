@@ -8,7 +8,7 @@ To see how this fits into the overall architecture, see the [Couchbase Lite Proj
 ```
 $ git clone https://github.com/couchbase/couchbase-lite-java.git
 $ cd couchbase-lite-java
-$ git submodule init && git submodule update
+$ git submodule update --init --recursive
 ```
 
 # Build and test
