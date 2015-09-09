@@ -1,1 +1,2 @@
-include ':libraries:couchbase-lite-java-core', ':libraries:couchbase-lite-java-native'
+include ':libraries:couchbase-lite-java-core', ':libraries:couchbase-lite-java-native', ':libraries:couchbase-lite-java-forestdb'
+
