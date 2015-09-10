@@ -1,7 +1,10 @@
 package com.couchbase.test.lite;
 
+import com.couchbase.lite.Context;
+import com.couchbase.lite.JavaContext;
 import junit.framework.*;
 
+import java.io.File;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,6 +16,9 @@ import java.util.logging.Logger;
  * Reference Issue: https://github.com/couchbase/couchbase-lite-android/issues/285
  */
 public class LiteTestCaseBase extends TestCase {
+    public Context getTestContext(String dirName) {
+        return new JavaContext(dirName);
+    }
 
     @Override
     protected void setUp() throws Exception {
@@ -25,7 +31,14 @@ public class LiteTestCaseBase extends TestCase {
         }
     }
 
-    public void testLiteTestCaseSetupProperly() {
-        // Avoid No tests found Assertion Failed Error.
+    private class JavaTestContext extends JavaContext {
+        @Override
+        public File getRootDirectory() {
+            File rootDirectory = new File("couchbaselitetest");
+            if (!rootDirectory.exists()) {
+                rootDirectory.mkdir();
+            }
+            return rootDirectory;
+        }
     }
 }

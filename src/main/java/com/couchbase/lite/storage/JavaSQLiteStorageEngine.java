@@ -133,7 +133,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     private native long _open(String path);
 
     @Override
-    public synchronized boolean open(String path) {
+    public synchronized boolean open(String path, String encryptionKey) {
         this.path = path;
         connectionPool.start();
         return true;
@@ -412,6 +412,11 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     @Override
     public synchronized void close() {
         connectionPool.stop();
+    }
+
+    @Override
+    public boolean supportEncryption() {
+        return false;
     }
 
     private static class StatementCursor implements Cursor {
