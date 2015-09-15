@@ -21,3 +21,4 @@ couchbaselitetest
 
 # Test files
 *.sqlite3
+db.forest
