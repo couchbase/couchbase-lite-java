@@ -3,7 +3,7 @@ package com.couchbase.lite.java;
 import com.couchbase.lite.storage.JavaSQLiteStorageEngine;
 import com.couchbase.lite.util.Log;
 import junit.framework.TestCase;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
