@@ -41,4 +41,8 @@ public class LiteTestCaseBase extends TestCase {
             return rootDirectory;
         }
     }
+
+    public void testLiteTestCaseSetupProperly() {
+        // Avoid No tests found Assertion Failed Error.
+    }
 }
