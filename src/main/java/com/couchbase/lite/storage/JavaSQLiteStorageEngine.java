@@ -1,514 +1,289 @@
 package com.couchbase.lite.storage;
 
-import com.couchbase.lite.util.NativeUtils;
+/**
+ * Created by Pasin Suriyentrakorn.
+ *
+ * Copyright (c) 2015 Couchbase, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.couchbase.lite.database.sqlite.SQLiteDatabase;
+import com.couchbase.lite.util.Log;
+import java.util.Map;
 
 public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
-    private static final String TAG = "StorageEngine";
+    private static final boolean SUPPORT_ENCRYPTION = true;
 
-    private static final String[] CONFLICT_VALUES = new String[]
-            {"", " OR ROLLBACK ", " OR ABORT ", " OR FAIL ", " OR IGNORE ", " OR REPLACE "};
+    private SQLiteDatabase database;
 
-    private class Connection {
-        private long handle;
-        public int usageCount;
-
-        public int transactionCounter;
-        public boolean transactionSuccessful;
-        public boolean innerTransactionIsSuccessful;
-
-        public Connection() {
-            handle = _open(path);
-        }
+    public JavaSQLiteStorageEngine() {
+        // Do Nothing
     }
-
-    private final ConnectionPool connectionPool = new ConnectionPool();
-
-    private class ConnectionPool {
-        //
-        // We are implementing one primary connection for both read and write connection.
-        // This behavior is similar to the default operating mode of the Android's SQLiteDatabase.
-        // We could enhance the connection pool and the storage engine to support
-        // multiple connections for ReadOnly mode.
-        //
-        // Note that using multiple writable SQLite connection to the SQLite Database will end up
-        // with the database file locked error.
-        //
-        private final Semaphore sem = new Semaphore(1, true);
-        private Connection primaryConnection;
-        private ThreadLocal<Connection> threadLocal = new ThreadLocal<Connection>();
-        private AtomicBoolean isStart = new AtomicBoolean(false);
-
-        public void start() {
-            if (!isStart.get()) {
-                primaryConnection = new Connection();
-                isStart.set(true);
-            }
-        }
-
-        public void stop() {
-            if (isStart.get()) {
-                try {
-                    _close(primaryConnection.handle);
-                } catch (Throwable th){ }
-                primaryConnection = null;
-                isStart.set(false);
-            }
-        }
-
-        private Connection acquire() throws InterruptedException {
-            // TODO: Need to have a better way to handle Thread Interruption and
-            // make sure that the implementation is inline with Android SQLite.
-            // There is case in couch-base-lite-java-core that needs to do
-            // some more works after interrupting the thread (See ChangeTracker.stop()).
-            Thread.interrupted();
-
-            sem.acquire();
-
-            if (primaryConnection == null)
-                sem.release();
-
-            return primaryConnection;
-        }
-
-        private void release(Connection conn) {
-            sem.release();
-        }
-
-        protected Connection getConnection(boolean markUsage) {
-            if (!isStart.get()) {
-                throw new IllegalStateException("Cannot use the pool without starting the pool.");
-            }
-
-            Connection conn = threadLocal.get();
-            if (conn == null) {
-                try {
-                    conn = acquire();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
-                threadLocal.set(conn);
-            }
-
-            if (markUsage)
-                conn.usageCount++;
-
-            return conn;
-        }
-
-        public Connection getConnection() {
-            return getConnection(true);
-        }
-
-        public void releaseConnection(Connection conn) {
-            if (!isStart.get()) {
-                throw new IllegalStateException("Cannot use the pool without starting the pool.");
-            }
-
-            if (conn == null) return;
-
-            conn.usageCount--;
-
-            if (conn.usageCount == 0) {
-                threadLocal.set(null);
-                release(conn);
-            }
-        }
-    }
-
-    private String path;
-
-    static {
-        NativeUtils.loadLibrary("CouchbaseLiteJavaNative");
-    }
-
-    // Currently this is used by the native library to throw a SQLException back to Java
-    private static void throwSQLException(String msg) throws SQLException {
-        throw new SQLException(msg);
-    }
-
-    private native long _open(String path);
 
     @Override
-    public synchronized boolean open(String path, String encryptionKey) {
-        this.path = path;
-        connectionPool.start();
-        return true;
+    public boolean open(String path) throws SQLException {
+        if(database != null && database.isOpen())
+            return true;
+        try {
+            database = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.CREATE_IF_NECESSARY);
+            Log.v(Log.TAG_DATABASE, "%s: Opened Android sqlite db", this);
+        } catch(Throwable e) {
+            Log.e(Log.TAG_DATABASE, "Unable to open the SQLite database", e);
+            if (database != null)
+                database.close();
+            throw new SQLException(e);
+        }
+        return database.isOpen();
     }
-
-    private native int _getVersion(long handle);
 
     @Override
     public int getVersion() {
-        Connection connection = connectionPool.getConnection();
-
         try {
-            return _getVersion(connection.handle);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return database.getVersion();
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
-    private native void _setVersion(long handle, int version);
-
     @Override
     public void setVersion(int version) {
-        Connection connection = connectionPool.getConnection();
-
         try {
-            _setVersion(connection.handle, version);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            database.setVersion(version);
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
     @Override
     public boolean isOpen() {
-        Connection connection = connectionPool.getConnection();
-
         try {
-            return (connection.handle != 0);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return database.isOpen();
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
-
-    private native void _beginTransaction(long handle);
 
     @Override
     public void beginTransaction() {
-        Connection connection = connectionPool.getConnection();
-
-        ++connection.transactionCounter;
-
-        boolean ok = false;
         try {
-            if (connection.transactionCounter > 1) {
-                ok = true;
-                return;
-            }
-
-            connection.transactionSuccessful = true;
-            connection.innerTransactionIsSuccessful = false;
-
-            _beginTransaction(connection.handle);
-
-            ok = true;
-        } finally {
-            if (!ok) {
-                --connection.transactionCounter;
-            }
+            database.beginTransaction();
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
-    private native void _commit(long handle);
-
-    private native void _rollback(long handle);
-
     @Override
     public void endTransaction() {
-        // Getting a connection without marking a usage count
-        Connection connection = connectionPool.getConnection(false);
-
         try {
-            if (connection.innerTransactionIsSuccessful)
-                connection.innerTransactionIsSuccessful = false;
-            else
-                connection.transactionSuccessful = false;
-
-            if (connection.transactionCounter != 1)
-                return;
-
-            if (connection.transactionSuccessful)
-                _commit(connection.handle);
-            else
-                _rollback(connection.handle);
-        } finally {
-            --connection.transactionCounter;
-            connectionPool.releaseConnection(connection);
+            database.endTransaction();
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
     @Override
     public void setTransactionSuccessful() {
-        Connection connection = connectionPool.getConnection();
-
         try {
-            if (connection.innerTransactionIsSuccessful) {
-                throw new IllegalStateException(
-                        "setTransactionSuccessful() should only be called once per beginTransaction().");
-            }
-
-            connection.innerTransactionIsSuccessful = true;
-        } finally {
-            connectionPool.releaseConnection(connection);
+            database.setTransactionSuccessful();
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
-
-    private native void _execute(long handle, String sql) throws SQLException;
 
     @Override
     public void execSQL(String sql) throws SQLException {
-        Connection connection = connectionPool.getConnection();
-
         try {
-            _execute(connection.handle, sql);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            database.execSQL(sql);
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
-
-    private native void _execute(long handle, String sql, Object[] bindArgs) throws SQLException;
 
     @Override
     public void execSQL(String sql, Object[] bindArgs) throws SQLException {
-        Connection connection = connectionPool.getConnection();
-        if (connection == null)
-            return;
-
         try {
-            _execute(connection.handle, sql, bindArgs);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            database.execSQL(sql, bindArgs);
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
-
-    private native StatementCursor _query(long handle, String sql, String[] bindArgs);
 
     @Override
-    public StatementCursor rawQuery(String sql, String[] selectionArgs) {
-        Connection connection = connectionPool.getConnection();
-
+    public Cursor rawQuery(String sql, String[] selectionArgs) {
         try {
-            return _query(connection.handle, sql, selectionArgs);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return new SQLiteCursor(database.rawQuery(sql, selectionArgs));
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
-
-    private native long _insert(long handle, String sql, Object[] bindArgs);
 
     @Override
     public long insert(String table, String nullColumnHack, ContentValues values) {
-        return insertWithOnConflict(table, nullColumnHack, values, CONFLICT_NONE);
-    }
-
-    // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
-    @Override
-    public long insertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, int conflictAlgorithm) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("INSERT");
-        sql.append(CONFLICT_VALUES[conflictAlgorithm]);
-        sql.append(" INTO ");
-        sql.append(table);
-        sql.append('(');
-
-        Object[] bindArgs = null;
-        int size = (initialValues != null && initialValues.size() > 0 ? initialValues.size() : 0);
-
-        if (size > 0) {
-            bindArgs = new Object[size];
-            int i = 0;
-            for (String colName : initialValues.keySet()) {
-                sql.append((i > 0) ? "," : "");
-                sql.append(colName);
-                bindArgs[i++] = initialValues.get(colName);
-            }
-            sql.append(')');
-            sql.append(" VALUES (");
-            for (i = 0; i < size; i++) {
-                sql.append((i > 0) ? ",?" : "?");
-            }
-        } else {
-            sql.append(nullColumnHack + ") VALUES (NULL");
-        }
-        sql.append(')');
-
-        Connection connection = connectionPool.getConnection();
-
         try {
-            return _insert(connection.handle, sql.toString(), bindArgs);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return database.insert(table, nullColumnHack, toContentValues(values));
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
-    private native int _update(long handle, String sql, Object[] bindArgs);
+    @Override
+    public long insertWithOnConflict(String table, String nullColumnHack,
+                                     ContentValues initialValues, int conflictAlgorithm) {
+        try {
+            return database.insertWithOnConflict(table, nullColumnHack,
+                    toContentValues(initialValues), conflictAlgorithm);
+        } catch (Throwable e) {
+            throw new SQLException(e);
+        }
+    }
 
     @Override
     public int update(String table, ContentValues values, String whereClause, String[] whereArgs) {
-        return _updateWithOnConflict(table, values, whereClause, whereArgs, CONFLICT_NONE);
-    }
-
-    // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
-    private int _updateWithOnConflict(String table, ContentValues values, String whereClause, String[] whereArgs, int conflictAlgorithm) {
-        if (values == null || values.size() == 0) {
-            throw new IllegalArgumentException("Empty values");
-        }
-
-        StringBuilder sql = new StringBuilder(120);
-        sql.append("UPDATE ");
-        sql.append(CONFLICT_VALUES[conflictAlgorithm]);
-        sql.append(table);
-        sql.append(" SET ");
-
-        // move all bind args to one array
-        int setValuesSize = values.size();
-        int bindArgsSize = (whereArgs == null) ? setValuesSize : (setValuesSize + whereArgs.length);
-        Object[] bindArgs = new Object[bindArgsSize];
-        int i = 0;
-        for (String colName : values.keySet()) {
-            sql.append((i > 0) ? "," : "");
-            sql.append(colName);
-            bindArgs[i++] = values.get(colName);
-            sql.append("=?");
-        }
-        if (whereArgs != null) {
-            for (i = setValuesSize; i < bindArgsSize; i++) {
-                bindArgs[i] = whereArgs[i - setValuesSize];
-            }
-        }
-        if (whereClause != null && whereClause.length() > 0) {
-            sql.append(" WHERE ");
-            sql.append(whereClause);
-        }
-
-        Connection connection = connectionPool.getConnection();
-
         try {
-            return _update(connection.handle, sql.toString(), bindArgs);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return database.update(table, toContentValues(values), whereClause, whereArgs);
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
-    private native int _delete(long handle, String sql, Object[] bindArgs);
-
-    // COPY: Partially copied from android.database.sqlite.SQLiteDatabase
     @Override
     public int delete(String table, String whereClause, String[] whereArgs) {
-        StringBuilder sql = new StringBuilder(120);
-        sql.append("DELETE FROM " + table);
-
-        if (whereClause != null && whereClause.length() > 0) {
-            sql.append(" WHERE ");
-            sql.append(whereClause);
-        }
-
-        Connection connection = connectionPool.getConnection();
-
         try {
-            return _update(connection.handle, sql.toString(), whereArgs);
-        } finally {
-            connectionPool.releaseConnection(connection);
+            return database.delete(table, whereClause, whereArgs);
+        } catch (Throwable e) {
+            throw new SQLException(e);
         }
     }
 
-    private native void _close(long handle);
-
     @Override
-    public synchronized void close() {
-        connectionPool.stop();
+    public void close() {
+        try {
+            database.close();
+            Log.v(Log.TAG_DATABASE, "%s: Closed Android sqlite db", this);
+        } catch (Throwable e) {
+            throw new SQLException(e);
+        }
     }
 
-    @Override
     public boolean supportEncryption() {
-        return false;
+        return SUPPORT_ENCRYPTION;
     }
 
-    private static class StatementCursor implements Cursor {
-        private long handle = 0;
-        private boolean isAfterLast = false;
+    @Override
+    public String toString() {
+        return "AndroidSQLCipherStorageEngine{" +
+                "database=" + Integer.toHexString(System.identityHashCode(database)) +
+                "}";
+    }
 
-        public StatementCursor(long handle) {
-            this.handle = handle;
+    private com.couchbase.lite.database.ContentValues toContentValues(ContentValues values) {
+        com.couchbase.lite.database.ContentValues contentValues =
+                new com.couchbase.lite.database.ContentValues(values.size());
+        for (Map.Entry<String, Object> value : values.valueSet()) {
+            if (value.getValue() == null) {
+                contentValues.put(value.getKey(), (String) null);
+            } else if (value.getValue() instanceof String) {
+                contentValues.put(value.getKey(), (String) value.getValue());
+            } else if (value.getValue() instanceof Integer) {
+                contentValues.put(value.getKey(), (Integer) value.getValue());
+            } else if (value.getValue() instanceof Long) {
+                contentValues.put(value.getKey(), (Long) value.getValue());
+            } else if (value.getValue() instanceof Boolean) {
+                contentValues.put(value.getKey(), (Boolean) value.getValue());
+            } else if (value.getValue() instanceof byte[]) {
+                contentValues.put(value.getKey(), (byte[]) value.getValue());
+            }
         }
+        return contentValues;
+    }
 
-        private native boolean _next(long handle);
+    private class SQLiteCursor implements Cursor {
+        private com.couchbase.lite.database.cursor.Cursor cursor;
+
+        public SQLiteCursor(com.couchbase.lite.database.cursor.Cursor cursor) {
+            this.cursor = cursor;
+        }
 
         @Override
         public boolean moveToNext() {
-            boolean stepped = _next(handle);
-
-            if (!stepped) {
-                isAfterLast = true;
+            try {
+                return cursor.moveToNext();
+            } catch (Exception e) {
+                throw new SQLException(e.getMessage(), e);
             }
-
-            return stepped;
         }
 
         @Override
         public boolean isAfterLast() {
-            return isAfterLast;
+            try {
+                return cursor.isAfterLast();
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
-
-        private native String _getString(long handle, int columnIndex);
 
         @Override
         public String getString(int columnIndex) {
-            return _getString(handle, columnIndex);
+            try {
+                return cursor.getString(columnIndex);
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
-
-        private native int _getInt(long handle, int columnIndex);
 
         @Override
         public int getInt(int columnIndex) {
-            return _getInt(handle, columnIndex);
+            try {
+                return cursor.getInt(columnIndex);
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
-
-        private native long _getLong(long handle, int columnIndex);
 
         @Override
         public long getLong(int columnIndex) {
-            return _getLong(handle, columnIndex);
+            try {
+                return cursor.getLong(columnIndex);
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
-
-        private native byte[] _getBlob(long handle, int columnIndex);
 
         @Override
         public byte[] getBlob(int columnIndex) {
-            return _getBlob(handle, columnIndex);
+            try {
+                return cursor.getBlob(columnIndex);
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
-
-        private native void _close(long handle);
 
         @Override
         public void close() {
-            _close(handle);
-            handle = 0;
+            try {
+                cursor.close();
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
 
         @Override
         public boolean isNull(int columnIndex) {
-            // TODO: Need to implement JNI interface for this method.
-            return false;
+            try {
+                return cursor.isNull(columnIndex);
+            } catch (Throwable e) {
+                throw new SQLException(e);
+            }
         }
     }
-
-    /**
-     * Native method for testing JSON collator that can be called from Java Unit Testing.
-     */
-    private static native int nativeTestCollateJson(int mode, String string1, String string2);
-
-    /**
-     * Wrapper around nativeTestCollateJson.
-     */
-    public static int testCollateJSON(int mode, String string1, String string2) {
-        return nativeTestCollateJson(mode, string1, string2);
-    }
-
-    /**
-     * Native method for testing RevID Collator that can be called from Java Unit Testing.
-     */
-    private static native int nativeTestCollateRevIds(String string1, String string2);
-
-    /**
-     * Wrapper around nativeTestCollateRevIds.
-     */
-    public static int testCollateRevIds(String string1, String string2) {
-        return nativeTestCollateRevIds(string1, string2);
-    }
 }
+

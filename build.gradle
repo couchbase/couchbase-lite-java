@@ -2,8 +2,9 @@ apply plugin: 'java'
 apply plugin: 'java-library-distribution'
 apply plugin: 'maven'
 
-// This property value is for couchbase-lite-java-forestdb
-ext.spec = "java"
+if (!hasProperty("spec")) {
+    project.ext.spec = "java"
+} 
 
 version = System.getenv("MAVEN_UPLOAD_VERSION")
 
@@ -35,12 +36,12 @@ dependencies {
             'com.couchbase.lite:couchbase-lite-java-core:' + version
 
     compile buildAgainstMavenArtifacts == null ?
-            project(':libraries:couchbase-lite-java-native') :
-            'com.couchbase.lite:couchbase-lite-java-native:' + version
-
-    compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-forestdb') :
             'com.couchbase.lite:couchbase-lite-java-forestdb:' + version
+
+    compile buildAgainstMavenArtifacts == null ?
+            project(':libraries:couchbase-lite-java-sqlcipher') :
+            'com.couchbase.lite:couchbase-lite-java-sqlcipher:' + version
 }
 
 task sourcesJar(type: Jar) {
@@ -119,6 +120,5 @@ task copyAndroidAssets(type: Copy, dependsOn: deleteBrokenTests) {
     from "../couchbase-lite-android/src/androidTest/assets"
     into 'src/test/resources/assets'
 }
-
 
 test.dependsOn(copyAndroidAssets)
