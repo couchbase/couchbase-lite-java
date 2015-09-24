@@ -36,7 +36,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         try {
             database = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.CREATE_IF_NECESSARY);
             Log.v(Log.TAG_DATABASE, "%s: Opened Android sqlite db", this);
-        } catch(Throwable e) {
+        } catch(com.couchbase.lite.database.SQLException e) {
             Log.e(Log.TAG_DATABASE, "Unable to open the SQLite database", e);
             if (database != null)
                 database.close();
@@ -79,7 +79,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     public void execSQL(String sql) throws SQLException {
         try {
             database.execSQL(sql);
-        } catch (Exception e) {
+        } catch (com.couchbase.lite.database.SQLException e) {
             throw new SQLException(e);
         }
     }
@@ -88,7 +88,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     public void execSQL(String sql, Object[] bindArgs) throws SQLException {
         try {
             database.execSQL(sql, bindArgs);
-        } catch (Exception e) {
+        } catch (com.couchbase.lite.database.SQLException e) {
             throw new SQLException(e);
         }
     }
@@ -101,6 +101,15 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
     @Override
     public long insert(String table, String nullColumnHack, ContentValues values) {
         return database.insert(table, nullColumnHack, toContentValues(values));
+    }
+
+    @Override
+    public long insertOrThrow(String table, String nullColumnHack, ContentValues values) throws SQLException {
+        try {
+            return database.insertOrThrow(table, nullColumnHack, toContentValues(values));
+        } catch (com.couchbase.lite.database.SQLException e) {
+            throw new SQLException(e);
+        }
     }
 
     @Override
