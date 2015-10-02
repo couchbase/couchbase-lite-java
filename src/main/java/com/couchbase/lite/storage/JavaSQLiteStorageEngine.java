@@ -1,5 +1,3 @@
-package com.couchbase.lite.storage;
-
 /**
  * Created by Pasin Suriyentrakorn.
  *
@@ -15,6 +13,8 @@ package com.couchbase.lite.storage;
  * either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
+
+package com.couchbase.lite.storage;
 
 import com.couchbase.lite.database.sqlite.SQLiteDatabase;
 import com.couchbase.lite.util.Log;

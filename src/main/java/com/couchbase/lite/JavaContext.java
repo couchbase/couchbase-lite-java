@@ -14,7 +14,6 @@ import java.io.File;
  * infrastructure.
  */
 public class JavaContext implements Context {
-
     private String subdir;
 
     public JavaContext(String subdir) {
@@ -28,6 +27,11 @@ public class JavaContext implements Context {
     @Override
     public File getFilesDir() {
         return new File(getRootDirectory(), subdir);
+    }
+
+    @Override
+    public File getTempDir() {
+        return new File(System.getProperty("java.io.tmpdir"));
     }
 
     @Override
@@ -47,10 +51,7 @@ public class JavaContext implements Context {
 
     public File getRootDirectory() {
         String rootDirectoryPath = System.getProperty("user.dir");
-        File rootDirectory = new File(rootDirectoryPath);
-        rootDirectory = new File(rootDirectory, "data/data/com.couchbase.lite.test/files");
-
-        return rootDirectory;
+        return new File(rootDirectoryPath, "data/data/com.couchbase.lite.test/files");
     }
 
     class FakeNetworkReachabilityManager extends NetworkReachabilityManager {
@@ -64,5 +65,4 @@ public class JavaContext implements Context {
 
         }
     }
-
 }
