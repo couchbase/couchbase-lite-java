@@ -22,8 +22,8 @@ $ git submodule update --init --recursive
 	| Operating System | Tool Chain       | Notes
 	| ---------------- |:----------------:|-------------
 	| Linux            | GCC and G++      |
-	| Mac OSX          | GCC or Clang     | Install Command Line Tools for Xcode available at the [Apple Developer website](https://developer.apple.com/downloads). 
-	| Windows          | Visual C++      | Install Visual Studio 2013 and later.
+	| Mac OSX          | GCC or Clang     |
+	| Windows          | Visual C++       | Install Visual Studio 2013. (Visual Studio 2015 is not supported yet)
 
 * To setup a Linux cross complier to compile both x86 and x86_64 linux native libraries on 64 bit machine, you may setup your toolchain as below :
 
@@ -47,14 +47,7 @@ If you need to see the test output to debug them, you can run `./gradlew --debug
 
 1. Build on command line - run `$ ./gradlew build`
 1. Clone Couchbase-lite-android project<br>`$ git clone https://github.com/couchbase/couchbase-lite-android.git` at the same folder where the couchbase-lite-java is located (parent folder of couchbase-lite-java).
-1. Open IntelliJ and import project
-1. Add couchbase-lite-java-native library dependency
-    1. Go to File / Project Structure / Modules
-    1. Select couchbase-lite-java
-    1. Select dependencies
-    1. Click + button, Jars and Libraries
-    1. Select libraries/couchbase-lite-java-native/build/libs/couchbase-lite-java-native-0.0.0-463.jar
-    1. Check the Export box to the left / Click OK (not sure if this is needed)
+1. Open IntelliJ and import project by selecting settings.gradle
 1. In IntelliJ project window, browse to /src/test/java/
 1. Right-click on an individual test or package and choose Run Test ..
 
@@ -64,6 +57,3 @@ If you need to see the test output to debug them, you can run `./gradlew --debug
 $ ./gradlew distZip
 ```
 Note: The packaged file will be located at build/distributions.
-
-
-
