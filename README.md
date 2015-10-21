@@ -31,6 +31,11 @@ $ git submodule update --init --recursive
 	$ sudo apt-get install gcc-multilib
 	$ sudo apt-get install g++-multilib
 	``` 
+* Oracle Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files. This is required for Database Encryption feature to use 256 AES Bit Key. Please follow the links below to download and install the policy files:
+
+       - Java 1.6 http://www.oracle.com/technetwork/java/javase/downloads/jce-6-download-429243.html
+       - Java 1.7 http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
+       - Java 1.8 http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html
 
 ### Build and Test Steps - Command Line
 
