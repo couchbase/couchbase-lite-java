@@ -16,13 +16,12 @@
 
 package com.couchbase.lite.storage;
 
+import com.couchbase.lite.database.security.Key;
 import com.couchbase.lite.database.sqlite.SQLiteDatabase;
 import com.couchbase.lite.util.Log;
 import java.util.Map;
 
 public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
-    private static final boolean SUPPORT_ENCRYPTION = true;
-
     private SQLiteDatabase database;
 
     public JavaSQLiteStorageEngine() {
@@ -57,7 +56,7 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
 
     @Override
     public boolean isOpen() {
-        return database.isOpen();
+        return database != null && database.isOpen();
     }
 
     @Override
@@ -137,8 +136,14 @@ public class JavaSQLiteStorageEngine implements SQLiteStorageEngine {
         database.close();
     }
 
+    @Override
     public boolean supportEncryption() {
-        return SUPPORT_ENCRYPTION;
+        return true;
+    }
+
+    @Override
+    public byte[] derivePBKDF2SHA256Key(String password, byte[] salt, int rounds) {
+        return Key.derivePBKDF2SHA256Key(password, salt, rounds);
     }
 
     @Override
