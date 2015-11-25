@@ -18,7 +18,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 
 public class JavaSQLiteStorageEngineFactory implements SQLiteStorageEngineFactory {
     @Override
-    public SQLiteStorageEngine createStorageEngine(boolean enableEncryption) throws CouchbaseLiteException {
+    public SQLiteStorageEngine createStorageEngine() throws CouchbaseLiteException {
         return new JavaSQLiteStorageEngine();
     }
 }
