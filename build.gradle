@@ -17,13 +17,6 @@ repositories {
 def buildAgainstMavenArtifacts = System.getProperty("buildJavaWithArtifacts")
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-
-    // Dependencies for testing with couchbase-lite-android test suits
-    testCompile group: 'commons-io', name: 'commons-io', version: '2.0.1'
-    
-    testCompile 'com.squareup.okhttp:mockwebserver:1.2.1'
-
     compile group: 'org.json', name: 'json', version: '20090211'
 
     // Dependencies required by couchbase-lite-java-core
@@ -40,8 +33,19 @@ dependencies {
             'com.couchbase.lite:couchbase-lite-java-forestdb:' + version
 
     compile buildAgainstMavenArtifacts == null ?
-            project(':libraries:couchbase-lite-java-sqlcipher') :
-            'com.couchbase.lite:couchbase-lite-java-sqlcipher:' + version
+            project(':libraries:couchbase-lite-java-native:sqlite') :
+            'com.couchbase.lite:couchbase-lite-java-native-sqlite' + version
+
+    testCompile buildAgainstMavenArtifacts == null ?
+            project(':libraries:couchbase-lite-java-native:sqlcipher') :
+            'com.couchbase.lite:couchbase-lite-java-native-sqlcipher' + version
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+
+    // Dependencies for testing with couchbase-lite-android test suits
+    testCompile group: 'commons-io', name: 'commons-io', version: '2.0.1'
+
+    testCompile 'com.squareup.okhttp:mockwebserver:1.2.1'
 }
 
 task sourcesJar(type: Jar) {
@@ -116,9 +120,19 @@ task deleteBrokenTests(type: Delete, dependsOn: copyAndroidTests) {
     delete 'src/test/java/com/couchbase/lite/CollationTest.java', 'src/test/java/com/couchbase/lite/Base64Test.java'
 }
 
-task copyAndroidAssets(type: Copy, dependsOn: deleteBrokenTests) {
+task copyAndroidTestProperties(type: Copy, dependsOn: deleteBrokenTests) {
     from "../couchbase-lite-android/src/androidTest/assets"
     into 'src/test/resources/assets'
+    include 'test.properties'
+    filter { String line ->
+        line.startsWith('sqliteLibrary') ? 'sqliteLibrary=1' : line
+    }
+}
+
+task copyAndroidAssets(type: Copy, dependsOn: copyAndroidTestProperties) {
+    from "../couchbase-lite-android/src/androidTest/assets"
+    into 'src/test/resources/assets'
+    exclude 'test.properties'
 }
 
 test.dependsOn(copyAndroidAssets)

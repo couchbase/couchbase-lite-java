@@ -20,5 +20,6 @@ src/test/resources
 couchbaselitetest
 
 # Test files
+data/
 *.sqlite3
 db.forest
