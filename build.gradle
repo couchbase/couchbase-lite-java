@@ -29,10 +29,6 @@ dependencies {
             'com.couchbase.lite:couchbase-lite-java-core:' + version
 
     compile buildAgainstMavenArtifacts == null ?
-            project(':libraries:couchbase-lite-java-forestdb') :
-            'com.couchbase.lite:couchbase-lite-java-forestdb:' + version
-
-    compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-native:sqlite-custom') :
             'com.couchbase.lite:couchbase-lite-java-sqlite-custom' + version
 
@@ -40,11 +36,15 @@ dependencies {
             project(':libraries:couchbase-lite-java-native:sqlcipher') :
             'com.couchbase.lite:couchbase-lite-java-sqlcipher' + version
 
+    testCompile buildAgainstMavenArtifacts == null ?
+            project(':libraries:couchbase-lite-java-forestdb') :
+            'com.couchbase.lite:couchbase-lite-java-forestdb:' + version
+
     testCompile group: 'junit', name: 'junit', version: '4.11'
 
     // Dependencies for testing with couchbase-lite-android test suits
     testCompile group: 'commons-io', name: 'commons-io', version: '2.0.1'
-
+    
     testCompile 'com.squareup.okhttp:mockwebserver:1.2.1'
 }
 
