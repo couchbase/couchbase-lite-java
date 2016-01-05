@@ -5,9 +5,6 @@
     <modelVersion>4.0.0</modelVersion>
     
     <groupId>com.couchbase</groupId>
-    <!--
-    <artifactId>couchbase-lite</artifactId>
-    -->
     <artifactId>couchbase-lite-java</artifactId>
     <version>${REVISION}</version>
     <packaging>jar</packaging>
@@ -24,9 +21,9 @@
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
 
         <stateless4j.version> 2.4.0 </stateless4j.version>
-        
-        <JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
-        <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>
+
+        <!--<JAR_NATIVE>   couchbase-lite-java-native-${REVISION}.jar                         </JAR_NATIVE>
+        <JAR_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${JAR_NATIVE} </JAR_SRC_PATH>-->
         
         <!--<POM_NATIVE>   couchbase-lite-java-native-${REVISION}.pom                         </POM_NATIVE>
         <POM_SRC_PATH> ${TARGET_DIR}/couchbase-lite-java-native/${REVISION}/${POM_NATIVE} </POM_SRC_PATH>-->
@@ -54,7 +51,22 @@
     <dependencies>
         <dependency>
             <groupId>com.couchbase.lite</groupId>
-            <artifactId>couchbase-lite-java-native</artifactId>
+            <!--<artifactId>couchbase-lite-java-native</artifactId>-->
+            <artifactId>couchbase-lite-java-sqlite-custom</artifactId>
+            <type>jar</type>
+            <version>${REVISION}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.couchbase.lite</groupId>
+            <artifactId>couchbase-lite-java-sqlcipher</artifactId>
+            <type>jar</type>
+            <version>${REVISION}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.couchbase.lite</groupId>
+            <artifactId>couchbase-lite-java-forestdb</artifactId>
             <type>jar</type>
             <version>${REVISION}</version>
             <scope>compile</scope>
@@ -127,7 +139,7 @@
                         </goals>
                         <configuration>
                             <tasks>
-                                <delete file="${JAR_NATIVE}"  failonerror="true" verbose="true" />
+                                <!--<delete file="${JAR_NATIVE}"  failonerror="true" verbose="true" />-->
                                 <!--<delete file="${POM_NATIVE}"  failonerror="true" verbose="true" />-->
                                 <delete file="${JAR_JAVA_CORE}"  failonerror="true" verbose="true" />
                                 <!--<delete file="${POM_JAVA_CORE}"  failonerror="true" verbose="true" />-->
