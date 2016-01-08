@@ -14,7 +14,7 @@
         <local-m2dir>${basedir}/m2</local-m2dir>
 
         <EDITION>${EDITION}</EDITION>
-        <LICENSE_DIR>${basedir}/../build/license/couchbase-lite</LICENSE_DIR>
+        <LICENSE_DIR>${basedir}/../../build/license/couchbase-lite</LICENSE_DIR>
         <LICENSE_FILE>LICENSE_${EDITION}.txt</LICENSE_FILE>
 
         <TARGET_DIR>${local-m2dir}/com/couchbase/lite</TARGET_DIR>
@@ -181,19 +181,19 @@
                                  <!-- locally built  -->
                                  <echo message="DEBUG:::   locally built couchbase-lite JARs" />
 
-                                 <copy file="${basedir}/build/libs/couchbase-lite-java-${REVISION}.jar" tofile="${ZIP_HOME}/couchbase-lite-java-${REVISION}.jar"/>
+                                 <copy file="${basedir}/../build/libs/couchbase-lite-java-${REVISION}.jar" tofile="${ZIP_HOME}/couchbase-lite-java-${REVISION}.jar"/>
 
-                                 <copy file="${JAR_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
-                                 <!--<copy file="${POM_SRC_PATH}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />-->
+                                 <copy file="${basedir}/../libraries/couchbase-lite-java-forestdb/build/libs/couchbase-lite-java-forestdb-${REVISION}.jar" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 <copy file="${basedir}/../libraries/couchbase-lite-java-native/sqlcipher/build/libs/couchbase-lite-java-sqlcipher-${REVISION}.jar" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 <copy file="${basedir}/../libraries/couchbase-lite-java-native/sqlite-custom/build/libs/couchbase-lite-java-sqlite-custom-${REVISION}.jar" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
+                                 <!--<copy file="${basedir}/../libraries/couchbase-lite-java-native/sqlite-default/build/libs/couchbase-lite-java-sqlite-default-${REVISION}.jar" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />-->
                                  <copy file="${JAR_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
-                                 <!--<copy file="${POM_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />-->
-                                <copy file="${JAR_SRC_JAVA_CORE}" todir="${ZIP_HOME}"  preservelastmodified="true" flatten="true" verbose="true" />
 
                                 <!-- HARDCODE FOR NOW! -->
                                 <!--<copy file="${basedir}/m2/commons-lang/commons-lang/2.1/commons-lang-2.1.jar" tofile="${ZIP_HOME}/commons-lang-2.1.jar"/>-->
-                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/commons-logging-1.1.3.jar" tofile="${ZIP_HOME}/commons-logging-1.1.3.jar"/>
-                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpclient-4.0-beta1.jar" tofile="${ZIP_HOME}/httpclient-4.0-beta1.jar"/>
-                                <copy file="${basedir}/libraries/couchbase-lite-java-core/libs/httpcore-4.0-beta2.jar" tofile="${ZIP_HOME}/httpcore-4.0-beta2.jar"/>
+                                <copy file="${basedir}/../libraries/couchbase-lite-java-core/libs/commons-logging-1.1.3.jar" tofile="${ZIP_HOME}/commons-logging-1.1.3.jar"/>
+                                <copy file="${basedir}/../libraries/couchbase-lite-java-core/libs/httpclient-4.0-beta1.jar" tofile="${ZIP_HOME}/httpclient-4.0-beta1.jar"/>
+                                <copy file="${basedir}/../libraries/couchbase-lite-java-core/libs/httpcore-4.0-beta2.jar" tofile="${ZIP_HOME}/httpcore-4.0-beta2.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-core/2.5.0/jackson-core-2.5.0.jar" tofile="${ZIP_HOME}/jackson-core-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar" tofile="${ZIP_HOME}/jackson-annotations-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-databind/2.5.0/jackson-databind-2.5.0.jar" tofile="${ZIP_HOME}/jackson-databind-2.5.0.jar"/>
