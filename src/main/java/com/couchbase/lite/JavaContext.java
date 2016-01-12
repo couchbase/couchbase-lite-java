@@ -2,7 +2,6 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.storage.JavaSQLiteStorageEngineFactory;
 import com.couchbase.lite.storage.SQLiteStorageEngineFactory;
-import com.couchbase.lite.support.Version;
 
 import java.io.File;
 
@@ -65,15 +64,5 @@ public class JavaContext implements Context {
         public void stopListening() {
 
         }
-    }
-
-    @Override
-    public String getUserAgent() {
-        return String.format("CouchbaseLite/%s (Java %s/%s %s/%s)",
-                Version.SYNC_PROTOCOL_VERSION,
-                System.getProperty("os.name"),
-                System.getProperty("os.arch"),
-                Version.getVersionName(),
-                Version.getCommitHash());
     }
 }
