@@ -16,7 +16,7 @@
 
 package com.couchbase.lite.storage;
 
-import com.couchbase.lite.database.DatabasePlatformSupport;
+import com.couchbase.lite.internal.database.DatabasePlatformSupport;
 
 public class JavaSQLiteStorageEngine extends SQLiteStorageEngineBase {
     static {
