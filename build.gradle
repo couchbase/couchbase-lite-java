@@ -135,4 +135,11 @@ task copyAndroidAssets(type: Copy, dependsOn: copyAndroidTestProperties) {
     exclude 'test.properties'
 }
 
+test {
+    testLogging {
+        // Logging these events to see individual test status:
+        events "started", "passed", "skipped", "failed"
+    }
+}
+
 test.dependsOn(copyAndroidAssets)
