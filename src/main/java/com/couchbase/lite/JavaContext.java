@@ -58,12 +58,15 @@ public class JavaContext implements Context {
     class FakeNetworkReachabilityManager extends NetworkReachabilityManager {
         @Override
         public void startListening() {
-
         }
 
         @Override
         public void stopListening() {
+        }
 
+        @Override
+        public boolean isOnline() {
+            return true;
         }
     }
 
