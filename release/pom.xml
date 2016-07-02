@@ -21,8 +21,6 @@
         <ZIP_HOME>${basedir}/zip</ZIP_HOME>
 
         <stateless4j.version>2.4.0</stateless4j.version>
-        <okhttp.version>3.3.1</okhttp.version>
-        <okio.version>1.8.0</okio.version>
 
         <JAR_JAVA_CORE>couchbase-lite-java-core-${REVISION}.jar</JAR_JAVA_CORE>
         <JAR_SRC_JAVA_CORE>${TARGET_DIR}/couchbase-lite-java-core/${REVISION}/${JAR_JAVA_CORE}</JAR_SRC_JAVA_CORE>
@@ -180,8 +178,8 @@
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar" tofile="${ZIP_HOME}/jackson-annotations-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-databind/2.5.0/jackson-databind-2.5.0.jar" tofile="${ZIP_HOME}/jackson-databind-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/github/oxo42/stateless4j/${stateless4j.version}/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
-                                <copy file="${basedir}/m2/com/squareup/okhttp3/${okhttp.version}/okhttp-${okhttp.version}.jar" tofile="${ZIP_HOME}/okhttp-${okhttp.version}.jar"/>
-                                <copy file="${basedir}/m2/com/squareup/okio/${okio.version}/okio-${okio.version}.jar" tofile="${ZIP_HOME}/okio-${okio.version}.jar"/>
+                                <copy file="${basedir}/m2/com/squareup/okhttp3/okhttp/3.3.1/okhttp-3.3.1.jar" tofile="${ZIP_HOME}/okhttp-3.3.1.jar"/>
+                                <copy file="${basedir}/m2/com/squareup/okio/okio/1.8.0/okio-1.8.0.jar" tofile="${ZIP_HOME}/okio-1.8.0.jar"/>
 
                             </tasks>
                         </configuration>
