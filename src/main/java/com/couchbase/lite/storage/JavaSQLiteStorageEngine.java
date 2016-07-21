@@ -38,4 +38,10 @@ public class JavaSQLiteStorageEngine extends SQLiteStorageEngineBase {
     protected String getICUDatabasePath() {
         return null;
     }
+
+    @Override
+    protected int getWALConnectionPoolSize() {
+        // For CBL Java, SQLite Connection Pool size for Write-Ahead Log is 4.
+        return 4;
+    }
 }
