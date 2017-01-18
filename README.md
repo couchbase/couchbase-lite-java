@@ -23,7 +23,7 @@ $ git submodule update --init --recursive
 	| ---------------- |:----------------:|-------------
 	| Linux            | GCC and G++      |
 	| Mac OSX          | GCC or Clang     |
-	| Windows          | Visual C++       | Install Visual Studio 2013. (Visual Studio 2015 is not supported yet)
+	| Windows          | Visual C++       | Install Visual Studio 2015.
 
 * To setup a Linux cross complier to compile both x86 and x86_64 linux native libraries on 64 bit machine, you may setup your toolchain as below :
 
