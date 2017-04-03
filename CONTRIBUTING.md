@@ -4,6 +4,8 @@ We also want to hear about your ideas for new features and improvements. You can
 
 And while we welcome questions, **we prefer to answer questions on our [mailing list](https://groups.google.com/forum/?fromgroups#!forum/mobile-couchbase)** rather than in Github issues.
 
+All posts are expected to meet the [Couchbase Code of Conduct](https://www.couchbase.com/code-of-conduct). 
+
 # 1. Is This A Duplicate?
 
 It's great if you can scan the open issues to see if your problem/idea has been reported already. If so, feel free to add any new details or just a note that you hit this too. But if you're in a hurry, go ahead and skip this step -- we'd rather get duplicate reports than miss an issue!
