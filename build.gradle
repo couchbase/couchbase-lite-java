@@ -29,6 +29,8 @@ dependencies {
             project(':libraries:couchbase-lite-java-native:sqlite-custom') :
             'com.couchbase.lite:couchbase-lite-java-sqlite-custom' + version
 
+    compile 'org.bouncycastle:bcprov-jdk15on:1.50'
+
     testCompile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-native:sqlcipher') :
             'com.couchbase.lite:couchbase-lite-java-sqlcipher' + version
