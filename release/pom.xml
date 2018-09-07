@@ -178,8 +178,9 @@
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar" tofile="${ZIP_HOME}/jackson-annotations-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/fasterxml/jackson/core/jackson-databind/2.5.0/jackson-databind-2.5.0.jar" tofile="${ZIP_HOME}/jackson-databind-2.5.0.jar"/>
                                 <copy file="${basedir}/m2/com/github/oxo42/stateless4j/${stateless4j.version}/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
-                                <copy file="${basedir}/m2/com/squareup/okhttp3/okhttp/3.3.1/okhttp-3.3.1.jar" tofile="${ZIP_HOME}/okhttp-3.3.1.jar"/>
-                                <copy file="${basedir}/m2/com/squareup/okio/okio/1.8.0/okio-1.8.0.jar" tofile="${ZIP_HOME}/okio-1.8.0.jar"/>
+                                <copy file="${basedir}/m2/com/squareup/okhttp3/okhttp/3.11.0/okhttp-3.11.0.jar" tofile="${ZIP_HOME}/okhttp-3.11.0.jar"/>
+                                <copy file="${basedir}/m2/com/squareup/okio/okio/1.14.0/okio-1.14.0.jar" tofile="${ZIP_HOME}/okio-1.14.0.jar"/>
+                                <copy file="${basedir}/m2/org/bouncycastle/bcprov-jdk15on/1.50/bcprov-jdk15on-1.50" tofile="${ZIP_HOME}/bcprov-jdk15on-1.50.jar"/>
 
                             </tasks>
                         </configuration>

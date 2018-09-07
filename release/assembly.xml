@@ -59,12 +59,17 @@
             <filtered>false</filtered>
         </file>
         <file>
-            <source>${ZIP_HOME}/okhttp-3.3.1.jar</source>
+            <source>${ZIP_HOME}/okhttp-3.11.0.jar</source>
             <outputDirectory>/</outputDirectory>
             <filtered>false</filtered>
         </file>
         <file>
-            <source>${ZIP_HOME}/okio-1.8.0.jar</source>
+            <source>${ZIP_HOME}/okio-1.14.0.jar</source>
+            <outputDirectory>/</outputDirectory>
+            <filtered>false</filtered>
+        </file>
+        <file>
+            <source>${ZIP_HOME}/bcprov-jdk15on-1.50.jar</source>
             <outputDirectory>/</outputDirectory>
             <filtered>false</filtered>
         </file>
