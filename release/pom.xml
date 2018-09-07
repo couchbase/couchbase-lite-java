@@ -67,6 +67,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.50</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>
@@ -180,7 +186,7 @@
                                 <copy file="${basedir}/m2/com/github/oxo42/stateless4j/${stateless4j.version}/stateless4j-${stateless4j.version}.jar" tofile="${ZIP_HOME}/stateless4j-${stateless4j.version}.jar"/>
                                 <copy file="${basedir}/m2/com/squareup/okhttp3/okhttp/3.11.0/okhttp-3.11.0.jar" tofile="${ZIP_HOME}/okhttp-3.11.0.jar"/>
                                 <copy file="${basedir}/m2/com/squareup/okio/okio/1.14.0/okio-1.14.0.jar" tofile="${ZIP_HOME}/okio-1.14.0.jar"/>
-                                <copy file="${basedir}/m2/org/bouncycastle/bcprov-jdk15on/1.50/bcprov-jdk15on-1.50" tofile="${ZIP_HOME}/bcprov-jdk15on-1.50.jar"/>
+                                <copy file="${basedir}/m2/org/bouncycastle/bcprov-jdk15on/1.50/bcprov-jdk15on-1.50.jar" tofile="${ZIP_HOME}/bcprov-jdk15on-1.50.jar"/>
 
                             </tasks>
                         </configuration>
