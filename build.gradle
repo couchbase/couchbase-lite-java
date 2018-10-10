@@ -31,11 +31,11 @@ dependencies {
 
     compile 'org.bouncycastle:bcprov-jdk15on:1.50'
 
-    testCompile buildAgainstMavenArtifacts == null ?
+    compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-native:sqlcipher') :
             'com.couchbase.lite:couchbase-lite-java-sqlcipher' + version
 
-    testCompile buildAgainstMavenArtifacts == null ?
+    compile buildAgainstMavenArtifacts == null ?
             project(':libraries:couchbase-lite-java-forestdb') :
             'com.couchbase.lite:couchbase-lite-java-forestdb:' + version
 
