@@ -27,8 +27,8 @@ include (UseJava)
 
 # Android does not work with FindJNI
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    MESSAGE( STATUS "!!!!!!!CMAKE_SYSTEM_NAME: "         ${CMAKE_SYSTEM_NAME} )
-    MESSAGE( STATUS "!!!!!!!ANDROID: "         ${ANDROID} )
+    MESSAGE( STATUS "!!!!!!!CMAKE_SYSTEM_NAME: "     ${CMAKE_SYSTEM_NAME} )
+    MESSAGE( STATUS "!!!!!!!ANDROID: "               ${ANDROID} )
     find_package(JNI)
 endif()
 
@@ -128,24 +128,8 @@ add_dependencies(LiteCoreJNI JNIHeaders)
 
 add_subdirectory(${LITE_CORE_ROOT} ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    target_link_libraries(  LiteCoreJNI
-                            LiteCoreStatic
-                            LiteCoreREST_Static
-                            BLIPStatic
-                            FleeceStatic
-                            Support
-                            SQLite3_UnicodeSN
-                            CivetWeb
-                            mbedcrypto)
-    if (REST)
-        target_link_libraries(  LiteCoreJNI 
-                                LiteCoreREST_Static)
-    endif()
-else()
-    
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     #find_library(log-lib log)
-
     target_link_libraries(  LiteCoreJNI
                             LiteCoreStatic
                             BLIPStatic
@@ -161,4 +145,18 @@ else()
         target_link_libraries(  LiteCoreJNI 
                                 LiteCoreREST_Static)
     endif()
+else()
+    target_link_libraries(  LiteCoreJNI
+                            LiteCoreStatic
+                            BLIPStatic
+                            FleeceStatic
+                            Support
+                            SQLite3_UnicodeSN
+                            CivetWeb
+                            mbedcrypto)
+    if (REST)
+        target_link_libraries(  LiteCoreJNI 
+                                LiteCoreREST_Static)
+    endif()
 endif()
+
