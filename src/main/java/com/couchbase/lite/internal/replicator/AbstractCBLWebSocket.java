@@ -77,6 +77,16 @@ import com.couchbase.lite.internal.support.Log;
 public class AbstractCBLWebSocket extends C4Socket {
     private static final LogDomain TAG = LogDomain.NETWORK;
 
+    private static final OkHttpClient baseHttpClient = new OkHttpClient.Builder()
+        // timeouts
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        // redirection
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build();
+
     /**
      * Workaround to enable both TLS1.1 and TLS1.2 for Android API 16 - 19.
      * When starting to support from API 20, we could remove the workaround.
@@ -312,15 +322,7 @@ public class AbstractCBLWebSocket extends C4Socket {
     }
 
     private OkHttpClient setupOkHttpClient() throws GeneralSecurityException {
-        final OkHttpClient.Builder builder = new OkHttpClient.Builder();
-
-        // timeouts
-        builder.connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS);
-
-        // redirection
-        builder.followRedirects(true).followSslRedirects(true);
+        final OkHttpClient.Builder builder = baseHttpClient.newBuilder();
 
         // authenticator
         final Authenticator authenticator = setupAuthenticator();
