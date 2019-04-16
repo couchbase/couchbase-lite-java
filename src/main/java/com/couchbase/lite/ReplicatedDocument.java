@@ -47,11 +47,11 @@ public final class ReplicatedDocument {
         this.error = error;
 
         documentFlags = EnumSet.noneOf(DocumentFlag.class);
-        if ((flags & C4Constants.C4RevisionFlags.kRevDeleted) == C4Constants.C4RevisionFlags.kRevDeleted) {
+        if ((flags & C4Constants.RevisionFlags.DELETED) == C4Constants.RevisionFlags.DELETED) {
             documentFlags.add(DocumentFlag.DocumentFlagsDeleted);
         }
 
-        if ((flags & C4Constants.C4RevisionFlags.kRevPurged) == C4Constants.C4RevisionFlags.kRevPurged) {
+        if ((flags & C4Constants.RevisionFlags.PURGED) == C4Constants.RevisionFlags.PURGED) {
             documentFlags.add(DocumentFlag.DocumentFlagsAccessRemoved);
         }
     }

@@ -29,15 +29,21 @@ import com.couchbase.lite.internal.fleece.MValue;
 import com.couchbase.lite.internal.utils.DateUtils;
 
 
-final class Fleece implements FLConstants.FLValueType {
-    private static final String LIST_OF_SUPPORTED_TYPES
+final class Fleece {
+    private static final String SUPPORTED_TYPES
         = "MutableDictionary, Dictionary, MutableArray, Array, Map, List, Date, String, Number, Boolean, Blob or null";
 
     static boolean valueWouldChange(Object newValue, MValue oldValue, MCollection container) {
         // As a simplification we assume that array and dict values are always different, to avoid
         // a possibly expensive comparison.
-        final int oldType = oldValue.getValue() != null ? oldValue.getValue().getType() : kFLUndefined;
-        if (oldType == kFLUndefined || oldType == kFLDict || oldType == kFLArray) { return true; }
+        final int oldType = oldValue.getValue() != null
+            ? oldValue.getValue().getType()
+            : FLConstants.ValueType.UNDEFINED;
+        if (oldType == FLConstants.ValueType.UNDEFINED
+            || oldType == FLConstants.ValueType.DICT
+            || oldType == FLConstants.ValueType.ARRAY) {
+            return true;
+        }
 
         if (newValue instanceof Array || newValue instanceof Dictionary) { return true; }
         else {
@@ -79,7 +85,7 @@ final class Fleece implements FLConstants.FLValueType {
                     Locale.ENGLISH,
                     "%s is not a valid type. You may only pass %s.",
                     value.getClass().getSimpleName(),
-                    LIST_OF_SUPPORTED_TYPES));
+                    SUPPORTED_TYPES));
             }
         }
         return value;

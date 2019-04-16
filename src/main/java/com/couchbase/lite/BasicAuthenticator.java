@@ -70,9 +70,9 @@ public final class BasicAuthenticator extends Authenticator {
     @Override
     void authenticate(Map<String, Object> options) {
         final Map<String, Object> auth = new HashMap<>();
-        auth.put(ReplicatorConfiguration.kC4ReplicatorAuthType, ReplicatorConfiguration.kC4AuthTypeBasic);
-        auth.put(ReplicatorConfiguration.kCBLReplicatorAuthUserName, username);
-        auth.put(ReplicatorConfiguration.kCBLReplicatorAuthPassword, password);
-        options.put(ReplicatorConfiguration.kCBLReplicatorAuthOption, auth);
+        auth.put(AbstractReplicatorConfiguration.REPLICATOR_AUTH_TYPE, AbstractReplicatorConfiguration.AUTH_TYPE_BASIC);
+        auth.put(AbstractReplicatorConfiguration.REPLICATOR_AUTH_USER_NAME, username);
+        auth.put(AbstractReplicatorConfiguration.REPLICATOR_AUTH_PASSWORD, password);
+        options.put(AbstractReplicatorConfiguration.REPLICATOR_AUTH_OPTION, auth);
     }
 }

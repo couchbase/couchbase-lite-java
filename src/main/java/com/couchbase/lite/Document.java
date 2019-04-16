@@ -76,10 +76,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
             throw CBLStatus.convertException(e);
         }
 
-        if (!includeDeleted && (doc.getFlags() & C4Constants.C4DocumentFlags.kDocDeleted) != 0) {
+        if (!includeDeleted && (doc.getFlags() & C4Constants.DocumentFlags.DELETED) != 0) {
             doc.retain();
             doc.release(); // doc is not retained before set.
-            throw new CouchbaseLiteException(CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorNotFound);
+            throw new CouchbaseLiteException(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
         // NOTE: c4doc should not be null.
@@ -463,7 +463,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
                         if (e.code == 0) { break; }
                         else { throw e; }
                     }
-                    foundConflict = c4doc.isSelectedRevFlags(C4Constants.C4RevisionFlags.kRevIsConflict);
+                    foundConflict = c4doc.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
                 }
             }
             if (foundConflict) { setC4Document(c4doc); }

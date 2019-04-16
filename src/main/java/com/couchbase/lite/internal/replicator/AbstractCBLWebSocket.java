@@ -77,7 +77,7 @@ import com.couchbase.lite.internal.support.Log;
 public class AbstractCBLWebSocket extends C4Socket {
     private static final LogDomain TAG = LogDomain.NETWORK;
 
-    private static final OkHttpClient baseHttpClient = new OkHttpClient.Builder()
+    private static final OkHttpClient BASE_HTTP_CLIENT = new OkHttpClient.Builder()
         // timeouts
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -246,7 +246,7 @@ public class AbstractCBLWebSocket extends C4Socket {
             return;
         }
 
-        reverseLookupTable.put(socket, c4sock);
+        REVERSE_LOOKUP_TABLE.put(socket, c4sock);
 
         c4sock.start();
     }
@@ -322,7 +322,7 @@ public class AbstractCBLWebSocket extends C4Socket {
     }
 
     private OkHttpClient setupOkHttpClient() throws GeneralSecurityException {
-        final OkHttpClient.Builder builder = baseHttpClient.newBuilder();
+        final OkHttpClient.Builder builder = BASE_HTTP_CLIENT.newBuilder();
 
         // authenticator
         final Authenticator authenticator = setupAuthenticator();
@@ -335,12 +335,12 @@ public class AbstractCBLWebSocket extends C4Socket {
     }
 
     private Authenticator setupAuthenticator() {
-        if (options != null && options.containsKey(kC4ReplicatorOptionAuthentication)) {
+        if (options != null && options.containsKey(REPLICATOR_AUTH_USER_NAME)) {
             @SuppressWarnings("unchecked") final Map<String, Object> auth
-                = (Map<String, Object>) options.get(kC4ReplicatorOptionAuthentication);
+                = (Map<String, Object>) options.get(REPLICATOR_OPTION_AUTHENTICATION);
             if (auth != null) {
-                final String username = (String) auth.get(kC4ReplicatorAuthUserName);
-                final String password = (String) auth.get(kC4ReplicatorAuthPassword);
+                final String username = (String) auth.get(REPLICATOR_AUTH_USER_NAME);
+                final String password = (String) auth.get(REPLICATOR_AUTH_PASSWORD);
                 if (username != null && password != null) {
                     return new Authenticator() {
                         @Override
@@ -405,7 +405,7 @@ public class AbstractCBLWebSocket extends C4Socket {
         if (options != null) {
             // Extra Headers
             @SuppressWarnings("unchecked") final Map<String, Object> extraHeaders
-                = (Map<String, Object>) options.get(kC4ReplicatorOptionExtraHeaders);
+                = (Map<String, Object>) options.get(REPLICATOR_OPTION_EXTRA_HEADERS);
             if (extraHeaders != null) {
                 for (Map.Entry<String, Object> entry : extraHeaders.entrySet()) {
                     builder.header(entry.getKey(), entry.getValue().toString());
@@ -413,11 +413,11 @@ public class AbstractCBLWebSocket extends C4Socket {
             }
 
             // Cookies:
-            final String cookieString = (String) options.get(kC4ReplicatorOptionCookies);
+            final String cookieString = (String) options.get(REPLICATOR_OPTION_COOKIES);
             if (cookieString != null) { builder.addHeader("Cookie", cookieString); }
 
             // Configure WebSocket related headers:
-            final String protocols = (String) options.get(kC4SocketOptionWSProtocols);
+            final String protocols = (String) options.get(SOCKET_OPTION_WS_PROTOCOLS);
             if (protocols != null) {
                 builder.header("Sec-WebSocket-Protocol", protocols);
             }
@@ -461,12 +461,12 @@ public class AbstractCBLWebSocket extends C4Socket {
         }
 
         Log.i(TAG, "CBLWebSocket CLOSED WITH STATUS " + code + " \"" + reason + "\"");
-        closed(handle, C4Constants.C4ErrorDomain.WebSocketDomain, code, reason);
+        closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, code, reason);
     }
 
     private void didClose(Throwable error) {
         if (error == null) {
-            closed(handle, C4Constants.C4ErrorDomain.WebSocketDomain, 0, null);
+            closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
             return;
         }
 
@@ -476,8 +476,8 @@ public class AbstractCBLWebSocket extends C4Socket {
         if (error.getCause() instanceof java.security.cert.CertificateException) {
             closed(
                 handle,
-                C4Constants.C4ErrorDomain.NetworkDomain,
-                C4Constants.NetworkError.kC4NetErrTLSCertUntrusted,
+                C4Constants.ErrorDomain.NETWORK,
+                C4Constants.NetworkError.TLS_CERT_UNTRUSTED,
                 null);
             return;
         }
@@ -486,8 +486,8 @@ public class AbstractCBLWebSocket extends C4Socket {
         if (error instanceof javax.net.ssl.SSLPeerUnverifiedException) {
             closed(
                 handle,
-                C4Constants.C4ErrorDomain.NetworkDomain,
-                C4Constants.NetworkError.kC4NetErrTLSCertUntrusted,
+                C4Constants.ErrorDomain.NETWORK,
+                C4Constants.NetworkError.TLS_CERT_UNTRUSTED,
                 null);
             return;
         }
@@ -496,13 +496,13 @@ public class AbstractCBLWebSocket extends C4Socket {
         if (error instanceof UnknownHostException) {
             closed(
                 handle,
-                C4Constants.C4ErrorDomain.NetworkDomain,
-                C4Constants.NetworkError.kC4NetErrUnknownHost,
+                C4Constants.ErrorDomain.NETWORK,
+                C4Constants.NetworkError.UNKNOWN_HOST,
                 null);
             return;
         }
 
-        closed(handle, C4Constants.C4ErrorDomain.WebSocketDomain, 0, null);
+        closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
     }
 
     //-------------------------------------------------------------------------
@@ -523,8 +523,8 @@ public class AbstractCBLWebSocket extends C4Socket {
     private void setupSSLSocketFactory(OkHttpClient.Builder builder) throws GeneralSecurityException {
         boolean isPinningServerCert = false;
         X509TrustManager trustManager = null;
-        if (options != null && options.containsKey(kC4ReplicatorOptionPinnedServerCert)) {
-            final byte[] pin = (byte[]) options.get(kC4ReplicatorOptionPinnedServerCert);
+        if (options != null && options.containsKey(REPLICATOR_OPTION_PINNED_SERVER_CERT)) {
+            final byte[] pin = (byte[]) options.get(REPLICATOR_OPTION_PINNED_SERVER_CERT);
             if (pin != null) {
                 trustManager = trustManagerForCertificates(toStream(pin));
                 isPinningServerCert = true;

@@ -42,12 +42,6 @@ import org.json.JSONException;
 
 import com.couchbase.lite.internal.core.C4BlobStore;
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.internal.core.C4Constants.C4DatabaseFlags;
-import com.couchbase.lite.internal.core.C4Constants.C4DocumentVersioning;
-import com.couchbase.lite.internal.core.C4Constants.C4EncryptionAlgorithm;
-import com.couchbase.lite.internal.core.C4Constants.C4ErrorDomain;
-import com.couchbase.lite.internal.core.C4Constants.C4RevisionFlags;
-import com.couchbase.lite.internal.core.C4Constants.LiteCoreError;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DatabaseChange;
 import com.couchbase.lite.internal.core.C4DatabaseObserver;
@@ -79,11 +73,11 @@ abstract class AbstractDatabase {
      */
     @SuppressWarnings("ConstantName")
     @NonNull
-    public static final com.couchbase.lite.Log log;
+    public static final com.couchbase.lite.Log LOG;
 
     static {
         NativeLibraryLoader.load();
-        log = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
+        LOG = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
         Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING);
     }
 
@@ -97,9 +91,9 @@ abstract class AbstractDatabase {
     private static final long HOUSEKEEPING_DELAY_AFTER_OPENING = 3;
 
     private static final int DEFAULT_DATABASE_FLAGS
-        = C4DatabaseFlags.kC4DB_Create
-        | C4DatabaseFlags.kC4DB_AutoCompact
-        | C4DatabaseFlags.kC4DB_SharedKeys;
+        = C4Constants.DatabaseFlags.CREATE
+        | C4Constants.DatabaseFlags.AUTO_COMPACT
+        | C4Constants.DatabaseFlags.SHARED_KEYS;
 
     // ---------------------------------------------
     // API - public static methods
@@ -117,8 +111,8 @@ abstract class AbstractDatabase {
         if (directory == null) { throw new IllegalArgumentException("directory cannot be null."); }
         if (!exists(name, directory)) {
             throw new CouchbaseLiteException(
-                CBLError.Domain.CBLErrorDomain,
-                CBLError.Code.CBLErrorNotFound);
+                CBLError.Domain.CBLITE,
+                CBLError.Code.NOT_FOUND);
         }
 
         final File path = getDatabasePath(directory, name);
@@ -167,8 +161,8 @@ abstract class AbstractDatabase {
                 toPath,
                 DEFAULT_DATABASE_FLAGS,
                 null,
-                C4DocumentVersioning.kC4RevisionTrees,
-                C4EncryptionAlgorithm.kC4EncryptionNone,
+                C4Constants.DocumentVersioning.REVISION_TREES,
+                C4Constants.EncryptionAlgorithm.NONE,
                 null);
         }
         catch (LiteCoreException e) {
@@ -184,7 +178,7 @@ abstract class AbstractDatabase {
      * @param level  The log level
      * @deprecated As of 2.5 because it is being replaced with the
      * {@link com.couchbase.lite.Log#getConsole() getConsole} method
-     * from the {@link #log log} property.  This method has
+     * from the {@link #LOG log} property.  This method has
      * been replaced with a no-op to preserve API compatibility.
      */
     @Deprecated
@@ -248,11 +242,11 @@ abstract class AbstractDatabase {
                 Log.info(DOMAIN, CBLVersion.getUserAgent());
 
                 // Check file logging
-                if (Database.log.getFile().getConfig() == null) {
+                if (Database.LOG.getFile().getConfig() == null) {
                     Log.w(
                         DOMAIN,
                         "Database.log.getFile().getConfig() is null, meaning file logging is disabled.  "
-                        + "Log files required for product support are not being generated.");
+                            + "Log files required for product support are not being generated.");
                 }
             }
         });
@@ -442,7 +436,7 @@ abstract class AbstractDatabase {
 
         if (document.isNewDocument()) {
             throw new CouchbaseLiteException("Document doesn't exist in the database.",
-                CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorNotFound);
+                CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
         synchronized (lock) {
@@ -538,7 +532,7 @@ abstract class AbstractDatabase {
             try {
                 if (getC4Database().get(id, true) == null) {
                     throw new CouchbaseLiteException("Document doesn't exist in the database.",
-                        CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorNotFound);
+                        CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
                 }
                 final long timestamp = getC4Database().getExpiration(id);
                 return (timestamp == 0) ? null : new Date(timestamp);
@@ -694,15 +688,15 @@ abstract class AbstractDatabase {
             if (activeReplications.size() > 0) {
                 throw new CouchbaseLiteException(
                     "Cannot close the database.  Please stop all of the replicators before closing the database.",
-                    CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorBusy);
+                    CBLError.Domain.CBLITE, CBLError.Code.BUSY);
             }
 
 
             if (activeLiveQueries.size() > 0) {
                 throw new CouchbaseLiteException(
                     "Cannot close the database.  Please remove all of the query listeners before closing the database.",
-                    CBLError.Domain.CBLErrorDomain,
-                    CBLError.Code.CBLErrorBusy);
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.BUSY);
             }
 
             // cancel purge timer
@@ -734,7 +728,7 @@ abstract class AbstractDatabase {
             if (activeReplications.size() > 0) {
                 throw new CouchbaseLiteException(
                     "Cannot delete the database.  Please stop all of the replicators before closing the database.",
-                    CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorBusy);
+                    CBLError.Domain.CBLITE, CBLError.Code.BUSY);
             }
 
 
@@ -742,8 +736,8 @@ abstract class AbstractDatabase {
                 throw new CouchbaseLiteException(
                     "Cannot delete the database.  Please remove all of the query listeners before closing the "
                         + "database.",
-                    CBLError.Domain.CBLErrorDomain,
-                    CBLError.Code.CBLErrorBusy);
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.BUSY);
             }
 
             // cancel purge timer
@@ -1000,18 +994,18 @@ abstract class AbstractDatabase {
                 dbFile.getPath(),
                 databaseFlags,
                 null,
-                C4DocumentVersioning.kC4RevisionTrees,
+                C4Constants.DocumentVersioning.REVISION_TREES,
                 getEncryptionAlgorithm(),
                 getEncryptionKey());
         }
         catch (LiteCoreException e) {
-            if (e.code == CBLError.Code.CBLErrorNotADatabaseFile) {
+            if (e.code == CBLError.Code.NOT_A_DATABSE_FILE) {
                 throw new CouchbaseLiteException("The provided encryption key was incorrect.", e,
-                    CBLError.Domain.CBLErrorDomain, e.code);
+                    CBLError.Domain.CBLITE, e.code);
             }
-            else if (e.code == CBLError.Code.CBLErrorCantOpenFile) {
+            else if (e.code == CBLError.Code.CANT_OPEN_FILE) {
                 throw new CouchbaseLiteException("TUnable to create database directory.", e,
-                    CBLError.Domain.CBLErrorDomain, e.code);
+                    CBLError.Domain.CBLITE, e.code);
             }
             else { throw CBLStatus.convertException(e); }
         }
@@ -1177,7 +1171,7 @@ abstract class AbstractDatabase {
         if (document.getDatabase() == null) { document.setDatabase((Database) this); }
         else if (document.getDatabase() != this) {
             throw new CouchbaseLiteException("Cannot operate on a document from another database.",
-                CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorInvalidParameter);
+                CBLError.Domain.CBLITE, CBLError.Code.INVALID_PARAMETER);
         }
     }
 
@@ -1186,7 +1180,7 @@ abstract class AbstractDatabase {
         throws CouchbaseLiteException {
         if (deletion && !document.exists()) {
             throw new CouchbaseLiteException("Cannot delete a document that has not yet been saved.",
-                CBLError.Domain.CBLErrorDomain, CBLError.Code.CBLErrorNotFound);
+                CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
         C4Document curDoc = null;
@@ -1202,7 +1196,8 @@ abstract class AbstractDatabase {
                     commit = true;
                 }
                 catch (LiteCoreException e) {
-                    if (!(e.domain == C4ErrorDomain.LiteCoreDomain && e.code == LiteCoreError.kC4ErrorConflict)) {
+                    if (!(e.domain == C4Constants.ErrorDomain.LITE_CORE
+                        && e.code == C4Constants.LiteCoreError.CONFLICT)) {
                         throw CBLStatus.convertException(e);
                     }
                 }
@@ -1218,7 +1213,8 @@ abstract class AbstractDatabase {
                     }
                     catch (LiteCoreException e) {
                         if (deletion
-                            && e.domain == C4ErrorDomain.LiteCoreDomain && e.code == LiteCoreError.kC4ErrorNotFound) {
+                            && e.domain == C4Constants.ErrorDomain.LITE_CORE
+                            && e.code == C4Constants.LiteCoreError.NOT_FOUND) {
                             return true;
                         }
                         else { throw CBLStatus.convertException(e); }
@@ -1269,12 +1265,12 @@ abstract class AbstractDatabase {
         FLSliceResult body = null;
         try {
             int revFlags = 0;
-            if (deletion) { revFlags = C4RevisionFlags.kRevDeleted; }
+            if (deletion) { revFlags = C4Constants.RevisionFlags.DELETED; }
             if (!deletion && !document.isEmpty()) {
                 // Encode properties to Fleece data:
                 body = document.encode();
                 if (C4Document.dictContainsBlobs(body, sharedKeys.getFLSharedKeys())) {
-                    revFlags |= C4Constants.C4RevisionFlags.kRevHasAttachments;
+                    revFlags |= C4Constants.RevisionFlags.HAS_ATTACHMENTS;
                 }
             }
 
@@ -1319,7 +1315,7 @@ abstract class AbstractDatabase {
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.encode().getBuf();
                     if (mergedBody == null) { return false; }
-                    if (resolvedDoc.isDeleted()) { mergedFlags |= C4RevisionFlags.kRevDeleted; }
+                    if (resolvedDoc.isDeleted()) { mergedFlags |= C4Constants.RevisionFlags.DELETED; }
                 }
 
                 // Tell LiteCore to do the resolution:

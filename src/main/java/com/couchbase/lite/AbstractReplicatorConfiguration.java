@@ -32,39 +32,37 @@ import com.couchbase.lite.internal.core.CBLVersion;
 /**
  * Replicator configuration.
  */
+@SuppressWarnings("LineLength")
 abstract class AbstractReplicatorConfiguration {
 
     // Replicator option dictionary keys:
-    static final String kC4ReplicatorOptionExtraHeaders = "headers";  // Extra HTTP headers; string[]
-    static final String kC4ReplicatorOptionCookies = "cookies";  // HTTP Cookie header value; string
-    static final String kCBLReplicatorAuthOption = "auth";       // Auth settings; Dict
-    static final String kC4ReplicatorOptionPinnedServerCert = "pinnedCert";  // Cert or public key; data
-    static final String kC4ReplicatorOptionDocIDs = "docIDs";   // Docs to replicate; string[]
-    static final String kC4ReplicatorOptionChannels = "channels"; // SG channel names; string[]
-    static final String kC4ReplicatorOptionFilter = "filter";   // Filter name; string
-    static final String kC4ReplicatorOptionFilterParams = "filterParams";  // Filter params; Dict[string]
-    static final String kC4ReplicatorOptionSkipDeleted = "skipDeleted"; // Don't push/pull tombstones; bool
-    static final String kC4ReplicatorOptionNoConflicts = "noConflicts"; // Puller rejects conflicts; bool
-    static final String kC4ReplicatorOptionCheckpointInterval = "checkpointInterval"; // How often to checkpoint, in
-    // seconds; number
-    static final String kC4ReplicatorOptionRemoteDBUniqueID = "remoteDBUniqueID"; // How often to checkpoint, in
-    // seconds; number
-    static final String kC4ReplicatorResetCheckpoint = "reset"; // reset remote checkpoint
-    static final String kC4ReplicatorOptionProgressLevel = "progress";  //< If >=1, notify on every doc; if >=2, on
-    // every attachment (int)
+    static final String REPLICATOR_OPTION_EXTRA_HEADERS =  "headers";  // Extra HTTP headers: string[]
+    static final String REPLICATOR_OPTION_COOKIES =  "cookies";  // HTTP Cookie header value: string
+    static final String REPLICATOR_AUTH_OPTION =  "auth";       // Auth settings: Dict
+    static final String REPLICATOR_OPTION_PINNED_SERVER_CERT =  "pinnedCert";  // Cert or public key: data
+    static final String REPLICATOR_OPTION_DOC_IDS =  "docIDs";   // Docs to replicate: string[]
+    static final String REPLICATOR_OPTION_CHANNELS =  "channels"; // SG channel names: string[]
+    static final String REPLICATOR_OPTION_FILTER =  "filter";   // Filter name: string
+    static final String REPLICATOR_OPTION_FILTER_PARAMS =  "filterParams";  // Filter params: Dict[string]
+    static final String REPLICATOR_OPTION_SKIP_DELETED =  "skipDeleted"; // Don't push/pull tombstones: bool
+    static final String REPLICATOR_OPTION_NO_CONFLICTS =  "noConflicts"; // Puller rejects conflicts: bool
+    static final String REPLICATOR_OPTION_CHECKPOINT_INTERVAL =  "checkpointInterval"; // How often to checkpoint, in seconds: number
+    static final String REPLICATOR_OPTION_REMOTE_DB_UNIQUE_ID =  "remoteDBUniqueID"; // How often to checkpoint, in seconds: number
+    static final String REPLICATOR_RESET_CHECKPOINT =  "reset"; // reset remote checkpoint
+    static final String REPLICATOR_OPTION_PROGRESS_LEVEL =  "progress";  //< If >=1, notify on every doc; if >=2, on every attachment (int)
 
     // Auth dictionary keys:
-    static final String kC4ReplicatorAuthType = "type"; // Auth property; string
-    static final String kCBLReplicatorAuthUserName = "username"; // Auth property; string
-    static final String kCBLReplicatorAuthPassword = "password"; // Auth property; string
-    static final String kC4ReplicatorAuthClientCert = "clientCert"; // Auth property; value platform-dependent
+    static final String REPLICATOR_AUTH_TYPE =  "type"; // Auth propert: string
+    static final String REPLICATOR_AUTH_USER_NAME =  "username"; // Auth property: string
+    static final String REPLICATOR_AUTH_PASSWORD =  "password"; // Auth property: string
+    static final String REPLICATOR_AUTH_CLIENT_CERT =  "clientCert"; // Auth property: value platform-dependent
 
     // auth.type values:
-    static final String kC4AuthTypeBasic = "Basic"; // HTTP Basic (the default)
-    static final String kC4AuthTypeSession = "Session"; // SG session cookie
-    static final String kC4AuthTypeOpenIDConnect = "OpenID Connect";
-    static final String kC4AuthTypeFacebook = "Facebook";
-    static final String kC4AuthTypeClientCert = "Client Cert";
+    static final String AUTH_TYPE_BASIC =  "Basic"; // HTTP Basic (the default)
+    static final String AUTH_TYPE_SESSION =  "Session"; // SG session cookie
+    static final String AUTH_TYPE_OPENIDConnect =  "OpenID Connect";
+    static final String AUTH_TYPE_FACEBOOK =  "Facebook";
+    static final String AUTH_TYPE_CLIENT_CERT =  "Client Cert";
 
     /**
      * Replicator type
@@ -72,11 +70,7 @@ abstract class AbstractReplicatorConfiguration {
      * PUSH: Pushing changes to the target
      * PULL: Pulling changes from the target
      */
-    public enum ReplicatorType {
-        PUSH_AND_PULL,
-        PUSH,
-        PULL
-    }
+    public enum ReplicatorType { PUSH_AND_PULL, PUSH, PULL }
 
     //---------------------------------------------
     // member variables
@@ -375,13 +369,13 @@ abstract class AbstractReplicatorConfiguration {
         // Add the pinned certificate if any:
         if (pinnedServerCertificate != null) {
             options.put(
-                kC4ReplicatorOptionPinnedServerCert,
+                REPLICATOR_OPTION_PINNED_SERVER_CERT,
                 pinnedServerCertificate);
         }
 
-        if (documentIDs != null && documentIDs.size() > 0) { options.put(kC4ReplicatorOptionDocIDs, documentIDs); }
+        if (documentIDs != null && documentIDs.size() > 0) { options.put(REPLICATOR_OPTION_DOC_IDS, documentIDs); }
 
-        if (channels != null && channels.size() > 0) { options.put(kC4ReplicatorOptionChannels, channels); }
+        if (channels != null && channels.size() > 0) { options.put(REPLICATOR_OPTION_CHANNELS, channels); }
 
         final Map<String, Object> httpHeaders = new HashMap<>();
         // User-Agent:
@@ -394,7 +388,7 @@ abstract class AbstractReplicatorConfiguration {
                     entry.getValue());
             }
         }
-        options.put(kC4ReplicatorOptionExtraHeaders, httpHeaders);
+        options.put(REPLICATOR_OPTION_EXTRA_HEADERS, httpHeaders);
 
         return options;
     }

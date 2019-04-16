@@ -91,12 +91,12 @@ public final class SessionAuthenticator extends Authenticator {
 
     @Override
     void authenticate(Map<String, Object> options) {
-        final String current = (String) options.get(ReplicatorConfiguration.kC4ReplicatorOptionCookies);
+        final String current = (String) options.get(AbstractReplicatorConfiguration.REPLICATOR_OPTION_COOKIES);
         final StringBuffer cookieStr = current != null ? new StringBuffer(current) : new StringBuffer();
 
         if (cookieStr.length() > 0) { cookieStr.append("; "); }
         cookieStr.append(String.format(Locale.ENGLISH, "%s=%s", cookieName, sessionID));
 
-        options.put(ReplicatorConfiguration.kC4ReplicatorOptionCookies, cookieStr.toString());
+        options.put(AbstractReplicatorConfiguration.REPLICATOR_OPTION_COOKIES, cookieStr.toString());
     }
 }

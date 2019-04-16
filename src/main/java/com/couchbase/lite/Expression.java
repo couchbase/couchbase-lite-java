@@ -471,7 +471,7 @@ public abstract class Expression {
      */
     @NonNull
     public static PropertyExpression all() {
-        return new PropertyExpression(PropertyExpression.kCBLAllPropertiesName);
+        return new PropertyExpression(PropertyExpression.PROPS_ALL);
     }
 
     /**

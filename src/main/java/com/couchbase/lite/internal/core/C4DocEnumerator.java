@@ -20,7 +20,7 @@ package com.couchbase.lite.internal.core;
 import com.couchbase.lite.LiteCoreException;
 
 
-public class C4DocEnumerator implements C4Constants {
+public class C4DocEnumerator {
     static native void close(long e);
 
     //-------------------------------------------------------------------------

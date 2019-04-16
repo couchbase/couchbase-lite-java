@@ -24,15 +24,17 @@ package com.couchbase.lite.internal.core;
  * This class and its members are referenced by name, from native code.
  */
 public class C4ReplicatorStatus {
-    public interface C4ReplicatorActivityLevel {
-        int C4_STOPPED = 0;
-        int C4_OFFLINE = 1;
-        int C4_CONNECTING = 2;
-        int C4_IDLE = 3;
-        int C4_BUSY = 4;
+    public static final class ActivityLevel {
+        private ActivityLevel() {}
+
+        public static final int STOPPED = 0;
+        public static final int OFFLINE = 1;
+        public static final int CONNECTING = 2;
+        public static final int IDLE = 3;
+        public static final int BUSY = 4;
     }
 
-    private int activityLevel = -1;      // C4ReplicatorActivityLevel
+    private int activityLevel = -1;      // C4ReplicatorStatus.ActivityLevel
     private long progressUnitsCompleted = 0L; // C4Progress.unitsCompleted
     private long progressUnitsTotal = 0L;     // C4Progress.unitsTotal
     private long progressDocumentCount = 0L;     // C4Progress.documentCount
@@ -63,6 +65,17 @@ public class C4ReplicatorStatus {
         this.errorDomain = errorDomain;
         this.errorCode = errorCode;
         this.errorInternalInfo = errorInternalInfo;
+    }
+
+    public C4ReplicatorStatus copy() {
+        return new C4ReplicatorStatus(
+            activityLevel,
+            progressUnitsCompleted,
+            progressUnitsTotal,
+            progressDocumentCount,
+            errorDomain,
+            errorCode,
+            errorInternalInfo);
     }
 
     public int getActivityLevel() {
@@ -112,10 +125,5 @@ public class C4ReplicatorStatus {
             ", errorCode=" + errorCode +
             ", errorInternalInfo=" + errorInternalInfo +
             '}';
-    }
-
-    public C4ReplicatorStatus copy() {
-        return new C4ReplicatorStatus(activityLevel, progressUnitsCompleted, progressUnitsTotal,
-            progressDocumentCount, errorDomain, errorCode, errorInternalInfo);
     }
 }

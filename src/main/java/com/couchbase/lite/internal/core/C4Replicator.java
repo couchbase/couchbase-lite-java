@@ -43,10 +43,10 @@ public class C4Replicator {
     //-------------------------------------------------------------------------
     // Long: handle of C4Replicator native address
     // C4Replicator: Java class holds handle
-    private static final Map<Long, C4Replicator> reverseLookupTable
+    private static final Map<Long, C4Replicator> REVERSE_LOOKUP_TABLE
         = Collections.synchronizedMap(new HashMap<>());
 
-    private static final Map<Object, C4Replicator> contextToC4ReplicatorMap
+    private static final Map<Object, C4Replicator> CONTEXT_TO_C4_REPLICATOR_MAP
         = Collections.synchronizedMap(new HashMap<>());
 
     //-------------------------------------------------------------------------
@@ -62,7 +62,7 @@ public class C4Replicator {
     }
 
     private static void statusChangedCallback(long handle, C4ReplicatorStatus status) {
-        final C4Replicator repl = reverseLookupTable.get(handle);
+        final C4Replicator repl = REVERSE_LOOKUP_TABLE.get(handle);
         if (repl != null && repl.listener != null) {
             repl.listener.statusChanged(
                 repl,
@@ -72,7 +72,7 @@ public class C4Replicator {
     }
 
     private static void documentEndedCallback(long handle, boolean pushing, C4DocumentEnded[] documentsEnded) {
-        final C4Replicator repl = reverseLookupTable.get(handle);
+        final C4Replicator repl = REVERSE_LOOKUP_TABLE.get(handle);
         Log.d(LogDomain.REPLICATOR, "documentErrorCallback() handle -> " + handle + ", pushing -> " + pushing);
 
         if (repl != null && repl.listener != null) {
@@ -82,7 +82,7 @@ public class C4Replicator {
     }
 
     private static boolean validationFunction(String docID, int flags, long dict, boolean isPush, Object context) {
-        final C4Replicator repl = contextToC4ReplicatorMap.get(context);
+        final C4Replicator repl = CONTEXT_TO_C4_REPLICATOR_MAP.get(context);
         if (repl != null) {
             if (isPush && repl.pushFilter != null) {
                 return repl.pushFilter.validationFunction(
@@ -215,7 +215,7 @@ public class C4Replicator {
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
 
-        contextToC4ReplicatorMap.put(replicatorContext, this);
+        CONTEXT_TO_C4_REPLICATOR_MAP.put(replicatorContext, this);
 
         handle = create(db, schema, host, port, path, remoteDatabaseName,
             otherLocalDB,
@@ -227,7 +227,7 @@ public class C4Replicator {
             pullFilter,
             options);
 
-        reverseLookupTable.put(handle, this);
+        REVERSE_LOOKUP_TABLE.put(handle, this);
     }
 
     C4Replicator(
@@ -247,7 +247,7 @@ public class C4Replicator {
             pull,
             replicatorContext,
             options);
-        reverseLookupTable.put(handle, this);
+        REVERSE_LOOKUP_TABLE.put(handle, this);
     }
 
     // !!FIXME: There appears to be a heisenbug, here:
@@ -270,7 +270,7 @@ public class C4Replicator {
         }
 
         if (replicatorContext != null) {
-            contextToC4ReplicatorMap.remove(this.replicatorContext);
+            CONTEXT_TO_C4_REPLICATOR_MAP.remove(this.replicatorContext);
             replicatorContext = null;
         }
     }

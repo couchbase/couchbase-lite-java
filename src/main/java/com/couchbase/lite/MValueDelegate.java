@@ -28,19 +28,19 @@ import com.couchbase.lite.internal.fleece.MValue;
 
 
 /* Internal delegate class for MValue - Mutable Fleece Value */
-final class MValueDelegate implements MValue.Delegate, FLConstants.FLValueType {
+final class MValueDelegate implements MValue.Delegate {
 
     @Override
     public Object toNative(MValue mv, MCollection parent, AtomicBoolean cacheIt) {
         final FLValue value = mv.getValue();
         switch (value.getType()) {
-            case kFLArray:
+            case FLConstants.ValueType.ARRAY:
                 cacheIt.set(true);
                 return mValueToArray(mv, parent);
-            case kFLDict:
+            case FLConstants.ValueType.DICT:
                 cacheIt.set(true);
                 return mValueToDictionary(mv, parent);
-            case kFLData:
+            case FLConstants.ValueType.DATA:
                 return new Blob("application/octet-stream", value.asData());
             default:
                 return value.asObject();
@@ -66,7 +66,7 @@ final class MValueDelegate implements MValue.Delegate, FLConstants.FLValueType {
     }
 
     private Object createSpecialObjectOfType(String type, FLDict properties, DocContext context) {
-        if (Blob.kBlobType.equals(type)) { return createBlob(properties, context); }
+        if (Blob.TYPE_BLOB.equals(type)) { return createBlob(properties, context); }
         return null;
     }
 
@@ -84,7 +84,7 @@ final class MValueDelegate implements MValue.Delegate, FLConstants.FLValueType {
     private Object mValueToDictionary(MValue mv, MCollection parent) {
         final FLDict flDict = mv.getValue().asFLDict();
         final DocContext context = (DocContext) parent.getContext();
-        final FLValue flType = flDict.get(Blob.kMetaPropertyType);
+        final FLValue flType = flDict.get(Blob.META_PROP_TYPE);
         final String type = flType != null ? flType.asString() : null;
         if (type == null) {
             if (isOldAttachment(flDict)) { return createBlob(flDict, context); }

@@ -31,54 +31,62 @@ import com.couchbase.lite.Replicator;
 import com.couchbase.lite.internal.support.Log;
 
 
-@SuppressWarnings("ConstantName")
+@SuppressWarnings("LineLength")
 public abstract class C4Socket {
 
     //-------------------------------------------------------------------------
     // Constants
+    //
+    // Most of these are defined in c4Replicator.h and must agree with those definitions.
     //-------------------------------------------------------------------------
 
     public static final String WEBSOCKET_SCHEME = "ws";
     public static final String WEBSOCKET_SECURE_CONNECTION_SCHEME = "wss";
+
     // Replicator option dictionary keys:
-    public static final String kC4ReplicatorOptionExtraHeaders = "headers"; // Extra HTTP headers; string[]
-    public static final String kC4ReplicatorOptionCookies = "cookies"; // HTTP Cookie header value; string
-    public static final String kC4ReplicatorOptionAuthentication = "auth"; // Auth settings; Dict
-    public static final String kC4ReplicatorOptionPinnedServerCert = "pinnedCert"; // Cert or public key [data]
-    public static final String kC4ReplicatorOptionDocIDs = "docIDs"; // Docs to replicate; string[]
-    public static final String kC4ReplicatorOptionChannels = "channels"; // SG channel names; string[]
-    public static final String kC4ReplicatorOptionFilter = "filter"; // Filter name; string
-    public static final String kC4ReplicatorOptionFilterParams = "filterParams"; // Filter params; Dict[string]
-    public static final String kC4ReplicatorOptionSkipDeleted = "skipDeleted"; // Don't push/pull tombstones; bool
-    public static final String kC4ReplicatorOptionNoIncomingConflicts = "noIncomingConflicts"; // Reject incoming
-    // conflicts; bool
-    public static final String kC4ReplicatorOptionOutgoingConflicts = "outgoingConflicts"; // Allow creating
-    // conflicts on remote; bool
-    public static final String kC4ReplicatorCheckpointInterval = "checkpointInterval"; // How often to checkpoint, in
-    // seconds; number
-    public static final String kC4ReplicatorOptionRemoteDBUniqueID = "remoteDBUniqueID"; // Stable ID for remote db
-    // with unstable URL; string
-    public static final String kC4ReplicatorHeartbeatInterval = "heartbeat"; // Interval in secs to send a keepalive
-    // ping
-    public static final String kC4ReplicatorResetCheckpoint = "reset";     // Start over w/o checkpoint; bool
-    public static final String kC4ReplicatorOptionNoConflicts = "noConflicts"; // Puller rejects conflicts; bool
-    public static final String kC4SocketOptionWSProtocols = "WS-Protocols"; // litecore::websocket::Provider
+    public static final String REPLICATOR_OPTION_EXTRA_HEADERS = "headers"; // Extra HTTP headers: string[]
+    public static final String REPLICATOR_OPTION_COOKIES = "cookies"; // HTTP Cookie header value: string
+    public static final String REPLICATOR_OPTION_AUTHENTICATION = "auth"; // Auth settings: Dict
+    public static final String REPLICATOR_OPTION_PINNED_SERVER_CERT = "pinnedCert"; // Cert or public key: [data]
+    public static final String REPLICATOR_OPTION_DOC_IDS = "docIDs"; // Docs to replicate: string[]
+    public static final String REPLICATOR_OPTION_CHANNELS = "channels"; // SG channel names: string[]
+    public static final String REPLICATOR_OPTION_FILTER = "filter"; // Filter name: string
+    public static final String REPLICATOR_OPTION_FILTER_PARAMS = "filterParams"; // Filter params: Dict[string]
+    public static final String REPLICATOR_OPTION_SKIP_DELETED = "skipDeleted"; // Don't push/pull tombstones: bool
+    public static final String REPLICATOR_OPTION_NO_INCOMING_CONFLICTS = "noIncomingConflicts"; // Reject incoming conflicts: bool
+    public static final String REPLICATOR_OPTION_OUTGOING_CONFLICTS = "outgoingConflicts"; // Allow creating conflicts on remote: bool
+    public static final String REPLICATOR_CHECKPOINT_INTERVAL = "checkpointInterval"; // How often to checkpoint, in seconds: number
+    public static final String REPLICATOR_OPTION_REMOTE_DB_UNIQUE_ID = "remoteDBUniqueID"; // Stable ID for remote db with unstable URL: string
+    public static final String REPLICATOR_HEARTBEAT_INTERVAL = "heartbeat"; // Interval in secs to send a keepalive: ping
+    public static final String REPLICATOR_RESET_CHECKPOINT = "reset";     // Start over w/o checkpoint: bool
+    public static final String REPLICATOR_OPTION_PROGRESS_LEVEL = "progress"; // If >=1, notify on every doc; if >=2, on every attachment (int)
+    public static final String REPLICATOR_OPTION_DISABLE_DELTAS = "noDeltas";   ///< Disables delta sync: bool
+
     // Auth dictionary keys:
-    public static final String kC4ReplicatorAuthType = "type"; // Auth property; string
-    // ::kProtocolsOption
-    public static final String kC4ReplicatorAuthUserName = "username"; // Auth property; string
-    public static final String kC4ReplicatorAuthPassword = "password"; // Auth property; string
-    public static final String kC4ReplicatorAuthClientCert = "clientCert"; // Auth property; value platform-dependent
+    public static final String REPLICATOR_AUTH_TYPE = "type"; // Auth property: string::kProtocolsOption
+    public static final String REPLICATOR_AUTH_USER_NAME = "username"; // Auth property: string
+    public static final String REPLICATOR_AUTH_PASSWORD = "password"; // Auth property: string
+    public static final String REPLICATOR_AUTH_CLIENT_CERT = "clientCert"; // Auth property: value platform-dependent: auth.type values
+
     // auth.type values:
-    public static final String kC4AuthTypeBasic = "Basic"; // HTTP Basic (the default)
-    public static final String kC4AuthTypeSession = "Session"; // SG session cookie
-    public static final String kC4AuthTypeOpenIDConnect = "OpenID Connect";
-    public static final String kC4AuthTypeFacebook = "Facebook";
-    public static final String kC4AuthTypeClientCert = "Client Cert";
+    public static final String AUTH_TYPE_BASIC = "Basic"; // HTTP Basic (the default)
+    public static final String AUTH_TYPE_SESSION = "Session"; // SG session cookie
+    public static final String AUTH_TYPE_OPEN_ID_CONNECT = "OpenID Connect";
+    public static final String AUTH_TYPE_FACEBOOK = "Facebook";
+    public static final String AUTH_TYPE_CLIENT_CERT = "Client Cert";
+
+    // WebSocket protocol options (WebSocketInterface.hh)
+    public static final String SOCKET_OPTION_WS_PROTOCOLS = "WS-Protocols"; // litecore::websocket::Provider
+    public static final String SOCKET_OPTION_HEATBEAT = "heartbeat"; // litecore::websocket::Provider
+
+    /** @deprecated No longer used in core */
+    @Deprecated
+    public static final String REPLICATOR_OPTION_NO_CONFLICTS = "noConflicts"; // Puller rejects conflicts: bool
+
     // C4SocketFraming (C4SocketFactory.framing)
-    public static final int kC4WebSocketClientFraming = 0; ///< Frame as WebSocket client messages (masked)
-    public static final int kC4NoFraming = 1;              ///< No framing; use messages as-is
-    public static final int kC4WebSocketServerFraming = 2; ///< Frame as WebSocket server messages (not masked)
+    public static final int WEB_SOCKET_CLIENT_FRAMING = 0; ///< Frame as WebSocket client messages (masked)
+    public static final int NO_FRAMING = 1;                ///< No framing; use messages as-is
+    public static final int WEB_SOCKET_SERVER_FRAMING = 2; ///< Frame as WebSocket server messages (not masked)
 
     //-------------------------------------------------------------------------
     // Static Variables
@@ -87,15 +95,15 @@ public abstract class C4Socket {
     //protected static String IMPLEMENTATION_CLASS_NAME;
     // Long: handle of C4Socket native address
     // C4Socket: Java class holds handle
-    protected static final Map<Long, C4Socket> reverseLookupTable
+    protected static final Map<Long, C4Socket> REVERSE_LOOKUP_TABLE
         = Collections.synchronizedMap(new HashMap<>());
 
     // Map between SocketFactory Context and SocketFactory Class
-    public static final Map<Object, Class> socketFactory
+    public static final Map<Object, Class> SOCKET_FACTORY
         = Collections.synchronizedMap(new HashMap<>());
 
     // Map between SocketFactory Context and Replicator
-    public static final Map<Object, Replicator> socketFactoryContext
+    public static final Map<Object, Replicator> SOCKET_FACTORY_CONTEXT
         = Collections.synchronizedMap(new HashMap<>());
 
     @SuppressWarnings("unchecked")
@@ -108,7 +116,7 @@ public abstract class C4Socket {
         String path,
         byte[] optionsFleece) {
         Log.w(LogDomain.NETWORK, "C4Socket.open() socket -> " + socket);
-        final Class clazz = C4Socket.socketFactory.get(socketFactoryContext);
+        final Class clazz = C4Socket.SOCKET_FACTORY.get(socketFactoryContext);
         if (clazz == null) {
             throw new IllegalArgumentException(String
                 .format(Locale.ENGLISH, "Unknown SocketFactory UID -> %s", socketFactoryContext.toString()));
@@ -150,7 +158,7 @@ public abstract class C4Socket {
 
         Log.w(LogDomain.NETWORK, "C4Socket.write() handle -> " + handle);
 
-        final C4Socket socket = reverseLookupTable.get(handle);
+        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
         if (socket != null) { socket.send(allocatedData); }
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
@@ -164,7 +172,7 @@ public abstract class C4Socket {
     private static void close(long handle) {
         // NOTE: close(long) method should not be called.
         Log.w(LogDomain.NETWORK, "C4Socket.close() handle -> " + handle);
-        final C4Socket socket = reverseLookupTable.get(handle);
+        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
         if (socket != null) { socket.close(); }
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
@@ -176,7 +184,7 @@ public abstract class C4Socket {
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void requestClose(long handle, int status, String message) {
         Log.w(LogDomain.NETWORK, "C4Socket.requestClose() handle -> " + handle);
-        final C4Socket socket = reverseLookupTable.get(handle);
+        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
         if (socket != null) { socket.requestClose(status, message); }
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
@@ -184,7 +192,7 @@ public abstract class C4Socket {
     private static void dispose(long handle) {
         Log.w(LogDomain.NETWORK, "C4Socket.dispose() handle -> " + handle);
         // NOTE: close(long) method should not be called.
-        final C4Socket socket = reverseLookupTable.get(handle);
+        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
         if (socket == null) { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
 

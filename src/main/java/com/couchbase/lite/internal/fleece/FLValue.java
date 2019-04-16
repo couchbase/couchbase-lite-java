@@ -69,7 +69,7 @@ public class FLValue {
     }
 
     public boolean isNumber() {
-        return getType() == FLConstants.FLValueType.kFLNumber;
+        return getType() == FLConstants.ValueType.NUMBER;
     }
 
     public boolean isInteger() {
@@ -140,11 +140,11 @@ public class FLValue {
 
     public Object asObject() {
         switch (getType(handle)) {
-            case FLConstants.FLValueType.kFLNull:
+            case FLConstants.ValueType.NULL:
                 return null;
-            case FLConstants.FLValueType.kFLBoolean:
+            case FLConstants.ValueType.BOOLEAN:
                 return Boolean.valueOf(asBool());
-            case FLConstants.FLValueType.kFLNumber:
+            case FLConstants.ValueType.NUMBER:
                 if (isInteger()) {
                     if (isUnsigned()) { return Long.valueOf(asUnsigned()); }
                     return Long.valueOf(asInt());
@@ -155,13 +155,13 @@ public class FLValue {
                 else {
                     return Float.valueOf(asFloat());
                 }
-            case FLConstants.FLValueType.kFLString:
+            case FLConstants.ValueType.STRING:
                 return asString();
-            case FLConstants.FLValueType.kFLData:
+            case FLConstants.ValueType.DATA:
                 return asData();
-            case FLConstants.FLValueType.kFLArray:
+            case FLConstants.ValueType.ARRAY:
                 return asArray();
-            case FLConstants.FLValueType.kFLDict:
+            case FLConstants.ValueType.DICT:
                 return asDict();
             default:
                 return null;

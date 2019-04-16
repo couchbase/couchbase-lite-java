@@ -18,28 +18,34 @@
 package com.couchbase.lite.internal.fleece;
 
 @SuppressWarnings("ConstantName")
-public class FLConstants {
+public final class FLConstants {
+    private FLConstants() {}
+
     // Types of Fleece values. Basically JSON, with the addition of Data (raw blob).
-    public interface FLValueType {
-        int kFLUndefined = -1; // Type of a nullptr FLValue (i.e. no such value)
-        int kFLNull = 0;
-        int kFLBoolean = 1;
-        int kFLNumber = 2;
-        int kFLString = 3;
-        int kFLData = 4;
-        int kFLArray = 5;
-        int kFLDict = 6;
+    public static final class ValueType {
+        private ValueType() {}
+
+        public static final int UNDEFINED = -1; // Type of a nullptr FLValue (i.e. no such value)
+        public static final int NULL = 0;
+        public static final int BOOLEAN = 1;
+        public static final int NUMBER = 2;
+        public static final int STRING = 3;
+        public static final int DATA = 4;
+        public static final int ARRAY = 5;
+        public static final int DICT = 6;
     }
 
-    public interface FLError {
-        int NoError = 0;
-        int MemoryError = 1;        // Out of memory, or allocation failed
-        int OutOfRange = 2;        // Array index or iterator out of range
-        int InvalidData = 3;        // Bad input data (NaN, non-string key, etc.)
-        int EncodeError = 4;        // Structural error encoding (missing value, too many ends, etc.)
-        int JSONError = 5;        // Error parsing JSON
-        int UnknownValue = 6;       // Unparseable data in a Value (corrupt? Or from some distant future?)
-        int InternalError = 7;      // Something that shouldn't happen
-        int NotFound = 8;
+    public static final class Error {
+        private Error() {}
+
+        public static final int NO_ERROR = 0;
+        public static final int MEMORY_ERROR = 1;   // Out of memory, or allocation failed
+        public static final int OUT_OF_RANGE = 2;   // Array index or iterator out of range
+        public static final int INVALID_DATA = 3;   // Bad input data (NaN, non-string key, etc.)
+        public static final int ENCODE_ERROR = 4;   // Structural error encoding (missing value, too many ends, etc.)
+        public static final int JSON_ERROR = 5;     // Error parsing JSON
+        public static final int UNKNOWN_VALUE = 6;  // Unparseable data in a Value (corrupt or from a distant future?)
+        public static final int INTERNAL_ERROR = 7; // Something that shouldn't happen
+        public static final int NOT_FOUND = 8;
     }
 }

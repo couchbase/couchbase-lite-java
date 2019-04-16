@@ -27,11 +27,11 @@ import java.util.List;
  * Property expression
  */
 public final class PropertyExpression extends Expression {
-    static final String kCBLAllPropertiesName = "";
+    static final String PROPS_ALL = "";
 
     static PropertyExpression allFrom(String from) {
         // Use data source alias name as the column name if specified:
-        return new PropertyExpression(kCBLAllPropertiesName, (from != null ? from : kCBLAllPropertiesName), from);
+        return new PropertyExpression(PROPS_ALL, (from != null ? from : PROPS_ALL), from);
     }
     private final String keyPath;
     private final String fromAlias; // Data Source Alias

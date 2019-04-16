@@ -24,7 +24,7 @@ import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
 
 
-public class C4Database implements C4Constants {
+public class C4Database {
     static native long open(
         String path, int flags,
         String storageEngine, int versioning,

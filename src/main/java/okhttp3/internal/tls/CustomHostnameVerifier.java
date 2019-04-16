@@ -51,8 +51,7 @@ public final class CustomHostnameVerifier implements HostnameVerifier {
         return INSTANCE;
     }
 
-    private CustomHostnameVerifier() {
-    }
+    private CustomHostnameVerifier() { }
 
     @Override
     public boolean verify(String host, SSLSession session) {

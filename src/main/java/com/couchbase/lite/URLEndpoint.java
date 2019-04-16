@@ -30,8 +30,8 @@ public final class URLEndpoint implements Endpoint {
     //---------------------------------------------
     // Constant variables
     //---------------------------------------------
-    static final String kURLEndpointScheme = "ws";
-    static final String kURLEndpointTLSScheme = "wss";
+    static final String SCHEME_STD = "ws";
+    static final String SCHEME_TLS = "wss";
 
     //---------------------------------------------
     // Member variables
@@ -52,11 +52,11 @@ public final class URLEndpoint implements Endpoint {
         if (url == null) { throw new IllegalArgumentException("url cannot be null."); }
 
         final String scheme = url.getScheme();
-        if (!(kURLEndpointScheme.equals(scheme) || kURLEndpointTLSScheme.equals(scheme))) {
+        if (!(SCHEME_STD.equals(scheme) || SCHEME_TLS.equals(scheme))) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH,
                     "Invalid scheme for URLEndpoint url (%s); must be either %s or %s.",
-                    scheme, kURLEndpointScheme, kURLEndpointTLSScheme));
+                    scheme, SCHEME_STD, SCHEME_TLS));
         }
 
         final String userInfo = url.getUserInfo();

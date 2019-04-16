@@ -63,13 +63,13 @@ public final class Blob implements FLEncodable {
      * The sub-document property that identifies it as a special type of object.
      * For example, a blob is represented as `{"@type":"blob", "digest":"xxxx", ...}`
      */
-    private static final String kMetaPropertyDigest = "digest";
-    private static final String kMetaPropertyLength = "length";
-    private static final String kMetaPropertyContentType = "content_type";
-    private static final String kMetaPropertyData = "data";
+    private static final String PROP_DIGEST = "digest";
+    private static final String PROP_LENGTH = "length";
+    private static final String PROP_CONTENT_TYPE = "content_type";
+    private static final String META_PROP_DATA = "data";
 
-    static final String kMetaPropertyType = "@type";
-    static final String kBlobType = "blob";
+    static final String META_PROP_TYPE = "@type";
+    static final String TYPE_BLOB = "blob";
 
     static final class BlobInputStream extends InputStream {
         private C4BlobStore store;
@@ -259,7 +259,7 @@ public final class Blob implements FLEncodable {
     Blob(Database database, Map<String, Object> properties) {
         this.database = database;
         this.properties = new HashMap<>(properties);
-        this.properties.remove(kMetaPropertyType);
+        this.properties.remove(META_PROP_TYPE);
 
         // NOTE: length field might not be set if length is unknown.
         if (properties.get("length") != null && properties.get("length") instanceof Number) {
@@ -268,7 +268,7 @@ public final class Blob implements FLEncodable {
         this.blobDigest = ClassUtils.cast(properties.get("digest"), String.class);
         this.contentType = ClassUtils.cast(properties.get("content_type"), String.class);
 
-        final Object data = properties.get(kMetaPropertyData);
+        final Object data = properties.get(META_PROP_DATA);
         if (data instanceof byte[]) { this.content = (byte[]) data; }
 
         if (this.blobDigest == null && this.content == null) {
@@ -357,9 +357,9 @@ public final class Blob implements FLEncodable {
         }
         else {
             final Map<String, Object> props = new HashMap<>();
-            props.put(kMetaPropertyDigest, blobDigest);
-            props.put(kMetaPropertyLength, blobLength);
-            props.put(kMetaPropertyContentType, contentType);
+            props.put(PROP_DIGEST, blobDigest);
+            props.put(PROP_LENGTH, blobLength);
+            props.put(PROP_CONTENT_TYPE, contentType);
             return props;
         }
     }
@@ -401,12 +401,12 @@ public final class Blob implements FLEncodable {
 
     private Map<String, Object> jsonRepresentation() {
         final Map<String, Object> json = new HashMap<>(getProperties());
-        json.put(kMetaPropertyType, kBlobType);
+        json.put(META_PROP_TYPE, TYPE_BLOB);
         if (blobDigest != null) {
-            json.put(kMetaPropertyDigest, blobDigest);
+            json.put(PROP_DIGEST, blobDigest);
         }
         else {
-            json.put(kMetaPropertyData, getContent());
+            json.put(META_PROP_DATA, getContent());
         }
         return json;
     }

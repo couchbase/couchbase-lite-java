@@ -27,13 +27,14 @@ import java.util.Map;
  * A Join component representing a single JOIN clause in the query statement.
  */
 public class Join {
-    //---------------------------------------------
-    // static variables
-    //---------------------------------------------
-    private static final String kCBLInnerJoin = "INNER";
-    static final String kCBLOuterJoin = "OUTER";
-    private static final String kCBLLeftOuterJoin = "LEFT OUTER";
-    private static final String kCBLCrossJoin = "CROSS";
+    enum Type {
+        INNER("INNER"), OUTER("OUTER"), LEFT_OUTER("LEFT OUTER"), CROSS("CROSS");
+
+        private final String tag;
+        Type(@NonNull String tag) { this.tag = tag; }
+
+        public String getTag() { return tag; }
+    }
 
     /**
      * On component used for specifying join conditions.
@@ -47,7 +48,7 @@ public class Join {
         //---------------------------------------------
         // Constructors
         //---------------------------------------------
-        private On(String type, DataSource datasource) {
+        private On(Type type, DataSource datasource) {
             super(type, datasource);
         }
 
@@ -77,7 +78,7 @@ public class Join {
         @Override
         Object asJSON() {
             final Map<String, Object> json = new HashMap<>();
-            json.put("JOIN", super.type);
+            json.put("JOIN", super.type.getTag());
             json.put("ON", onExpression.asJSON());
             json.putAll(super.dataSource.asJSON());
             return json;
@@ -115,7 +116,7 @@ public class Join {
         if (datasource == null) {
             throw new IllegalArgumentException("datasource cannot be null.");
         }
-        return new On(kCBLLeftOuterJoin, datasource);
+        return new On(Type.LEFT_OUTER, datasource);
     }
 
     //---------------------------------------------
@@ -134,7 +135,7 @@ public class Join {
         if (datasource == null) {
             throw new IllegalArgumentException("datasource cannot be null.");
         }
-        return new On(kCBLLeftOuterJoin, datasource);
+        return new On(Type.LEFT_OUTER, datasource);
     }
 
     //---------------------------------------------
@@ -153,7 +154,7 @@ public class Join {
         if (datasource == null) {
             throw new IllegalArgumentException("datasource cannot be null.");
         }
-        return new On(kCBLInnerJoin, datasource);
+        return new On(Type.INNER, datasource);
     }
 
     /**
@@ -168,15 +169,15 @@ public class Join {
         if (datasource == null) {
             throw new IllegalArgumentException("datasource cannot be null.");
         }
-        return new Join(kCBLCrossJoin, datasource);
+        return new Join(Type.CROSS, datasource);
     }
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    private final String type;
+    private final Type type;
     private final DataSource dataSource;
 
-    private Join(String type, DataSource dataSource) {
+    private Join(Type type, DataSource dataSource) {
         this.type = type;
         this.dataSource = dataSource;
     }
@@ -187,7 +188,7 @@ public class Join {
 
     Object asJSON() {
         final Map<String, Object> json = new HashMap<>();
-        json.put("JOIN", type);
+        json.put("JOIN", type.getTag());
         json.putAll(dataSource.asJSON());
         return json;
     }

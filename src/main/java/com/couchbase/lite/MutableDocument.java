@@ -24,14 +24,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Document;
 
 
 /**
  * A Couchbase Lite Document. A document has key/value properties like a Map.
  */
-public final class MutableDocument extends Document implements MutableDictionaryInterface, C4Constants {
+public final class MutableDocument extends Document implements MutableDictionaryInterface {
 
     //---------------------------------------------
     // Constructors

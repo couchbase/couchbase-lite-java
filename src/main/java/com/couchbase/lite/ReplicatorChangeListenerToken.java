@@ -33,9 +33,7 @@ final class ReplicatorChangeListenerToken implements ListenerToken {
     void notify(final ReplicatorChange change) {
         getExecutor().execute(new Runnable() {
             @Override
-            public void run() {
-                listener.changed(change);
-            }
+            public void run() { listener.changed(change); }
         });
     }
 

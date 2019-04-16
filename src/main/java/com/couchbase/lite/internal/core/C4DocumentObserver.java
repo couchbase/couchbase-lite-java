@@ -29,7 +29,7 @@ public class C4DocumentObserver {
     //-------------------------------------------------------------------------
     // Long: handle of C4DatabaseObserver native address
     // C4DocumentObserver: Java class holds handle
-    private static final Map<Long, C4DocumentObserver> reverseLookupTable
+    private static final Map<Long, C4DocumentObserver> REVERSE_LOOKUP_TABLE
         = Collections.synchronizedMap(new HashMap<>());
 
     /**
@@ -40,7 +40,7 @@ public class C4DocumentObserver {
      * context ->  maintained in java layer
      */
     private static void callback(long handle, String docID, long sequence) {
-        final C4DocumentObserver obs = reverseLookupTable.get(handle);
+        final C4DocumentObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
         if (obs != null && obs.listener != null) { obs.listener.callback(obs, docID, sequence, obs.context); }
     }
 
@@ -75,7 +75,7 @@ public class C4DocumentObserver {
         this.listener = listener;
         this.context = context;
         this.handle = create(db, docID);
-        reverseLookupTable.put(handle, this);
+        REVERSE_LOOKUP_TABLE.put(handle, this);
     }
 
     //-------------------------------------------------------------------------
@@ -87,7 +87,7 @@ public class C4DocumentObserver {
     //-------------------------------------------------------------------------
     public void free() {
         if (handle != 0L) {
-            reverseLookupTable.remove(handle);
+            REVERSE_LOOKUP_TABLE.remove(handle);
             free(handle);
             handle = 0L;
         }

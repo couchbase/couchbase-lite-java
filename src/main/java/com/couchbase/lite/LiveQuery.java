@@ -33,7 +33,7 @@ final class LiveQuery implements DatabaseChangeListener {
     // static variables
     //---------------------------------------------
     private static final LogDomain DOMAIN = LogDomain.QUERY;
-    private static final long kDefaultLiveQueryUpdateInterval = 200; // 0.2sec (200ms)
+    private static final long DEFAULT_LIVE_QUERY_UPDATE_INTERVAL = 200; // 0.2sec (200ms)
 
     //---------------------------------------------
     // member variables
@@ -86,8 +86,8 @@ final class LiveQuery implements DatabaseChangeListener {
             if (!observing) { return; }
 
             // Schedule an update, respecting the updateInterval:
-            long updateDelay = lastUpdatedAt + kDefaultLiveQueryUpdateInterval - System.currentTimeMillis();
-            updateDelay = Math.max(0, Math.min(kDefaultLiveQueryUpdateInterval, updateDelay));
+            long updateDelay = lastUpdatedAt + DEFAULT_LIVE_QUERY_UPDATE_INTERVAL - System.currentTimeMillis();
+            updateDelay = Math.max(0, Math.min(DEFAULT_LIVE_QUERY_UPDATE_INTERVAL, updateDelay));
             update(updateDelay);
         }
     }

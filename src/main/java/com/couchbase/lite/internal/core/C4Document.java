@@ -23,7 +23,7 @@ import com.couchbase.lite.internal.fleece.FLSharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 
 
-public class C4Document extends RefCounted implements C4Constants {
+public class C4Document extends RefCounted {
     public static boolean dictContainsBlobs(FLSliceResult dict, FLSharedKeys sk) {
         return dictContainsBlobs(dict.getHandle(), sk.getHandle());
     }
@@ -291,19 +291,19 @@ public class C4Document extends RefCounted implements C4Constants {
 
     // helper methods for Document
     public boolean deleted() {
-        return isSelectedRevFlags(C4RevisionFlags.kRevDeleted);
+        return isSelectedRevFlags(C4Constants.RevisionFlags.DELETED);
     }
 
     public boolean accessRemoved() {
-        return isSelectedRevFlags(C4RevisionFlags.kRevPurged);
+        return isSelectedRevFlags(C4Constants.RevisionFlags.PURGED);
     }
 
     public boolean conflicted() {
-        return isFlags(C4DocumentFlags.kDocConflicted);
+        return isFlags(C4Constants.DocumentFlags.CONFLICTED);
     }
 
     public boolean exists() {
-        return isFlags(C4DocumentFlags.kDocExists);
+        return isFlags(C4Constants.DocumentFlags.EXISTS);
     }
 
     private boolean isFlags(int flag) {

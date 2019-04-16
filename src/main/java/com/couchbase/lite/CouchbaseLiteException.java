@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * A CouchbaseLiteException gets raised whenever a Couchbase Lite faces errors.
  */
-public final class CouchbaseLiteException extends Exception implements CBLError.Domain {
+public final class CouchbaseLiteException extends Exception {
     private final String domain;
     private final int code;
     private final Map<String, Object> info;
@@ -35,11 +35,8 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      *
      * @param message the detail message.
      */
-    public CouchbaseLiteException(String message) {
-        super(message);
-        this.domain = CBLErrorDomain;
-        this.code = 0;
-        this.info = null;
+    public CouchbaseLiteException(@NonNull String message) {
+        this(message, null, CBLError.Domain.CBLITE, 0, null);
     }
 
     /**
@@ -47,11 +44,8 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      *
      * @param cause the cause
      */
-    public CouchbaseLiteException(Throwable cause) {
-        super(cause);
-        this.domain = CBLErrorDomain;
-        this.code = 0;
-        this.info = null;
+    public CouchbaseLiteException(@NonNull Throwable cause) {
+        this(null, cause, CBLError.Domain.CBLITE, 0, null);
     }
 
     /**
@@ -61,11 +55,7 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      * @param code   the error code
      */
     public CouchbaseLiteException(@NonNull String domain, int code) {
-        super();
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
-        this.domain = domain;
-        this.code = code;
-        this.info = null;
+        this(null, null, domain, code, null);
     }
 
     /**
@@ -75,12 +65,8 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      * @param domain  the error domain
      * @param code    the error code
      */
-    public CouchbaseLiteException(String message, @NonNull String domain, int code) {
-        super(message);
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
-        this.domain = domain;
-        this.code = code;
-        this.info = null;
+    public CouchbaseLiteException(@NonNull String message, @NonNull String domain, int code) {
+        this(message, null, domain, code, null);
     }
 
     /**
@@ -90,12 +76,12 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      * @param code   the error code
      * @param cause  the cause
      */
-    public CouchbaseLiteException(@NonNull String domain, int code, Throwable cause) {
-        super(cause);
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
-        this.domain = domain;
-        this.code = code;
-        this.info = null;
+    public CouchbaseLiteException(@NonNull String domain, int code, @NonNull Throwable cause) {
+        this(null, cause, domain, code, null);
+    }
+
+    public CouchbaseLiteException(@NonNull String domain, int code, Map<String, Object> info) {
+        this(null, null, domain, code, info);
     }
 
     /**
@@ -106,17 +92,17 @@ public final class CouchbaseLiteException extends Exception implements CBLError.
      * @param domain  the error domain
      * @param code    the error code
      */
-    public CouchbaseLiteException(@NonNull String message, Throwable cause, String domain, int code) {
-        super(message, cause);
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
-        this.domain = domain;
-        this.code = code;
-        this.info = null;
+    public CouchbaseLiteException(@NonNull String message, @NonNull Throwable cause, @NonNull String domain, int code) {
+        this(message, cause, domain, code, null);
     }
 
-    public CouchbaseLiteException(@NonNull String domain, int code, Map<String, Object> info) {
-        super();
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
+    private CouchbaseLiteException(
+        String message,
+        Throwable cause,
+        @NonNull String domain,
+        int code,
+        Map<String, Object> info) {
+        super(message, cause);
         this.domain = domain;
         this.code = code;
         this.info = info;

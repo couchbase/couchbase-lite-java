@@ -300,14 +300,14 @@ abstract class AbstractQuery implements Query {
         for (SelectResult selectResult : this.select.getSelectResults()) {
             String name = selectResult.getColumnName();
 
-            if (name != null && name.equals(PropertyExpression.kCBLAllPropertiesName)) { name = from.getColumnName(); }
+            if (name != null && name.equals(PropertyExpression.PROPS_ALL)) { name = from.getColumnName(); }
 
             if (name == null) { name = String.format(Locale.ENGLISH, "$%d", ++provisionKeyIndex); }
             if (map.containsKey(name)) {
                 throw new CouchbaseLiteException(
                     String.format(Locale.ENGLISH, "Duplicate select result named %s", name),
-                    CBLError.Domain.CBLErrorDomain,
-                    CBLError.Code.CBLErrorInvalidQuery);
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.INVALID_QUERY);
             }
             map.put(name, index);
             index++;

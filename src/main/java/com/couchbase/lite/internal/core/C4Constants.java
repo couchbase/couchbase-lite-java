@@ -17,27 +17,32 @@
 //
 package com.couchbase.lite.internal.core;
 
-@SuppressWarnings("ConstantName")
-public interface C4Constants {
+public final class C4Constants {
+    private C4Constants() {}
+
     ////////////////////////////////////
     // c4Base.h
     ////////////////////////////////////
-    interface C4LogLevel {
-        int kC4LogDebug = 0;
-        int kC4LogVerbose = 1;
-        int kC4LogInfo = 2;
-        int kC4LogWarning = 3;
-        int kC4LogError = 4;
-        int kC4LogNone = 5;
+    public static final class LogLevel {
+        private LogLevel() {}
+
+        public static final int DEBUG = 0;
+        public static final int VERBOSE = 1;
+        public static final int INFO = 2;
+        public static final int WARNING = 3;
+        public static final int ERROR = 4;
+        public static final int NONE = 5;
     }
 
-    interface C4LogDomain {
-        String Database = "DB";
-        String Query = "Query";
-        String Sync = "Sync";
-        String WebSocket = "WS";
-        String BLIP = "BLIP";
-        String SyncBusy = "SyncBusy";
+    public static final class LogDomain {
+        private LogDomain() {}
+
+        public static final String DATABASE = "DB";
+        public static final String QUERY = "Query";
+        public static final String SYNC = "Sync";
+        public static final String WEB_SOCKET = "WS";
+        public static final String BLIP = "BLIP";
+        public static final String SYNC_BUSY = "SyncBusy";
     }
 
     ////////////////////////////////////
@@ -45,30 +50,38 @@ public interface C4Constants {
     ////////////////////////////////////
 
     // Boolean options for C4DatabaseConfig
-    interface C4DatabaseFlags {
-        int kC4DB_Create = 1;           ///< Create the file if it doesn't exist
-        int kC4DB_ReadOnly = 2;         ///< Open file read-only
-        int kC4DB_AutoCompact = 4;      ///< Enable auto-compaction
-        int kC4DB_SharedKeys = 0x10;    ///< Enable shared-keys optimization at creation time
-        int kC4DB_NoUpgrade = 0x20;     ///< Disable upgrading an older-version database
-        int kC4DB_NonObservable = 0x40; ///< Disable c4DatabaseObserver
+    public static final class DatabaseFlags {
+        private DatabaseFlags() {}
+
+        public static final int CREATE = 1;            //< Create the file if it doesn't exist
+        public static final int READ_ONLY = 2;         //< Open file read-only
+        public static final int AUTO_COMPACT = 4;      //< Enable auto-compaction
+        public static final int SHARED_KEYS = 0x10;    //< Enable shared-keys optimization at creation time
+        public static final int NO_UPGRADE = 0x20;     //< Disable upgrading an older-version database
+        public static final int NON_OBSERVABLE = 0x40; //< Disable c4DatabaseObserver
     }
 
     // Document versioning system (also determines database storage schema)
-    interface C4DocumentVersioning {
-        int kC4RevisionTrees = 0;   ///< CouchDB and Couchbase Mobile 1.x revision trees
-        int kC4VersionVectors = 1; ///< Couchbase Mobile 2.x version vectors
+    public static final class DocumentVersioning {
+        private DocumentVersioning() {}
+
+        public static final int REVISION_TREES = 0;   //< CouchDB and Couchbase Mobile 1.x revision trees
+        public static final int VERSION_VECTORS = 1;  //< Couchbase Mobile 2.x version vectors
     }
 
     // Encryption algorithms.
-    interface C4EncryptionAlgorithm {
-        int kC4EncryptionNone = 0;      ///< No encryption (default)
-        int kC4EncryptionAES256 = 1;    ///< AES with 256-bit key
+    public static final class EncryptionAlgorithm {
+        private EncryptionAlgorithm() {}
+
+        public static final int NONE = 0;      //< No encryption (default)
+        public static final int AES256 = 1;    //< AES with 256-bit key
     }
 
     // Encryption key sizes (in bytes).
-    interface C4EncryptionKeySize {
-        int kC4EncryptionKeySizeAES256 = 32;
+    public static final class EncryptionKeySize {
+        private EncryptionKeySize() {}
+
+        public static final int AES256 = 32;
     }
 
     ////////////////////////////////////
@@ -77,24 +90,28 @@ public interface C4Constants {
 
     // Flags describing a document.
     // Note: Superset of DocumentFlags
-    interface C4DocumentFlags {
-        int kDocDeleted = 0x01;        // The document's current revision is deleted.
-        int kDocConflicted = 0x02;     // The document is in conflict.
-        int kDocHasAttachments = 0x04; // One or more revisions have attachments.
-        int kDocExists = 0x1000;       // The document exists (i.e. has revisions.)
+    public static final class DocumentFlags {
+        private DocumentFlags() {}
+
+        public static final int DELETED = 0x01;         // The document's current revision is deleted.
+        public static final int CONFLICTED = 0x02;      // The document is in conflict.
+        public static final int HAS_ATTACHMENTS = 0x04; // One or more revisions have attachments.
+        public static final int EXISTS = 0x1000;        // The document exists (i.e. has revisions.)
     }
 
     // Flags that apply to a revision.
     // Note: Same as Revision::Flags
-    interface C4RevisionFlags {
-        int kRevDeleted = 0x01;        // Is this revision a deletion/tombstone?
-        int kRevLeaf = 0x02;           // Is this revision a leaf (no children?)
-        int kRevNew = 0x04;            // Has this rev been inserted since decoding?
-        int kRevHasAttachments = 0x08; // Does this rev's body contain attachments?
-        int kRevKeepBody = 0x10;       // Revision's body should not be discarded when non-leaf
-        int kRevIsConflict = 0x20;     // Unresolved conflicting revision; will never be current
-        int kRevClosed = 0x40;         // Rev is the (deleted) end of a closed conflicting branch
-        int kRevPurged = 0x80;         // Revision is purged (this flag is never stored in the db)
+    public static final class RevisionFlags {
+        private RevisionFlags() {}
+
+        public static final int DELETED = 0x01;         // Is this revision a deletion/tombstone?
+        public static final int LEAF = 0x02;            // Is this revision a leaf (no children?)
+        public static final int NEW = 0x04;             // Has this rev been inserted since decoding?
+        public static final int HAS_ATTACHMENTS = 0x08; // Does this rev's body contain attachments?
+        public static final int KEEP_BODY = 0x10;       // Revision's body should not be discarded when non-leaf
+        public static final int IS_CONFLICT = 0x20;     // Unresolved conflicting revision; will never be current
+        public static final int CLOSED = 0x40;          // Rev is the (deleted) end of a closed conflicting branch
+        public static final int PURGED = 0x80;          // Revision is purged (this flag is never stored in the db)
     }
 
     ////////////////////////////////////
@@ -102,13 +119,15 @@ public interface C4Constants {
     ////////////////////////////////////
 
     // Flags for document iteration
-    interface C4EnumeratorFlags {
-        int kC4Descending = 0x01;
-        int kC4IncludeDeleted = 0x08;
-        int kC4IncludeNonConflicted = 0x10;
-        int kC4IncludeBodies = 0x20;
+    public static final class EnumeratorFlags {
+        private EnumeratorFlags() {}
 
-        int kC4Default = kC4IncludeNonConflicted | kC4IncludeBodies;
+        public static final int DESCENDING = 0x01;
+        public static final int INCLUDE_DELETED = 0x08;
+        public static final int INCLUDE_NON_CONFLICTED = 0x10;
+        public static final int INCLUDE_BODIES = 0x20;
+
+        public static final int DEFAULT = INCLUDE_NON_CONFLICTED | INCLUDE_BODIES;
     }
 
 
@@ -117,10 +136,12 @@ public interface C4Constants {
     ////////////////////////////////////
 
     // Types of indexes.
-    interface C4IndexType {
-        int kC4ValueIndex = 0; ///< Regular index of property value
-        int kC4FullTextIndex = 1; ///< Full-text index
-        int kC4GeoIndex = 2; ///< Geospatial index of GeoJSON values (NOT YET IMPLEMENTED)
+    public static final class IndexType {
+        private IndexType() {}
+
+        public static final int VALUE = 0;     //< Regular index of property value
+        public static final int FULL_TEXT = 1; //< Full-text index
+        public static final int GEO = 2;       //< Geospatial index of GeoJSON values (NOT YET IMPLEMENTED)
     }
 
     ////////////////////////////////////
@@ -128,70 +149,76 @@ public interface C4Constants {
     ////////////////////////////////////
 
     // Error domains:
-    interface C4ErrorDomain {
-        int LiteCoreDomain = 1;     // code is a Couchbase Lite Core error code (see below)
-        int POSIXDomain = 2;        // code is an errno (errno.h)
-        int SQLiteDomain = 3;       // code is a SQLite error; see "sqlite3.h">"
-        int FleeceDomain = 4;       // code is a Fleece error; see "FleeceException.h"
-        int NetworkDomain = 5;      // code is a network error; see enum C4NetworkErrorCode, below
-        int WebSocketDomain = 6;    // code is a WebSocket close code (1000...1015) or HTTP error (300..599)
-        int kC4MaxErrorDomainPlus1 = 7;
+    public static final class ErrorDomain {
+        private ErrorDomain() {}
+
+        public static final int LITE_CORE = 1;    // Couchbase Lite Core error code (see below)
+        public static final int POSIX = 2;        // errno (errno.h)
+        public static final int SQLITE = 3;       // SQLite error; see "sqlite3.h"
+        public static final int FLEECE = 4;       // Fleece error; see "FleeceException.h"
+        public static final int NETWORK = 5;      // network error; see enum C4NetworkErrorCode, below
+        public static final int WEB_SOCKET = 6;   // WebSocket close code (1000...1015) or HTTP error (300..599)
+        public static final int MAX_ERROR_DOMAINS = WEB_SOCKET;
     }
 
     // LiteCoreDomain error codes:
-    interface LiteCoreError {
-        int kC4ErrorAssertionFailed = 1;        // Internal assertion failure
-        int kC4ErrorUnimplemented = 2;          // Oops, an unimplemented API call
-        int kC4ErrorUnsupportedEncryption = 3;  // Unsupported encryption algorithm
-        int kC4ErrorBadRevisionID = 4;          // Invalid revision ID syntax
-        int kC4ErrorCorruptRevisionData = 5;    // Revision contains corrupted/unreadable data
-        int kC4ErrorNotOpen = 6;                // Database/KeyStore/index is not open
-        int kC4ErrorNotFound = 7;               // Document not found
-        int kC4ErrorConflict = 8;               // Document update conflict
-        int kC4ErrorInvalidParameter = 9;       // Invalid function parameter or struct value
-        int kC4ErrorUnexpectedError = 10;       // Internal unexpected C++ exception
+    public static final class LiteCoreError {
+        private LiteCoreError() {}
 
-        int kC4ErrorCantOpenFile = 11;          // Database file can't be opened; may not exist
-        int kC4ErrorIOError = 12;               // File I/O error
-        int kC4ErrorMemoryError = 13;           // Memory allocation failed (out of memory?)
-        int kC4ErrorNotWriteable = 14;          // File is not writeable
-        int kC4ErrorCorruptData = 15;           // Data is corrupted
-        int kC4ErrorBusy = 16;                  // Database is busy/locked
-        int kC4ErrorNotInTransaction = 17;      // Function must be called while in a transaction
-        int kC4ErrorTransactionNotClosed = 18;  // Database can't be closed while a transaction is open
-        int kC4ErrorUnsupported = 19;           // Operation not supported in this database
-        int kC4ErrorNotADatabaseFile = 20;      // File is not a database, or encryption key is wrong
+        public static final int ASSERTION_FAILED = 1;        // Internal assertion failure
+        public static final int UNIMPLEMENTED = 2;           // Oops, an unimplemented API call
+        public static final int UNSUPPORTED_ENCRYPTION = 3;  // Unsupported encryption algorithm
+        public static final int BAD_REVISIONID = 4;          // Invalid revision ID syntax
+        public static final int CORRUPT_REVISION_DATA = 5;   // Revision contains corrupted/unreadable data
+        public static final int NOT_OPEN = 6;                // Database/KeyStore/index is not open
+        public static final int NOT_FOUND = 7;               // Document not found
+        public static final int CONFLICT = 8;                // Document update conflict
+        public static final int INVALID_PARAMETER = 9;       // Invalid function parameter or struct value
+        public static final int UNEXPECTED_ERROR = 10;       // Internal unexpected C++ exception
 
-        int kC4ErrorWrongFormat = 21;           // Database exists but not in the format/storage requested
-        int kC4ErrorCrypto = 22;                // Encryption/decryption error
-        int kC4ErrorInvalidQuery = 23;          // Invalid query
-        int kC4ErrorMissingIndex = 24;          // No such index, or query requires a nonexistent index
-        int kC4ErrorInvalidQueryParam = 25;     // Unknown query param name, or param number out of range
-        int kC4ErrorRemoteError = 26;           // Unknown error from remote server
-        int kC4ErrorDatabaseTooOld = 27;        // Database file format is older than what I can open
-        int kC4ErrorDatabaseTooNew = 28;        // Database file format is newer than what I can open
-        int kC4ErrorBadDocID = 29;              // Invalid document ID
-        int kC4ErrorCantUpgradeDatabase = 30;   // Database can't be upgraded (might be unsupported dev version)
+        public static final int CANT_OPEN_FILE = 11;         // Database file can't be opened; may not exist
+        public static final int IO_ERROR = 12;               // File I/O error
+        public static final int MEMORY_ERROR = 13;           // Memory allocation failed (out of memory?)
+        public static final int NOT_WRITEABLE = 14;          // File is not writeable
+        public static final int CORRUPT_DATA = 15;           // Data is corrupted
+        public static final int BUSY = 16;                   // Database is busy/locked
+        public static final int NOT_IN_TRANSACTION = 17;     // Function must be called while in a transaction
+        public static final int TRANSACTION_NOT_CLOSED = 18; // Database can't be closed while a transaction is open
+        public static final int UNSUPPORTED = 19;            // Operation not supported in this database
+        public static final int NOT_A_DATABSE_FILE = 20;     // File is not a database, or encryption key is wrong
 
-        int kC4NumErrorCodesPlus1 = 31;         //
+        public static final int WRONG_FORMAT = 21;           // Database exists but not in the format/storage requested
+        public static final int CRYPTO = 22;                 // Encryption/decryption error
+        public static final int INVALID_QUERY = 23;          // Invalid query
+        public static final int MISSING_INDEX = 24;          // No such index, or query requires a nonexistent index
+        public static final int INVALID_QUERY_PARAM = 25;    // Unknown query param name, or param number out of range
+        public static final int REMOTE_ERROR = 26;           // Unknown error from remote server
+        public static final int DATABASE_TOO_OLD = 27;       // Database file format is older than what I can open
+        public static final int DATABASE_TOO_NEW = 28;       // Database file format is newer than what I can open
+        public static final int BAD_DOC_ID = 29;             // Invalid document ID
+        public static final int CANT_UPGRADE_DATABASE = 30;  // Database can't be upgraded (unsupported dev version?)
+
+        public static final int MAX_ERROR_CODES = CANT_UPGRADE_DATABASE;
     }
 
     /**
      * Network error codes (higher level than POSIX, lower level than HTTP.)
      */
     // (These are identical to the internal C++ NetworkError enum values in WebSocketInterface.hh.)
-    interface NetworkError {
-        int kC4NetErrDNSFailure = 1;        // DNS lookup failed
-        int kC4NetErrUnknownHost = 2;       // DNS server doesn't know the hostname
-        int kC4NetErrTimeout = 3;
-        int kC4NetErrInvalidURL = 4;
-        int kC4NetErrTooManyRedirects = 5;
-        int kC4NetErrTLSHandshakeFailed = 6;
-        int kC4NetErrTLSCertExpired = 7;
-        int kC4NetErrTLSCertUntrusted = 8;       // Cert isn't trusted for other reason
-        int kC4NetErrTLSClientCertRequired = 9;
-        int kC4NetErrTLSClientCertRejected = 10; // 10
-        int kC4NetErrTLSCertUnknownRoot = 11;    // Self-signed cert, or unknown anchor cert
-        int kC4NetErrInvalidRedirect = 12;       // Attempted redirect to invalid replication endpoint
+    public static final class NetworkError {
+        private NetworkError() {}
+
+        public static final int DNS_FAILURE = 1;                // DNS lookup failed
+        public static final int UNKNOWN_HOST = 2;               // DNS server doesn't know the hostname
+        public static final int TIMEOUT = 3;
+        public static final int INVALIDURL = 4;
+        public static final int TOO_MANY_REDIRECTS = 5;
+        public static final int TLS_HANDSHAKE_FAILED = 6;
+        public static final int TLS_CERT_EXPIRED = 7;
+        public static final int TLS_CERT_UNTRUSTED = 8;         // Cert isn't trusted for other reason
+        public static final int TLS_CLIENT_CERT_REQUIRED = 9;
+        public static final int TLS_CLIENT_CERT_REJECTED = 10;  // 10
+        public static final int TLS_CERT_UNKNOWN_ROOT = 11;     // Self-signed cert, or unknown anchor cert
+        public static final int INVALID_REDIRECT = 12;          // Attempted redirect to invalid replication endpoint
     }
 }

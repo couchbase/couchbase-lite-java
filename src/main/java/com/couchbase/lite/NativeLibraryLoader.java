@@ -29,10 +29,10 @@ final class NativeLibraryLoader {
 
     private static final String LITECORE_JNI_LIBRARY = "LiteCoreJNI";
 
-    private static final AtomicBoolean loaded = new AtomicBoolean(false);
+    private static final AtomicBoolean LOADED = new AtomicBoolean(false);
 
     static void load() {
-        if (!loaded.getAndSet(true)) {
+        if (!LOADED.getAndSet(true)) {
             if (load(LITECORE_JNI_LIBRARY)) {
                 Log.v(
                     DOMAIN,
