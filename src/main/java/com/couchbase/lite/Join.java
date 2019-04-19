@@ -28,7 +28,7 @@ import java.util.Map;
  */
 public class Join {
     enum Type {
-        INNER("INNER"), OUTER("OUTER"), LEFT_OUTER("LEFT OUTER"), CROSS("CROSS");
+        INNER("INNER"), LEFT_OUTER("LEFT OUTER"), CROSS("CROSS");
 
         private final String tag;
 

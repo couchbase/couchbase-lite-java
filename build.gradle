@@ -50,7 +50,7 @@ def cblVersion = file("${baseDir}/version.txt").text.trim()
 def buildNum = (!hasProperty("buildNumber")) ? "0" : buildNumber
 
 def buildCommit = 'git rev-parse --short HEAD'.execute([], file(homeDir)).text.trim() +
-    (('git status -uno --porcelain'.execute([], file(homeDir)).text.length() <= 0) ? "" : "!")
+    (('git status -uno --porcelain'.execute([], file(homeDir)).text.length() <= 0) ? "" : "+")
 
 group = 'com.couchbase.lite'
 
