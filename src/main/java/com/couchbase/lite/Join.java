@@ -31,6 +31,7 @@ public class Join {
         INNER("INNER"), OUTER("OUTER"), LEFT_OUTER("LEFT OUTER"), CROSS("CROSS");
 
         private final String tag;
+
         Type(@NonNull String tag) { this.tag = tag; }
 
         public String getTag() { return tag; }
@@ -85,6 +86,10 @@ public class Join {
         }
     }
 
+    //---------------------------------------------
+    // API - public static methods
+    //---------------------------------------------
+
     /**
      * Create a JOIN (same as INNER JOIN) component with the given data source.
      * Use the returned On component to specify join conditions.
@@ -94,53 +99,8 @@ public class Join {
      */
     @NonNull
     public static On join(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
         return innerJoin(datasource);
     }
-
-    //---------------------------------------------
-    // Inner public Class
-    //---------------------------------------------
-
-    /**
-     * Create a LEFT JOIN (same as LEFT OUTER JOIN) component with the given data source.
-     * Use the returned On component to specify join conditions.
-     *
-     * @param datasource The DataSource object of the JOIN clause.
-     * @return The On object used for specifying join conditions.
-     */
-    @NonNull
-    public static On leftJoin(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
-        return new On(Type.LEFT_OUTER, datasource);
-    }
-
-    //---------------------------------------------
-    // Constructors
-    //---------------------------------------------
-
-    /**
-     * Create a LEFT OUTER JOIN component with the given data source.
-     * Use the returned On component to specify join conditions.
-     *
-     * @param datasource The DataSource object of the JOIN clause.
-     * @return The On object used for specifying join conditions.
-     */
-    @NonNull
-    public static On leftOuterJoin(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
-        return new On(Type.LEFT_OUTER, datasource);
-    }
-
-    //---------------------------------------------
-    // API - public static methods
-    //---------------------------------------------
 
     /**
      * Create an INNER JOIN component with the given data source.
@@ -158,6 +118,33 @@ public class Join {
     }
 
     /**
+     * Create a LEFT JOIN (same as LEFT OUTER JOIN) component with the given data source.
+     * Use the returned On component to specify join conditions.
+     *
+     * @param datasource The DataSource object of the JOIN clause.
+     * @return The On object used for specifying join conditions.
+     */
+    @NonNull
+    public static On leftJoin(@NonNull DataSource datasource) {
+        return leftOuterJoin(datasource);
+    }
+
+    /**
+     * Create a LEFT OUTER JOIN component with the given data source.
+     * Use the returned On component to specify join conditions.
+     *
+     * @param datasource The DataSource object of the JOIN clause.
+     * @return The On object used for specifying join conditions.
+     */
+    @NonNull
+    public static On leftOuterJoin(@NonNull DataSource datasource) {
+        if (datasource == null) {
+            throw new IllegalArgumentException("datasource cannot be null.");
+        }
+        return new On(Type.LEFT_OUTER, datasource);
+    }
+
+    /**
      * Create an CROSS JOIN component with the given data source.
      * Use the returned On component to specify join conditions.
      *
@@ -171,12 +158,17 @@ public class Join {
         }
         return new Join(Type.CROSS, datasource);
     }
+
+
     //---------------------------------------------
     // member variables
     //---------------------------------------------
     private final Type type;
     private final DataSource dataSource;
 
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
     private Join(Type type, DataSource dataSource) {
         this.type = type;
         this.dataSource = dataSource;
@@ -185,7 +177,6 @@ public class Join {
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
-
     Object asJSON() {
         final Map<String, Object> json = new HashMap<>();
         json.put("JOIN", type.getTag());

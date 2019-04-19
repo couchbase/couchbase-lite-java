@@ -235,21 +235,23 @@ abstract class AbstractDatabase {
     protected AbstractDatabase(@NonNull String name, @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
         // Logging:
-        Run.once("DATABASE_INIT_LOGGING", new Runnable() {
-            @Override
-            public void run() {
-                // Logging version number of CBL
-                Log.info(DOMAIN, CBLVersion.getUserAgent());
+        Run.once(
+            "DATABASE_INIT_LOGGING",
+            new Runnable() {
+                @Override
+                public void run() {
+                    // Log CBL version and build information
+                    Log.info(DOMAIN, CBLVersion.getVersionInfo());
 
-                // Check file logging
-                if (Database.LOG.getFile().getConfig() == null) {
-                    Log.w(
-                        DOMAIN,
-                        "Database.log.getFile().getConfig() is null, meaning file logging is disabled.  "
-                            + "Log files required for product support are not being generated.");
+                    // Check file logging
+                    if (Database.LOG.getFile().getConfig() == null) {
+                        Log.w(
+                            DOMAIN,
+                            "Database.log.getFile().getConfig() is null, meaning file logging is disabled.  "
+                                + "Log files required for product support are not being generated.");
+                    }
                 }
-            }
-        });
+            });
 
         if (name == null || name.length() == 0) { throw new IllegalArgumentException("id cannot be null."); }
         if (config == null) { throw new IllegalArgumentException("id cannot be null."); }

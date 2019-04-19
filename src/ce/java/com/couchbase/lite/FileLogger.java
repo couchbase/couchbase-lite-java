@@ -92,11 +92,11 @@ public final class FileLogger implements Logger {
     }
 
     private void setupDomainObjects() {
-        domainObjects.put(LogDomain.DATABASE, C4Constants.C4LogDomain.Database);
-        domainObjects.put(LogDomain.QUERY, C4Constants.C4LogDomain.Query);
-        domainObjects.put(LogDomain.REPLICATOR, C4Constants.C4LogDomain.Sync);
+        domainObjects.put(LogDomain.DATABASE, C4Constants.LogDomain.DATABASE);
+        domainObjects.put(LogDomain.QUERY, C4Constants.LogDomain.QUERY);
+        domainObjects.put(LogDomain.REPLICATOR, C4Constants.LogDomain.SYNC);
         for (Map.Entry<LogDomain, String> entry : domainObjects.entrySet()) {
-            C4Log.setLevel(entry.getValue(), C4Constants.C4LogLevel.kC4LogDebug);
+            C4Log.setLevel(entry.getValue(), C4Constants.LogLevel.DEBUG);
         }
     }
 
