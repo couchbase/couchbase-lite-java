@@ -73,11 +73,11 @@ abstract class AbstractDatabase {
      */
     @SuppressWarnings("ConstantName")
     @NonNull
-    public static final com.couchbase.lite.Log LOG;
+    public static final com.couchbase.lite.Log log;
 
     static {
         NativeLibraryLoader.load();
-        LOG = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
+        log = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
         Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING);
     }
 
@@ -244,7 +244,7 @@ abstract class AbstractDatabase {
                     Log.info(DOMAIN, CBLVersion.getVersionInfo());
 
                     // Check file logging
-                    if (Database.LOG.getFile().getConfig() == null) {
+                    if (Database.log.getFile().getConfig() == null) {
                         Log.w(
                             DOMAIN,
                             "Database.log.getFile().getConfig() is null, meaning file logging is disabled.  "

@@ -27,6 +27,11 @@ captures/
 *.iml
 .idea
 
+# Eclipse
+.project
+.classpath
+.settings
+
 # Keystore files
 *.jks
 

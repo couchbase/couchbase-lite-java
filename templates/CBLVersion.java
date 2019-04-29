@@ -21,6 +21,10 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
 
+// THIS FILE IS AUTOMATICALLY CREATED FROM templates/CBLVersion.java
+// Edit the version in that directory!
+// Changes made to this file in the source directory will be lost.
+// See the "copyVersion" task in the build file.
 public class CBLVersion {
     private static final String USER_AGENT
         = "CouchbaseLite/@VERSION@ (%s) %s";

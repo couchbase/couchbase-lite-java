@@ -396,27 +396,27 @@ public final class Log {
         boolean consoleSucceeded = false;
         try {
             // File logging:
-            Database.LOG.getFile().log(level, domain, msg);
+            Database.log.getFile().log(level, domain, msg);
             fileSucceeded = true;
 
             // Console logging:
-            Database.LOG.getConsole().log(level, domain, msg);
+            Database.log.getConsole().log(level, domain, msg);
             consoleSucceeded = true;
 
             // Custom logging:
-            final Logger custom = Database.LOG.getCustom();
+            final Logger custom = Database.log.getCustom();
             if (custom != null) {
                 custom.log(level, domain, msg);
             }
         }
         catch (Exception e) {
             if (fileSucceeded) {
-                Database.LOG.getFile()
+                Database.log.getFile()
                     .log(com.couchbase.lite.LogLevel.ERROR, com.couchbase.lite.LogDomain.DATABASE, e.toString());
             }
 
             if (consoleSucceeded) {
-                Database.LOG.getConsole()
+                Database.log.getConsole()
                     .log(com.couchbase.lite.LogLevel.ERROR, com.couchbase.lite.LogDomain.DATABASE, e.toString());
             }
         }
