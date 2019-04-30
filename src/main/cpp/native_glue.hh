@@ -51,10 +51,9 @@ namespace litecore {
         public:
             jstringSlice(JNIEnv *env, jstring js);
 
-            ~jstringSlice();
-
             jstringSlice(jstringSlice &&s) // move constructor
-                    : _slice(s._slice) {
+                    : _str(s._str), _slice(s._slice) {
+                s._str = nullptr;
                 s._slice = nullslice;
             }
 
@@ -68,6 +67,7 @@ namespace litecore {
             const char* cStr();
 
         private:
+            std::string _str;
             slice _slice;
         };
 

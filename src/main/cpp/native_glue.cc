@@ -29,8 +29,7 @@ using namespace std;
 namespace litecore {
     namespace jni {
         std::string JstringToUTF8(JNIEnv *env, jstring jstr);
-
-        jstring UTF8ToJstring(JNIEnv *env, std::string str);
+        jstring UTF8ToJstring(JNIEnv *env, char *s, size_t size);
     }
 }
 
@@ -44,39 +43,38 @@ namespace litecore {
 // The following two functions are taken from this repo:
 //   https://github.com/incanus/android-jni/blob/master/app/src/main/jni/JNI.cpp#L57-L86
 
-jstring litecore::jni::UTF8ToJstring(JNIEnv *env, std::string str) { // < !!! SHOULD BE REF?
-    std::u16string ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(str);
+jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
+    std::u16string ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s+size);
 
     jstring jstr = env->NewString(reinterpret_cast<const jchar *>(ustr.c_str()), ustr.size());
     if (jstr == nullptr) {
-        env->ExceptionDescribe();
-        return nullptr;
+        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+        throwError(env, error);
     }
 
     return jstr;
 }
 
 std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
-    std::string str;
-
     jsize len = env->GetStringLength(jstr);
     if (len < 0) {
-        env->ExceptionDescribe();
-        return str;
+        C4Error error = {LiteCoreDomain, kC4ErrorInvalidParameter, 0};
+        throwError(env, error);
+        return std::string();
     }
 
     const jchar *chars = env->GetStringChars(jstr, nullptr);
     if (chars == nullptr) {
-        env->ExceptionDescribe();
-        return str;
+        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+        throwError(env, error);
+        return std::string();
     }
 
-    std::u16string ustr(reinterpret_cast<const char16_t *>(chars), len);
+    auto str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+            .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars+len));
 
     env->ReleaseStringChars(jstr, chars);
-    chars = nullptr;
 
-    str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(ustr);
     return str;
 }
 
@@ -125,23 +123,9 @@ namespace litecore {
         jstringSlice::jstringSlice(JNIEnv *env, jstring js) {
             assert(env != nullptr);
             if (js != nullptr) {
-
-                // !!! COPYING THE STRING 2x?
-                auto str = JstringToUTF8(env, js);
-
-                auto buf = (char *) malloc(str.length() + 1);
-                if (buf == nullptr) {
-                    jclass c = env->FindClass("java/lang/OutOfMemoryError");
-                    env->ThrowNew(c, "Out of memory creating String slice");
-                }
-                char *cstr = strcpy(buf, str.c_str());;
-
-                _slice = slice(cstr);
+                _str = JstringToUTF8(env, js);
+                _slice = slice(_str);
             }
-        }
-
-        jstringSlice::~jstringSlice() {
-            free((void *) _slice.buf);
         }
 
         // !!! DOES THIS STILL WORK?  IS IT STILL NECESSARY?
@@ -193,8 +177,7 @@ namespace litecore {
                 return;
             jclass xclass = env->FindClass("com/couchbase/lite/LiteCoreException");
             assert(xclass); // if we can't even throw an exception, we're really fuxored
-            jmethodID m = env->GetStaticMethodID(xclass, "throwException",
-                                                 "(IILjava/lang/String;)V");
+            jmethodID m = env->GetStaticMethodID(xclass, "throwException", "(IILjava/lang/String;)V");
             assert(m);
 
             C4SliceResult msgSlice = c4error_getMessage(error);
@@ -207,10 +190,7 @@ namespace litecore {
         jstring toJString(JNIEnv *env, C4Slice s) {
             if (s.buf == nullptr)
                 return nullptr;
-
-            std::string utf8Buf((char *) s.buf, s.size);
-
-            return UTF8ToJstring(env, utf8Buf);
+            return UTF8ToJstring(env, (char *)s.buf, s.size);
         }
 
         jstring toJString(JNIEnv *env, C4SliceResult s) {
