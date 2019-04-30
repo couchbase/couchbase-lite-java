@@ -693,8 +693,17 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
                 Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
                 try {
-                    this.config.getDatabase().resolveConflictInDocument(docID);
-                    error = new C4Error();
+                    final ConflictResolver resolver = config.getConflictResolver();
+                    if (resolver == null) {
+                        config.getDatabase().resolveConflictInDocument(docID);
+                        error = new C4Error();
+                    }
+                    else {
+                        resolver.resolve(new Conflict(
+                            null, // !!! FIXME: the local document
+                            null)); // !!! FIXME: the remote document
+                        // !!! FIXME: retry the save?
+                    }
                 }
                 catch (CouchbaseLiteException ex) {
                     Log.e(DOMAIN, "Failed to resolveConflict: docID -> %s", ex, docID);

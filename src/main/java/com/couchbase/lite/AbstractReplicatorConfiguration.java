@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -36,33 +37,36 @@ import com.couchbase.lite.internal.core.CBLVersion;
 abstract class AbstractReplicatorConfiguration {
 
     // Replicator option dictionary keys:
-    static final String REPLICATOR_OPTION_EXTRA_HEADERS =  "headers";  // Extra HTTP headers: string[]
-    static final String REPLICATOR_OPTION_COOKIES =  "cookies";  // HTTP Cookie header value: string
-    static final String REPLICATOR_AUTH_OPTION =  "auth";       // Auth settings: Dict
-    static final String REPLICATOR_OPTION_PINNED_SERVER_CERT =  "pinnedCert";  // Cert or public key: data
-    static final String REPLICATOR_OPTION_DOC_IDS =  "docIDs";   // Docs to replicate: string[]
-    static final String REPLICATOR_OPTION_CHANNELS =  "channels"; // SG channel names: string[]
-    static final String REPLICATOR_OPTION_FILTER =  "filter";   // Filter name: string
-    static final String REPLICATOR_OPTION_FILTER_PARAMS =  "filterParams";  // Filter params: Dict[string]
-    static final String REPLICATOR_OPTION_SKIP_DELETED =  "skipDeleted"; // Don't push/pull tombstones: bool
-    static final String REPLICATOR_OPTION_NO_CONFLICTS =  "noConflicts"; // Puller rejects conflicts: bool
-    static final String REPLICATOR_OPTION_CHECKPOINT_INTERVAL =  "checkpointInterval"; // How often to checkpoint, in seconds: number
-    static final String REPLICATOR_OPTION_REMOTE_DB_UNIQUE_ID =  "remoteDBUniqueID"; // How often to checkpoint, in seconds: number
-    static final String REPLICATOR_RESET_CHECKPOINT =  "reset"; // reset remote checkpoint
-    static final String REPLICATOR_OPTION_PROGRESS_LEVEL =  "progress";  //< If >=1, notify on every doc; if >=2, on every attachment (int)
+    static final String REPLICATOR_OPTION_EXTRA_HEADERS = "headers";  // Extra HTTP headers: string[]
+    static final String REPLICATOR_OPTION_COOKIES = "cookies";  // HTTP Cookie header value: string
+    static final String REPLICATOR_AUTH_OPTION = "auth";       // Auth settings: Dict
+    static final String REPLICATOR_OPTION_PINNED_SERVER_CERT = "pinnedCert";  // Cert or public key: data
+    static final String REPLICATOR_OPTION_DOC_IDS = "docIDs";   // Docs to replicate: string[]
+    static final String REPLICATOR_OPTION_CHANNELS = "channels"; // SG channel names: string[]
+    static final String REPLICATOR_OPTION_FILTER = "filter";   // Filter name: string
+    static final String REPLICATOR_OPTION_FILTER_PARAMS = "filterParams";  // Filter params: Dict[string]
+    static final String REPLICATOR_OPTION_SKIP_DELETED = "skipDeleted"; // Don't push/pull tombstones: bool
+    static final String REPLICATOR_OPTION_NO_CONFLICTS = "noConflicts"; // Puller rejects conflicts: bool
+    static final String REPLICATOR_OPTION_CHECKPOINT_INTERVAL = "checkpointInterval"; // How often to checkpoint, in
+    // seconds: number
+    static final String REPLICATOR_OPTION_REMOTE_DB_UNIQUE_ID = "remoteDBUniqueID"; // How often to checkpoint, in
+    // seconds: number
+    static final String REPLICATOR_RESET_CHECKPOINT = "reset"; // reset remote checkpoint
+    static final String REPLICATOR_OPTION_PROGRESS_LEVEL = "progress";  //< If >=1, notify on every doc; if >=2, on
+    // every attachment (int)
 
     // Auth dictionary keys:
-    static final String REPLICATOR_AUTH_TYPE =  "type"; // Auth propert: string
-    static final String REPLICATOR_AUTH_USER_NAME =  "username"; // Auth property: string
-    static final String REPLICATOR_AUTH_PASSWORD =  "password"; // Auth property: string
-    static final String REPLICATOR_AUTH_CLIENT_CERT =  "clientCert"; // Auth property: value platform-dependent
+    static final String REPLICATOR_AUTH_TYPE = "type"; // Auth propert: string
+    static final String REPLICATOR_AUTH_USER_NAME = "username"; // Auth property: string
+    static final String REPLICATOR_AUTH_PASSWORD = "password"; // Auth property: string
+    static final String REPLICATOR_AUTH_CLIENT_CERT = "clientCert"; // Auth property: value platform-dependent
 
     // auth.type values:
-    static final String AUTH_TYPE_BASIC =  "Basic"; // HTTP Basic (the default)
-    static final String AUTH_TYPE_SESSION =  "Session"; // SG session cookie
-    static final String AUTH_TYPE_OPENIDConnect =  "OpenID Connect";
-    static final String AUTH_TYPE_FACEBOOK =  "Facebook";
-    static final String AUTH_TYPE_CLIENT_CERT =  "Client Cert";
+    static final String AUTH_TYPE_BASIC = "Basic"; // HTTP Basic (the default)
+    static final String AUTH_TYPE_SESSION = "Session"; // SG session cookie
+    static final String AUTH_TYPE_OPEN_ID_CONNECT = "OpenID Connect";
+    static final String AUTH_TYPE_FACEBOOK = "Facebook";
+    static final String AUTH_TYPE_CLIENT_CERT = "Client Cert";
 
     /**
      * Replicator type
@@ -70,7 +74,7 @@ abstract class AbstractReplicatorConfiguration {
      * PUSH: Pushing changes to the target
      * PULL: Pulling changes from the target
      */
-    public enum ReplicatorType { PUSH_AND_PULL, PUSH, PULL }
+    public enum ReplicatorType {PUSH_AND_PULL, PUSH, PULL}
 
     //---------------------------------------------
     // member variables
@@ -85,6 +89,8 @@ abstract class AbstractReplicatorConfiguration {
     private List<String> documentIDs;
     private ReplicationFilter pushFilter;
     private ReplicationFilter pullFilter;
+    @Nullable
+    private ConflictResolver conflictResolver;
 
     protected boolean readonly;
     protected Endpoint target;
@@ -108,6 +114,7 @@ abstract class AbstractReplicatorConfiguration {
         this.documentIDs = config.documentIDs;
         this.pullFilter = config.pullFilter;
         this.pushFilter = config.pushFilter;
+        this.conflictResolver = config.conflictResolver;
     }
 
     protected AbstractReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
@@ -152,6 +159,17 @@ abstract class AbstractReplicatorConfiguration {
     public ReplicatorConfiguration setChannels(List<String> channels) {
         if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
         this.channels = channels;
+        return getReplicatorConfiguration();
+    }
+
+    /**
+     * Sets the the conflict resolver.
+     *
+     * @param conflictResolver The replicator type.
+     * @return The self object.
+     */
+    public ReplicatorConfiguration setConflictResolver(@Nullable ConflictResolver conflictResolver) {
+        this.conflictResolver = conflictResolver;
         return getReplicatorConfiguration();
     }
 
@@ -264,49 +282,43 @@ abstract class AbstractReplicatorConfiguration {
     /**
      * Return the Authenticator to authenticate with a remote target.
      */
-    public Authenticator getAuthenticator() {
-        return authenticator;
-    }
+    public Authenticator getAuthenticator() { return authenticator; }
 
     /**
      * A set of Sync Gateway channel names to pull from. Ignored for push replication.
      * The default value is null, meaning that all accessible channels will be pulled.
      * Note: channels that are not accessible to the user will be ignored by Sync Gateway.
      */
-    public List<String> getChannels() {
-        return channels;
-    }
+    public List<String> getChannels() { return channels; }
+
+    /**
+     * Return the conflict resolver.
+     */
+    @Nullable
+    public ConflictResolver getConflictResolver() { return conflictResolver; }
 
     /**
      * Return the continuous flag indicating whether the replicator should stay
      * active indefinitely to replicate changed documents.
      */
-    public boolean isContinuous() {
-        return continuous;
-    }
+    public boolean isContinuous() { return continuous; }
 
     /**
      * Return the local database to replicate with the replication target.
      */
     @NonNull
-    public Database getDatabase() {
-        return database;
-    }
+    public Database getDatabase() { return database; }
 
     /**
      * A set of document IDs to filter by: if not nil, only documents with these IDs will be pushed
      * and/or pulled.
      */
-    public List<String> getDocumentIDs() {
-        return documentIDs;
-    }
+    public List<String> getDocumentIDs() { return documentIDs; }
 
     /**
      * Return Extra HTTP headers to send in all requests to the remote target.
      */
-    public Map<String, String> getHeaders() {
-        return headers;
-    }
+    public Map<String, String> getHeaders() { return headers; }
 
     /**
      * Return the remote target's SSL certificate.
@@ -314,9 +326,7 @@ abstract class AbstractReplicatorConfiguration {
      * !!FIXME: This method returns a writeable copy of its private data
      */
     @SuppressFBWarnings("EI_EXPOSE_REP")
-    public byte[] getPinnedServerCertificate() {
-        return pinnedServerCertificate;
-    }
+    public byte[] getPinnedServerCertificate() { return pinnedServerCertificate; }
 
     /**
      * Gets a filter object for validating whether the documents can be pulled
@@ -334,17 +344,13 @@ abstract class AbstractReplicatorConfiguration {
      * Return Replicator type indicating the direction of the replicator.
      */
     @NonNull
-    public ReplicatorType getReplicatorType() {
-        return replicatorType;
-    }
+    public ReplicatorType getReplicatorType() { return replicatorType; }
 
     /**
      * Return the replication target to replicate with.
      */
     @NonNull
-    public Endpoint getTarget() {
-        return target;
-    }
+    public Endpoint getTarget() { return target; }
 
 
     //---------------------------------------------

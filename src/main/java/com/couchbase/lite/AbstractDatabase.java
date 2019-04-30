@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -178,7 +179,7 @@ abstract class AbstractDatabase {
      * @param level  The log level
      * @deprecated As of 2.5 because it is being replaced with the
      * {@link com.couchbase.lite.Log#getConsole() getConsole} method
-     * from the {@link #LOG log} property.  This method has
+     * from the {@link #log log} property.  This method has
      * been replaced with a no-op to preserve API compatibility.
      */
     @Deprecated
@@ -386,11 +387,24 @@ abstract class AbstractDatabase {
      */
     public boolean save(@NonNull MutableDocument document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        if (document == null) { throw new IllegalArgumentException("document cannot be null."); }
-        if (concurrencyControl == null) { throw new IllegalArgumentException("concurrencyControl cannot be null."); }
+        // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
+        return save(document, false, concurrencyControl, null);
+    }
 
-        // NOTE: synchronized in save(Document, boolean) method
-        return save(document, false, concurrencyControl);
+    /**
+     * Saves a document to the database. When used with LAST_WRITE_WINS
+     * concurrency control, the last write operation will win if there is a conflict.
+     * When used with FAIL_ON_CONFLICT concurrency control, save will fail with false value
+     *
+     * @param document           The document.
+     * @param conflictHandler    A conflict handler.
+     * @return true if successful. false if the FAIL_ON_CONFLICT concurrency
+     * @throws CouchbaseLiteException
+     */
+    public boolean save(@NonNull MutableDocument document, @Nullable ConflictHandler conflictHandler)
+        throws CouchbaseLiteException {
+        // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
+        return save(document, false, ConcurrencyControl.FAIL_ON_CONFLICT, conflictHandler);
     }
 
     /**
@@ -418,11 +432,8 @@ abstract class AbstractDatabase {
      */
     public boolean delete(@NonNull Document document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        if (document == null) { throw new IllegalArgumentException("document cannot be null."); }
-        if (concurrencyControl == null) { throw new IllegalArgumentException("concurrencyControl cannot be null."); }
-
-        // NOTE: synchronized in save(Document, boolean) method
-        return save(document, true, concurrencyControl);
+        // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
+        return save(document, true, concurrencyControl, null);
     }
 
     // Batch operations:
@@ -1178,8 +1189,15 @@ abstract class AbstractDatabase {
     }
 
     // The main save method.
-    private boolean save(Document document, boolean deletion, ConcurrencyControl concurrencyControl)
+    private boolean save(
+        @NonNull Document document,
+        boolean deletion,
+        @NonNull ConcurrencyControl concurrencyControl,
+        @Nullable ConflictHandler conflictHandler)
         throws CouchbaseLiteException {
+        if (document == null) { throw new IllegalArgumentException("document cannot be null."); }
+        if (concurrencyControl == null) { throw new IllegalArgumentException("concurrencyControl cannot be null."); }
+
         if (deletion && !document.exists()) {
             throw new CouchbaseLiteException("Cannot delete a document that has not yet been saved.",
                 CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
@@ -1206,26 +1224,37 @@ abstract class AbstractDatabase {
 
                 if (newDoc == null) {
                     // Handle conflict:
-                    if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) {
+                    if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT) && (conflictHandler == null)) {
                         return false; // document is conflicted and return false because of OPTIMISTIC
                     }
+
+                    // !!! FIXME: Need to handle conflicted deletions???
 
                     try {
                         curDoc = getC4Database().get(document.getId(), true);
                     }
                     catch (LiteCoreException e) {
-                        if (deletion
-                            && e.domain == C4Constants.ErrorDomain.LITE_CORE
-                            && e.code == C4Constants.LiteCoreError.NOT_FOUND) {
-                            return true;
+                        if (!deletion
+                            || e.domain != C4Constants.ErrorDomain.LITE_CORE
+                            || e.code != C4Constants.LiteCoreError.NOT_FOUND) {
+                            throw CBLStatus.convertException(e);
                         }
-                        else { throw CBLStatus.convertException(e); }
+                        return true;
                     }
 
                     if (deletion && curDoc.deleted()) {
                         document.replaceC4Document(curDoc);
                         curDoc = null; // NOTE: prevent to call curDoc.free() in finally block
                         return true;
+                    }
+
+                    // FIXME: apply the custom conflict handler
+                    if (conflictHandler != null) {
+                        final MutableDocument conflicted = document.toMutable();
+                        conflictHandler.handle(
+                            conflicted,
+                            new Document(document.getDatabase(), document.getId(), curDoc));
+                        document = conflicted;
                     }
 
                     // Save changes on the current branch:
