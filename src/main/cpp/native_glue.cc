@@ -128,11 +128,6 @@ namespace litecore {
             }
         }
 
-        // !!! DOES THIS STILL WORK?  IS IT STILL NECESSARY?
-        void jstringSlice::copyAndReleaseRef() {
-            _slice = _slice.copy();
-        }
-
         const char *jstringSlice::cStr() {
             return static_cast<const char *>(_slice.buf);
         };

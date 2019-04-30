@@ -61,9 +61,6 @@ namespace litecore {
 
             operator C4Slice() { return {_slice.buf, _slice.size}; }
 
-            // Copies the string data and releases the JNI local ref.
-            void copyAndReleaseRef();
-
             const char* cStr();
 
         private:
