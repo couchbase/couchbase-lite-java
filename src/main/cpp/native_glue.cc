@@ -44,12 +44,19 @@ namespace litecore {
 //   https://github.com/incanus/android-jni/blob/master/app/src/main/jni/JNI.cpp#L57-L86
 
 jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
-    std::u16string ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s+size);
+    auto ustr;
+    try { ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size); }
+    catch (const std::exception &x) {
+        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+        throwError(env, error);
+        return NULL;
+    }
 
-    jstring jstr = env->NewString(reinterpret_cast<const jchar *>(ustr.c_str()), ustr.size());
+    auto jstr = env->NewString(reinterpret_cast<const jchar *>(ustr.c_str()), ustr.size());
     if (jstr == nullptr) {
         C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
         throwError(env, error);
+        return NULL;
     }
 
     return jstr;
@@ -70,12 +77,22 @@ std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
         return std::string();
     }
 
-    auto str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
-            .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars+len));
+    try {
+        auto str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+                .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars + len));
+
+        env->ReleaseStringChars(jstr, chars);
+
+        return str;
+    }
+    catch (const std::exception &x) { }
 
     env->ReleaseStringChars(jstr, chars);
 
-    return str;
+    C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+    throwError(env, error);
+
+    return std::string();
 }
 
 /*
@@ -185,7 +202,7 @@ namespace litecore {
         jstring toJString(JNIEnv *env, C4Slice s) {
             if (s.buf == nullptr)
                 return nullptr;
-            return UTF8ToJstring(env, (char *)s.buf, s.size);
+            return UTF8ToJstring(env, (char *) s.buf, s.size);
         }
 
         jstring toJString(JNIEnv *env, C4SliceResult s) {

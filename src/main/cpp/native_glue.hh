@@ -52,10 +52,7 @@ namespace litecore {
             jstringSlice(JNIEnv *env, jstring js);
 
             jstringSlice(jstringSlice &&s) // move constructor
-                    : _str(s._str), _slice(s._slice) {
-                s._str = nullptr;
-                s._slice = nullslice;
-            }
+                    : _str(std::move(s._str)), _slice(s._slice) {}
 
             operator slice() { return _slice; }
 
