@@ -45,7 +45,6 @@ public class FLValue {
         return JSON5ToJSON(json5);
     }
 
-
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
@@ -118,9 +117,7 @@ public class FLValue {
         return asDouble(handle);
     }
 
-    public String asString() {
-        return asString(handle);
-    }
+    public String asString() { return asString(handle); }
 
     public FLDict asFLDict() {
         return new FLDict(asDict(handle));

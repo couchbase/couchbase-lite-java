@@ -244,8 +244,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_fromData(JNIEnv *env, jclass cla
  * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_couchbase_lite_internal_fleece_FLValue_fromTrustedData(JNIEnv *env, jclass clazz,
-                                                           jbyteArray jdata) {
+Java_com_couchbase_lite_internal_fleece_FLValue_fromTrustedData(JNIEnv *env, jclass clazz, jbyteArray jdata) {
     jbyteArraySlice data(env, jdata, true);
     slice s = data;
     return (jlong) FLValue_FromData({s.buf, s.size}, kFLTrusted);
