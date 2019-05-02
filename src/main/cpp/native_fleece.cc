@@ -229,6 +229,19 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_free(JNIEnv *env, jclass 
 
 /*
  * Class:     com_couchbase_lite_internal_fleece_FLValue
+ * Method:    fromJavaString
+ * Signature: (Ljava/lang/String;)J
+ JNIEXPORT jlong JNICALL
+Java_com_couchbase_lite_internal_fleece_FLValue_fromJavaString(JNIEnv *env, jclass clazz, jstring jstr) {
+    jstringSlice str(env, jstr);
+    slice s = str;
+    // I'm pretty sure that this FLValue points to thin air, when this method returns.
+    return (jlong) FLValue_FromData(s, kFLTrusted);
+}
+*/
+
+/*
+ * Class:     com_couchbase_lite_internal_fleece_FLValue
  * Method:    fromData
  * Signature: (J)J
  */

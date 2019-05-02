@@ -36,6 +36,10 @@ public class FLValue {
     public static FLValue fromData(byte[] data) {
         return new FLValue(fromTrustedData(data));
     }
+//
+//    public static FLValue fromString(String str) {
+//        return new FLValue(fromJavaString(str));
+//    }
 
     public static Object toObject(FLValue flValue) {
         return flValue.asObject();
@@ -117,23 +121,20 @@ public class FLValue {
         return asDouble(handle);
     }
 
-    public String asString() { return asString(handle); }
-
-    public FLDict asFLDict() {
-        return new FLDict(asDict(handle));
+    // ??? If we are out of memory or the string cannot be decoded, we just lose it
+    public String asString() {
+        try { return asString(handle); }
+        catch (LiteCoreException ignore) {}
+        return null;
     }
 
-    public FLArray asFLArray() {
-        return new FLArray(asArray(handle));
-    }
+    public FLDict asFLDict() { return new FLDict(asDict(handle)); }
 
-    public Map<String, Object> asDict() {
-        return asFLDict().asDict();
-    }
+    public FLArray asFLArray() { return new FLArray(asArray(handle)); }
 
-    public List<Object> asArray() {
-        return asFLArray().asArray();
-    }
+    public Map<String, Object> asDict() { return asFLDict().asDict(); }
+
+    public List<Object> asArray() { return asFLArray().asArray(); }
 
     public Object asObject() {
         switch (getType(handle)) {
@@ -175,6 +176,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
+
     /**
      * Returns a pointer to the root value in the encoded data
      *
@@ -263,7 +265,7 @@ public class FLValue {
      * @param value FLValue
      * @return String
      */
-    static native String asString(long value);
+    static native String asString(long value) throws LiteCoreException;
 
     /**
      * Returns the exact contents of a data value, or null for all other types.
@@ -298,6 +300,8 @@ public class FLValue {
      */
     @SuppressWarnings({"MethodName", "PMD.MethodNamingConventions"})
     static native String JSON5ToJSON(String json5) throws LiteCoreException;
+//
+//    static native long fromJavaString(String str);
 
     static native long fromData(long slice);
 

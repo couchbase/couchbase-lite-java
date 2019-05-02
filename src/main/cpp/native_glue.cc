@@ -44,10 +44,15 @@ namespace litecore {
 //   https://github.com/incanus/android-jni/blob/master/app/src/main/jni/JNI.cpp#L57-L86
 
 jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
-    auto ustr;
+    std::u16string ustr;
     try { ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size); }
-    catch (const std::exception &x) {
+    catch (const std::bad_alloc &x) {
         C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+        throwError(env, error);
+        return NULL;
+    }
+    catch (const std::exception &x) {
+        C4Error error = {LiteCoreDomain, kC4ErrorCorruptData, 0};
         throwError(env, error);
         return NULL;
     }
@@ -77,22 +82,23 @@ std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
         return std::string();
     }
 
+    std::string str;
     try {
-        auto str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+        str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
                 .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars + len));
-
+    }
+    catch (const std::exception &x) {
         env->ReleaseStringChars(jstr, chars);
 
-        return str;
+        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
+        throwError(env, error);
+
+        return std::string();
     }
-    catch (const std::exception &x) { }
 
     env->ReleaseStringChars(jstr, chars);
 
-    C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
-    throwError(env, error);
-
-    return std::string();
+    return str;
 }
 
 /*
