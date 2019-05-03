@@ -45,7 +45,6 @@ public class FLValue {
         return JSON5ToJSON(json5);
     }
 
-
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
@@ -118,25 +117,20 @@ public class FLValue {
         return asDouble(handle);
     }
 
+    // ??? If we are out of memory or the string cannot be decoded, we just lose it
     public String asString() {
-        return asString(handle);
+        try { return asString(handle); }
+        catch (LiteCoreException ignore) {}
+        return null;
     }
 
-    public FLDict asFLDict() {
-        return new FLDict(asDict(handle));
-    }
+    public FLDict asFLDict() { return new FLDict(asDict(handle)); }
 
-    public FLArray asFLArray() {
-        return new FLArray(asArray(handle));
-    }
+    public FLArray asFLArray() { return new FLArray(asArray(handle)); }
 
-    public Map<String, Object> asDict() {
-        return asFLDict().asDict();
-    }
+    public Map<String, Object> asDict() { return asFLDict().asDict(); }
 
-    public List<Object> asArray() {
-        return asFLArray().asArray();
-    }
+    public List<Object> asArray() { return asFLArray().asArray(); }
 
     public Object asObject() {
         switch (getType(handle)) {
@@ -178,6 +172,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
+
     /**
      * Returns a pointer to the root value in the encoded data
      *
@@ -266,7 +261,7 @@ public class FLValue {
      * @param value FLValue
      * @return String
      */
-    static native String asString(long value);
+    static native String asString(long value) throws LiteCoreException;
 
     /**
      * Returns the exact contents of a data value, or null for all other types.

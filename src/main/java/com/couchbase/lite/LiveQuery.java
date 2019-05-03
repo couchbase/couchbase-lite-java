@@ -17,7 +17,9 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 
 import java.util.Locale;
 import java.util.concurrent.Executor;
@@ -51,6 +53,7 @@ final class LiveQuery implements DatabaseChangeListener {
     // Constructors
     //---------------------------------------------
 
+    @MainThread
     LiveQuery(AbstractQuery query) {
         if (query == null) { throw new IllegalArgumentException("query should not be null."); }
 
@@ -76,6 +79,7 @@ final class LiveQuery implements DatabaseChangeListener {
     // Implementation of DatabaseChangeListener
     //---------------------------------------------
 
+    @MainThread
     @Override
     public void changed(@NonNull DatabaseChange change) {
         synchronized (lock) {
@@ -110,6 +114,7 @@ final class LiveQuery implements DatabaseChangeListener {
     /**
      * Starts observing database changes and reports changes in the query result.
      */
+    @MainThread
     void start() {
         synchronized (lock) {
             if (query.getDatabase() == null) {
@@ -156,6 +161,7 @@ final class LiveQuery implements DatabaseChangeListener {
     /**
      * Stops observing database changes.
      */
+    @MainThread
     private void stop(boolean removeFromList) {
         synchronized (lock) {
             observing = false;
@@ -176,6 +182,7 @@ final class LiveQuery implements DatabaseChangeListener {
      *
      * @param delay millisecond
      */
+    @MainThread
     private void update(long delay) {
         if (willUpdate) {
             return; // Already a pending update scheduled
@@ -197,6 +204,7 @@ final class LiveQuery implements DatabaseChangeListener {
      * NOTE: update() method is called from only ExecutorService for LiveQuery which is
      * a single thread. But update changes and refers some instant variables
      */
+    @WorkerThread
     private void update() {
         synchronized (lock) {
             if (!observing) { return; }

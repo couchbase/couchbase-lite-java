@@ -403,8 +403,6 @@ Java_com_couchbase_lite_internal_core_C4Document_put(JNIEnv *env, jclass clazz,
     for (jsize i = 0; i < n; i++) {
         jstring js = (jstring) env->GetObjectArrayElement(jhistory, i);
         jstringSlice *item = new jstringSlice(env, js);
-        if (i >= MaxLocalRefsToUse)
-            item->copyAndReleaseRef();
         historyAlloc.push_back(item); // so its memory won't be freed
         history[i] = *item;
     }
@@ -469,8 +467,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Document_put2(JN
         for (jsize i = 0; i < n; i++) {
             jstring js = (jstring) env->GetObjectArrayElement(jhistory, i);
             jstringSlice *item = new jstringSlice(env, js);
-            if (i >= MaxLocalRefsToUse)
-                item->copyAndReleaseRef();
             historyAlloc.push_back(item); // so its memory won't be freed
             history[i] = *item;
         }
