@@ -25,56 +25,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 public class Encoder {
-    static native long init();
-
-    static native long initWithFLEncoder(long enc);
-
-    static native void free(long handle);
-
-    static native void release(long handle);
-
-    static native long getFLEncoder(long handle);
-
-    static native boolean writeNull(long handle);
-
-    static native boolean writeBool(long handle, boolean value);
-
-    static native boolean writeInt(long handle, long value); // 64bit
-
-    static native boolean writeFloat(long handle, float value);
-
-    static native boolean writeDouble(long handle, double value);
-
-    static native boolean writeString(long handle, String value);
-
-    static native boolean writeData(long handle, byte[] value);
-
-    static native boolean writeValue(long handle, long value);
-
-    static native boolean beginArray(long handle, long reserve);
-
-    static native boolean endArray(long handle);
-
-    static native boolean beginDict(long handle, long reserve);
-
-    static native boolean writeKey(long handle, String slice);
-
-    static native boolean endDict(long handle);
-
-    static native long finish(long handle);
-
     private long handle; // hold pointer to Encoder*
     private FLEncoder flEncoder;
 
     private final boolean managed;
 
+    //-------------------------------------------------------------------------
+    // constructors
+    //-------------------------------------------------------------------------
+
     public Encoder() {
         this(init(), false);
     }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
 
     public Encoder(FLEncoder enc) {
         this(initWithFLEncoder(enc.handle), false);
@@ -86,6 +48,10 @@ public class Encoder {
         this.handle = handle;
         this.managed = managed;
     }
+
+    //-------------------------------------------------------------------------
+    // public methods
+    //-------------------------------------------------------------------------
 
     public void release() {
         if (handle != 0L && !managed) {
@@ -154,6 +120,7 @@ public class Encoder {
                 writeObject(item);
             }
         }
+
         return endArray();
     }
 
@@ -212,12 +179,17 @@ public class Encoder {
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // private methods
+    //-------------------------------------------------------------------------
 
     private void free() {
         if (handle != 0L && !managed) {
@@ -230,4 +202,46 @@ public class Encoder {
         if (flEncoder == null) { flEncoder = new FLEncoder(getFLEncoder(handle), true); }
         return flEncoder;
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    static native long init();
+
+    static native long initWithFLEncoder(long enc);
+
+    static native void free(long handle);
+
+    static native void release(long handle);
+
+    static native long getFLEncoder(long handle);
+
+    static native boolean writeNull(long handle);
+
+    static native boolean writeBool(long handle, boolean value);
+
+    static native boolean writeInt(long handle, long value); // 64bit
+
+    static native boolean writeFloat(long handle, float value);
+
+    static native boolean writeDouble(long handle, double value);
+
+    static native boolean writeString(long handle, String value);
+
+    static native boolean writeData(long handle, byte[] value);
+
+    static native boolean writeValue(long handle, long value);
+
+    static native boolean beginArray(long handle, long reserve);
+
+    static native boolean endArray(long handle);
+
+    static native boolean beginDict(long handle, long reserve);
+
+    static native boolean writeKey(long handle, String slice);
+
+    static native boolean endDict(long handle);
+
+    static native long finish(long handle);
 }

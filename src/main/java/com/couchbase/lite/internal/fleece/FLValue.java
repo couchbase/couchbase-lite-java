@@ -36,10 +36,6 @@ public class FLValue {
     public static FLValue fromData(byte[] data) {
         return new FLValue(fromTrustedData(data));
     }
-//
-//    public static FLValue fromString(String str) {
-//        return new FLValue(fromJavaString(str));
-//    }
 
     public static Object toObject(FLValue flValue) {
         return flValue.asObject();
@@ -300,8 +296,6 @@ public class FLValue {
      */
     @SuppressWarnings({"MethodName", "PMD.MethodNamingConventions"})
     static native String JSON5ToJSON(String json5) throws LiteCoreException;
-//
-//    static native long fromJavaString(String str);
 
     static native long fromData(long slice);
 

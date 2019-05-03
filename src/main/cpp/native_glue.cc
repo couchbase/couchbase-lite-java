@@ -88,12 +88,8 @@ std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
                 .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars + len));
     }
     catch (const std::exception &x) {
-        env->ReleaseStringChars(jstr, chars);
-
-        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
-        throwError(env, error);
-
-        return std::string();
+        // ??? Callers can't handle exceptions, so we just ignore errors and return an empty string.
+        str = std::string();
     }
 
     env->ReleaseStringChars(jstr, chars);
