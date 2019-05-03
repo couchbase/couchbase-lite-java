@@ -29,6 +29,7 @@ using namespace std;
 namespace litecore {
     namespace jni {
         std::string JstringToUTF8(JNIEnv *env, jstring jstr);
+
         jstring UTF8ToJstring(JNIEnv *env, char *s, size_t size);
     }
 }
@@ -40,9 +41,10 @@ namespace litecore {
 // See:
 //   https://stackoverflow.com/questions/35519823/jni-detected-error-in-application-input-is-not-valid-modified-utf-8-illegal-st
 // The strategy here is to use standard C functions to convert the UTF-8 directly to UTF-16, which Java handles nicely.
-// The following two functions are taken from this repo:
+// The following two functions are derived from this code:
 //   https://github.com/incanus/android-jni/blob/master/app/src/main/jni/JNI.cpp#L57-L86
-
+// !! Creating the wstring_convert is expensive.  It would be nice to create one
+//    and to re-use it.  It is *NOT*, however, threadsafe.
 jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
     std::u16string ustr;
     try { ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size); }
@@ -67,29 +69,26 @@ jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
     return jstr;
 }
 
+// ??? Callers can't handle exceptions so we just ignore errors and return an empty string.
 std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
     jsize len = env->GetStringLength(jstr);
-    if (len < 0) {
-        C4Error error = {LiteCoreDomain, kC4ErrorInvalidParameter, 0};
-        throwError(env, error);
+    if (len < 0)
         return std::string();
-    }
+
+    std::string str;
 
     const jchar *chars = env->GetStringChars(jstr, nullptr);
     if (chars == nullptr) {
-        C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
-        throwError(env, error);
-        return std::string();
-    }
-
-    std::string str;
-    try {
-        str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
-                .to_bytes(reinterpret_cast<const char16_t *>(chars), reinterpret_cast<const char16_t *>(chars + len));
-    }
-    catch (const std::exception &x) {
-        // ??? Callers can't handle exceptions, so we just ignore errors and return an empty string.
         str = std::string();
+    } else {
+        try {
+            str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+                    .to_bytes(reinterpret_cast<const char16_t *>(chars),
+                              reinterpret_cast<const char16_t *>(chars + len));
+        }
+        catch (const std::exception &x) {
+            str = std::string();
+        }
     }
 
     env->ReleaseStringChars(jstr, chars);
