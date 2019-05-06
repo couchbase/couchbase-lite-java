@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.internal.core.C4QueryEnumerator;
 import com.couchbase.lite.internal.support.Log;
@@ -42,6 +43,8 @@ public class ResultSet implements Iterable<Result> {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    private final AtomicBoolean isAlive = new AtomicBoolean(true);
+
     private final AbstractQuery query;
     private final Map<String, Integer> columnNames;
     private final ResultContext context;
@@ -75,6 +78,7 @@ public class ResultSet implements Iterable<Result> {
      */
     public Result next() {
         if (query == null) { throw new IllegalStateException("_query variable is null"); }
+        if (!isAlive.get()) { return null; }
 
         synchronized (getDatabase().getLock()) {
             try {
@@ -126,9 +130,7 @@ public class ResultSet implements Iterable<Result> {
      */
     @NonNull
     @Override
-    public Iterator<Result> iterator() {
-        return allResults().iterator();
-    }
+    public Iterator<Result> iterator() { return allResults().iterator(); }
 
     //---------------------------------------------
     // protected methods
@@ -145,23 +147,29 @@ public class ResultSet implements Iterable<Result> {
     // Package level access
     //---------------------------------------------
 
-    void free() {
-        if (c4enum != null) {
-            synchronized (getDatabase().getLock()) {
-                c4enum.close();
-            }
-            c4enum.free();
-            c4enum = null;
-        }
+    AbstractQuery getQuery() { return query; }
+
+    int getColumnCount() { return columnNames.size(); }
+
+    List<String> getColumnNames() { return new ArrayList<>(columnNames.keySet()); }
+
+    int getColumnIndex(@NonNull String name) {
+        final Integer idx = columnNames.get(name);
+        return (idx == null) ? -1 : idx;
     }
 
+    // !!! Must guarantee that this thing cannot be freed while a refresh is taking place.
+    // While the code in `free` is not synchronized (goddess help us), it is *after*
+    // a synchronized block.  Either isAlive is true or the execution of the `free` method
+    // cannot complete until the method exits.
     ResultSet refresh() throws CouchbaseLiteException {
         if (query == null) { throw new IllegalStateException("_query variable is null"); }
 
         synchronized (getDatabase().getLock()) {
+            if (!isAlive.get()) { return null; }
             try {
                 final C4QueryEnumerator newEnum = c4enum.refresh();
-                return newEnum != null ? new ResultSet(query, newEnum, columnNames) : null;
+                return (newEnum == null) ? null : new ResultSet(query, newEnum, columnNames);
             }
             catch (LiteCoreException e) {
                 throw CBLStatus.convertException(e);
@@ -169,27 +177,22 @@ public class ResultSet implements Iterable<Result> {
         }
     }
 
-    int columnCount() {
-        return columnNames.size();
-    }
+    // Please see the `refresh` method if changing this one.
+    void free() {
+        if (!isAlive.getAndSet(false)) { return; }
 
-    Map<String, Integer> getColumnNames() {
-        return columnNames;
-    }
-
-    AbstractQuery getQuery() {
-        return query;
+        if (c4enum != null) {
+            synchronized (getDatabase().getLock()) { c4enum.close(); }
+            c4enum.free();
+            c4enum = null;
+        }
     }
 
     //---------------------------------------------
     // Private level access
     //---------------------------------------------
-    private Database getDatabase() {
-        return query.getDatabase();
-    }
+    private Database getDatabase() { return query.getDatabase(); }
 
-    private Result currentObject() {
-        return new Result(this, c4enum, context);
-    }
+    private Result currentObject() { return new Result(this, c4enum, context); }
 }
 

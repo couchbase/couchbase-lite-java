@@ -46,7 +46,6 @@ import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DatabaseChange;
 import com.couchbase.lite.internal.core.C4DatabaseObserver;
-import com.couchbase.lite.internal.core.C4DatabaseObserverListener;
 import com.couchbase.lite.internal.core.C4Document;
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.core.SharedKeys;
@@ -206,16 +205,19 @@ abstract class AbstractDatabase {
     private final SharedKeys sharedKeys;
     private final boolean shellMode;
 
-    private ScheduledExecutorService queryExecutor; // Executor for LiveQuery. one per db.
-    private ScheduledExecutorService postExecutor;  // Executor for posting Database/Document Change notification
+    private final ScheduledExecutorService postExecutor;  // Executor for posting Database/Document Change notification
+    private final ScheduledExecutorService queryExecutor; // Executor for LiveQuery. one per db.
+
+    private final Set<Replicator> activeReplications;
+
+    private final Set<LiveQuery> activeLiveQueries;
+
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
     private Map<String, DocumentChangeNotifier> docChangeNotifiers;
-    private Set<Replicator> activeReplications;
 
     // Attributes:
-    private Set<LiveQuery> activeLiveQueries;
     private Timer purgeTimer;
     private String name;
 
@@ -289,6 +291,11 @@ abstract class AbstractDatabase {
         this.config = null;
         this.shellMode = true;
         this.sharedKeys = null;
+
+        this.postExecutor = null;
+        this.queryExecutor = null;
+        this.activeReplications = null;
+        this.activeLiveQueries = null;
     }
 
     //---------------------------------------------
@@ -396,8 +403,8 @@ abstract class AbstractDatabase {
      * concurrency control, the last write operation will win if there is a conflict.
      * When used with FAIL_ON_CONFLICT concurrency control, save will fail with false value
      *
-     * @param document           The document.
-     * @param conflictHandler    A conflict handler.
+     * @param document        The document.
+     * @param conflictHandler A conflict handler.
      * @return true if successful. false if the FAIL_ON_CONFLICT concurrency
      * @throws CouchbaseLiteException
      */
@@ -898,10 +905,9 @@ abstract class AbstractDatabase {
         return activeReplications;
     }
 
+    void addActiveLiveQuery(@NonNull LiveQuery query) { activeLiveQueries.add(query); }
 
-    Set<LiveQuery> getActiveLiveQueries() {
-        return activeLiveQueries;
-    }
+    void removeActiveLiveQuery(@NonNull LiveQuery query) { activeLiveQueries.remove(query); }
 
     //////// RESOLVING REPLICATED CONFLICTS:
 
@@ -1125,17 +1131,9 @@ abstract class AbstractDatabase {
     }
 
     private void registerC4DBObserver() {
-        c4DbObserver = c4db.createDatabaseObserver(new C4DatabaseObserverListener() {
-            @Override
-            public void callback(C4DatabaseObserver observer, Object context) {
-                scheduleOnPostNotificationExecutor(new Runnable() {
-                    @Override
-                    public void run() {
-                        postDatabaseChanged();
-                    }
-                }, 0);
-            }
-        }, this);
+        c4DbObserver = c4db.createDatabaseObserver(
+            (observer, context) -> scheduleOnPostNotificationExecutor(this::postDatabaseChanged, 0),
+            this);
     }
 
     private void freeC4DBObserver() {
@@ -1353,15 +1351,15 @@ abstract class AbstractDatabase {
                 final C4Document rawDoc = localDoc.getC4doc();
                 rawDoc.resolveConflict(winningRevID, losingRevID, mergedBody, mergedFlags);
                 rawDoc.save(0);
-                Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s",
-                    rawDoc.getDocID(), rawDoc.getRevID());
+                Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
 
                 commit = true;
             }
             finally {
                 endTransaction(commit);
             }
-            return commit;
+
+            return true;
         }
     }
 
@@ -1396,13 +1394,10 @@ abstract class AbstractDatabase {
         // between ending transaction and handling change notification when the documents
         // are purged
         scheduleOnPostNotificationExecutor(
-            new Runnable() {
-                @Override
-                public void run() {
-                    final int nPurged = getC4Database().purgeExpiredDocs();
-                    Log.v(DOMAIN, "Purged %d expired documents", nPurged);
-                    scheduleDocumentExpiration(1000);
-                }
+            () -> {
+                final int nPurged = getC4Database().purgeExpiredDocs();
+                Log.v(DOMAIN, "Purged %d expired documents", nPurged);
+                scheduleDocumentExpiration(1000);
             },
             0);
     }

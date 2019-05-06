@@ -72,7 +72,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public int count() {
-        return rs.columnCount();
+        return rs.getColumnCount();
     }
 
     //---------------------------------------------
@@ -257,9 +257,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @NonNull
     @Override
-    public List<String> getKeys() {
-        return new ArrayList<>(rs.getColumnNames().keySet());
-    }
+    public List<String> getKeys() { return rs.getColumnNames(); }
 
     /**
      * The projecting result value for the given key as a Object
@@ -453,7 +451,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     public Map<String, Object> toMap() {
         final List<Object> values = toList();
         final Map<String, Object> dict = new HashMap<>();
-        for (String name : rs.getColumnNames().keySet()) {
+        for (String name : rs.getColumnNames()) {
             final int index = indexForColumnName(name);
             if (index >= 0) { dict.put(name, values.get(index)); }
         }
@@ -494,9 +492,9 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
 
     // - (NSInteger) indexForColumnName: (NSString*)name
     private int indexForColumnName(String name) {
-        final Integer index = rs.getColumnNames().get(name);
-        if (index == null) { return -1; }
-        return ((missingColumns & (1 << index.intValue())) == 0) ? index.intValue() : -1;
+        final int index = rs.getColumnIndex(name);
+        if (index < 0) { return -1; }
+        return ((missingColumns & (1 << index)) == 0) ? index : -1;
     }
 
     // - (id) fleeceValueToObjectAtIndex: (NSUInteger)index
@@ -511,7 +509,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     }
 
     private List<FLValue> extractColumns(FLArrayIterator columns) {
-        final int count = rs.getColumnNames().size();
+        final int count = rs.getColumnCount();
         final List<FLValue> values = new ArrayList<>();
         for (int i = 0; i < count; i++) { values.add(columns.getValueAt(i)); }
         return values;
