@@ -828,31 +828,31 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         return true;
     }
 
-    private void updateStateProperties(C4ReplicatorStatus status) {
+    private void updateStateProperties(C4ReplicatorStatus c4Status) {
         CouchbaseLiteException error = null;
-        if (status.getErrorCode() != 0) {
+        if (c4Status.getErrorCode() != 0) {
             error = CBLStatus.convertException(
-                status.getErrorDomain(),
-                status.getErrorCode(),
-                status.getErrorInternalInfo());
+                c4Status.getErrorDomain(),
+                c4Status.getErrorCode(),
+                c4Status.getErrorInternalInfo());
         }
         if (error != this.lastError) { this.lastError = error; }
 
-        c4ReplStatus = status.copy();
+        c4ReplStatus = c4Status.copy();
 
         // Note: c4Status.level is current matched with CBLReplicatorActivityLevel:
-        final ActivityLevel level = AbstractReplicator.ActivityLevel.values()[status.getActivityLevel()];
+        final ActivityLevel level = AbstractReplicator.ActivityLevel.values()[c4Status.getActivityLevel()];
 
         this.status = new Status(
             level,
-            new Progress((int) status.getProgressUnitsCompleted(), (int) status.getProgressUnitsTotal()),
+            new Progress((int) c4Status.getProgressUnitsCompleted(), (int) c4Status.getProgressUnitsTotal()),
             error);
 
         Log.i(DOMAIN, "%s is %s, progress %d/%d, error: %s",
             this,
-            REPLICATOR_ACTIVITY_LEVEL_NAMES.get(status.getActivityLevel()),
-            status.getProgressUnitsCompleted(),
-            status.getProgressUnitsTotal(),
+            REPLICATOR_ACTIVITY_LEVEL_NAMES.get(c4Status.getActivityLevel()),
+            c4Status.getProgressUnitsCompleted(),
+            c4Status.getProgressUnitsTotal(),
             error);
     }
 
