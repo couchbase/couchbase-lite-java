@@ -85,8 +85,8 @@ bool litecore::jni::initC4Replicator(JNIEnv *env) {
             return false;
 
         m_C4Replicator_validationFunction = env->GetStaticMethodID(cls_C4Replicator,
-                                                                      "validationFunction",
-                                                                      "(Ljava/lang/String;IJZLjava/lang/Object;)Z");
+                                                                   "validationFunction",
+                                                                   "(Ljava/lang/String;IJZLjava/lang/Object;)Z");
         if (!m_C4Replicator_validationFunction)
             return false;
     }
@@ -109,18 +109,15 @@ bool litecore::jni::initC4Replicator(JNIEnv *env) {
         if (!f_C4ReplStatus_activityLevel)
             return false;
 
-        f_C4ReplStatus_progressUnitsCompleted = env->GetFieldID(cls_C4ReplStatus,
-                                                                "progressUnitsCompleted", "J");
+        f_C4ReplStatus_progressUnitsCompleted = env->GetFieldID(cls_C4ReplStatus, "progressUnitsCompleted", "J");
         if (!f_C4ReplStatus_progressUnitsCompleted)
             return false;
 
-        f_C4ReplStatus_progressUnitsTotal = env->GetFieldID(cls_C4ReplStatus, "progressUnitsTotal",
-                                                            "J");
+        f_C4ReplStatus_progressUnitsTotal = env->GetFieldID(cls_C4ReplStatus, "progressUnitsTotal", "J");
         if (!f_C4ReplStatus_progressUnitsTotal)
             return false;
 
-        f_C4ReplStatus_progressDocumentCount = env->GetFieldID(cls_C4ReplStatus,
-                                                               "progressDocumentCount", "J");
+        f_C4ReplStatus_progressDocumentCount = env->GetFieldID(cls_C4ReplStatus, "progressDocumentCount", "J");
         if (!f_C4ReplStatus_progressUnitsTotal)
             return false;
 
@@ -132,8 +129,7 @@ bool litecore::jni::initC4Replicator(JNIEnv *env) {
         if (!f_C4ReplStatus_errorCode)
             return false;
 
-        f_C4ReplStatus_errorInternalInfo = env->GetFieldID(cls_C4ReplStatus, "errorInternalInfo",
-                                                           "I");
+        f_C4ReplStatus_errorInternalInfo = env->GetFieldID(cls_C4ReplStatus, "errorInternalInfo", "I");
         if (!f_C4ReplStatus_errorInternalInfo)
             return false;
     }
@@ -190,11 +186,9 @@ bool litecore::jni::initC4Replicator(JNIEnv *env) {
 static jobject toJavaObject(JNIEnv *env, C4ReplicatorStatus status) {
     jobject obj = env->NewObject(cls_C4ReplStatus, m_C4ReplStatus_init);
     env->SetIntField(obj, f_C4ReplStatus_activityLevel, (int) status.level);
-    env->SetLongField(obj, f_C4ReplStatus_progressUnitsCompleted,
-                      (long) status.progress.unitsCompleted);
+    env->SetLongField(obj, f_C4ReplStatus_progressUnitsCompleted, (long) status.progress.unitsCompleted);
     env->SetLongField(obj, f_C4ReplStatus_progressUnitsTotal, (long) status.progress.unitsTotal);
-    env->SetLongField(obj, f_C4ReplStatus_progressDocumentCount,
-                      (long) status.progress.documentCount);
+    env->SetLongField(obj, f_C4ReplStatus_progressDocumentCount, (long) status.progress.documentCount);
     env->SetIntField(obj, f_C4ReplStatus_errorDomain, (int) status.error.domain);
     env->SetIntField(obj, f_C4ReplStatus_errorCode, (int) status.error.code);
     env->SetIntField(obj, f_C4ReplStatus_errorInternalInfo, (int) status.error.internal_info);
@@ -204,17 +198,17 @@ static jobject toJavaObject(JNIEnv *env, C4ReplicatorStatus status) {
 static jobject toJavaDocumentEnded(JNIEnv *env, const C4DocumentEnded *document) {
     jobject obj = env->NewObject(cls_C4DocEnded, m_C4DocEnded_init);
     env->SetObjectField(obj, f_C4DocEnded_docID, toJString(env, document->docID));
-    env->SetObjectField(obj, f_C4DocEnded_revID, toJString(env,document->revID));
+    env->SetObjectField(obj, f_C4DocEnded_revID, toJString(env, document->revID));
     env->SetIntField(obj, f_C4DocEnded_flags, (int) document->flags);
     env->SetLongField(obj, f_C4DocEnded_sequence, (long) document->sequence);
-    env->SetBooleanField(obj, f_C4DocEnded_errorIsTransient, (bool)document->errorIsTransient);
+    env->SetBooleanField(obj, f_C4DocEnded_errorIsTransient, (bool) document->errorIsTransient);
     env->SetIntField(obj, f_C4DocEnded_errorDomain, (int) document->error.domain);
     env->SetIntField(obj, f_C4DocEnded_errorCode, (int) document->error.code);
     env->SetIntField(obj, f_C4DocEnded_errorInternalInfo, (int) document->error.internal_info);
     return obj;
 }
 
-static jobjectArray toJavaDocumentEndedArray(JNIEnv *env, int arraySize, const C4DocumentEnded* array[]) {
+static jobjectArray toJavaDocumentEndedArray(JNIEnv *env, int arraySize, const C4DocumentEnded *array[]) {
     jobjectArray ds = env->NewObjectArray(arraySize, cls_C4DocEnded, NULL);
     for (int i = 0; i < arraySize; i++) {
         jobject d = toJavaDocumentEnded(env, array[i]);
@@ -223,9 +217,9 @@ static jobjectArray toJavaDocumentEndedArray(JNIEnv *env, int arraySize, const C
     return ds;
 }
 
-static std::vector<jobject>	contexts;
+static std::vector<jobject> contexts;
 
-static jobject storeContext(JNIEnv* env, jobject jcontext) {
+static jobject storeContext(JNIEnv *env, jobject jcontext) {
     if (jcontext == NULL)
         return NULL;
 
@@ -234,32 +228,27 @@ static jobject storeContext(JNIEnv* env, jobject jcontext) {
     return gContext;
 }
 
-static void releaseContext(JNIEnv* env, jobject jcontext) {
+// This is *totally* not thread safe
+static void releaseContext(JNIEnv *env, jobject jcontext) {
     if (jcontext == NULL)
         return;
 
     jobject storedContext = NULL;
-    jobject gContext = NULL;
-    if (jcontext != NULL)
-        gContext = env->NewGlobalRef(jcontext);
-
-    if (gContext != NULL) {
-        int i = 0;
-        for (; i < contexts.size(); i++) {
-            jobject c = contexts[i];
-            if (env->IsSameObject(c, gContext)) {
-                storedContext = c;
-                break;
-            }
-        }
-        env->DeleteGlobalRef(gContext);
-
-        if (storedContext != NULL) {
-            env->DeleteGlobalRef(storedContext);
-            contexts.erase(contexts.begin() + i);
+    int i = 0;
+    for (; i < contexts.size(); i++) {
+        jobject c = contexts[i];
+        if (env->IsSameObject(c, jcontext)) {
+            storedContext = c;
+            break;
         }
     }
+
+    if (storedContext != NULL) {
+        env->DeleteGlobalRef(storedContext);
+        contexts.erase(contexts.begin() + i);
+    }
 }
+
 
 /**
  * Callback a client can register, to get progress information.
@@ -273,12 +262,14 @@ static void statusChangedCallback(C4Replicator *repl, C4ReplicatorStatus status,
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if (getEnvStat == JNI_OK) {
-        env->CallStaticVoidMethod(cls_C4Replicator, m_C4Replicator_statusChangedCallback,
+        env->CallStaticVoidMethod(cls_C4Replicator,
+                                  m_C4Replicator_statusChangedCallback,
                                   (jlong) repl,
                                   toJavaObject(env, status));
     } else if (getEnvStat == JNI_EDETACHED) {
         if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
-            env->CallStaticVoidMethod(cls_C4Replicator, m_C4Replicator_statusChangedCallback,
+            env->CallStaticVoidMethod(cls_C4Replicator,
+                                      m_C4Replicator_statusChangedCallback,
                                       (jlong) repl,
                                       toJavaObject(env, status));
             if (gJVM->DetachCurrentThread() != 0)
@@ -300,8 +291,11 @@ static void statusChangedCallback(C4Replicator *repl, C4ReplicatorStatus status,
  * @param documentEnded
  * @param ctx
  */
-static void documentEndedCallback(C4Replicator *repl, bool pushing, size_t numDocs,
-                                  const C4DocumentEnded* documentEnded[], void *ctx) {
+static void documentEndedCallback(C4Replicator *repl,
+                                  bool pushing,
+                                  size_t numDocs,
+                                  const C4DocumentEnded *documentEnded[],
+                                  void *ctx) {
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if (getEnvStat == JNI_OK) {
@@ -334,20 +328,20 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
     if (getEnvStat == JNI_OK) {
         res = env->CallStaticBooleanMethod(cls_C4Replicator,
                                            m_C4Replicator_validationFunction,
-                                           toJString(env,docID),
+                                           toJString(env, docID),
                                            flags,
-                                           (jlong)dict,
+                                           (jlong) dict,
                                            isPush,
-                                           (jobject)ctx);
+                                           (jobject) ctx);
     } else if (getEnvStat == JNI_EDETACHED) {
         if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
             res = env->CallStaticBooleanMethod(cls_C4Replicator,
                                                m_C4Replicator_validationFunction,
-                                               toJString(env,docID),
+                                               toJString(env, docID),
                                                flags,
-                                               (jlong)dict,
+                                               (jlong) dict,
                                                isPush,
-                                               (jobject)ctx);
+                                               (jobject) ctx);
             if (gJVM->DetachCurrentThread() != 0)
                 LOGE("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
@@ -356,7 +350,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
     } else {
         LOGE("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
-    return (jboolean)res;
+    return (jboolean) res;
 }
 
 /*
@@ -370,7 +364,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
  * @param ctx
  */
 static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
-    return (bool)replicationFilter(docID, flags, dict, false, ctx);
+    return (bool) replicationFilter(docID, flags, dict, false, ctx);
 }
 
 /*
@@ -384,7 +378,7 @@ static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dic
  * @param ctx
  */
 static bool pushFilterFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
-     return (bool)replicationFilter(docID, flags, dict, true, ctx);
+    return (bool) replicationFilter(docID, flags, dict, true, ctx);
 }
 
 /*
@@ -425,7 +419,7 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     C4SocketFactory socketFactory = {};
     socketFactory = socket_factory();
     socketFactory.context = storeContext(env, jSocketFactoryContext);
-    socketFactory.framing = (C4SocketFraming)jframing;
+    socketFactory.framing = (C4SocketFraming) jframing;
 
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
@@ -433,8 +427,8 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     params.optionsDictFleece = options;
     params.onStatusChanged = &statusChangedCallback;
     params.onDocumentsEnded = &documentEndedCallback;
-    if(pushFilter != NULL) params.pushFilter = &pushFilterFunction;
-    if(pullFilter != NULL) params.validationFunc = &validationFunction;
+    if (pushFilter != NULL) params.pushFilter = &pushFilterFunction;
+    if (pullFilter != NULL) params.validationFunc = &validationFunction;
     params.callbackContext = storeContext(env, jReplicatorContext);
     params.socketFactory = &socketFactory;
 
@@ -459,13 +453,13 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
-                                                          jclass clazz,
-                                                          jlong jdb,
-                                                          jlong jopenSocket,
-                                                          jint jpush,
-                                                          jint jpull,
-                                                          jobject jReplicatorContext,
-                                                          jbyteArray joptions) {
+                                                                    jclass clazz,
+                                                                    jlong jdb,
+                                                                    jlong jopenSocket,
+                                                                    jint jpush,
+                                                                    jint jpull,
+                                                                    jobject jReplicatorContext,
+                                                                    jbyteArray joptions) {
     C4Database *db = (C4Database *) jdb;
     C4Socket *openSocket = (C4Socket *) jopenSocket;
     jbyteArraySlice options(env, joptions, false);
@@ -490,13 +484,15 @@ Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
  * Class:     com_couchbase_lite_internal_core_C4Replicator
  * Method:    free
  * Signature: (JLjava/lang/Object;Ljava/lang/Object;)V
+ *
+ * This method is not thread safe!
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Replicator_free(JNIEnv *env,
-                                              jclass clazz,
-                                              jlong repl,
-                                              jobject replicatorContext,
-                                              jobject socketFactoryContext) {
+                                                        jclass clazz,
+                                                        jlong repl,
+                                                        jobject replicatorContext,
+                                                        jobject socketFactoryContext) {
     releaseContext(env, replicatorContext);
     releaseContext(env, socketFactoryContext);
     c4repl_free((C4Replicator *) repl);
@@ -541,8 +537,11 @@ Java_com_couchbase_lite_internal_core_C4Replicator_getResponseHeaders(JNIEnv *en
  * Signature: (III)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_couchbase_lite_internal_core_C4Replicator_mayBeTransient(JNIEnv *env, jclass clazz,
-                                                        jint domain, jint code, jint ii) {
+Java_com_couchbase_lite_internal_core_C4Replicator_mayBeTransient(JNIEnv *env,
+                                                                  jclass clazz,
+                                                                  jint domain,
+                                                                  jint code,
+                                                                  jint ii) {
     C4Error c4Error = {.domain = (C4ErrorDomain) domain, .code= code, .internal_info = ii};
     return c4error_mayBeTransient(c4Error);
 }
@@ -553,8 +552,11 @@ Java_com_couchbase_lite_internal_core_C4Replicator_mayBeTransient(JNIEnv *env, j
  * Signature: (III)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_couchbase_lite_internal_core_C4Replicator_mayBeNetworkDependent(JNIEnv *env, jclass clazz,
-                                                               jint domain, jint code, jint ii) {
+Java_com_couchbase_lite_internal_core_C4Replicator_mayBeNetworkDependent(JNIEnv *env,
+                                                                         jclass clazz,
+                                                                         jint domain,
+                                                                         jint code,
+                                                                         jint ii) {
     C4Error c4Error = {.domain = (C4ErrorDomain) domain, .code= code, .internal_info = ii};
     return c4error_mayBeNetworkDependent(c4Error);
 }
