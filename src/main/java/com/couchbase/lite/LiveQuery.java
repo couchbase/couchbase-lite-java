@@ -28,7 +28,6 @@ import com.couchbase.lite.internal.support.Log;
 /**
  * A Query subclass that automatically refreshes the result rows every time the database changes.
  * <p>
- * <p>
  * Be careful with the state machine here:
  * A query that has been STOPPED can be STARTED again!
  * In particular, a query that is stopping when it receives a request to restart
@@ -107,7 +106,7 @@ final class LiveQuery implements DatabaseChangeListener {
      */
     ListenerToken addChangeListener(Executor executor, QueryChangeListener listener) {
         final ChangeListenerToken token = changeNotifier.addChangeListener(executor, listener);
-        start();
+        start(false);
         return token;
     }
 
@@ -123,7 +122,7 @@ final class LiveQuery implements DatabaseChangeListener {
     /**
      * Starts observing database changes and reports changes in the query result.
      */
-    void start() {
+    void start(boolean shouldClearResults) {
         final Database db = query.getDatabase();
         if (db == null) { throw new IllegalArgumentException("live query database cannot be null."); }
 
@@ -132,12 +131,14 @@ final class LiveQuery implements DatabaseChangeListener {
                 db.addActiveLiveQuery(this);
                 dbListenerToken = db.addChangeListener(this);
             }
-
-            // Here if state is STARTED or SCHEDULED:
-            // this method may be called while the LiveQuery is already running,
-            // for example, by Query.setParameters().
-            // If that happens we want to kick off another query, right now
-            releaseResultSetSynchronized();
+            else {
+                // Here if the live query was already running.  This can happen in two ways:
+                // 1) when adding another listener
+                // 2) when the query parameters have changed.
+                // In either case we may want to kick off a new query.
+                // In the latter case the current query results are irrelevant.
+                if (shouldClearResults) { releaseResultSetSynchronized(); }
+            }
         }
 
         update();
@@ -151,6 +152,7 @@ final class LiveQuery implements DatabaseChangeListener {
         synchronized (lock) {
             final State oldState = state.getAndSet(State.STOPPED);
             if (State.STOPPED == oldState) { return; }
+
             final Database db = query.getDatabase();
             if (db != null) {
                 db.removeActiveLiveQuery(this);
@@ -183,11 +185,13 @@ final class LiveQuery implements DatabaseChangeListener {
 
             boolean update = false;
             synchronized (lock) {
-                if (previousResults == prevResults) {
+                if (state.get() != State.STOPPED) {
                     previousResults = newResults;
                     update = true;
                 }
             }
+
+            // Listeners may be notified even after the LiveQuery has been stopped.
             if (update) { changeNotifier.postChange(new QueryChange(query, newResults, null)); }
         }
         catch (CouchbaseLiteException err) {
