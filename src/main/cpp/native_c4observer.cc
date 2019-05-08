@@ -19,7 +19,6 @@
 #include "com_couchbase_lite_internal_core_C4DatabaseObserver.h"
 #include "com_couchbase_lite_internal_core_C4DocumentObserver.h"
 #include "native_glue.hh"
-#include "logging.h"
 
 using namespace litecore;
 using namespace litecore::jni;

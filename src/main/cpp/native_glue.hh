@@ -26,8 +26,6 @@
 #include "fleece/Fleece.h"
 #include "fleece/slice.hh"
 
-#include "logging.h"
-
 namespace litecore {
     namespace jni {
 

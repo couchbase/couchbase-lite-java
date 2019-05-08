@@ -22,7 +22,6 @@
 #include "socket_factory.h"
 #include "com_couchbase_lite_internal_core_C4Replicator.h"
 #include "native_glue.hh"
-#include "logging.h"
 
 using namespace litecore;
 using namespace litecore::jni;
@@ -249,7 +248,6 @@ static void releaseContext(JNIEnv *env, jobject jcontext) {
     }
 }
 
-
 /**
  * Callback a client can register, to get progress information.
  * This will be called on arbitrary background threads, and should not block.
@@ -273,12 +271,12 @@ static void statusChangedCallback(C4Replicator *repl, C4ReplicatorStatus status,
                                       (jlong) repl,
                                       toJavaObject(env, status));
             if (gJVM->DetachCurrentThread() != 0)
-                LOGE("doRequestClose(): Failed to detach the current thread from a Java VM");
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
-            LOGE("doRequestClose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
@@ -312,12 +310,12 @@ static void documentEndedCallback(C4Replicator *repl,
                                       pushing,
                                       toJavaDocumentEndedArray(env, numDocs, documentEnded));
             if (gJVM->DetachCurrentThread() != 0)
-                LOGE("doRequestClose(): Failed to detach the current thread from a Java VM");
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
-            LOGE("doRequestClose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
@@ -343,12 +341,12 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
                                                isPush,
                                                (jobject) ctx);
             if (gJVM->DetachCurrentThread() != 0)
-                LOGE("doRequestClose(): Failed to detach the current thread from a Java VM");
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
-            LOGE("doRequestClose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
     return (jboolean) res;
 }

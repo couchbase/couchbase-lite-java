@@ -18,8 +18,6 @@
 #include "native_glue.hh"
 #include "com_couchbase_lite_internal_fleece_FLEncoder.h"
 
-#include "logging.h"
-
 using namespace litecore;
 using namespace litecore::jni;
 
