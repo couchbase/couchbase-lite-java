@@ -17,11 +17,11 @@
 //
 
 #include <c4.h>
+#include <c4Base.h>
 #include <c4Socket.h>
 #include "com_couchbase_lite_internal_core_C4Socket.h"
 #include "socket_factory.h"
 #include "native_glue.hh"
-#include "logging.h"
 
 using namespace litecore;
 using namespace litecore::jni;
@@ -119,13 +119,13 @@ socket_open(C4Socket *socket, const C4Address *addr, C4Slice options, void *sock
                                       toJString(env, addr->path),
                                       toJByteArray(env, options));
             if (gJVM->DetachCurrentThread() != 0) {
-                LOGE("socket_open(): Failed to detach the current thread from a Java VM");
+                C4Warn("socket_open(): Failed to detach the current thread from a Java VM");
             }
         } else {
-            LOGE("socket_open(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_open(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_open(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("socket_open(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
@@ -144,13 +144,13 @@ static void socket_write(C4Socket *socket, C4SliceResult allocatedData) {
                                       (jlong) socket,
                                       toJByteArray(env, allocatedData));
             if (gJVM->DetachCurrentThread() != 0) {
-                LOGE("socket_write(): Failed to detach the current thread from a Java VM");
+                C4Warn("socket_write(): Failed to detach the current thread from a Java VM");
             }
         } else {
-            LOGE("socket_write(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_write(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_write(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("socket_write(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
     c4slice_free(allocatedData);
 }
@@ -170,13 +170,13 @@ static void socket_completedReceive(C4Socket *socket, size_t byteCount) {
                                       (jlong) socket,
                                       (jlong) byteCount);
             if (gJVM->DetachCurrentThread() != 0) {
-                LOGE("socket_completedReceive(): Failed to detach the current thread from a Java VM");
+                C4Warn("socket_completedReceive(): Failed to detach the current thread from a Java VM");
             }
         } else {
-            LOGE("socket_completedReceive(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_completedReceive(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_completedReceive(): Failed to get the environment: getEnvStat -> %d",
+        C4Warn("socket_completedReceive(): Failed to get the environment: getEnvStat -> %d",
              getEnvStat);
     }
 }
@@ -198,13 +198,13 @@ static void socket_requestClose(C4Socket *socket, int status, C4String messageSl
                                       (jint) status,
                                       toJString(env, messageSlice));
             if (gJVM->DetachCurrentThread() != 0) {
-                LOGE("socket_requestClose(): Failed to detach the current thread from a Java VM");
+                C4Warn("socket_requestClose(): Failed to detach the current thread from a Java VM");
             }
         } else {
-            LOGE("socket_requestClose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_requestClose(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_requestClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("socket_requestClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
@@ -217,13 +217,13 @@ static void socket_close(C4Socket *socket) {
         if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_close, (jlong) socket);
             if (gJVM->DetachCurrentThread() != 0) {
-                LOGE("socket_close(): Failed to detach the current thread from a Java VM");
+                C4Warn("socket_close(): Failed to detach the current thread from a Java VM");
             }
         } else {
-            LOGE("socket_close(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_close(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_close(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("socket_close(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
@@ -238,10 +238,10 @@ static void socket_dispose(C4Socket *socket) {
         if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_dispose, (jlong) socket);
         } else {
-            LOGE("socket_dispose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("socket_dispose(): Failed to attaches the current thread to a Java VM");
         }
     } else {
-        LOGE("socket_dispose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("socket_dispose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 
     if (socket->nativeHandle != NULL) {
@@ -262,7 +262,7 @@ static void socket_dispose(C4Socket *socket) {
 
     if (getEnvStat == JNI_EDETACHED) {
         if (gJVM->DetachCurrentThread() != 0) {
-            LOGE("socket_dispose(): Failed to detach the current thread from a Java VM");
+            C4Warn("socket_dispose(): Failed to detach the current thread from a Java VM");
         }
     }
 }
