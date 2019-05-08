@@ -80,8 +80,6 @@ public class AbstractCBLWebSocket extends C4Socket {
     private static final OkHttpClient BASE_HTTP_CLIENT = new OkHttpClient.Builder()
         // timeouts
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
         // redirection
         .followRedirects(true)
         .followSslRedirects(true)
