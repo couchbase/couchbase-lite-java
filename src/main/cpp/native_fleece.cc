@@ -390,7 +390,7 @@ JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_JSON5ToJSON(JNIEnv *env, jclass clazz, jstring jjson5) {
     jstringSlice json5(env, jjson5);
     FLError error = kFLNoError;
-    FLStringResult json = FLJSON5_ToJSON(json5, &error);
+    FLStringResult json = FLJSON5_ToJSON(json5, nullptr, nullptr, &error);
     if (error != kFLNoError)
         throwError(env, {FleeceDomain, error});
     jstring res = toJString(env, json);

@@ -170,11 +170,11 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if(getEnvStat == JNI_EDETACHED) {
         if (gJVM->AttachCurrentThread(&env, NULL) != 0) {
-            LOGE("logCallback(): Failed to attach the current thread to a Java VM)");
+            C4Warn("logCallback(): Failed to attach the current thread to a Java VM)");
             return;
         }
     } else if(getEnvStat != JNI_OK) {
-        LOGE("logCallback(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("logCallback(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
         return;
     }
 
@@ -185,7 +185,7 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
 
     if(getEnvStat == JNI_EDETACHED) {
         if (gJVM->DetachCurrentThread() != 0) {
-            LOGE("logCallback(): doRequestClose(): Failed to detach the current thread from a Java VM");
+            C4Warn("logCallback(): doRequestClose(): Failed to detach the current thread from a Java VM");
         }
     }
 }
