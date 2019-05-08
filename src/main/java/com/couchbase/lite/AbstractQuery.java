@@ -38,13 +38,21 @@ import com.couchbase.lite.internal.utils.JsonUtils;
 
 abstract class AbstractQuery implements Query {
     //---------------------------------------------
-    // static variables
+    // constants
     //---------------------------------------------
     private static final LogDomain DOMAIN = LogDomain.QUERY;
-    private final Object lock = new Object(); // lock for thread-safety
+
+    //---------------------------------------------
+    // Load LiteCore library and its dependencies
+    //---------------------------------------------
+    static { NativeLibraryLoader.load(); }
+
+
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    private final Object lock = new Object();
+
     private Database database;
     private C4Query c4query;
 
@@ -73,7 +81,7 @@ abstract class AbstractQuery implements Query {
     private Map<String, Integer> columnNames;
 
     // Live Query!!
-    private LiveQuery query;
+    private LiveQuery liveQuery;
 
     /**
      * Returns a copies of the current parameters.
@@ -94,15 +102,15 @@ abstract class AbstractQuery implements Query {
      */
     @Override
     public void setParameters(Parameters parameters) {
-        final LiveQuery liveQuery;
+        final LiveQuery newQuery;
         synchronized (lock) {
-            this.parameters = parameters != null ? parameters.readonlyCopy() : null;
-            liveQuery = this.query;
+            this.parameters = (parameters == null) ? null : parameters.readonlyCopy();
+            newQuery = liveQuery;
         }
 
         // https://github.com/couchbase/couchbase-lite-android/issues/1727
         // Shouldn't call start() method inside the lock to prevent deadlock:
-        if (liveQuery != null) { liveQuery.start(); }
+        if (newQuery != null) { newQuery.start(true); }
     }
 
     /**
@@ -186,7 +194,7 @@ abstract class AbstractQuery implements Query {
     @Override
     public ListenerToken addChangeListener(Executor executor, @NonNull QueryChangeListener listener) {
         if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
-        return liveQuery().addChangeListener(executor, listener);
+        return getLiveQuery().addChangeListener(executor, listener);
     }
 
     /**
@@ -197,7 +205,7 @@ abstract class AbstractQuery implements Query {
     @Override
     public void removeChangeListener(@NonNull ListenerToken token) {
         if (token == null) { throw new IllegalArgumentException("token cannot be null."); }
-        liveQuery().removeChangeListener(token);
+        getLiveQuery().removeChangeListener(token);
     }
 
     @NonNull
@@ -206,16 +214,16 @@ abstract class AbstractQuery implements Query {
         return String.format(Locale.ENGLISH, "%s[json=%s]", this.getClass().getSimpleName(), asJson());
     }
 
+    //---------------------------------------------
+    // Protected level access
+    //---------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         free();
         super.finalize();
     }
-
-    //---------------------------------------------
-    // Protected level access
-    //---------------------------------------------
 
     //---------------------------------------------
     // Package level access
@@ -271,7 +279,7 @@ abstract class AbstractQuery implements Query {
     }
 
     //---------------------------------------------
-    // Private (in class only)
+    // Private methods
     //---------------------------------------------
     private void check() throws CouchbaseLiteException {
         synchronized (lock) {
@@ -363,10 +371,10 @@ abstract class AbstractQuery implements Query {
         return json;
     }
 
-    private LiveQuery liveQuery() {
+    private LiveQuery getLiveQuery() {
         synchronized (lock) {
-            if (query == null) { query = new LiveQuery(this); }
-            return query;
+            if (liveQuery == null) { liveQuery = new LiveQuery(this); }
+            return liveQuery;
         }
     }
 
@@ -379,12 +387,5 @@ abstract class AbstractQuery implements Query {
                 c4query = null;
             }
         }
-    }
-
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static {
-        NativeLibraryLoader.load();
     }
 }
