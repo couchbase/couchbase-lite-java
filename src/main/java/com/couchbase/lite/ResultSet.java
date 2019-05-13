@@ -158,10 +158,11 @@ public class ResultSet implements Iterable<Result> {
         return (idx == null) ? -1 : idx;
     }
 
-    // !!! Must guarantee that this thing cannot be freed while a refresh is taking place.
-    // While the code in `free` is not synchronized (goddess help us), it is *after*
-    // a synchronized block.  Either isAlive is true or the execution of the `free` method
-    // cannot complete until the method exits.
+    // Must guarantee that this thing cannot be freed while a refresh is taking place.
+    // While the code in `free` is not synchronized (goddess help us), the call to `free` is *after* a
+    // synchronized block.  Either `isAlive` is false and this method exits without attempting the refresh
+    // or it has seized the lock and execution of the `free` method cannot actually free this object until
+    // this method exits.
     ResultSet refresh() throws CouchbaseLiteException {
         if (query == null) { throw new IllegalStateException("_query variable is null"); }
 

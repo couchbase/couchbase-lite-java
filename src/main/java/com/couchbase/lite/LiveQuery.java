@@ -136,7 +136,7 @@ final class LiveQuery implements DatabaseChangeListener {
                 // 1) when adding another listener
                 // 2) when the query parameters have changed.
                 // In either case we may want to kick off a new query.
-                // In the latter case the current query results are irrelevant.
+                // In the latter case the current query results are irrelevant and need to be cleared.
                 if (shouldClearResults) { releaseResultSetSynchronized(); }
             }
         }

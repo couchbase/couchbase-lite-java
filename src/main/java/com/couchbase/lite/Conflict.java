@@ -30,8 +30,8 @@ public class Conflict {
     }
 
     @Nullable
-    private Document getLocalDocument() { return localDocument; }
+    public Document getLocalDocument() { return localDocument; }
 
     @Nullable
-    private Document getRemoteDocument() { return remoteDocument; }
+    public Document getRemoteDocument() { return remoteDocument; }
 }
