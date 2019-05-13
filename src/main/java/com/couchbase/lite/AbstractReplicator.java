@@ -634,7 +634,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             @Override
             public void documentEnded(
-                C4Replicator repl, final boolean pushing,
+                C4Replicator repl,
+                final boolean pushing,
                 final C4DocumentEnded[] documents,
                 Object context) {
                 final AbstractReplicator replicator = (AbstractReplicator) context;
@@ -700,9 +701,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                     }
                     else {
                         resolver.resolve(new Conflict(
-                            null, // !!! FIXME: the local document
-                            null)); // !!! FIXME: the remote document
-                        // !!! FIXME: retry the save?
+                            null,    // !!! FIXME: the local document
+                            null));  // !!! FIXME: the remote document
+                                     // !!! FIXME: retry the save?
                     }
                 }
                 catch (CouchbaseLiteException ex) {

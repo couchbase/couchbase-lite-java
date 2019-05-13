@@ -203,11 +203,11 @@ public final class Blob implements FLEncodable {
      * Construct a Blob with the given in-memory data. The blob can then be added as a  property of
      * a Document.
      * <p>
-     * !!FIXME: This method stores a mutable array as private data
      *
      * @param contentType The type of content this Blob will represent
      * @param content     The data that this Blob will contain
      */
+    // !!! FIXME: This method stores a mutable array as private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public Blob(@NonNull String contentType, @NonNull byte[] content) {
         if (contentType == null) { throw new IllegalArgumentException("contentType cannot be null."); }
@@ -286,10 +286,10 @@ public final class Blob implements FLEncodable {
      * Gets the contents of a Blob as a block of memory. Not recommended for very large blobs, as it
      * may be slow and use up lots of RAM.
      * <p>
-     * !!FIXME: This method returns a writeable copy of its private data
      *
      * @return the contents of a Blob as a block of memory
      */
+     // !!! FIXME: This method returns a writeable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getContent() {
         if (content != null) {

@@ -219,11 +219,11 @@ abstract class AbstractReplicatorConfiguration {
     /**
      * Sets the target server's SSL certificate.
      * <p>
-     * !!FIXME: This method stores a mutable array as private data
      *
      * @param pinnedServerCertificate the SSL certificate.
      * @return The self object.
      */
+    // !!! FIXME: This method stores a mutable array as private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @NonNull
     public ReplicatorConfiguration setPinnedServerCertificate(byte[] pinnedServerCertificate) {
@@ -322,9 +322,8 @@ abstract class AbstractReplicatorConfiguration {
 
     /**
      * Return the remote target's SSL certificate.
-     * <p>
-     * !!FIXME: This method returns a writeable copy of its private data
      */
+    // !!! FIXME: This method returns a writeable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getPinnedServerCertificate() { return pinnedServerCertificate; }
 

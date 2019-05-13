@@ -1246,7 +1246,7 @@ abstract class AbstractDatabase {
                         return true;
                     }
 
-                    // FIXME: apply the custom conflict handler
+                    // !!! FIXME: apply the custom conflict handler
                     if (conflictHandler != null) {
                         final MutableDocument conflicted = document.toMutable();
                         conflictHandler.handle(
