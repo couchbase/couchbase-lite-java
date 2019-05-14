@@ -15,10 +15,45 @@
 //
 package com.couchbase.lite;
 
-public interface ConflictResolver {
-    static ConflictResolver getDefaultResolver() {
-        return null;
-    }
+import android.support.annotation.NonNull;
 
+
+/**
+ * Custom conflict resolution stratagies implement this interface.
+ */
+public interface ConflictResolver {
+    /**
+     * The default conflict resolution strategy.
+     */
+    ConflictResolver DEFAULT = new DefaultConflictResolver();
+
+    /**
+     * Callback: called when there are conflicting changes in the local
+     * and remote versions of a document during replication.
+     *
+     * @param conflict Description of the conflicting documents.
+     * @return the resolved doc.
+     */
     Document resolve(Conflict conflict);
+}
+
+class DefaultConflictResolver implements ConflictResolver {
+    @Override
+    public Document resolve(@NonNull Conflict conflict) {
+        // if one of the docs was deleted, return the other.
+        final Document localDoc = conflict.getLocalDocument();
+        final Document remoteDoc = conflict.getRemoteDocument();
+        if (localDoc == null) { return remoteDoc; }
+        else if (remoteDoc == null) { return localDoc; }
+
+        // if one of the docs is newer, return it
+        final long localGen = localDoc.generation();
+        final long remoteGen = remoteDoc.generation();
+        if (localGen > remoteGen) { return localDoc; }
+        else if (localGen < remoteGen) { return remoteDoc; }
+
+        // otherwise, choose one randomly, but deterministically.
+        final String localRevId = localDoc.getRevID();
+        return ((localRevId != null) && (localRevId.compareTo(remoteDoc.getRevID()) > 0)) ? localDoc : remoteDoc;
+    }
 }

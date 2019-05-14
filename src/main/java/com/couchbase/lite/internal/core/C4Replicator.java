@@ -208,13 +208,9 @@ public class C4Replicator {
 
         if (!live) { return; }
 
-        Log.d(LogDomain.REPLICATOR, "handle: " + handle);
-        Log.d(
-            LogDomain.REPLICATOR,
-            "replicatorContext: " + replicatorContext + " $" + replicatorContext.getClass());
-        Log.d(
-            LogDomain.REPLICATOR,
-            "socketFactoryContext: " + socketFactoryContext + " $" + socketFactoryContext.getClass());
+        Log.d(LogDomain.REPLICATOR, "Handle: %s", handle);
+        Log.d(LogDomain.REPLICATOR, "Replicator ctxt: %s $%s", replicatorContext, replicatorContext.getClass());
+        Log.d(LogDomain.REPLICATOR, "Factory ctxt: %s $%s", socketFactoryContext, socketFactoryContext.getClass());
 
         synchronized (CLASS_LOCK) {
             REVERSE_LOOKUP_TABLE.remove(handle);

@@ -71,11 +71,7 @@ public final class URLEndpoint implements Endpoint {
 
     @NonNull
     @Override
-    public String toString() {
-        return "URLEndpoint{" +
-            "url=" + url +
-            '}';
-    }
+    public String toString() { return "URLEndpoint{url=" + url + '}'; }
 
     //---------------------------------------------
     // API - public methods
@@ -85,7 +81,5 @@ public final class URLEndpoint implements Endpoint {
      * Returns the url.
      */
     @NonNull
-    public URI getURL() {
-        return url;
-    }
+    public URI getURL() { return url; }
 }

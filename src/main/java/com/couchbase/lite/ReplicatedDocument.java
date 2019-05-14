@@ -23,7 +23,6 @@ import android.support.annotation.NonNull;
 import java.util.EnumSet;
 
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.internal.core.C4Error;
 
 
 public final class ReplicatedDocument {
@@ -33,7 +32,7 @@ public final class ReplicatedDocument {
     //---------------------------------------------
     private final EnumSet<DocumentFlag> documentFlags;
     private final String id;
-    private final C4Error error;
+    private final CouchbaseLiteException error;
 
     //---------------------------------------------
     // Constructors
@@ -42,7 +41,7 @@ public final class ReplicatedDocument {
     /**
      * Document replicated update of a replicator.
      */
-    ReplicatedDocument(String id, int flags, C4Error error, boolean trans) {
+    ReplicatedDocument(String id, int flags, CouchbaseLiteException error, boolean trans) {
         this.id = id;
         this.error = error;
 
@@ -64,24 +63,18 @@ public final class ReplicatedDocument {
      * The current document id.
      */
     @NonNull
-    public String getID() {
-        return id;
-    }
+    public String getID() { return id; }
 
     /**
      * The current status flag of the document. eg. deleted, access removed
      */
     @NonNull
-    public EnumSet<DocumentFlag> flags() {
-        return documentFlags;
-    }
+    public EnumSet<DocumentFlag> flags() { return documentFlags; }
 
     /**
      * The current document replication error.
      */
-    public CouchbaseLiteException getError() {
-        return error.getCode() != 0 ? CBLStatus.convertError(error) : null;
-    }
+    public CouchbaseLiteException getError() { return error; }
 
     @NonNull
     @Override

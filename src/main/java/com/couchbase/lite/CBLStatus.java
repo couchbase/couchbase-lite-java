@@ -47,6 +47,10 @@ class CBLStatus {
         ERROR_DOMAINS = Collections.unmodifiableList(l);
     }
 
+    static CouchbaseLiteException convertError(C4Error c4err) {
+        return convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
+    }
+
     static CouchbaseLiteException convertException(LiteCoreException e) {
         return convertException(e.domain, e.code, null, e);
     }
@@ -59,10 +63,6 @@ class CBLStatus {
                 C4Base.getMessage(domainCode, statusCode, internalInfo)));
         }
         else { return convertException(domainCode, statusCode, null, null); }
-    }
-
-    static CouchbaseLiteException convertError(C4Error c4err) {
-        return convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
     }
 
     static CouchbaseLiteException convertException(

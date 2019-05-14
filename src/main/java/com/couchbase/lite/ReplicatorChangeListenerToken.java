@@ -25,21 +25,14 @@ final class ReplicatorChangeListenerToken implements ListenerToken {
     private Executor executor;
 
     ReplicatorChangeListenerToken(Executor executor, ReplicatorChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("a listener parameter is null"); }
+        if (listener == null) { throw new IllegalArgumentException("listener may not be null"); }
         this.executor = executor;
         this.listener = listener;
     }
 
-    void notify(final ReplicatorChange change) {
-        getExecutor().execute(new Runnable() {
-            @Override
-            public void run() { listener.changed(change); }
-        });
-    }
+    void notify(final ReplicatorChange change) { getExecutor().execute(() -> listener.changed(change)); }
 
-    Executor getExecutor() {
-        return executor != null ? executor : DefaultExecutor.getInstance();
-    }
+    Executor getExecutor() { return executor != null ? executor : DefaultExecutor.getInstance(); }
 }
 
 final class DocumentReplicationListenerToken implements ListenerToken {
@@ -52,16 +45,7 @@ final class DocumentReplicationListenerToken implements ListenerToken {
         this.listener = listener;
     }
 
-    void notify(final DocumentReplication update) {
-        getExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                listener.replication(update);
-            }
-        });
-    }
+    void notify(final DocumentReplication update) { getExecutor().execute(() -> listener.replication(update)); }
 
-    private Executor getExecutor() {
-        return executor != null ? executor : DefaultExecutor.getInstance();
-    }
+    private Executor getExecutor() { return executor != null ? executor : DefaultExecutor.getInstance(); }
 }
