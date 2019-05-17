@@ -30,24 +30,11 @@ class ChangeListenerToken<T> implements ListenerToken {
         this.listener = listener;
     }
 
-    public Object getKey() {
-        return key;
-    }
+    public Object getKey() { return key; }
 
-    public void setKey(Object key) {
-        this.key = key;
-    }
+    public void setKey(Object key) { this.key = key; }
 
-    void postChange(final T change) {
-        getExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                listener.changed(change);
-            }
-        });
-    }
+    void postChange(final T change) { getExecutor().execute(() -> listener.changed(change)); }
 
-    private Executor getExecutor() {
-        return executor != null ? executor : DefaultExecutor.getInstance();
-    }
+    private Executor getExecutor() { return executor != null ? executor : DefaultExecutor.getInstance(); }
 }

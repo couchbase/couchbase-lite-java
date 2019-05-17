@@ -203,6 +203,7 @@ abstract class AbstractDatabase {
     private final SharedKeys sharedKeys;
     private final boolean shellMode;
 
+    //!!! EXECUTOR
     private final ScheduledExecutorService postExecutor;  // Executor for posting Database/Document Change notification
     private final ScheduledExecutorService queryExecutor; // Executor for LiveQuery. one per db.
 
@@ -896,37 +897,63 @@ abstract class AbstractDatabase {
 
                 // Read the conflicting remote revision:
                 final Document remoteDoc = new Document((Database) this, docID, true);
-                try {
-                    if (!remoteDoc.selectConflictingRevision()) {
-                        Log.w(DOMAIN, "Unable to select conflicting revision for '%s', skipping...", docID);
-                        return;
-                    }
-                }
-                catch (LiteCoreException e) {
-                    throw CBLStatus.convertException(e);
+                if (!remoteDoc.selectConflictingRevision()) {
+                    final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping...";
+                    Log.w(DOMAIN, msg);
+                    throw new CouchbaseLiteException(msg, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
                 }
 
                 // Resolve conflict:
-                Log.v(
-                    DOMAIN,
-                    "Resolving doc '%s' (local=%s and remote=%s)",
-                    docID,
-                    localDoc.getRevID(),
-                    remoteDoc.getRevID());
+                final Document resolvedDoc = resolveConflict(resolver, docID, localDoc, remoteDoc);
 
-                final Document resolvedDoc = ConflictResolver.DEFAULT.resolve(new Conflict(localDoc, remoteDoc));
-
-                // Save resolved document:
-                try { saveResolvedDocumentInTransaction(resolvedDoc, localDoc, remoteDoc); }
-                catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+                if (resolvedDoc != null) { saveResolvedDocumentInTransaction(resolvedDoc, localDoc, remoteDoc); }
+                else { save(localDoc, true, ConcurrencyControl.LAST_WRITE_WINS, null); }
 
                 commit = true;
+            }
+            catch (LiteCoreException e) {
+                throw CBLStatus.convertException(e);
             }
             finally {
                 endTransaction(commit);
             }
         }
     }
+
+    private Document resolveConflict(ConflictResolver resolver, String docID, Document localDoc, Document remoteDoc)
+        throws CouchbaseLiteException {
+        Log.v(DOMAIN, "Resolving doc '%s' (local=%s and remote=%s)", docID, localDoc.getRevID(), remoteDoc.getRevID());
+
+        final ConflictResolver rez = (resolver != null) ? resolver : ConflictResolver.DEFAULT;
+
+        final Document doc;
+        try { doc = rez.resolve(new Conflict(localDoc, remoteDoc)); }
+        catch (Exception err) {
+            throw new CouchbaseLiteException(
+                "Conflict resolver failed. Skipping...",
+                err,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
+        }
+        if (doc == null) { return null; }
+
+        if (!docID.equals(doc.getId())) {
+            throw new CouchbaseLiteException(
+                "Resolved document's id does not match that of the documents being resolved. Skipping...",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
+        }
+
+        if (!doc.getDatabase().equals(localDoc.getDatabase())) {
+            throw new CouchbaseLiteException(
+                "Resolved document belongs to a database different than the documents being resolved. Skipping...",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
+        }
+
+        return doc;
+    }
+
     //////// Execution:
 
     void scheduleOnPostNotificationExecutor(@NonNull Runnable runnable, /* Milliseconds */ long delay) {
@@ -1190,12 +1217,12 @@ abstract class AbstractDatabase {
                         curDoc = getC4Database().get(document.getId(), true);
                     }
                     catch (LiteCoreException e) {
-                        if (deletion
-                            && (e.domain == C4Constants.ErrorDomain.LITE_CORE)
-                            && (e.code == C4Constants.LiteCoreError.NOT_FOUND)) {
-                            return true;
+                        if (!deletion
+                            || e.domain != C4Constants.ErrorDomain.LITE_CORE
+                            || e.code != C4Constants.LiteCoreError.NOT_FOUND) {
+                            throw CBLStatus.convertException(e);
                         }
-                        throw CBLStatus.convertException(e);
+                        return true;
                     }
 
                     if (deletion && curDoc.deleted()) {
@@ -1281,7 +1308,9 @@ abstract class AbstractDatabase {
         final C4Document rawDoc = localDoc.getC4doc();
         rawDoc.resolveConflict(winningRevID, losingRevID, mergedBody, mergedFlags);
         rawDoc.save(0);
+
         Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
+
         return true;
     }
 

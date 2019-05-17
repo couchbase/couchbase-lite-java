@@ -279,6 +279,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Protected by lock
     private final Set<DocumentReplicationListenerToken> docEndedListenerTokens = new HashSet<>();
 
+    //!!! EXECUTOR
     private final ScheduledExecutorService background
         = Executors.newSingleThreadScheduledExecutor(target -> new Thread(target, "ReplicatorListenerThread"));
 
@@ -669,7 +670,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
         try { config.getDatabase().resolveConflictInDocument(config.getConflictResolver(), docID); }
         catch (CouchbaseLiteException ex) {
-            Log.e(DOMAIN, "Failed to resolve conflict: docID -> %s", ex, docID);
+            Log.e(DOMAIN, "Failed to resolve conflict in document %s: ", ex, docID);
             return ex;
         }
         return null;
@@ -731,15 +732,12 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             updateStateProperties(c4Status);
 
             // Post notification
-            synchronized (lock) {
-                // Replicator.getStatus() creates a copy of Status.
-                final ReplicatorChange change = new ReplicatorChange((Replicator) this, this.getStatus());
-                for (ReplicatorChangeListenerToken token : changeListenerTokens) { token.notify(change); }
-            }
+            // Replicator.getStatus() creates a copy of Status.
+            final ReplicatorChange change = new ReplicatorChange((Replicator) this, this.getStatus());
+            for (ReplicatorChangeListenerToken token : changeListenerTokens) { token.notify(change); }
 
             // If Stopped:
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                // Stopped
                 this.clearRepl();
                 config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
             }

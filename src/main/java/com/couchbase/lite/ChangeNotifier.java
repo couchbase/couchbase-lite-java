@@ -54,9 +54,7 @@ class ChangeNotifier<T> {
         if (change == null) { throw new IllegalArgumentException("change is null"); }
 
         synchronized (lock) {
-            for (ChangeListenerToken<T> token : listenerTokens) {
-                token.postChange(change);
-            }
+            for (ChangeListenerToken<T> token : listenerTokens) { token.postChange(change); }
         }
     }
 }

@@ -235,9 +235,7 @@ public abstract class C4Socket {
     //-------------------------------------------------------------------------
     protected C4Socket() { this(0L); }
 
-    protected C4Socket(long handle) {
-        this.handle = handle;
-    }
+    protected C4Socket(long handle) { this.handle = handle; }
 
     protected abstract void send(byte[] allocatedData);
 

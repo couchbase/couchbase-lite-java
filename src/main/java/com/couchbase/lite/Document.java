@@ -101,9 +101,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the document's ID
      */
     @NonNull
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
 
     //---------------------------------------------
     // API - public methods
@@ -130,9 +128,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the MutableDocument instance
      */
     @NonNull
-    public MutableDocument toMutable() {
-        return new MutableDocument(this, null);
-    }
+    public MutableDocument toMutable() { return new MutableDocument(this, null); }
 
     /**
      * Gets a number of the entries in the dictionary.
@@ -140,9 +136,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return
      */
     @Override
-    public int count() {
-        return internalDict.count();
-    }
+    public int count() { return internalDict.count(); }
 
     //---------------------------------------------
     // API - Implemenents ReadOnlyDictionaryInterface
@@ -155,9 +149,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     @Override
-    public List<String> getKeys() {
-        return internalDict.getKeys();
-    }
+    public List<String> getKeys() { return internalDict.getKeys(); }
 
     /**
      * Gets a property's value as an object. The object types are Blob, Array,
@@ -168,9 +160,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the object value or nil.
      */
     @Override
-    public Object getValue(@NonNull String key) {
-        return internalDict.getValue(key);
-    }
+    public Object getValue(@NonNull String key) { return internalDict.getValue(key); }
 
     /**
      * Gets a property's value as a String.
@@ -180,9 +170,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the String or null.
      */
     @Override
-    public String getString(@NonNull String key) {
-        return internalDict.getString(key);
-    }
+    public String getString(@NonNull String key) { return internalDict.getString(key); }
 
     /**
      * Gets a property's value as a Number.
@@ -192,9 +180,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the Number or nil.
      */
     @Override
-    public Number getNumber(@NonNull String key) {
-        return internalDict.getNumber(key);
-    }
+    public Number getNumber(@NonNull String key) { return internalDict.getNumber(key); }
 
     /**
      * Gets a property's value as an int.
@@ -205,9 +191,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the int value.
      */
     @Override
-    public int getInt(@NonNull String key) {
-        return internalDict.getInt(key);
-    }
+    public int getInt(@NonNull String key) { return internalDict.getInt(key); }
 
     /**
      * Gets a property's value as an long.
@@ -218,9 +202,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the long value.
      */
     @Override
-    public long getLong(@NonNull String key) {
-        return internalDict.getLong(key);
-    }
+    public long getLong(@NonNull String key) { return internalDict.getLong(key); }
 
     /**
      * Gets a property's value as an float.
@@ -231,9 +213,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the float value.
      */
     @Override
-    public float getFloat(@NonNull String key) {
-        return internalDict.getFloat(key);
-    }
+    public float getFloat(@NonNull String key) { return internalDict.getFloat(key); }
 
     /**
      * Gets a property's value as an double.
@@ -244,9 +224,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the double value.
      */
     @Override
-    public double getDouble(@NonNull String key) {
-        return internalDict.getDouble(key);
-    }
+    public double getDouble(@NonNull String key) { return internalDict.getDouble(key); }
 
     /**
      * Gets a property's value as a boolean. Returns true if the value exists, and is either `true`
@@ -256,9 +234,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the boolean value.
      */
     @Override
-    public boolean getBoolean(@NonNull String key) {
-        return internalDict.getBoolean(key);
-    }
+    public boolean getBoolean(@NonNull String key) { return internalDict.getBoolean(key); }
 
     /**
      * Gets a property's value as a Blob.
@@ -268,9 +244,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the Blob value or null.
      */
     @Override
-    public Blob getBlob(@NonNull String key) {
-        return internalDict.getBlob(key);
-    }
+    public Blob getBlob(@NonNull String key) { return internalDict.getBlob(key); }
 
     /**
      * Gets a property's value as a Date.
@@ -284,9 +258,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the Date value or null.
      */
     @Override
-    public Date getDate(@NonNull String key) {
-        return internalDict.getDate(key);
-    }
+    public Date getDate(@NonNull String key) { return internalDict.getDate(key); }
 
     /**
      * Get a property's value as a Array, which is a mapping object of an array value.
@@ -296,9 +268,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return The Array object or null.
      */
     @Override
-    public Array getArray(@NonNull String key) {
-        return internalDict.getArray(key);
-    }
+    public Array getArray(@NonNull String key) { return internalDict.getArray(key); }
 
     /**
      * Get a property's value as a Dictionary, which is a mapping object of
@@ -309,9 +279,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return The Dictionary object or null.
      */
     @Override
-    public Dictionary getDictionary(@NonNull String key) {
-        return internalDict.getDictionary(key);
-    }
+    public Dictionary getDictionary(@NonNull String key) { return internalDict.getDictionary(key); }
 
     /**
      * Gets content of the current object as an Map. The values contained in the returned
@@ -321,9 +289,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     @Override
-    public Map<String, Object> toMap() {
-        return internalDict.toMap();
-    }
+    public Map<String, Object> toMap() { return internalDict.toMap(); }
 
     /**
      * Tests whether a property exists or not.
@@ -334,9 +300,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the boolean value representing whether a property exists or not.
      */
     @Override
-    public boolean contains(@NonNull String key) {
-        return internalDict.contains(key);
-    }
+    public boolean contains(@NonNull String key) { return internalDict.contains(key); }
 
     /**
      * Gets  an iterator over the keys of the document's properties
@@ -345,9 +309,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     @Override
-    public Iterator<String> iterator() {
-        return getKeys().iterator();
-    }
+    public Iterator<String> iterator() { return getKeys().iterator(); }
 
     //---------------------------------------------
     // Iterable implementation
@@ -415,26 +377,18 @@ public class Document implements DictionaryInterface, Iterable<String> {
         return false;
     }
 
-    boolean isEmpty() {
-        return internalDict.isEmpty();
-    }
+    boolean isEmpty() { return internalDict.isEmpty(); }
 
-    Database getDatabase() {
-        return database;
-    }
+    Database getDatabase() { return database; }
 
-    void setDatabase(Database database) {
-        this.database = database;
-    }
+    void setDatabase(Database database) { this.database = database; }
 
     /**
      * Return whether the document exists in the database.
      *
      * @return true if exists, false otherwise.
      */
-    boolean exists() {
-        return c4doc != null && c4doc.exists();
-    }
+    boolean exists() { return c4doc != null && c4doc.exists(); }
 
     // Document overrides this
     long generation() {
@@ -445,9 +399,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     }
 
     C4Document getC4doc() {
-        synchronized (lock) {
-            return c4doc;
-        }
+        synchronized (lock) { return c4doc; }
     }
 
     boolean selectConflictingRevision() throws LiteCoreException {
@@ -472,9 +424,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     }
 
     String getRevID() {
-        synchronized (lock) {
-            return c4doc != null ? c4doc.getSelectedRevID() : null;
-        }
+        synchronized (lock) { return c4doc != null ? c4doc.getSelectedRevID() : null; }
     }
 
     FLSliceResult encode() throws LiteCoreException {
@@ -489,9 +439,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
     }
 
-    boolean isNewDocument() {
-        return getRevID() == null;
-    }
+    boolean isNewDocument() { return getRevID() == null; }
 
     /**
      * Return whether the document is deleted
@@ -499,9 +447,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return true if deleted, false otherwise
      */
     boolean isDeleted() {
-        synchronized (lock) {
-            return (c4doc != null) && c4doc.deleted();
-        }
+        synchronized (lock) { return (c4doc != null) && c4doc.deleted(); }
     }
     // Sets c4doc and updates my root dictionary
     private void setC4Document(C4Document c4doc) {

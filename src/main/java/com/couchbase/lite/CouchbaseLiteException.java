@@ -134,10 +134,6 @@ public final class CouchbaseLiteException extends Exception {
     @NonNull
     @Override
     public String toString() {
-        return "CouchbaseLiteException{" +
-            "domain='" + domain + '\'' +
-            ", code=" + code +
-            ", msg=" + super.getMessage() +
-            '}';
+        return "CouchbaseLiteException{domain='" + domain + "', code=" + code + ", msg=" + super.getMessage() + "}";
     }
 }

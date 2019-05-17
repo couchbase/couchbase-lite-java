@@ -27,6 +27,7 @@ import com.couchbase.lite.internal.support.Log;
 public class ExecutorUtils {
     private static final Object LOCK = new Object();
 
+    //!!! EXECUTOR
     public static void shutdownAndAwaitTermination(ExecutorService pool, int waitSec) {
         // Disable new tasks from being submitted
         final boolean isShutdown;

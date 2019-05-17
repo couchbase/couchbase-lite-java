@@ -40,7 +40,6 @@ public class C4Log {
         DOMAIN_OBJECTS = Collections.unmodifiableMap(m);
     }
 
-
     private static LogLevel currentLevel = LogLevel.WARNING;
 
     static void logCallback(String domainName, int level, String message) {
@@ -59,25 +58,23 @@ public class C4Log {
     }
 
     private static void recalculateLevels() {
-        LogLevel callbackLevel = Database.log.getConsole().getLevel();
         final Logger customLogger = Database.log.getCustom();
-        if (customLogger != null && customLogger.getLevel().compareTo(callbackLevel) < 0) {
+
+        LogLevel callbackLevel = Database.log.getConsole().getLevel();
+        if ((customLogger != null) && (customLogger.getLevel().compareTo(callbackLevel) < 0)) {
             callbackLevel = customLogger.getLevel();
         }
 
-        if (currentLevel == callbackLevel) {
-            return;
-        }
-
+        if (currentLevel == callbackLevel) { return; }
         currentLevel = callbackLevel;
+
         final LogLevel finalLevel = callbackLevel;
-        Executors.newSingleThreadExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                // This cannot be done synchronously because it will deadlock
-                // on the same mutex that is being held for this callback
-                setCallbackLevel(finalLevel.getValue());
-            }
+
+        //!!! EXECUTOR
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // This cannot be done synchronously because it will deadlock
+            // on the same mutex that is being held for this callback
+            setCallbackLevel(finalLevel.getValue());
         });
     }
 
