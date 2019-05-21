@@ -252,6 +252,13 @@ public abstract class C4Socket {
     //-------------------------------------------------------------------------
     // Protected methods
     //-------------------------------------------------------------------------
+
+    protected void setHandle(long handle) {
+        this.nativeHandle = this;
+        this.handle = handle;
+        C4Socket.REVERSE_LOOKUP_TABLE.put(handle, this);
+    }
+
     protected void gotHTTPResponse(int httpStatus, byte[] responseHeadersFleece) {
         gotHTTPResponse(handle, httpStatus, responseHeadersFleece);
     }
