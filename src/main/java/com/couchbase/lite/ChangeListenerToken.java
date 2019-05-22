@@ -36,5 +36,7 @@ class ChangeListenerToken<T> implements ListenerToken {
 
     void postChange(final T change) { getExecutor().execute(() -> listener.changed(change)); }
 
-    private Executor getExecutor() { return executor != null ? executor : DefaultExecutor.getInstance(); }
+    private Executor getExecutor() {
+        return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+    }
 }

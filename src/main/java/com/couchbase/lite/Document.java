@@ -424,7 +424,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     }
 
     String getRevID() {
-        synchronized (lock) { return c4doc != null ? c4doc.getSelectedRevID() : null; }
+        synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
     }
 
     FLSliceResult encode() throws LiteCoreException {

@@ -33,9 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.RejectedExecutionException;
 
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
@@ -186,14 +184,20 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: " + context + ", status: " + status);
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl == replicator.c4repl) { background.execute(() -> replicator.c4StatusChanged(status)); }
+            if (repl == replicator.c4repl) {
+                try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
+                catch (RejectedExecutionException ignored) { }
+            }
         }
 
         @Override
         public void documentEnded(C4Replicator repl, boolean pushing, C4DocumentEnded[] documents, Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: " + context + ", pushing: " + pushing);
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl == replicator.c4repl) { background.execute(() -> replicator.documentEnded(pushing, documents)); }
+            if (repl == replicator.c4repl) {
+                try { dispatcher.execute(() -> replicator.documentEnded(pushing, documents)); }
+                catch (RejectedExecutionException ignored) { }
+            }
         }
     }
 
@@ -279,9 +283,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Protected by lock
     private final Set<DocumentReplicationListenerToken> docEndedListenerTokens = new HashSet<>();
 
-    //!!! EXECUTOR
-    private final ScheduledExecutorService background
-        = Executors.newSingleThreadScheduledExecutor(target -> new Thread(target, "ReplicatorListenerThread"));
+    private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
 
     final ReplicatorConfiguration config;
 
@@ -767,9 +769,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         }
         else {
             // On transient error, retry periodically, with exponential backoff:
-            final int delay = retryDelay(++retryCount);
-            Log.i(DOMAIN, "%s: Transient error (%s); will retry in %d sec...", this, c4err, delay);
-            background.schedule(this::retry, delay, TimeUnit.SECONDS);
+            final int delaySec = retryDelay(++retryCount);
+            Log.i(DOMAIN, "%s: Transient error (%s); will retry in %d sec...", this, c4err, delaySec);
+            CouchbaseLite.getExecutionService().postDelayedOnExecutor(delaySec * 1000, dispatcher, this::retry);
         }
 
         // Also retry when the network changes:

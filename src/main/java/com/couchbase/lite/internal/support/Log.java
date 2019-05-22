@@ -20,6 +20,8 @@ package com.couchbase.lite.internal.support;
 import java.util.Locale;
 
 import com.couchbase.lite.Database;
+import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Log;
@@ -46,8 +48,8 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void v(com.couchbase.lite.LogDomain domain, String msg) {
-        sendToLoggers(com.couchbase.lite.LogLevel.VERBOSE, domain, msg);
+    public static void v(LogDomain domain, String msg) {
+        sendToLoggers(LogLevel.VERBOSE, domain, msg);
     }
 
     /**
@@ -57,7 +59,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void v(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void v(LogDomain domain, String msg, Throwable tr) {
         v(domain, "Exception: %s", tr.toString());
     }
 
@@ -68,7 +70,7 @@ public final class Log {
      * @param formatString The string you would like logged plus format specifiers.
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void v(com.couchbase.lite.LogDomain domain, String formatString, Object... args) {
+    public static void v(LogDomain domain, String formatString, Object... args) {
         String msg;
         try {
             msg = String.format(Locale.ENGLISH, formatString, args);
@@ -76,7 +78,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.VERBOSE, domain, msg);
+        sendToLoggers(LogLevel.VERBOSE, domain, msg);
     }
 
     /**
@@ -87,7 +89,7 @@ public final class Log {
      * @param tr           An exception to log
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void v(com.couchbase.lite.LogDomain domain, String formatString, Throwable tr, Object... args) {
+    public static void v(LogDomain domain, String formatString, Throwable tr, Object... args) {
         String msg;
         try {
             msg = String.format(formatString, args);
@@ -96,7 +98,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.VERBOSE, domain, msg);
+        sendToLoggers(LogLevel.VERBOSE, domain, msg);
     }
 
     /**
@@ -105,8 +107,8 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void i(com.couchbase.lite.LogDomain domain, String msg) {
-        sendToLoggers(com.couchbase.lite.LogLevel.INFO, domain, msg);
+    public static void i(LogDomain domain, String msg) {
+        sendToLoggers(LogLevel.INFO, domain, msg);
     }
 
     /**
@@ -116,15 +118,15 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void i(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void i(LogDomain domain, String msg, Throwable tr) {
         i(domain, "Exception: %s", tr.toString());
     }
 
-    public static void info(com.couchbase.lite.LogDomain domain, String msg) {
+    public static void info(LogDomain domain, String msg) {
         i(domain, msg);
     }
 
-    public static void info(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void info(LogDomain domain, String msg, Throwable tr) {
         i(domain, msg, tr);
     }
 
@@ -135,7 +137,7 @@ public final class Log {
      * @param formatString The string you would like logged plus format specifiers.
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void i(com.couchbase.lite.LogDomain domain, String formatString, Object... args) {
+    public static void i(LogDomain domain, String formatString, Object... args) {
         String msg;
         try {
             msg = String.format(Locale.ENGLISH, formatString, args);
@@ -143,7 +145,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.INFO, domain, msg);
+        sendToLoggers(LogLevel.INFO, domain, msg);
     }
 
     /**
@@ -154,7 +156,7 @@ public final class Log {
      * @param tr           An exception to log
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void i(com.couchbase.lite.LogDomain domain, String formatString, Throwable tr, Object... args) {
+    public static void i(LogDomain domain, String formatString, Throwable tr, Object... args) {
         String msg;
         try {
             msg = String.format(formatString, args);
@@ -163,7 +165,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.INFO, domain, msg);
+        sendToLoggers(LogLevel.INFO, domain, msg);
     }
 
     /**
@@ -172,8 +174,8 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void w(com.couchbase.lite.LogDomain domain, String msg) {
-        sendToLoggers(com.couchbase.lite.LogLevel.WARNING, domain, msg);
+    public static void w(LogDomain domain, String msg) {
+        sendToLoggers(LogLevel.WARNING, domain, msg);
     }
 
     /**
@@ -182,7 +184,7 @@ public final class Log {
      * @param domain The log domain.
      * @param tr     An exception to log
      */
-    public static void w(com.couchbase.lite.LogDomain domain, Throwable tr) {
+    public static void w(LogDomain domain, Throwable tr) {
         w(domain, "Exception: %s", tr.toString());
     }
 
@@ -193,7 +195,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void w(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void w(LogDomain domain, String msg, Throwable tr) {
         w(domain, "%s: %s", msg, tr.toString());
     }
 
@@ -204,7 +206,7 @@ public final class Log {
      * @param formatString The string you would like logged plus format specifiers.
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void w(com.couchbase.lite.LogDomain domain, String formatString, Object... args) {
+    public static void w(LogDomain domain, String formatString, Object... args) {
         String msg;
         try {
             msg = String.format(Locale.ENGLISH, formatString, args);
@@ -212,7 +214,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.WARNING, domain, msg);
+        sendToLoggers(LogLevel.WARNING, domain, msg);
     }
 
     /**
@@ -223,7 +225,7 @@ public final class Log {
      * @param tr           An exception to log
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void w(com.couchbase.lite.LogDomain domain, String formatString, Throwable tr, Object... args) {
+    public static void w(LogDomain domain, String formatString, Throwable tr, Object... args) {
         String msg;
         try {
             msg = String.format(formatString, args);
@@ -232,7 +234,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.WARNING, domain, msg);
+        sendToLoggers(LogLevel.WARNING, domain, msg);
     }
 
     /**
@@ -241,8 +243,8 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void e(com.couchbase.lite.LogDomain domain, String msg) {
-        sendToLoggers(com.couchbase.lite.LogLevel.ERROR, domain, msg);
+    public static void e(LogDomain domain, String msg) {
+        sendToLoggers(LogLevel.ERROR, domain, msg);
     }
 
     /**
@@ -252,7 +254,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void e(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void e(LogDomain domain, String msg, Throwable tr) {
         e(domain, "%s: %s", msg, tr.toString());
     }
 
@@ -264,7 +266,7 @@ public final class Log {
      * @param tr           An exception to log
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void e(com.couchbase.lite.LogDomain domain, String formatString, Throwable tr, Object... args) {
+    public static void e(LogDomain domain, String formatString, Throwable tr, Object... args) {
         String msg;
         try {
             msg = String.format(formatString, args);
@@ -273,7 +275,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.ERROR, domain, msg);
+        sendToLoggers(LogLevel.ERROR, domain, msg);
     }
 
     /**
@@ -283,7 +285,7 @@ public final class Log {
      * @param formatString The string you would like logged plus format specifiers.
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void e(com.couchbase.lite.LogDomain domain, String formatString, Object... args) {
+    public static void e(LogDomain domain, String formatString, Object... args) {
         String msg;
         try {
             msg = String.format(Locale.ENGLISH, formatString, args);
@@ -291,7 +293,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.ERROR, domain, msg);
+        sendToLoggers(LogLevel.ERROR, domain, msg);
     }
 
     /**
@@ -300,8 +302,8 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void d(com.couchbase.lite.LogDomain domain, String msg) {
-        sendToLoggers(com.couchbase.lite.LogLevel.DEBUG, domain, msg);
+    public static void d(LogDomain domain, String msg) {
+        sendToLoggers(LogLevel.DEBUG, domain, msg);
     }
 
     /**
@@ -311,7 +313,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void d(com.couchbase.lite.LogDomain domain, String msg, Throwable tr) {
+    public static void d(LogDomain domain, String msg, Throwable tr) {
         d(domain, "Exception: %s", tr.toString());
     }
 
@@ -322,7 +324,7 @@ public final class Log {
      * @param formatString The string you would like logged plus format specifiers.
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void d(com.couchbase.lite.LogDomain domain, String formatString, Object... args) {
+    public static void d(LogDomain domain, String formatString, Object... args) {
         String msg;
         try {
             msg = String.format(Locale.ENGLISH, formatString, args);
@@ -330,7 +332,7 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.DEBUG, domain, msg);
+        sendToLoggers(LogLevel.DEBUG, domain, msg);
     }
 
     /**
@@ -341,7 +343,7 @@ public final class Log {
      * @param tr           An exception to log
      * @param args         Variable number of Object args to be used as params to formatString.
      */
-    public static void d(com.couchbase.lite.LogDomain domain, String formatString, Throwable tr, Object... args) {
+    public static void d(LogDomain domain, String formatString, Throwable tr, Object... args) {
         String msg;
         try {
             msg = String.format(formatString, args);
@@ -350,11 +352,11 @@ public final class Log {
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
-        sendToLoggers(com.couchbase.lite.LogLevel.DEBUG, domain, msg);
+        sendToLoggers(LogLevel.DEBUG, domain, msg);
     }
 
-    public static void setLogLevel(com.couchbase.lite.LogDomain domain, com.couchbase.lite.LogLevel level) {
-        final int actualLevel = level.equals(com.couchbase.lite.LogLevel.NONE) ? C4LOG_NONE : C4LOG_DEBUG;
+    public static void setLogLevel(LogDomain domain, LogLevel level) {
+        final int actualLevel = level.equals(LogLevel.NONE) ? C4LOG_NONE : C4LOG_DEBUG;
         switch (domain) {
             case ALL:
                 enableLogging(DATABASE, actualLevel);
@@ -390,8 +392,8 @@ public final class Log {
     }
 
     private static void sendToLoggers(
-        com.couchbase.lite.LogLevel level,
-        com.couchbase.lite.LogDomain domain, String msg) {
+        LogLevel level,
+        LogDomain domain, String msg) {
         boolean fileSucceeded = false;
         boolean consoleSucceeded = false;
         try {
@@ -410,15 +412,8 @@ public final class Log {
             }
         }
         catch (Exception e) {
-            if (fileSucceeded) {
-                Database.log.getFile()
-                    .log(com.couchbase.lite.LogLevel.ERROR, com.couchbase.lite.LogDomain.DATABASE, e.toString());
-            }
-
-            if (consoleSucceeded) {
-                Database.log.getConsole()
-                    .log(com.couchbase.lite.LogLevel.ERROR, com.couchbase.lite.LogDomain.DATABASE, e.toString());
-            }
+            if (fileSucceeded) { Database.log.getFile().log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
+            if (consoleSucceeded) { Database.log.getConsole().log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
         }
     }
 

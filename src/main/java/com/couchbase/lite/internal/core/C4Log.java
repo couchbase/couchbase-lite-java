@@ -20,8 +20,8 @@ package com.couchbase.lite.internal.core;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
 
+import com.couchbase.lite.CouchbaseLite;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
@@ -29,6 +29,7 @@ import com.couchbase.lite.Logger;
 
 public class C4Log {
     private static final Map<String, com.couchbase.lite.LogDomain> DOMAIN_OBJECTS;
+
     static {
         final Map<String, com.couchbase.lite.LogDomain> m = new HashMap<>();
         m.put(C4Constants.LogDomain.DATABASE, com.couchbase.lite.LogDomain.DATABASE);
@@ -70,12 +71,10 @@ public class C4Log {
 
         final LogLevel finalLevel = callbackLevel;
 
-        //!!! EXECUTOR
-        Executors.newSingleThreadExecutor().execute(() -> {
-            // This cannot be done synchronously because it will deadlock
-            // on the same mutex that is being held for this callback
-            setCallbackLevel(finalLevel.getValue());
-        });
+        // This cannot be done synchronously because it will deadlock
+        // on the same mutex that is being held for this callback
+        CouchbaseLite.getExecutionService().getMainExecutor()
+            .execute(() -> { setCallbackLevel(finalLevel.getValue()); });
     }
 
     //-------------------------------------------------------------------------

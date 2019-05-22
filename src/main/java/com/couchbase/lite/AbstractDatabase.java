@@ -30,17 +30,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONException;
 
+import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.core.C4BlobStore;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
@@ -52,7 +48,6 @@ import com.couchbase.lite.internal.core.SharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.support.Run;
-import com.couchbase.lite.internal.utils.ExecutorUtils;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.utils.FileUtils;
 
@@ -87,8 +82,10 @@ abstract class AbstractDatabase {
     private static final LogDomain DOMAIN = LogDomain.DATABASE;
     private static final String DB_EXTENSION = "cblite2";
     private static final int MAX_CHANGES = 100;
+
     // How long to wait after a database opens before expiring docs
-    private static final long HOUSEKEEPING_DELAY_AFTER_OPENING = 3;
+    private static final long OPENING_PURGE_DELAY_MS = 3;
+    private static final long STANDARD_PURGE_DELAY_MS = 1000;
 
     private static final int DEFAULT_DATABASE_FLAGS
         = C4Constants.DatabaseFlags.CREATE
@@ -203,9 +200,10 @@ abstract class AbstractDatabase {
     private final SharedKeys sharedKeys;
     private final boolean shellMode;
 
-    //!!! EXECUTOR
-    private final ScheduledExecutorService postExecutor;  // Executor for posting Database/Document Change notification
-    private final ScheduledExecutorService queryExecutor; // Executor for LiveQuery. one per db.
+    // Executor for purge and posting Database/Document changes.
+    private final ExecutionService.CloseableExecutor postExecutor;
+    // Executor for LiveQuery.
+    private final ExecutionService.CloseableExecutor queryExecutor;
 
     private final Set<Replicator> activeReplications;
 
@@ -216,11 +214,10 @@ abstract class AbstractDatabase {
     private C4DatabaseObserver c4DbObserver;
     private Map<String, DocumentChangeNotifier> docChangeNotifiers;
 
-    // Attributes:
-    private Timer purgeTimer;
-    private String name;
-
     protected C4Database c4db;
+
+    private String name;
+    private Runnable purgeTask;
 
     //---------------------------------------------
     // Constructors
@@ -265,8 +262,8 @@ abstract class AbstractDatabase {
         this.config = config.readonlyCopy();
 
         this.shellMode = false;
-        this.postExecutor = Executors.newSingleThreadScheduledExecutor();
-        this.queryExecutor = Executors.newSingleThreadScheduledExecutor();
+        this.postExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
+        this.queryExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
         this.activeReplications = Collections.synchronizedSet(new HashSet<>());
         this.activeLiveQueries = Collections.synchronizedSet(new HashSet<>());
 
@@ -455,6 +452,7 @@ abstract class AbstractDatabase {
 
             boolean commit = false;
             beginTransaction();
+
             try {
                 // revID: null, all revisions are purged.
                 if (document.getC4doc().purgeRevision(null) >= 0) {
@@ -703,8 +701,8 @@ abstract class AbstractDatabase {
                     CBLError.Code.BUSY);
             }
 
-            // cancel purge timer
-            cancelPurgeTimer();
+            // cancel purge
+            cancelPurgeTask();
 
             // close db
             closeC4DB();
@@ -744,8 +742,8 @@ abstract class AbstractDatabase {
                     CBLError.Code.BUSY);
             }
 
-            // cancel purge timer
-            cancelPurgeTimer();
+            // cancel purge
+            cancelPurgeTask();
 
             // delete db
             deleteC4DB();
@@ -956,14 +954,12 @@ abstract class AbstractDatabase {
 
     //////// Execution:
 
-    void scheduleOnPostNotificationExecutor(@NonNull Runnable runnable, /* Milliseconds */ long delay) {
-        try { postExecutor.schedule(runnable, delay, TimeUnit.MILLISECONDS); }
-        catch (RejectedExecutionException ignore) { }
+    void scheduleOnPostNotificationExecutor(@NonNull Runnable task, long delayMs) {
+        CouchbaseLite.getExecutionService().postDelayedOnExecutor(delayMs, postExecutor, task);
     }
 
-    void scheduleOnQueryExecutor(@NonNull Runnable runnable, /* Milliseconds */ long delay) {
-        try { queryExecutor.schedule(runnable, delay, TimeUnit.MILLISECONDS); }
-        catch (RejectedExecutionException ignore) { }
+    void scheduleOnQueryExecutor(@NonNull Runnable task, long delayMs) {
+        CouchbaseLite.getExecutionService().postDelayedOnExecutor(delayMs, queryExecutor, task);
     }
 
     abstract int getEncryptionAlgorithm();
@@ -1030,7 +1026,7 @@ abstract class AbstractDatabase {
         dbChangeNotifier = null;
         docChangeNotifiers = new HashMap<>();
 
-        scheduleDocumentExpiration(HOUSEKEEPING_DELAY_AFTER_OPENING);
+        scheduleDocumentExpiration(OPENING_PURGE_DELAY_MS);
     }
 
     private int getDatabaseFlags() { return DEFAULT_DATABASE_FLAGS; }
@@ -1315,26 +1311,23 @@ abstract class AbstractDatabase {
     }
 
     private void shutdownExecutorService() {
-        ExecutorUtils.shutdownAndAwaitTermination(postExecutor, 60);
-        ExecutorUtils.shutdownAndAwaitTermination(queryExecutor, 60);
+        postExecutor.stop(60, TimeUnit.SECONDS);
+        queryExecutor.stop(60, TimeUnit.SECONDS);
     }
 
-    private void scheduleDocumentExpiration(long minimumDelay /*milliseconds*/) {
+    private void scheduleDocumentExpiration(long minimumDelayMs) {
         final long nextExpiration = getC4Database().nextDocExpiration();
-        if (nextExpiration <= 0) { Log.v(DOMAIN, "No pending doc expirations"); }
-        else {
-            final long delay = Math.max(nextExpiration - System.currentTimeMillis(), minimumDelay);
-            Log.v(DOMAIN, "Scheduling next doc expiration in %d sec", delay);
-            synchronized (lock) {
-                cancelPurgeTimer();
-                purgeTimer = new Timer();
-                purgeTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        if (isOpen()) { purgeExpiredDocuments(); }
-                    }
-                }, delay);
-            }
+        if (nextExpiration <= 0) {
+            Log.v(DOMAIN, "No pending doc expirations");
+            return;
+        }
+        final long delayMs = Math.max(nextExpiration - System.currentTimeMillis(), minimumDelayMs);
+        Log.v(DOMAIN, "Scheduling next doc expiration in %d sec", delayMs);
+
+        final ExecutionService executionService = CouchbaseLite.getExecutionService();
+        synchronized (lock) {
+            cancelPurgeTask();
+            purgeTask = executionService.postDelayedOnExecutor(delayMs, postExecutor, this::purgeExpiredDocuments);
         }
     }
 
@@ -1342,21 +1335,18 @@ abstract class AbstractDatabase {
     // between ending transaction and handling change notification when the documents
     // are purged
     private void purgeExpiredDocuments() {
-        scheduleOnPostNotificationExecutor(
-            () -> {
-                final int nPurged = getC4Database().purgeExpiredDocs();
-                Log.v(DOMAIN, "Purged %d expired documents", nPurged);
-                scheduleDocumentExpiration(1000);
-            },
-            0);
+        if (!isOpen()) { return; }
+        final int nPurged = getC4Database().purgeExpiredDocs();
+        Log.v(DOMAIN, "Purged %d expired documents", nPurged);
+        scheduleDocumentExpiration(STANDARD_PURGE_DELAY_MS);
     }
 
-    private void cancelPurgeTimer() {
+    private void cancelPurgeTask() {
         synchronized (lock) {
-            if (purgeTimer != null) {
-                purgeTimer.cancel();
-                purgeTimer = null;
-            }
+            if (purgeTask == null) { return; }
+            CouchbaseLite.getExecutionService().cancelDelayedTask(purgeTask);
+            purgeTask = null;
         }
     }
 }
+

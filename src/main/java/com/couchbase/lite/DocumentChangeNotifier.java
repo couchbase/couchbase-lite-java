@@ -19,7 +19,6 @@
 package com.couchbase.lite;
 
 import com.couchbase.lite.internal.core.C4DocumentObserver;
-import com.couchbase.lite.internal.core.C4DocumentObserverListener;
 
 
 class DocumentChangeNotifier extends ChangeNotifier<DocumentChange> {
@@ -30,23 +29,10 @@ class DocumentChangeNotifier extends ChangeNotifier<DocumentChange> {
     DocumentChangeNotifier(final Database db, final String docID) {
         this.db = db;
         this.docID = docID;
-        this.obs = db.c4db.createDocumentObserver(docID, new C4DocumentObserverListener() {
-                @Override
-                public void callback(
-                    final C4DocumentObserver observer,
-                    final String docID,
-                    final long sequence,
-                    final Object context) {
-                    db.scheduleOnPostNotificationExecutor(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                ((DocumentChangeNotifier) context).postChange();
-                            }
-                        },
-                        0);
-                }
-            },
+        this.obs = db.c4db.createDocumentObserver(
+            docID,
+            (observer, docID1, sequence, context)
+                -> db.scheduleOnPostNotificationExecutor(((DocumentChangeNotifier) context)::postChange, 0),
             this);
     }
 
