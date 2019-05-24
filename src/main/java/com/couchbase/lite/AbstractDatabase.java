@@ -454,16 +454,20 @@ abstract class AbstractDatabase {
             beginTransaction();
 
             try {
+                if (document.getC4doc().purgeRevision(null) < 0) { return; }
+
                 // revID: null, all revisions are purged.
-                if (document.getC4doc().purgeRevision(null) >= 0) {
-                    document.getC4doc().save(0);
-                    // Reset c4doc:
-                    document.replaceC4Document(null);
-                    commit = true;
-                }
+                document.getC4doc().save(0);
+                document.replaceC4Document(null); // Reset c4doc:
+                commit = true;
             }
             catch (LiteCoreException e) {
-                throw CBLStatus.convertException(e);
+                // ??? ignore
+                if (!((C4Constants.ErrorDomain.LITE_CORE == e.getDomain())
+                    && (e.getCode() == CBLError.Code.CONFLICT))) {
+                    throw CBLStatus.convertException(e);
+                }
+                commit = true;
             }
             finally {
                 endTransaction(commit);

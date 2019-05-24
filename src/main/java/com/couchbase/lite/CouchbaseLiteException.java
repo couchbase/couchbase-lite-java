@@ -96,7 +96,7 @@ public final class CouchbaseLiteException extends Exception {
         this(message, cause, domain, code, null);
     }
 
-    private CouchbaseLiteException(
+    CouchbaseLiteException(
         String message,
         Throwable cause,
         @NonNull String domain,

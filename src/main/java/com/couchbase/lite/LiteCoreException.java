@@ -25,6 +25,8 @@ public class LiteCoreException extends Exception {
     public static void throwException(int domain, int code, String msg) throws LiteCoreException {
         throw new LiteCoreException(domain, code, msg);
     }
+
+
     public final int domain; // TODO: Should be an enum
     public final int code;
 
@@ -34,21 +36,13 @@ public class LiteCoreException extends Exception {
         this.code = code;
     }
 
-    public int getDomain() {
-        return domain;
-    }
+    public int getDomain() { return domain; }
 
-    public int getCode() {
-        return code;
-    }
+    public int getCode() { return code; }
 
     @NonNull
     @Override
     public String toString() {
-        return "LiteCoreException{" +
-            "domain=" + domain +
-            ", code=" + code +
-            ", msg=" + super.getMessage() +
-            '}';
+        return "LiteCoreException{domain=" + domain + ", code=" + code + ", msg=" + super.getMessage() + "}";
     }
 }

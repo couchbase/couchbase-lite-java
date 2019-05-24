@@ -17,10 +17,6 @@
 //
 package com.couchbase.lite;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import com.couchbase.lite.internal.core.C4Base;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Error;
@@ -28,25 +24,6 @@ import com.couchbase.lite.internal.support.Log;
 
 
 class CBLStatus {
-    private static final List<String> ERROR_DOMAINS;
-
-    static {
-        final List<String> l = Arrays.asList(new String[C4Constants.ErrorDomain.MAX_ERROR_DOMAINS + 1]);
-        // code is a Couchbase Lite Core error code (see below)
-        l.set(C4Constants.ErrorDomain.LITE_CORE, CBLError.Domain.CBLITE);
-        // code is an errno (errno.h)
-        l.set(C4Constants.ErrorDomain.POSIX, "POSIXErrorDomain");
-        // code is a SQLite error; see "sqlite3.h">"
-        l.set(C4Constants.ErrorDomain.SQLITE, CBLError.Domain.SQLITE);
-        // code is a Fleece error; see "FleeceException.h"
-        l.set(C4Constants.ErrorDomain.FLEECE, CBLError.Domain.FLEECE);
-        // code is a network error; see enum C4NetworkErrorCode, below
-        l.set(C4Constants.ErrorDomain.NETWORK, CBLError.Domain.CBLITE);
-        // code is a WebSocket close code (1000...1015) or HTTP error (300..599)
-        l.set(C4Constants.ErrorDomain.WEB_SOCKET, CBLError.Domain.CBLITE);
-        ERROR_DOMAINS = Collections.unmodifiableList(l);
-    }
-
     static CouchbaseLiteException convertError(C4Error c4err) {
         return convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
     }
@@ -56,36 +33,51 @@ class CBLStatus {
     }
 
     static CouchbaseLiteException convertException(int domainCode, int statusCode, int internalInfo) {
-        if (domainCode != 0 && statusCode != 0) {
-            return convertException(new LiteCoreException(
+        return ((domainCode == 0) || (statusCode == 0))
+            ? convertException(domainCode, statusCode, null, null)
+            : convertException(new LiteCoreException(
                 domainCode,
                 statusCode,
                 C4Base.getMessage(domainCode, statusCode, internalInfo)));
-        }
-        else { return convertException(domainCode, statusCode, null, null); }
     }
 
-    static CouchbaseLiteException convertException(
-        int domainCode,
-        int statusCode,
-        String message,
-        LiteCoreException err) {
-        int code = statusCode;
-        if (domainCode == C4Constants.ErrorDomain.NETWORK) { code += CBLError.Code.NETWORK_BASE; }
-        else if (domainCode == C4Constants.ErrorDomain.WEB_SOCKET) { code += CBLError.Code.HTTP_BASE; }
+    static CouchbaseLiteException convertException(int domainCode, int statusCode, String msg, LiteCoreException e) {
+        final String message = (msg != null) ? msg : ((e != null) ? e.getMessage() : null);
 
-        String domain = (domainCode >= ERROR_DOMAINS.size()) ? null : ERROR_DOMAINS.get(domainCode);
-        if (domain == null) {
-            Log.w(
-                LogDomain.DATABASE,
-                "Unable to map C4Error(%d,%d) to an CouchbaseLiteException",
-                domainCode,
-                statusCode);
-            domain = CBLError.Domain.CBLITE;
-            code = CBLError.Code.UNEXPECTED_ERROR;
+        int code = statusCode;
+
+        final String domain;
+        switch (domainCode) {
+            case C4Constants.ErrorDomain.LITE_CORE:
+                domain = CBLError.Domain.CBLITE;
+                break;
+            case C4Constants.ErrorDomain.POSIX:
+                domain = "POSIXErrorDomain";
+                break;
+            case C4Constants.ErrorDomain.SQLITE:
+                domain = CBLError.Domain.SQLITE;
+                break;
+            case C4Constants.ErrorDomain.FLEECE:
+                domain = CBLError.Domain.FLEECE;
+                break;
+            case C4Constants.ErrorDomain.NETWORK:
+                domain = CBLError.Domain.CBLITE;
+                code += CBLError.Code.NETWORK_BASE;
+                break;
+            case C4Constants.ErrorDomain.WEB_SOCKET:
+                domain = CBLError.Domain.CBLITE;
+                code += CBLError.Code.HTTP_BASE;
+                break;
+            default:
+                domain = CBLError.Domain.CBLITE;
+                // don't mess with the code, in case it is useful...
+                Log.w(
+                    LogDomain.DATABASE,
+                    "Unable to map C4Error(%d,%d) to an CouchbaseLiteException",
+                    domainCode,
+                    statusCode);
         }
 
-        message = message != null ? message : (err != null ? err.getMessage() : null);
-        return new CouchbaseLiteException(message, err, domain, code);
+        return new CouchbaseLiteException(message, e, domain, code, null);
     }
 }
