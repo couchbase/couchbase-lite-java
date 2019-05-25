@@ -85,7 +85,7 @@ abstract class AbstractDatabase {
 
     // How long to wait after a database opens before expiring docs
     private static final long OPENING_PURGE_DELAY_MS = 3;
-    private static final long STANDARD_PURGE_DELAY_MS = 1000;
+    private static final long STANDARD_PURGE_INTERVAL_MS = 1000;
 
     private static final int DEFAULT_DATABASE_FLAGS
         = C4Constants.DatabaseFlags.CREATE
@@ -209,15 +209,16 @@ abstract class AbstractDatabase {
 
     private final Set<LiveQuery> activeLiveQueries;
 
+    protected C4Database c4db;
+
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
     private Map<String, DocumentChangeNotifier> docChangeNotifiers;
 
-    protected C4Database c4db;
+    private DocumentExpirationStrategy purgeStrategy;
 
     private String name;
-    private Runnable purgeTask;
 
     //---------------------------------------------
     // Constructors
@@ -450,28 +451,13 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             prepareDocument(document);
 
-            boolean commit = false;
-            beginTransaction();
+            try { purge(document.getId()); }
+            catch (CouchbaseLiteException e) {
+                // Ignore not found (already deleted)
+                if (e.getCode() != CBLError.Code.NOT_FOUND) { throw e; }
+            }
 
-            try {
-                if (document.getC4doc().purgeRevision(null) < 0) { return; }
-
-                // revID: null, all revisions are purged.
-                document.getC4doc().save(0);
-                document.replaceC4Document(null); // Reset c4doc:
-                commit = true;
-            }
-            catch (LiteCoreException e) {
-                // ??? ignore
-                if (!((C4Constants.ErrorDomain.LITE_CORE == e.getDomain())
-                    && (e.getCode() == CBLError.Code.CONFLICT))) {
-                    throw CBLStatus.convertException(e);
-                }
-                commit = true;
-            }
-            finally {
-                endTransaction(commit);
-            }
+            document.replaceC4Document(null); // Reset c4doc:
         }
     }
 
@@ -483,21 +469,7 @@ abstract class AbstractDatabase {
      */
     public void purge(@NonNull String id) throws CouchbaseLiteException {
         if (id == null) { throw new IllegalArgumentException("document id cannot be null."); }
-
-        synchronized (lock) {
-            boolean commit = false;
-            beginTransaction();
-            try {
-                getC4Database().purgeDoc(id);
-                commit = true;
-            }
-            catch (LiteCoreException e) {
-                throw CBLStatus.convertException(e);
-            }
-            finally {
-                endTransaction(commit);
-            }
-        }
+        synchronized (lock) { purgeSynchronized(id); }
     }
 
     // Database changes:
@@ -517,7 +489,7 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             try {
                 getC4Database().setExpiration(id, (expiration == null) ? 0 : expiration.getTime());
-                scheduleDocumentExpiration(0);
+                getPurgeStrategy().schedulePurge(0);
             }
             catch (LiteCoreException e) {
                 throw CBLStatus.convertException(e);
@@ -706,7 +678,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            cancelPurgeTask();
+            getPurgeStrategy().cancelPurges();
 
             // close db
             closeC4DB();
@@ -747,7 +719,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            cancelPurgeTask();
+            getPurgeStrategy().cancelPurges();
 
             // delete db
             deleteC4DB();
@@ -922,6 +894,7 @@ abstract class AbstractDatabase {
         }
     }
 
+    // !!! FIXME: use the custom conflict handler
     private Document resolveConflict(ConflictResolver resolver, String docID, Document localDoc, Document remoteDoc)
         throws CouchbaseLiteException {
         Log.v(DOMAIN, "Resolving doc '%s' (local=%s and remote=%s)", docID, localDoc.getRevID(), remoteDoc.getRevID());
@@ -1030,7 +1003,7 @@ abstract class AbstractDatabase {
         dbChangeNotifier = null;
         docChangeNotifiers = new HashMap<>();
 
-        scheduleDocumentExpiration(OPENING_PURGE_DELAY_MS);
+        getPurgeStrategy().schedulePurge(OPENING_PURGE_DELAY_MS);
     }
 
     private int getDatabaseFlags() { return DEFAULT_DATABASE_FLAGS; }
@@ -1182,8 +1155,10 @@ abstract class AbstractDatabase {
         if (concurrencyControl == null) { throw new IllegalArgumentException("concurrencyControl cannot be null."); }
 
         if (deletion && !document.exists()) {
-            throw new CouchbaseLiteException("Cannot delete a document that has not yet been saved.",
-                CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
+            throw new CouchbaseLiteException(
+                "Cannot delete a document that has not yet been saved.",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.NOT_FOUND);
         }
 
         C4Document curDoc = null;
@@ -1285,6 +1260,21 @@ abstract class AbstractDatabase {
         }
     }
 
+    private void purgeSynchronized(@NonNull String id) throws CouchbaseLiteException {
+        boolean commit = false;
+        beginTransaction();
+        try {
+            getC4Database().purgeDoc(id);
+            commit = true;
+        }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
+        }
+        finally {
+            endTransaction(commit);
+        }
+    }
+
     // Call holding lock and in a transaction
     private boolean saveResolvedDocumentInTransaction(Document resolvedDoc, Document localDoc, Document remoteDoc)
         throws LiteCoreException {
@@ -1319,38 +1309,12 @@ abstract class AbstractDatabase {
         queryExecutor.stop(60, TimeUnit.SECONDS);
     }
 
-    private void scheduleDocumentExpiration(long minimumDelayMs) {
-        final long nextExpiration = getC4Database().nextDocExpiration();
-        if (nextExpiration <= 0) {
-            Log.v(DOMAIN, "No pending doc expirations");
-            return;
+    private DocumentExpirationStrategy getPurgeStrategy() {
+        if (purgeStrategy == null) {
+            purgeStrategy = new DocumentExpirationStrategy(this, STANDARD_PURGE_INTERVAL_MS, postExecutor);
         }
-        final long delayMs = Math.max(nextExpiration - System.currentTimeMillis(), minimumDelayMs);
-        Log.v(DOMAIN, "Scheduling next doc expiration in %d sec", delayMs);
-
-        final ExecutionService executionService = CouchbaseLite.getExecutionService();
-        synchronized (lock) {
-            cancelPurgeTask();
-            purgeTask = executionService.postDelayedOnExecutor(delayMs, postExecutor, this::purgeExpiredDocuments);
-        }
-    }
-
-    // Aligning with database/document change notification to avoid race condition
-    // between ending transaction and handling change notification when the documents
-    // are purged
-    private void purgeExpiredDocuments() {
-        if (!isOpen()) { return; }
-        final int nPurged = getC4Database().purgeExpiredDocs();
-        Log.v(DOMAIN, "Purged %d expired documents", nPurged);
-        scheduleDocumentExpiration(STANDARD_PURGE_DELAY_MS);
-    }
-
-    private void cancelPurgeTask() {
-        synchronized (lock) {
-            if (purgeTask == null) { return; }
-            CouchbaseLite.getExecutionService().cancelDelayedTask(purgeTask);
-            purgeTask = null;
-        }
+        return purgeStrategy;
     }
 }
+
 

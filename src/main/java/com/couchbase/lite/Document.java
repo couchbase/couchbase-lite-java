@@ -365,9 +365,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
             this.c4doc = c4doc;
             if (oldDoc != this.c4doc) {
                 if (this.c4doc != null) { this.c4doc.retain(); }
-                if (oldDoc != null) {
-                    oldDoc.release();  // oldDoc should be retained.
-                }
+                // oldDoc should be retained.
+                if (oldDoc != null) { oldDoc.release(); }
             }
         }
     }
