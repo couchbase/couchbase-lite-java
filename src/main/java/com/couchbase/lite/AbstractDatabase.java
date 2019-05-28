@@ -1161,11 +1161,15 @@ abstract class AbstractDatabase {
                 CBLError.Code.NOT_FOUND);
         }
 
-        C4Document curDoc = null;
-        C4Document newDoc = null;
+
         synchronized (lock) {
             mustBeOpen();
             prepareDocument(document);
+
+            CouchbaseLiteException fail = null;
+            C4Document curDoc = null;
+            C4Document newDoc = null;
+
             boolean commit = false;
             beginTransaction();
             try {
@@ -1180,34 +1184,31 @@ abstract class AbstractDatabase {
                     }
                 }
 
+                // Handle conflict:
                 // !!! FIXME: use the custom conflict handler
-
                 if (newDoc == null) {
-                    // Handle conflict:
-                    if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) {
-                        return false; // document is conflicted and return false because of OPTIMISTIC
-                    }
+                    // document is conflicted and return false because of OPTIMISTIC
+                    if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) { return false; }
 
-                    try {
-                        curDoc = getC4Database().get(document.getId(), true);
-                    }
+                    try { curDoc = getC4Database().get(document.getId(), true); }
                     catch (LiteCoreException e) {
                         if (!deletion
                             || e.domain != C4Constants.ErrorDomain.LITE_CORE
                             || e.code != C4Constants.LiteCoreError.NOT_FOUND) {
                             throw CBLStatus.convertException(e);
                         }
+
                         return true;
                     }
 
                     if (deletion && curDoc.deleted()) {
                         document.replaceC4Document(curDoc);
-                        curDoc = null; // NOTE: prevent to call curDoc.free() in finally block
+                        curDoc = null; // NOTE: prevent to call curDoc.free() in finally block ???
                         return true;
                     }
 
                     // Save changes on the current branch:
-                    // NOTE: curDoc null check is done in prev try-catch blcok
+                    // NOTE: curDoc null check is done in prev try-catch block
                     try { newDoc = save(document, curDoc, deletion); }
                     catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
                 }
@@ -1218,18 +1219,20 @@ abstract class AbstractDatabase {
             finally {
                 if (curDoc != null) {
                     curDoc.retain();
-                    curDoc.release(); // curDoc is not retained
+                    curDoc.release(); // curDoc is not retained ??? WTF?
                 }
-                try {
-                    endTransaction(commit); // true: commit the transaction, false: abort the transaction
-                }
+
+                // true: commit the transaction, false: abort the transaction
+                try { endTransaction(commit); }
                 catch (CouchbaseLiteException e) {
-                    if (newDoc != null) {
-                        newDoc.release(); // newDoc is already retained
-                    }
-                    throw e;
+                    // newDoc is already retained
+                    if (newDoc != null) { newDoc.release(); }
+                    fail = e;
                 }
             }
+
+            if (fail != null) { throw fail; }
+
             return true;
         }
     }
