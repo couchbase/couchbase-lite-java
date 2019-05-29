@@ -69,7 +69,9 @@ public class Document implements DictionaryInterface, Iterable<String> {
         this(database, id, (C4Document) null);
         final C4Document doc;
         try {
-            if (this.database == null || this.database.getC4Database() == null) { throw new IllegalStateException(); }
+            if (this.database == null || this.database.getC4Database() == null) {
+                throw new IllegalStateException("Database must be non-null and open");
+            }
             doc = this.database.getC4Database().get(getId(), true);
         }
         catch (LiteCoreException e) {

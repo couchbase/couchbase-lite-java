@@ -49,6 +49,8 @@ import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.support.Run;
 import com.couchbase.lite.internal.utils.JsonUtils;
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.internal.utils.StringUtils;
 import com.couchbase.lite.utils.FileUtils;
 
 
@@ -77,10 +79,11 @@ abstract class AbstractDatabase {
     }
 
     //---------------------------------------------
-    // Static variables
+    // Constants
     //---------------------------------------------
     private static final LogDomain DOMAIN = LogDomain.DATABASE;
     private static final String DB_EXTENSION = "cblite2";
+
     private static final int MAX_CHANGES = 100;
 
     // How long to wait after a database opens before expiring docs
@@ -104,8 +107,8 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public static void delete(@NonNull String name, @NonNull File directory) throws CouchbaseLiteException {
-        if (name == null) { throw new IllegalArgumentException("name cannot be null."); }
-        if (directory == null) { throw new IllegalArgumentException("directory cannot be null."); }
+        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.checkArgNotNull(directory, "directory");
         if (!exists(name, directory)) {
             throw new CouchbaseLiteException(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
@@ -128,8 +131,8 @@ abstract class AbstractDatabase {
      * @return true if exists, false otherwise.
      */
     public static boolean exists(@NonNull String name, @NonNull File directory) {
-        if (name == null) { throw new IllegalArgumentException("name cannot be null."); }
-        if (directory == null) { throw new IllegalArgumentException("directory cannot be null."); }
+        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.checkArgNotNull(directory, "directory");
         return getDatabasePath(directory, name).exists();
     }
 
@@ -138,9 +141,9 @@ abstract class AbstractDatabase {
         @NonNull String name,
         @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        if (path == null) { throw new IllegalArgumentException("path cannot be null."); }
-        if (name == null) { throw new IllegalArgumentException("name cannot be null."); }
-        if (config == null) { throw new IllegalArgumentException("config cannot be null."); }
+        Preconditions.checkArgNotNull(path, "path");
+        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.checkArgNotNull(config, "config");
 
         String fromPath = path.getPath();
         if (fromPath.charAt(fromPath.length() - 1) != File.separatorChar) { fromPath += File.separator; }
@@ -178,8 +181,8 @@ abstract class AbstractDatabase {
      */
     @Deprecated
     public static void setLogLevel(@NonNull LogDomain domain, @NonNull LogLevel level) {
-        if (domain == null) { throw new IllegalArgumentException("domain cannot be null."); }
-        if (level == null) { throw new IllegalArgumentException("level cannot be null."); }
+        Preconditions.checkArgNotNull(domain, "domain");
+        Preconditions.checkArgNotNull(level, "level");
 
         Log.setLogLevel(domain, level);
     }
@@ -253,8 +256,8 @@ abstract class AbstractDatabase {
                 }
             });
 
-        if (name == null || name.length() == 0) { throw new IllegalArgumentException("id cannot be null."); }
-        if (config == null) { throw new IllegalArgumentException("id cannot be null."); }
+        if (StringUtils.isEmpty(name)) { throw new IllegalArgumentException("db name may not be empty"); }
+        Preconditions.checkArgNotNull(config, "config");
 
         // Name:
         this.name = name;
@@ -344,7 +347,7 @@ abstract class AbstractDatabase {
      * @return the Document object
      */
     public Document getDocument(@NonNull String id) {
-        if (id == null) { throw new IllegalArgumentException("id cannot be null."); }
+        Preconditions.checkArgNotNull(id, "id");
 
         synchronized (lock) {
             mustBeOpen();
@@ -381,8 +384,7 @@ abstract class AbstractDatabase {
      */
     public boolean save(@NonNull MutableDocument document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
-        return save(document, false, concurrencyControl, null);
+        return saveInternal(document, false, concurrencyControl);
     }
 
     /**
@@ -397,8 +399,10 @@ abstract class AbstractDatabase {
      */
     public boolean save(@NonNull MutableDocument document, @Nullable ConflictHandler conflictHandler)
         throws CouchbaseLiteException {
-        // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
-        return save(document, false, ConcurrencyControl.FAIL_ON_CONFLICT, conflictHandler);
+        Preconditions.checkArgNotNull(document, "document");
+        Preconditions.checkArgNotNull(conflictHandler, "conflictHandler");
+        // !!! FIXME: use the custom conflict handler
+        throw new UnsupportedOperationException("save with conflict handler unsupported");
     }
 
     /**
@@ -427,7 +431,7 @@ abstract class AbstractDatabase {
     public boolean delete(@NonNull Document document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
         // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
-        return save(document, true, concurrencyControl, null);
+        return deleteInternal(document, concurrencyControl);
     }
 
     // Batch operations:
@@ -439,7 +443,7 @@ abstract class AbstractDatabase {
      * @param document the document to be purged.
      */
     public void purge(@NonNull Document document) throws CouchbaseLiteException {
-        if (document == null) { throw new IllegalArgumentException("document cannot be null."); }
+        Preconditions.checkArgNotNull(document, "document");
 
         if (document.isNewDocument()) {
             throw new CouchbaseLiteException(
@@ -468,7 +472,7 @@ abstract class AbstractDatabase {
      * @param id the document ID
      */
     public void purge(@NonNull String id) throws CouchbaseLiteException {
-        if (id == null) { throw new IllegalArgumentException("document id cannot be null."); }
+        Preconditions.checkArgNotNull(id, "id");
         synchronized (lock) { purgeSynchronized(id); }
     }
 
@@ -484,7 +488,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public void setDocumentExpiration(@NonNull String id, Date expiration) throws CouchbaseLiteException {
-        if (id == null) { throw new IllegalArgumentException("document id cannot be null."); }
+        Preconditions.checkArgNotNull(id, "id");
 
         synchronized (lock) {
             try {
@@ -506,7 +510,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public Date getDocumentExpiration(@NonNull String id) throws CouchbaseLiteException {
-        if (id == null) { throw new IllegalArgumentException("document id cannot be null."); }
+        Preconditions.checkArgNotNull(id, "id");
 
         synchronized (lock) {
             try {
@@ -534,7 +538,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public void inBatch(@NonNull Runnable runnable) throws CouchbaseLiteException {
-        if (runnable == null) { throw new IllegalArgumentException("runnable cannot be null."); }
+        Preconditions.checkArgNotNull(runnable, "runnable");
 
         synchronized (lock) {
             mustBeOpen();
@@ -596,7 +600,7 @@ abstract class AbstractDatabase {
      */
     @NonNull
     public ListenerToken addChangeListener(Executor executor, @NonNull DatabaseChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
@@ -610,7 +614,7 @@ abstract class AbstractDatabase {
      * @param token returned by a previous call to addChangeListener or addDocumentListener.
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        if (token == null) { throw new IllegalArgumentException("token cannot be null."); }
+        Preconditions.checkArgNotNull(token, "token");
 
         synchronized (lock) {
             mustBeOpen();
@@ -642,8 +646,8 @@ abstract class AbstractDatabase {
         @NonNull String id,
         Executor executor,
         @NonNull DocumentChangeListener listener) {
-        if (id == null) { throw new IllegalArgumentException("id cannot be null."); }
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(id, "id");
+        Preconditions.checkArgNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
@@ -678,7 +682,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            getPurgeStrategy().cancelPurges();
+            if (purgeStrategy != null) { getPurgeStrategy().cancelPurges(); }
 
             // close db
             closeC4DB();
@@ -719,7 +723,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            getPurgeStrategy().cancelPurges();
+            if (purgeStrategy != null) { getPurgeStrategy().cancelPurges(); }
 
             // delete db
             deleteC4DB();
@@ -744,8 +748,9 @@ abstract class AbstractDatabase {
     }
 
     public void createIndex(@NonNull String name, @NonNull Index index) throws CouchbaseLiteException {
-        if (name == null) { throw new IllegalArgumentException("name cannot be null."); }
-        if (index == null) { throw new IllegalArgumentException("index cannot be null."); }
+        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.checkArgNotNull(index, "index");
+
         synchronized (lock) {
             mustBeOpen();
             try {
@@ -840,12 +845,13 @@ abstract class AbstractDatabase {
     }
 
     /**
+     * NOTE: In general the mustBeOpen() method has already been called by the caller.
+     * It locks the db to guarantee that c4db is not be closed.
+     * Calling mustBeOpen here just avoids an NPE.
+     *
      * @return a reference to C4Database instance if db is open.
      */
     C4Database getC4Database() {
-        // NOTE: In general, mustBeOpen() method is called by caller. Thread-safety guarantees
-        //       c4db should not be closed during the method. Calling mutBeOpen() here is just try
-        //       to avoid NullPointerException.
         mustBeOpen();
 
         return c4db;
@@ -872,7 +878,7 @@ abstract class AbstractDatabase {
                 // Read the conflicting remote revision:
                 final Document remoteDoc = new Document((Database) this, docID, true);
                 if (!remoteDoc.selectConflictingRevision()) {
-                    final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping...";
+                    final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping.";
                     Log.w(DOMAIN, msg);
                     throw new CouchbaseLiteException(msg, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
                 }
@@ -881,7 +887,7 @@ abstract class AbstractDatabase {
                 final Document resolvedDoc = resolveConflict(resolver, docID, localDoc, remoteDoc);
 
                 if (resolvedDoc != null) { saveResolvedDocumentInTransaction(resolvedDoc, localDoc, remoteDoc); }
-                else { save(localDoc, true, ConcurrencyControl.LAST_WRITE_WINS, null); }
+                else { saveInternal(localDoc, true, ConcurrencyControl.LAST_WRITE_WINS); }
 
                 commit = true;
             }
@@ -892,41 +898,6 @@ abstract class AbstractDatabase {
                 endTransaction(commit);
             }
         }
-    }
-
-    // !!! FIXME: use the custom conflict handler
-    private Document resolveConflict(ConflictResolver resolver, String docID, Document localDoc, Document remoteDoc)
-        throws CouchbaseLiteException {
-        Log.v(DOMAIN, "Resolving doc '%s' (local=%s and remote=%s)", docID, localDoc.getRevID(), remoteDoc.getRevID());
-
-        final ConflictResolver rez = (resolver != null) ? resolver : ConflictResolver.DEFAULT;
-
-        final Document doc;
-        try { doc = rez.resolve(new Conflict(localDoc, remoteDoc)); }
-        catch (Exception err) {
-            throw new CouchbaseLiteException(
-                "Conflict resolver failed. Skipping...",
-                err,
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-        if (doc == null) { return null; }
-
-        if (!docID.equals(doc.getId())) {
-            throw new CouchbaseLiteException(
-                "Resolved document's id does not match that of the documents being resolved. Skipping...",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-
-        if (!doc.getDatabase().equals(localDoc.getDatabase())) {
-            throw new CouchbaseLiteException(
-                "Resolved document belongs to a database different than the documents being resolved. Skipping...",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-
-        return doc;
     }
 
     //////// Execution:
@@ -1144,23 +1115,29 @@ abstract class AbstractDatabase {
         }
     }
 
-    // The main save method.
-    private boolean save(
+    private boolean deleteInternal(
         @NonNull Document document,
-        boolean deletion,
-        @NonNull ConcurrencyControl concurrencyControl,
-        @Nullable ConflictHandler conflictHandler)
+        @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        if (document == null) { throw new IllegalArgumentException("document cannot be null."); }
-        if (concurrencyControl == null) { throw new IllegalArgumentException("concurrencyControl cannot be null."); }
-
-        if (deletion && !document.exists()) {
+        if (!document.exists()) {
             throw new CouchbaseLiteException(
                 "Cannot delete a document that has not yet been saved.",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.NOT_FOUND);
         }
 
+        return saveInternal(document, true, concurrencyControl);
+    }
+
+
+    // The main save method.
+    private boolean saveInternal(
+        @NonNull Document document,
+        boolean deleting,
+        @NonNull ConcurrencyControl concurrencyControl)
+        throws CouchbaseLiteException {
+        Preconditions.checkArgNotNull(document, "document");
+        Preconditions.checkArgNotNull(concurrencyControl, "concurrencyControl");
 
         synchronized (lock) {
             mustBeOpen();
@@ -1174,25 +1151,23 @@ abstract class AbstractDatabase {
             beginTransaction();
             try {
                 try {
-                    newDoc = save(document, null, deletion);
+                    newDoc = saveInTransaction(document, null, deleting);
                     commit = true;
                 }
-                catch (LiteCoreException e) {
-                    if (!(e.domain == C4Constants.ErrorDomain.LITE_CORE
-                        && e.code == C4Constants.LiteCoreError.CONFLICT)) {
-                        throw CBLStatus.convertException(e);
+                catch (CouchbaseLiteException e) {
+                    if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
+                        throw e;
                     }
                 }
 
                 // Handle conflict:
-                // !!! FIXME: use the custom conflict handler
                 if (newDoc == null) {
                     // document is conflicted and return false because of OPTIMISTIC
                     if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) { return false; }
 
                     try { curDoc = getC4Database().get(document.getId(), true); }
                     catch (LiteCoreException e) {
-                        if (!deletion
+                        if (!deleting
                             || e.domain != C4Constants.ErrorDomain.LITE_CORE
                             || e.code != C4Constants.LiteCoreError.NOT_FOUND) {
                             throw CBLStatus.convertException(e);
@@ -1201,7 +1176,7 @@ abstract class AbstractDatabase {
                         return true;
                     }
 
-                    if (deletion && curDoc.deleted()) {
+                    if (deleting && curDoc.deleted()) {
                         document.replaceC4Document(curDoc);
                         curDoc = null; // NOTE: prevent to call curDoc.free() in finally block ???
                         return true;
@@ -1209,8 +1184,7 @@ abstract class AbstractDatabase {
 
                     // Save changes on the current branch:
                     // NOTE: curDoc null check is done in prev try-catch block
-                    try { newDoc = save(document, curDoc, deletion); }
-                    catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+                    newDoc = saveInTransaction(document, curDoc, deleting);
                 }
 
                 document.replaceC4Document(newDoc);
@@ -1239,12 +1213,14 @@ abstract class AbstractDatabase {
 
     // Lower-level save method. On conflict, returns YES but sets *outDoc to NULL.
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    private C4Document save(Document document, C4Document base, boolean deletion) throws LiteCoreException {
+    @NonNull
+    private C4Document saveInTransaction(@NonNull Document document, @Nullable C4Document base, boolean deleting)
+        throws CouchbaseLiteException {
         FLSliceResult body = null;
         try {
             int revFlags = 0;
-            if (deletion) { revFlags = C4Constants.RevisionFlags.DELETED; }
-            if (!deletion && !document.isEmpty()) {
+            if (deleting) { revFlags = C4Constants.RevisionFlags.DELETED; }
+            else if (!document.isEmpty()) {
                 // Encode properties to Fleece data:
                 body = document.encode();
                 if (C4Document.dictContainsBlobs(body, sharedKeys.getFLSharedKeys())) {
@@ -1254,28 +1230,57 @@ abstract class AbstractDatabase {
 
             // Save to database:
             final C4Document c4Doc = base != null ? base : document.getC4doc();
-            if (c4Doc != null) { return c4Doc.update(body, revFlags); }
 
-            return getC4Database().create(document.getId(), body, revFlags);
+            return (c4Doc != null)
+                ? c4Doc.update(body, revFlags)
+                : getC4Database().create(document.getId(), body, revFlags);
+        }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
         }
         finally {
             if (body != null) { body.free(); }
         }
     }
 
-    private void purgeSynchronized(@NonNull String id) throws CouchbaseLiteException {
-        boolean commit = false;
-        beginTransaction();
-        try {
-            getC4Database().purgeDoc(id);
-            commit = true;
+    // !!! FIXME: use the custom conflict handler
+    private Document resolveConflict(ConflictResolver resolver, String docID, Document localDoc, Document remoteDoc)
+        throws CouchbaseLiteException {
+        Log.v(
+            DOMAIN,
+            "Resolving doc '%s' (local=%s and remote=%s)",
+            docID,
+            localDoc.getRevID(),
+            remoteDoc.getRevID());
+
+        final ConflictResolver rez = (resolver != null) ? resolver : ConflictResolver.DEFAULT;
+
+        final Document doc;
+        try { doc = rez.resolve(new Conflict(localDoc, remoteDoc)); }
+        catch (Exception err) {
+            throw new CouchbaseLiteException(
+                "Conflict resolver failed. Skipping.",
+                err,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
         }
-        catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
+        if (doc == null) { return null; }
+
+        if (!docID.equals(doc.getId())) {
+            throw new CouchbaseLiteException(
+                "Resolved document's id does not match that of the documents being resolved. Skipping.",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
         }
-        finally {
-            endTransaction(commit);
+
+        if (!doc.getDatabase().equals(localDoc.getDatabase())) {
+            throw new CouchbaseLiteException(
+                "Resolved document belongs to a database different than the documents being resolved. Skipping.",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
         }
+
+        return doc;
     }
 
     // Call holding lock and in a transaction
@@ -1305,6 +1310,21 @@ abstract class AbstractDatabase {
         Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
 
         return true;
+    }
+
+    private void purgeSynchronized(@NonNull String id) throws CouchbaseLiteException {
+        boolean commit = false;
+        beginTransaction();
+        try {
+            getC4Database().purgeDoc(id);
+            commit = true;
+        }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
+        }
+        finally {
+            endTransaction(commit);
+        }
     }
 
     private void shutdownExecutorService() {

@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite;
+package com.couchbase.lite.internal.utils;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+public class Preconditions {
+    private Preconditions() {}
 
-
-public interface ConflictHandler {
-    boolean handle(@NonNull MutableDocument document, @Nullable Document oldDocument);
+    public static void checkArgNotNull(Object obj, String name) {
+        if (obj == null) { throw new IllegalArgumentException(name + " cannot be null"); }
+    }
 }
-

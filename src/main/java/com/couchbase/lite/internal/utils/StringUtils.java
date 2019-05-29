@@ -20,6 +20,8 @@ package com.couchbase.lite.internal.utils;
 public final class StringUtils {
     private StringUtils() { }
 
+    public static boolean isEmpty(String str) { return (str == null) || str.isEmpty(); }
+
     // NSString - stringByDeletingLastPathComponent
     // https://developer.apple.com/reference/foundation/nsstring/1411141-stringbydeletinglastpathcomponen
     public static String stringByDeletingLastPathComponent(final String str) {
