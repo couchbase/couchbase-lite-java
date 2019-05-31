@@ -387,11 +387,11 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
         if (m.count() != count()) { return false; }
         for (String key : this) {
             final Object value = getValue(key);
-            if (value == null) {
-                if (!(m.getValue(key) == null && m.contains(key))) { return false; }
+            if (value != null) {
+                if (!value.equals(m.getValue(key))) { return false; }
             }
             else {
-                if (!value.equals(m.getValue(key))) { return false; }
+                if (!(m.getValue(key) == null && m.contains(key))) { return false; }
             }
         }
         return true;

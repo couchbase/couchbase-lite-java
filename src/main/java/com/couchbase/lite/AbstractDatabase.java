@@ -86,6 +86,8 @@ abstract class AbstractDatabase {
 
     private static final int MAX_CHANGES = 100;
 
+    private static final int MAX_RETRIES = 13;
+
     // How long to wait after a database opens before expiring docs
     private static final long OPENING_PURGE_DELAY_MS = 3;
     private static final long STANDARD_PURGE_INTERVAL_MS = 1000;
@@ -384,7 +386,16 @@ abstract class AbstractDatabase {
      */
     public boolean save(@NonNull MutableDocument document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        return saveInternal(document, false, concurrencyControl);
+        try {
+            saveInternal(document, null, false, concurrencyControl);
+            return true;
+        }
+        catch (CouchbaseLiteException e) {
+            if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
+                throw e;
+            }
+        }
+        return false;
     }
 
     /**
@@ -401,8 +412,7 @@ abstract class AbstractDatabase {
         throws CouchbaseLiteException {
         Preconditions.checkArgNotNull(document, "document");
         Preconditions.checkArgNotNull(conflictHandler, "conflictHandler");
-        // !!! FIXME: use the custom conflict handler
-        throw new UnsupportedOperationException("save with conflict handler unsupported");
+        return saveWithConflictHandler(document, conflictHandler);
     }
 
     /**
@@ -431,7 +441,16 @@ abstract class AbstractDatabase {
     public boolean delete(@NonNull Document document, @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
         // NOTE: synchronized in save(Document, boolean, ConcurrencyControl, ConflictHandler) method
-        return deleteInternal(document, concurrencyControl);
+        try {
+            saveInternal(document, null, true, concurrencyControl);
+            return true;
+        }
+        catch (CouchbaseLiteException e) {
+            if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
+                throw e;
+            }
+        }
+        return false;
     }
 
     // Batch operations:
@@ -887,7 +906,7 @@ abstract class AbstractDatabase {
                 final Document resolvedDoc = resolveConflict(resolver, docID, localDoc, remoteDoc);
 
                 if (resolvedDoc != null) { saveResolvedDocumentInTransaction(resolvedDoc, localDoc, remoteDoc); }
-                else { saveInternal(localDoc, true, ConcurrencyControl.LAST_WRITE_WINS); }
+                else { saveInternal(localDoc, null, false, ConcurrencyControl.LAST_WRITE_WINS); }
 
                 commit = true;
             }
@@ -1115,103 +1134,149 @@ abstract class AbstractDatabase {
         }
     }
 
-    private boolean deleteInternal(
-        @NonNull Document document,
-        @NonNull ConcurrencyControl concurrencyControl)
+    private boolean saveWithConflictHandler(@NonNull MutableDocument document, @NonNull ConflictHandler handler)
         throws CouchbaseLiteException {
-        if (!document.exists()) {
-            throw new CouchbaseLiteException(
-                "Cannot delete a document that has not yet been saved.",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.NOT_FOUND);
-        }
 
-        return saveInternal(document, true, concurrencyControl);
+        Document oldDoc = null;
+        int n = 0;
+        while (true) {
+            if (n++ > MAX_RETRIES) {
+                throw new CouchbaseLiteException(
+                    "Too many attempts to resolve a conflicted document: " + n,
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.UNEXPECTED_ERROR);
+            }
+
+            try {
+                saveInternal(document, oldDoc, false, ConcurrencyControl.FAIL_ON_CONFLICT);
+                return true;
+            }
+            catch (CouchbaseLiteException e) {
+                if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
+                    throw e;
+                }
+            }
+
+            // Conflict
+            synchronized (lock) { oldDoc = new Document((Database) this, document.getId(), true); }
+
+            try {
+                if (!handler.handle(document, (oldDoc.isDeleted()) ? null : oldDoc)) {
+                    throw new CouchbaseLiteException(
+                        "Conflict handler returned false",
+                        CBLError.Domain.CBLITE,
+                        CBLError.Code.CONFLICT
+                    );
+                }
+            }
+            catch (Exception e) {
+                throw new CouchbaseLiteException(
+                    "Conflict handler threw an exception",
+                    e,
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.CONFLICT
+                );
+            }
+        }
     }
 
-
     // The main save method.
-    private boolean saveInternal(
+    private void saveInternal(
         @NonNull Document document,
+        @Nullable Document baseDoc,
         boolean deleting,
         @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
         Preconditions.checkArgNotNull(document, "document");
         Preconditions.checkArgNotNull(concurrencyControl, "concurrencyControl");
 
+        if (deleting && (!document.exists())) {
+            throw new CouchbaseLiteException(
+                "Cannot delete a document that has not yet been saved.",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.NOT_FOUND);
+        }
+
         synchronized (lock) {
-            mustBeOpen();
             prepareDocument(document);
 
-            CouchbaseLiteException fail = null;
-            C4Document curDoc = null;
             C4Document newDoc = null;
 
             boolean commit = false;
             beginTransaction();
             try {
                 try {
-                    newDoc = saveInTransaction(document, null, deleting);
+                    newDoc = saveInTransaction(document, (baseDoc == null) ? null : baseDoc.getC4doc(), deleting);
                     commit = true;
+                    return;
                 }
                 catch (CouchbaseLiteException e) {
-                    if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
+                    if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e
+                        .getCode() == CBLError.Code.CONFLICT))) {
                         throw e;
                     }
                 }
 
-                // Handle conflict:
-                if (newDoc == null) {
-                    // document is conflicted and return false because of OPTIMISTIC
-                    if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) { return false; }
+                // Conflict
 
-                    try { curDoc = getC4Database().get(document.getId(), true); }
-                    catch (LiteCoreException e) {
-                        if (!deleting
-                            || e.domain != C4Constants.ErrorDomain.LITE_CORE
-                            || e.code != C4Constants.LiteCoreError.NOT_FOUND) {
-                            throw CBLStatus.convertException(e);
-                        }
-
-                        return true;
-                    }
-
-                    if (deleting && curDoc.deleted()) {
-                        document.replaceC4Document(curDoc);
-                        curDoc = null; // NOTE: prevent to call curDoc.free() in finally block ???
-                        return true;
-                    }
-
-                    // Save changes on the current branch:
-                    // NOTE: curDoc null check is done in prev try-catch block
-                    newDoc = saveInTransaction(document, curDoc, deleting);
+                // return false if FAIL_ON_CONFLICT
+                if (concurrencyControl.equals(ConcurrencyControl.FAIL_ON_CONFLICT)) {
+                    throw new CouchbaseLiteException("Conflict", CBLError.Domain.CBLITE, CBLError.Code.CONFLICT);
                 }
 
-                document.replaceC4Document(newDoc);
-                commit = true;
+                newDoc = saveConflicted(document, deleting);
+                commit = newDoc != null;
+
+                return;
             }
             finally {
-                if (curDoc != null) {
-                    curDoc.retain();
-                    curDoc.release(); // curDoc is not retained ??? WTF?
-                }
-
-                // true: commit the transaction, false: abort the transaction
                 try { endTransaction(commit); }
                 catch (CouchbaseLiteException e) {
-                    // newDoc is already retained
                     if (newDoc != null) { newDoc.release(); }
-                    fail = e;
+                    throw e;
                 }
             }
-
-            if (fail != null) { throw fail; }
-
-            return true;
         }
     }
 
-    // Lower-level save method. On conflict, returns YES but sets *outDoc to NULL.
+    @Nullable
+    private C4Document saveConflicted(@NonNull Document document, boolean deleting)
+        throws CouchbaseLiteException {
+
+        C4Document curDoc = null;
+        try {
+            try { curDoc = getC4Database().get(document.getId(), true); }
+            catch (LiteCoreException e) {
+                // here if deleting and the curDoc doesn't exist.
+                if (deleting
+                    && (e.domain == C4Constants.ErrorDomain.LITE_CORE)
+                    && (e.code == C4Constants.LiteCoreError.NOT_FOUND)) {
+                    return null;
+                }
+
+                // here if the save failed.
+                throw CBLStatus.convertException(e);
+            }
+
+            // here if deleting and the curDoc has already been deleted
+            if (deleting && curDoc.deleted()) {
+                document.replaceC4Document(curDoc);
+                curDoc = null; // prevent to call curDoc.release() in finally block
+                return null;
+            }
+
+            // Save changes on the current branch:
+            return saveInTransaction(document, curDoc, deleting);
+        }
+        finally {
+            if (curDoc != null) {
+                curDoc.retain();
+                curDoc.release(); // curDoc is not retained
+            }
+        }
+    }
+
+    // Low-level save method
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     @NonNull
     private C4Document saveInTransaction(@NonNull Document document, @Nullable C4Document base, boolean deleting)
@@ -1229,11 +1294,15 @@ abstract class AbstractDatabase {
             }
 
             // Save to database:
-            final C4Document c4Doc = base != null ? base : document.getC4doc();
+            C4Document c4Doc = (base != null) ? base : document.getC4doc();
 
-            return (c4Doc != null)
+            c4Doc = (c4Doc != null)
                 ? c4Doc.update(body, revFlags)
                 : getC4Database().create(document.getId(), body, revFlags);
+
+            document.replaceC4Document(c4Doc);
+
+            return c4Doc;
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
