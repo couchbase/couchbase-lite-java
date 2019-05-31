@@ -103,7 +103,7 @@ public class C4Document extends RefCounted {
 
     // - Creating and Updating Documents
 
-    static native long getExpiration(long db, String docID);
+    static native long getExpiration(long db, String docID) throws LiteCoreException;
 
     static native long put(
         long db,

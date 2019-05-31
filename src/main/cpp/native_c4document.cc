@@ -356,7 +356,11 @@ JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4Document_getExpiration(JNIEnv *env, jclass clazz,
                                                      jlong jdb, jstring jdocID) {
     jstringSlice docID(env, jdocID);
-    return c4doc_getExpiration((C4Database *) jdb, docID);
+    C4Error error;
+    jlong exp = c4doc_getExpiration((C4Database *) jdb, docID); //, &error);
+    if (exp < 0)
+        throwError(env, error);
+    return exp;
 }
 
 /*

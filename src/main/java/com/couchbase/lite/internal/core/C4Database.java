@@ -296,7 +296,7 @@ public class C4Database {
         C4Document.setExpiration(handle, docID, timestamp);
     }
 
-    public long getExpiration(String docID) {
+    public long getExpiration(String docID) throws LiteCoreException {
         return C4Document.getExpiration(handle, docID);
     }
 
