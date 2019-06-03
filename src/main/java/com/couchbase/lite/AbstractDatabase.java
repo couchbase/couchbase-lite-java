@@ -1081,7 +1081,7 @@ abstract class AbstractDatabase {
 
     private void postDatabaseChanged() {
         synchronized (lock) {
-            if (c4DbObserver == null || c4db == null || getC4Database().isInTransaction()) { return; }
+            if ((c4DbObserver == null) || (c4db == null)) { return; }
 
             boolean external = false;
             int nChanges;
@@ -1090,7 +1090,7 @@ abstract class AbstractDatabase {
                 // Read changes in batches of kMaxChanges:
                 final C4DatabaseChange[] c4DbChanges = c4DbObserver.getChanges(MAX_CHANGES);
                 nChanges = (c4DbChanges == null) ? 0 : c4DbChanges.length;
-                final boolean newExternal = nChanges > 0 && c4DbChanges[0].isExternal();
+                final boolean newExternal = (nChanges > 0) && c4DbChanges[0].isExternal();
                 if (((nChanges <= 0) || (external != newExternal) || (docIDs.size() > 1000)) && (docIDs.size() > 0)) {
                     dbChangeNotifier.postChange(new DatabaseChange((Database) this, docIDs));
                     docIDs = new ArrayList<>();

@@ -88,8 +88,6 @@ public class C4Database {
 
     static native void endTransaction(long db, boolean commit) throws LiteCoreException;
 
-    static native boolean isInTransaction(long db);
-
     static native void rawFree(long rawDoc) throws LiteCoreException;
 
     static native long rawGet(long db, String storeName, String docID)
@@ -246,10 +244,6 @@ public class C4Database {
     //-------------------------------------------------------------------------
 
     // - Lifecycle
-
-    public boolean isInTransaction() {
-        return isInTransaction(handle);
-    }
 
     public C4RawDocument rawGet(String storeName, String docID) throws LiteCoreException {
         return new C4RawDocument(rawGet(handle, storeName, docID));

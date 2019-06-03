@@ -314,16 +314,6 @@ Java_com_couchbase_lite_internal_core_C4Database_endTransaction(JNIEnv *env, jcl
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Database
- * Method:    isInTransaction
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL
-Java_com_couchbase_lite_internal_core_C4Database_isInTransaction(JNIEnv *env, jclass clazz, jlong jdb) {
-    return c4db_isInTransaction((C4Database *) jdb);
-}
-
-/*
- * Class:     com_couchbase_lite_internal_core_C4Database
  * Method:    rawFree
  * Signature: (J)V
  */
