@@ -50,6 +50,7 @@ import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
@@ -309,7 +310,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      * @param config replicator configuration
      */
     public AbstractReplicator(@NonNull ReplicatorConfiguration config) {
-        if (config == null) { throw new IllegalArgumentException("config cannot be null."); }
+        Preconditions.checkArgNotNull(config, "config");
         this.config = config.readonlyCopy();
     }
 
@@ -380,7 +381,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addChangeListener(@NonNull ReplicatorChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
         return addChangeListener(null, listener);
     }
 
@@ -392,8 +393,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addChangeListener(Executor executor, @NonNull ReplicatorChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
-
+        Preconditions.checkArgNotNull(listener, "listener");
         synchronized (lock) {
             final ReplicatorChangeListenerToken token = new ReplicatorChangeListenerToken(executor, listener);
             changeListenerTokens.add(token);
@@ -407,7 +407,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      * @param token returned by a previous call to addChangeListener or addDocumentListener.
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        if (token == null) { throw new IllegalArgumentException("token cannot be null."); }
+        Preconditions.checkArgNotNull(token, "token");
 
         synchronized (lock) {
             if (token instanceof ReplicatorChangeListenerToken) {
@@ -433,7 +433,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addDocumentReplicationListener(@NonNull DocumentReplicationListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
 
         return addDocumentReplicationListener(null, listener);
     }
@@ -448,8 +448,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public ListenerToken addDocumentReplicationListener(
         @Nullable Executor executor,
         @NonNull DocumentReplicationListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
-
+        Preconditions.checkArgNotNull(listener, "listener");
         synchronized (lock) {
             setProgressLevel(ReplicatorProgressLevel.PER_DOCUMENT);
             final DocumentReplicationListenerToken token = new DocumentReplicationListenerToken(executor, listener);
@@ -646,39 +645,36 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     private void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
-        final List<ReplicatedDocument> docs = new ArrayList<>();
+        final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
         for (C4DocumentEnded docEnd : docEnds) {
             final String docID = docEnd.getDocID();
 
             CouchbaseLiteException error = null;
             final C4Error c4Error = docEnd.getC4Error();
             if ((c4Error != null) && (c4Error.getCode() != 0)) {
-                error = (!pushing && isConflicted(docEnd))
-                    ? handleConflict(docID)
-                    : CBLStatus.convertError(c4Error);
+                if (!pushing && docEnd.isConflicted()) {
+                    Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
+                    config.getDatabase().resolveConflictInDocument(
+                        config.getConflictResolver(),
+                        docID,
+                        (CouchbaseLiteException err) -> notifyDocumentEnded(
+                            (Replicator) this,
+                            false,
+                            Arrays.asList(new ReplicatedDocument(docID, docEnd.getFlags(), err, false))));
+                    continue;
+                }
+
+                error = CBLStatus.convertError(c4Error);
             }
 
-            final ReplicatedDocument doc
-                = new ReplicatedDocument(docID, docEnd.getFlags(), error, docEnd.errorIsTransient());
-
-            docs.add(doc);
+            unconflictedDocs.add(new ReplicatedDocument(docID, docEnd.getFlags(), error, docEnd.errorIsTransient()));
         }
 
-        notifyDocumentEnded(new DocumentReplication((Replicator) this, pushing, docs));
+        notifyDocumentEnded((Replicator) this, pushing, unconflictedDocs);
     }
 
-    // Conflict pulling a document -- the revision was added but app needs to resolve it:
-    private CouchbaseLiteException handleConflict(String docID) {
-        Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
-        try { config.getDatabase().resolveConflictInDocument(config.getConflictResolver(), docID); }
-        catch (CouchbaseLiteException ex) {
-            Log.e(DOMAIN, "Failed to resolve conflict in document %s: ", ex, docID);
-            return ex;
-        }
-        return null;
-    }
-
-    private void notifyDocumentEnded(DocumentReplication update) {
+    private void notifyDocumentEnded(Replicator replicator, boolean pushing, List<ReplicatedDocument> docs) {
+        final DocumentReplication update = new DocumentReplication(replicator, pushing, docs);
         synchronized (lock) {
             for (DocumentReplicationListenerToken token : docEndedListenerTokens) { token.notify(update); }
         }
@@ -845,11 +841,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             + (isPull(config.getReplicatorType()) ? "<" : "")
             + (config.isContinuous() ? "*" : "-")
             + (isPush(config.getReplicatorType()) ? ">" : "");
-    }
-
-    private boolean isConflicted(C4DocumentEnded docEnd) {
-        return docEnd.getErrorDomain() == C4Constants.ErrorDomain.LITE_CORE
-            && docEnd.getErrorCode() == C4Constants.LiteCoreError.CONFLICT;
     }
 
     private void setProgressLevel(ReplicatorProgressLevel level) { progressLevel = level; }
