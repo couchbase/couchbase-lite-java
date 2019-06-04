@@ -26,12 +26,11 @@ import com.couchbase.lite.internal.core.C4Constants;
 
 
 public final class ReplicatedDocument {
-
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    private final EnumSet<DocumentFlag> documentFlags;
     private final String id;
+    private final EnumSet<DocumentFlag> documentFlags;
     private final CouchbaseLiteException error;
 
     //---------------------------------------------
@@ -41,7 +40,7 @@ public final class ReplicatedDocument {
     /**
      * Document replicated update of a replicator.
      */
-    ReplicatedDocument(String id, int flags, CouchbaseLiteException error, boolean trans) {
+    ReplicatedDocument(String id, int flags, CouchbaseLiteException error, boolean errorIsTransient) {
         this.id = id;
         this.error = error;
 
@@ -78,12 +77,6 @@ public final class ReplicatedDocument {
 
     @NonNull
     @Override
-    public String toString() {
-        return "ReplicatedDocument {" +
-            ", document id =" + id +
-            ", error code =" + error.getCode() +
-            ", error domain=" + error.getDomain() +
-            '}';
-    }
+    public String toString() { return "ReplicatedDocument{" + id + ",err=" + error + "}"; }
 }
 

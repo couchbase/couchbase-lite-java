@@ -17,7 +17,6 @@
 //
 package com.couchbase.lite.internal.core;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -37,48 +36,30 @@ public class C4DocumentEnded {
     @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
     private boolean errorIsTransient;
 
-    public String getDocID() {
-        return docID;
-    }
+    public String getDocID() { return docID; }
 
-    public String getRevID() {
-        return revID;
-    }
+    public String getRevID() { return revID; }
 
-    public int getFlags() {
-        return flags;
-    }
+    public int getFlags() { return flags; }
 
-    public int getErrorDomain() {
-        return errorDomain;
-    }
+    public int getErrorDomain() { return errorDomain; }
 
-    public int getErrorCode() {
-        return errorCode;
-    }
+    public int getErrorCode() { return errorCode; }
 
-    public int getErrorInternalInfo() {
-        return errorInternalInfo;
-    }
+    public int getErrorInternalInfo() { return errorInternalInfo; }
 
-    public C4Error getC4Error() {
-        return new C4Error(errorDomain, errorCode, errorInternalInfo);
-    }
+    public C4Error getC4Error() { return new C4Error(errorDomain, errorCode, errorInternalInfo); }
 
-    public boolean errorIsTransient() {
-        return errorIsTransient;
+    public boolean errorIsTransient() { return errorIsTransient; }
+
+    public boolean isConflicted() {
+        return errorDomain == C4Constants.ErrorDomain.LITE_CORE
+            && errorCode == C4Constants.LiteCoreError.CONFLICT;
     }
 
     @Override
     public String toString() {
-        return "C4DocumentEnded{" +
-            "doc id = " + docID +
-            ", rev id = " + revID +
-            ", flags = " + flags +
-            ", error Is Transient = " + errorIsTransient +
-            ", errorDomain=" + errorDomain +
-            ", errorCode=" + errorCode +
-            ", errorInternalInfo=" + errorInternalInfo +
-            '}';
+        return "C4DocumentEnded{id=" + docID + ",rev=" + revID + ",flags=" + flags
+            + ",error=@" + errorDomain + "#" + errorCode + "(" + errorInternalInfo + "):" + errorIsTransient + "}";
     }
 }

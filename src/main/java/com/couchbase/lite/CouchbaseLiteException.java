@@ -26,6 +26,11 @@ import java.util.Map;
  * A CouchbaseLiteException gets raised whenever a Couchbase Lite faces errors.
  */
 public final class CouchbaseLiteException extends Exception {
+    public static boolean isConflict(CouchbaseLiteException err) {
+        return CBLError.Domain.CBLITE.equals(err.getDomain())
+            && (CBLError.Code.CONFLICT == err.getCode());
+    }
+
     private final String domain;
     private final int code;
     private final Map<String, Object> info;
@@ -114,26 +119,21 @@ public final class CouchbaseLiteException extends Exception {
      * @return The numerical domain code for this error.
      */
     @NonNull
-    public String getDomain() {
-        return domain;
-    }
+    public String getDomain() { return domain; }
 
     /**
      * Access the error code for this error.
      *
      * @return The numerical error code for this error.
      */
-    public int getCode() {
-        return code;
-    }
+    public int getCode() { return code; }
 
-    public Map<String, Object> getInfo() {
-        return info;
-    }
+    public Map<String, Object> getInfo() { return info; }
 
     @NonNull
     @Override
     public String toString() {
-        return "CouchbaseLiteException{domain='" + domain + "', code=" + code + ", msg=" + super.getMessage() + "}";
+        final String msg = getMessage();
+        return "CouchbaseLiteException{" + domain + "," + code + "," + ((msg == null) ? null : ("'" + msg + "'")) + "}";
     }
 }

@@ -51,17 +51,17 @@ public final class DocumentReplication {
      * Return the source replicator object.
      */
     @NonNull
-    public Replicator getReplicator() {
-        return replicator;
-    }
+    public Replicator getReplicator() { return replicator; }
 
     /**
      * The current document replication direction flag.
      */
-    public boolean isPush() {
-        return pushing;
-    }
+    public boolean isPush() { return pushing; }
 
+
+    /**
+     * The list if affected documents.
+     */
     @NonNull
     public List<ReplicatedDocument> getDocuments() { return documents; }
 }

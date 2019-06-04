@@ -41,29 +41,34 @@ public class Document implements DictionaryInterface, Iterable<String> {
     //---------------------------------------------
     static { NativeLibraryLoader.load(); }
 
-
     private final Object lock = new Object(); // lock for thread-safety
-    // access from MutableDocument
+
+    // accessible from MutableDocument
     Dictionary internalDict;
+
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    private FLDict data;
+    private final String id;
     private Database database;
     private C4Document c4doc;
+    private FLDict data;
     private MRoot root;
 
-    private final String id;
-
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
     Document(Database database, String id, C4Document c4doc) {
         this.database = database;
         this.id = id;
         setC4Document(c4doc);
     }
 
-    //---------------------------------------------
-    // Constructors
-    //---------------------------------------------
+    Document(Database database, String id, FLDict body) {
+        this(database, id, (C4Document) null);
+        this.data = body;
+        updateDictionary();
+    }
 
     Document(Database database, String id, boolean includeDeleted) throws CouchbaseLiteException {
         this(database, id, (C4Document) null);
@@ -88,14 +93,9 @@ public class Document implements DictionaryInterface, Iterable<String> {
         setC4Document(doc);
     }
 
-    Document(
-        Database database,
-        String id,
-        FLDict body) {
-        this(database, id, (C4Document) null);
-        this.data = body;
-        updateDictionary();
-    }
+    //---------------------------------------------
+    // API - public methods
+    //---------------------------------------------
 
     /**
      * return the document's ID.
@@ -104,10 +104,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     public String getId() { return id; }
-
-    //---------------------------------------------
-    // API - public methods
-    //---------------------------------------------
 
     /**
      * Return the sequence number of the document in the database.
@@ -360,7 +356,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // Package level access
     //---------------------------------------------
 
-
     void replaceC4Document(C4Document c4doc) {
         synchronized (lock) {
             final C4Document oldDoc = this.c4doc;
@@ -373,10 +368,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
     }
 
-    boolean isMutable() {
-        // Document overrides this
-        return false;
-    }
+    // Document overrides this
+    boolean isMutable() { return false; }
 
     boolean isEmpty() { return internalDict.isEmpty(); }
 
@@ -393,10 +386,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     // Document overrides this
     long generation() {
-        synchronized (lock) {
-            // TODO: c4rev_getGeneration
-            return generationFromRevID(getRevID());
-        }
+        // TODO: c4rev_getGeneration
+        synchronized (lock) { return generationFromRevID(getRevID()); }
     }
 
     C4Document getC4doc() {
@@ -450,6 +441,12 @@ public class Document implements DictionaryInterface, Iterable<String> {
     boolean isDeleted() {
         synchronized (lock) { return (c4doc != null) && c4doc.deleted(); }
     }
+
+
+    //---------------------------------------------
+    // Private access
+    //---------------------------------------------
+
     // Sets c4doc and updates my root dictionary
     private void setC4Document(C4Document c4doc) {
         synchronized (lock) {
