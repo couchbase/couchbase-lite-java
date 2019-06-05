@@ -27,7 +27,8 @@ import java.util.Map;
  */
 public final class CouchbaseLiteException extends Exception {
     public static boolean isConflict(CouchbaseLiteException err) {
-        return CBLError.Domain.CBLITE.equals(err.getDomain())
+        return (err != null)
+            && CBLError.Domain.CBLITE.equals(err.getDomain())
             && (CBLError.Code.CONFLICT == err.getCode());
     }
 

@@ -25,6 +25,7 @@ import java.util.Map;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MDict;
 import com.couchbase.lite.internal.fleece.MValue;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -50,13 +51,9 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
     public MutableDictionary(Map<String, Object> data) { setData(data); }
 
     // to create copy of dictionary
-    MutableDictionary(MDict mDict, boolean isMutable) {
-        super(mDict, isMutable);
-    }
+    MutableDictionary(MDict mDict, boolean isMutable) { super(mDict, isMutable); }
 
-    MutableDictionary(MValue mv, MCollection parent) {
-        super(mv, parent);
-    }
+    MutableDictionary(MValue mv, MCollection parent) { super(mv, parent); }
 
     //---------------------------------------------
     // API - public methods
@@ -97,8 +94,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
     @NonNull
     @Override
     public MutableDictionary setValue(@NonNull String key, Object value) {
-        if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
-
+        Preconditions.checkArgNotNull(key, "key");
         synchronized (lock) {
             final MValue oldValue = internalDict.get(key);
             value = Fleece.toCBLObject(value);
@@ -116,9 +112,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setString(@NonNull String key, String value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setString(@NonNull String key, String value) { return setValue(key, value); }
 
     /**
      * Set a Number value for the given key.
@@ -129,9 +123,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setNumber(@NonNull String key, Number value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setNumber(@NonNull String key, Number value) { return setValue(key, value); }
 
     /**
      * Set an int value for the given key.
@@ -142,9 +134,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setInt(@NonNull String key, int value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setInt(@NonNull String key, int value) { return setValue(key, value); }
 
     /**
      * Set a long value for the given key.
@@ -155,9 +145,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setLong(@NonNull String key, long value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setLong(@NonNull String key, long value) { return setValue(key, value); }
 
     /**
      * Set a float value for the given key.
@@ -168,9 +156,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setFloat(@NonNull String key, float value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setFloat(@NonNull String key, float value) { return setValue(key, value); }
 
     /**
      * Set a double value for the given key.
@@ -181,9 +167,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setDouble(@NonNull String key, double value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setDouble(@NonNull String key, double value) { return setValue(key, value); }
 
     /**
      * Set a boolean value for the given key.
@@ -194,9 +178,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setBoolean(@NonNull String key, boolean value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setBoolean(@NonNull String key, boolean value) { return setValue(key, value); }
 
     /**
      * Set a Blob object for the given key.
@@ -207,9 +189,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setBlob(@NonNull String key, Blob value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setBlob(@NonNull String key, Blob value) { return setValue(key, value); }
 
     /**
      * Set a Date object for the given key.
@@ -220,9 +200,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setDate(@NonNull String key, Date value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setDate(@NonNull String key, Date value) { return setValue(key, value); }
 
     /**
      * Set an Array object for the given key.
@@ -233,9 +211,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setArray(@NonNull String key, Array value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setArray(@NonNull String key, Array value) { return setValue(key, value); }
 
     /**
      * Set a Dictionary object for the given key.
@@ -246,9 +222,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      */
     @NonNull
     @Override
-    public MutableDictionary setDictionary(@NonNull String key, Dictionary value) {
-        return setValue(key, value);
-    }
+    public MutableDictionary setDictionary(@NonNull String key, Dictionary value) { return setValue(key, value); }
 
     /**
      * Removes the mapping for a key from this Dictionary
@@ -259,8 +233,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
     @NonNull
     @Override
     public MutableDictionary remove(@NonNull String key) {
-        if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
-
+        Preconditions.checkArgNotNull(key, "key");
         synchronized (lock) {
             internalDict.remove(key);
             return this;
@@ -275,9 +248,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      * @return the Array object.
      */
     @Override
-    public MutableArray getArray(@NonNull String key) {
-        return (MutableArray) super.getArray(key);
-    }
+    public MutableArray getArray(@NonNull String key) { return (MutableArray) super.getArray(key); }
 
     /**
      * Get a property's value as a Dictionary, which is a mapping object of an dictionary value.
@@ -287,14 +258,10 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
      * @return the Dictionary object or null if the key doesn't exist.
      */
     @Override
-    public MutableDictionary getDictionary(@NonNull String key) {
-        return (MutableDictionary) super.getDictionary(key);
-    }
+    public MutableDictionary getDictionary(@NonNull String key) { return (MutableDictionary) super.getDictionary(key); }
 
 
     protected boolean isChanged() {
-        synchronized (lock) {
-            return internalDict.isMutated();
-        }
+        synchronized (lock) { return internalDict.isMutated(); }
     }
 }

@@ -33,17 +33,11 @@ public class FLValue {
         return value != 0 ? new FLValue(value) : null;
     }
 
-    public static FLValue fromData(byte[] data) {
-        return new FLValue(fromTrustedData(data));
-    }
+    public static FLValue fromData(byte[] data) { return new FLValue(fromTrustedData(data)); }
 
-    public static Object toObject(FLValue flValue) {
-        return flValue.asObject();
-    }
+    public static Object toObject(FLValue flValue) { return flValue.asObject(); }
 
-    public static String json5ToJson(String json5) throws LiteCoreException {
-        return JSON5ToJSON(json5);
-    }
+    public static String json5ToJson(String json5) throws LiteCoreException { return JSON5ToJSON(json5); }
 
     //-------------------------------------------------------------------------
     // Member Variables
@@ -63,59 +57,33 @@ public class FLValue {
     // public methods
     //-------------------------------------------------------------------------
 
-    public int getType() {
-        return getType(handle);
-    }
+    public int getType() { return getType(handle); }
 
-    public boolean isNumber() {
-        return getType() == FLConstants.ValueType.NUMBER;
-    }
+    public boolean isNumber() { return getType() == FLConstants.ValueType.NUMBER; }
 
-    public boolean isInteger() {
-        return isInteger(handle);
-    }
+    public boolean isInteger() { return isInteger(handle); }
 
-    public boolean isDouble() {
-        return isDouble(handle);
-    }
+    public boolean isDouble() { return isDouble(handle); }
 
-    public boolean isUnsigned() {
-        return isUnsigned(handle);
-    }
+    public boolean isUnsigned() { return isUnsigned(handle); }
 
-    public String toStr() {
-        return toString(handle);
-    }
+    public String toStr() { return toString(handle); }
 
-    public String toJSON() {
-        return toJSON(handle);
-    }
+    public String toJSON() { return toJSON(handle); }
 
-    public String toJSON5() {
-        return toJSON5(handle);
-    }
+    public String toJSON5() { return toJSON5(handle); }
 
-    public boolean asBool() {
-        return asBool(handle);
-    }
+    public boolean asBool() { return asBool(handle); }
 
     public long asUnsigned() { return asUnsigned(handle); }
 
-    public long asInt() {
-        return asInt(handle);
-    }
+    public long asInt() { return asInt(handle); }
 
-    public byte[] asData() {
-        return asData(handle);
-    }
+    public byte[] asData() { return asData(handle); }
 
-    public float asFloat() {
-        return asFloat(handle);
-    }
+    public float asFloat() { return asFloat(handle); }
 
-    public double asDouble() {
-        return asDouble(handle);
-    }
+    public double asDouble() { return asDouble(handle); }
 
     // ??? If we are out of memory or the string cannot be decoded, we just lose it
     public String asString() {
@@ -139,16 +107,9 @@ public class FLValue {
             case FLConstants.ValueType.BOOLEAN:
                 return Boolean.valueOf(asBool());
             case FLConstants.ValueType.NUMBER:
-                if (isInteger()) {
-                    if (isUnsigned()) { return Long.valueOf(asUnsigned()); }
-                    return Long.valueOf(asInt());
-                }
-                else if (isDouble()) {
-                    return Double.valueOf(asDouble());
-                }
-                else {
-                    return Float.valueOf(asFloat());
-                }
+                if (isInteger()) { return (isUnsigned()) ? Long.valueOf(asUnsigned()) : Long.valueOf(asInt()); }
+                if (isDouble()) { return Double.valueOf(asDouble()); }
+                return Float.valueOf(asFloat());
             case FLConstants.ValueType.STRING:
                 return asString();
             case FLConstants.ValueType.DATA:
@@ -165,9 +126,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // package level access
     //-------------------------------------------------------------------------
-    long getHandle() {
-        return handle;
-    }
+    long getHandle() { return handle; }
 
     //-------------------------------------------------------------------------
     // native methods

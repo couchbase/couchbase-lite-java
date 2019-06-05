@@ -20,18 +20,23 @@ import javax.annotation.Nullable;
 
 public class Conflict {
     @Nullable
-    private final Document localDocument;
+    private final Document localDoc;
     @Nullable
-    private final Document remoteDocument;
+    private final Document remoteDoc;
 
-    Conflict(@Nullable Document localDocument, @Nullable Document remoteDocument) {
-        this.localDocument = localDocument;
-        this.remoteDocument = remoteDocument;
+    Conflict(@Nullable Document localDoc, @Nullable Document remoteDoc) {
+        this.localDoc = localDoc;
+        this.remoteDoc = remoteDoc;
     }
 
     @Nullable
-    public Document getLocalDocument() { return localDocument; }
+    public String getDocumentId() {
+        return (localDoc != null) ? localDoc.getId() : ((remoteDoc != null) ? remoteDoc.getId() : null);
+    }
 
     @Nullable
-    public Document getRemoteDocument() { return remoteDocument; }
+    public Document getLocalDocument() { return localDoc; }
+
+    @Nullable
+    public Document getRemoteDocument() { return remoteDoc; }
 }

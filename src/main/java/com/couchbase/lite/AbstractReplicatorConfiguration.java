@@ -28,6 +28,7 @@ import java.util.Map;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.internal.core.CBLVersion;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -100,7 +101,7 @@ abstract class AbstractReplicatorConfiguration {
     //---------------------------------------------
 
     AbstractReplicatorConfiguration(@NonNull AbstractReplicatorConfiguration config) {
-        if (config == null) { throw new IllegalArgumentException("config cannot be null."); }
+        Preconditions.checkArgNotNull(config, "config");
 
         this.readonly = false;
         this.database = config.database;
@@ -118,9 +119,8 @@ abstract class AbstractReplicatorConfiguration {
     }
 
     protected AbstractReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
-        if (database == null) { throw new IllegalArgumentException("config cannot be null."); }
-        if (target == null) { throw new IllegalArgumentException("target cannot be null."); }
-
+        Preconditions.checkArgNotNull(database, "database");
+        Preconditions.checkArgNotNull(target, "target");
         this.readonly = false;
         this.replicatorType = ReplicatorType.PUSH_AND_PULL;
         this.database = database;
@@ -269,7 +269,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setReplicatorType(@NonNull ReplicatorType replicatorType) {
-        if (replicatorType == null) { throw new IllegalArgumentException("replicatorType cannot be null."); }
+        Preconditions.checkArgNotNull(replicatorType, "replicatorType");
         if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
         this.replicatorType = replicatorType;
         return getReplicatorConfiguration();

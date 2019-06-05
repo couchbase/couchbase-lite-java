@@ -32,22 +32,18 @@ import com.couchbase.lite.internal.core.C4Document;
  */
 public final class MutableDocument extends Document implements MutableDictionaryInterface {
 
+    private static String createUUID() { return UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH); }
+
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-
-    private static String createUUID() {
-        return UUID.randomUUID().toString().toLowerCase(Locale.ENGLISH);
-    }
 
     /**
      * Creates a new Document object with a new random UUID. The created document will be
      * saved into a database when you call the Database's save(Document) method with the document
      * object given.
      */
-    public MutableDocument() {
-        this((String) null);
-    }
+    public MutableDocument() { this((String) null); }
 
     /**
      * Creates a new Document object with the given ID. If a null ID value is given, the document
@@ -57,24 +53,18 @@ public final class MutableDocument extends Document implements MutableDictionary
      *
      * @param id the document ID.
      */
-    public MutableDocument(String id) {
-        super(null, id != null ? id : createUUID(), (C4Document) null);
-    }
+    public MutableDocument(String id) { this(null, id, (C4Document) null); }
 
     /**
      * Initializes a new CBLDocument object with a new random UUID and the dictionary as the content.
      * Allowed value types are List, Date, Map, Number, null, String, Array, Blob, and Dictionary.
-     * The List and Map must contain only the above types.
-     * The created document will be
-     * saved into a database when you call the Database's save(Document) method with the document
-     * object given.
+     * List and Map containers must contain only the above types.
+     * The created document will be saved into a database when you call Database.save(Document)
+     * with this document object.
      *
      * @param data the Map object
      */
-    public MutableDocument(Map<String, Object> data) {
-        this((String) null);
-        setData(data);
-    }
+    public MutableDocument(Map<String, Object> data) { this(null, data); }
 
     /**
      * Initializes a new Document object with a given ID and the dictionary as the content.
@@ -88,18 +78,25 @@ public final class MutableDocument extends Document implements MutableDictionary
      * @param data the Map object
      */
     public MutableDocument(String id, Map<String, Object> data) {
-        this(id);
+        this(null, id, (C4Document) null);
         setData(data);
+    }
+
+    protected MutableDocument(Document doc) {
+        this(doc.getDatabase(), doc.getId(), doc.getC4doc());
+        if (doc.isMutable()) {
+            final Dictionary dict = doc.getContent();
+            if (dict != null) { setContent(dict.toMutable()); }
+        }
+    }
+
+    private MutableDocument(Database database, String id, C4Document c4doc) {
+        super(database, id != null ? id : createUUID(), c4doc);
     }
 
     //---------------------------------------------
     // public API methods
     //---------------------------------------------
-
-    MutableDocument(Document doc, Dictionary dict) {
-        super(doc.getDatabase(), doc.getId(), doc.getC4doc());
-        if (dict != null) { internalDict = dict.toMutable(); }
-    }
 
     //---------------------------------------------
     // DictionaryInterface implementation
@@ -112,9 +109,7 @@ public final class MutableDocument extends Document implements MutableDictionary
      */
     @NonNull
     @Override
-    public MutableDocument toMutable() {
-        return new MutableDocument(this, internalDict);
-    }
+    public MutableDocument toMutable() { return new MutableDocument(this); }
 
     /**
      * Set a dictionary as a content. Allowed value types are List, Date, Map, Number, null, String,
@@ -128,7 +123,7 @@ public final class MutableDocument extends Document implements MutableDictionary
     @NonNull
     @Override
     public MutableDocument setData(Map<String, Object> data) {
-        ((MutableDictionary) internalDict).setData(data);
+        getMutableContent().setData(data);
         return this;
     }
 
@@ -144,152 +139,130 @@ public final class MutableDocument extends Document implements MutableDictionary
     @NonNull
     @Override
     public MutableDocument setValue(@NonNull String key, Object value) {
-        ((MutableDictionary) internalDict).setValue(key, value);
+        getMutableContent().setValue(key, value);
         return this;
     }
 
     /**
      * Set a String value for the given key
      *
-     * @param key the key.
-     * @param key the String value.
+     * @param key   the key.
+     * @param value the String value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setString(@NonNull String key, String value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setString(@NonNull String key, String value) { return setValue(key, value); }
 
     /**
      * Set a Number value for the given key
      *
-     * @param key the key.
-     * @param key the Number value.
+     * @param key   the key.
+     * @param value the Number value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setNumber(@NonNull String key, Number value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setNumber(@NonNull String key, Number value) { return setValue(key, value); }
 
     /**
      * Set a integer value for the given key
      *
-     * @param key the key.
-     * @param key the integer value.
+     * @param key   the key.
+     * @param value the integer value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setInt(@NonNull String key, int value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setInt(@NonNull String key, int value) { return setValue(key, value); }
 
     /**
      * Set a long value for the given key
      *
-     * @param key the key.
-     * @param key the long value.
+     * @param key   the key.
+     * @param value the long value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setLong(@NonNull String key, long value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setLong(@NonNull String key, long value) { return setValue(key, value); }
 
     /**
      * Set a float value for the given key
      *
-     * @param key the key.
-     * @param key the float value.
+     * @param key   the key.
+     * @param value the float value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setFloat(@NonNull String key, float value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setFloat(@NonNull String key, float value) { return setValue(key, value); }
 
     /**
      * Set a double value for the given key
      *
-     * @param key the key.
-     * @param key the double value.
+     * @param key   the key.
+     * @param value the double value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setDouble(@NonNull String key, double value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setDouble(@NonNull String key, double value) { return setValue(key, value); }
 
     /**
      * Set a boolean value for the given key
      *
-     * @param key the key.
-     * @param key the boolean value.
+     * @param key   the key.
+     * @param value the boolean value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setBoolean(@NonNull String key, boolean value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setBoolean(@NonNull String key, boolean value) { return setValue(key, value); }
 
     /**
      * Set a Blob value for the given key
      *
-     * @param key the key.
-     * @param key the Blob value.
+     * @param key   the key.
+     * @param value the Blob value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setBlob(@NonNull String key, Blob value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setBlob(@NonNull String key, Blob value) { return setValue(key, value); }
 
     /**
      * Set a Date value for the given key
      *
-     * @param key the key.
-     * @param key the Date value.
+     * @param key   the key.
+     * @param value the Date value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setDate(@NonNull String key, Date value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setDate(@NonNull String key, Date value) { return setValue(key, value); }
 
     /**
      * Set an Array value for the given key
      *
-     * @param key the key.
-     * @param key the Array value.
+     * @param key   the key.
+     * @param value the Array value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setArray(@NonNull String key, Array value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setArray(@NonNull String key, Array value) { return setValue(key, value); }
 
     /**
      * Set a Dictionary value for the given key
      *
-     * @param key the key.
-     * @param key the Dictionary value.
+     * @param key   the key.
+     * @param value the Dictionary value.
      * @return this MutableDocument instance
      */
     @NonNull
     @Override
-    public MutableDocument setDictionary(@NonNull String key, Dictionary value) {
-        return setValue(key, value);
-    }
+    public MutableDocument setDictionary(@NonNull String key, Dictionary value) { return setValue(key, value); }
 
     /**
      * Removes the mapping for a key from this Dictionary
@@ -300,7 +273,7 @@ public final class MutableDocument extends Document implements MutableDictionary
     @NonNull
     @Override
     public MutableDocument remove(@NonNull String key) {
-        ((MutableDictionary) internalDict).remove(key);
+        getMutableContent().remove(key);
         return this;
     }
 
@@ -312,13 +285,7 @@ public final class MutableDocument extends Document implements MutableDictionary
      * @return the Array object.
      */
     @Override
-    public MutableArray getArray(@NonNull String key) {
-        return ((MutableDictionary) internalDict).getArray(key);
-    }
-
-    //---------------------------------------------
-    // Package level access
-    //---------------------------------------------
+    public MutableArray getArray(@NonNull String key) { return getMutableContent().getArray(key); }
 
     /**
      * Get a property's value as a Dictionary, which is a mapping object of an dictionary value.
@@ -328,21 +295,23 @@ public final class MutableDocument extends Document implements MutableDictionary
      * @return the Dictionary object or null if the key doesn't exist.
      */
     @Override
-    public MutableDictionary getDictionary(@NonNull String key) {
-        return ((MutableDictionary) internalDict).getDictionary(key);
-    }
+    public MutableDictionary getDictionary(@NonNull String key) { return getMutableContent().getDictionary(key); }
+
+    //---------------------------------------------
+    // Package level access
+    //---------------------------------------------
 
     @Override
-    boolean isMutable() {
-        return true;
-    }
+    boolean isMutable() { return true; }
 
     @Override
-    long generation() {
-        return super.generation() + (isChanged() ? 1 : 0);
-    }
+    long generation() { return super.generation() + (isChanged() ? 1 : 0); }
 
-    private boolean isChanged() {
-        return ((MutableDictionary) internalDict).isChanged();
-    }
+    //---------------------------------------------
+    // Private access
+    //---------------------------------------------
+
+    private boolean isChanged() { return getMutableContent().isChanged(); }
+
+    private MutableDictionary getMutableContent() { return (MutableDictionary) getContent(); }
 }

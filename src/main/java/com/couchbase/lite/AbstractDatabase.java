@@ -932,10 +932,10 @@ abstract class AbstractDatabase {
             boolean commit = false;
             beginTransaction();
             try {
-                commit = saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                commit = true;
             }
             finally { endTransaction(commit); }
-            return commit;
         }
     }
 
@@ -1023,14 +1023,12 @@ abstract class AbstractDatabase {
         try {
             int mergedFlags = C4Constants.RevisionFlags.DELETED;
             byte[] mergedBody = null;
-            if (resolvedDoc != remoteDoc) {
-                if (resolvedDoc != null) {
-                    // Unless the remote revision is being used as-is, we need a new revision:
-                    mergedBody = resolvedDoc.encode().getBuf();
-                    if (mergedBody == null) { return false; }
+            if ((resolvedDoc != remoteDoc) && (resolvedDoc != null)) {
+                // Unless the remote revision is being used as-is, we need a new revision:
+                mergedBody = resolvedDoc.encode().getBuf();
+                if (mergedBody == null) { return; } // !!! return false!
 
-                    if (!resolvedDoc.isDeleted()) { mergedFlags = 0x00; }
-                }
+                if (!resolvedDoc.isDeleted()) { mergedFlags = 0x00; }
             }
 
             // Tell LiteCore to do the resolution:
