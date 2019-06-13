@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
@@ -193,7 +194,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             // delay the delivery of STOPPED messages, while there are still pending resolutions.
             synchronized (lock) {
                 if (!pendingResolutions.isEmpty()
-                    && (status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)) {
+                    && (status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
+                    && actuallyMeansOffline(status.getC4Error())) {
                     pendingStatusNotifications.add(status);
                 }
                 if (!pendingStatusNotifications.isEmpty()) { return; }
@@ -542,51 +544,52 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
         final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
         for (C4DocumentEnded docEnd : docEnds) {
-            final String docID = docEnd.getDocID();
+            final String docId = docEnd.getDocID();
             CouchbaseLiteException error = null;
             final C4Error c4Error = docEnd.getC4Error();
+
             if ((c4Error != null) && (c4Error.getCode() != 0)) {
                 if (!pushing && docEnd.isConflicted()) {
-                    Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
-                    queueConflictResolution(
-                        docID,
-                        config.getConflictResolver(),
-                        new Fn.Consumer<CouchbaseLiteException>() {
-                            public void accept(CouchbaseLiteException err) {
-                                onConflictResolved(this, new ReplicatedDocument(docID, docEnd.getFlags(), err, false));
-                            }
-                        });
+                    queueConflictResolution(docId, docEnd.getFlags());
                     continue;
                 }
 
                 error = CBLStatus.convertError(c4Error);
             }
 
-            unconflictedDocs.add(new ReplicatedDocument(docID, docEnd.getFlags(), error, docEnd.errorIsTransient()));
+            unconflictedDocs.add(new ReplicatedDocument(docId, docEnd.getFlags(), error, docEnd.errorIsTransient()));
         }
 
         notifyDocumentEnded(pushing, unconflictedDocs);
     }
 
-    void queueConflictResolution(
-        @NonNull String docId,
-        @Nullable ConflictResolver resolver,
-        @NonNull Fn.Consumer<CouchbaseLiteException> notify) {
+    void queueConflictResolution(@NonNull String docId, int flags) {
+        Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docId);
+
+        final ExecutionService.CloseableExecutor executor = CouchbaseLite.getExecutionService().getConcurrentExecutor();
+        final Database db = config.getDatabase();
+        final ConflictResolver resolver = config.getConflictResolver();
+        final Fn.Consumer<CouchbaseLiteException> task = new Fn.Consumer<CouchbaseLiteException>() {
+            public void accept(CouchbaseLiteException err) { onConflictResolved(this, docId, flags, err); }
+        };
+
         synchronized (lock) {
-            CouchbaseLite.getExecutionService().getConcurrentExecutor()
-                .execute(() -> config.getDatabase().resolveConflictAsync(resolver, docId, notify));
-            pendingResolutions.add(notify);
+            executor.execute(() -> db.resolveReplicationConflict(resolver, docId, task));
+            pendingResolutions.add(task);
         }
     }
 
-    void onConflictResolved(Fn.Consumer notify, ReplicatedDocument doc) {
+    // callback from queueConflictResolution
+    void onConflictResolved(Fn.Consumer task, String docId, int flags, CouchbaseLiteException err) {
         List<C4ReplicatorStatus> pendingNotifications = null;
+        final ReplicatedDocument doc = new ReplicatedDocument(docId, flags, err, false);
         try {
             synchronized (lock) {
                 try { dispatcher.execute(() -> notifyDocumentEnded(false, Arrays.asList(doc))); }
                 catch (RejectedExecutionException ignored) { }
                 finally {
-                    pendingResolutions.remove(notify);
+                    pendingResolutions.remove(task);
+                    // if no more resolutions, deliver any outstanding status notifications
                     if (pendingResolutions.size() <= 0) {
                         pendingNotifications = new ArrayList<>(pendingStatusNotifications);
                         pendingStatusNotifications.clear();
@@ -595,7 +598,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
         }
         finally {
-            deliverPendingStatusNotifications(pendingNotifications);
+            if (pendingNotifications != null) { deliverPendingStatusNotifications(pendingNotifications); }
         }
     }
 
@@ -782,10 +785,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 retryCount = 0;
                 if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
             }
-            else if ((c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
-                && (handleError(c4Status.getC4Error()))) {
-                // Change c4Status to offline, so my state will reflect that, and proceed:
-                c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
+            else if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
+                final C4Error error = c4Status.getC4Error();
+                if (actuallyMeansOffline(error)) {
+                    handleError(error);
+                    // Change c4Status to offline, so my state will reflect that, and proceed:
+                    c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
+                }
             }
 
             // Update my properties:
@@ -806,24 +812,23 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         for (ReplicatorChangeListenerToken token : tokens) { token.notify(change); }
     }
 
-    // If this is a transient error, or if I'm continuous and the error might go away with a change
-    // in network (i.e. network down, hostname unknown), then go offline and retry later.
+    // See if this is a transient error, or if I'm continuous and the error might go away with a change
+    // in network (i.e. network down, hostname unknown)
+    private boolean actuallyMeansOffline(C4Error c4err) {
+        final boolean isContinuous = config.isContinuous();
+        if (isTransient(c4err) || (isContinuous && C4Replicator.mayBeNetworkDependent(c4err))) {
+            // transient: too many retries?
+            return isContinuous || retryCount < MAX_ONE_SHOT_RETRY_COUNT;
+        }
+        // this is permanent
+        return false;
+    }
+
+    // If actuallyMeansOffline == true, go offline and retry later.
     private boolean handleError(C4Error c4err) {
-        final boolean isTransient = C4Replicator.mayBeTransient(c4err) ||
-            ((c4err.getDomain() == C4Constants.ErrorDomain.WEB_SOCKET) &&
-                (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
-
-        final boolean isNetworkDependent = C4Replicator.mayBeNetworkDependent(c4err);
-        if (!isTransient && !(config.isContinuous() && isNetworkDependent)) {
-            return false; // nope, this is permanent
-        }
-        if (!config.isContinuous() && retryCount >= MAX_ONE_SHOT_RETRY_COUNT) {
-            return false; //too many retries
-        }
-
         clearRepl();
 
-        if (!isTransient) {
+        if (!isTransient(c4err)) {
             Log.i(DOMAIN, "%s: Network error (%s); will retry when network changes...", this, c4err);
         }
         else {
@@ -836,6 +841,12 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         // Also retry when the network changes:
         startReachabilityObserver();
         return true;
+    }
+
+    private boolean isTransient(C4Error c4err) {
+        return C4Replicator.mayBeTransient(c4err) ||
+            ((c4err.getDomain() == C4Constants.ErrorDomain.WEB_SOCKET) &&
+                (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
     }
 
     private void updateStateProperties(C4ReplicatorStatus c4Status) {

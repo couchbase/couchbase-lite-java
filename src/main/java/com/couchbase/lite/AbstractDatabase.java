@@ -883,10 +883,10 @@ abstract class AbstractDatabase {
 
     //////// RESOLVING REPLICATED CONFLICTS:
 
-    void resolveConflictAsync(
+    void resolveReplicationConflict(
         @Nullable ConflictResolver resolver,
         @NonNull String docId,
-        @NonNull Fn.Consumer<CouchbaseLiteException> notify) {
+        @NonNull Fn.Consumer<CouchbaseLiteException> callback) {
         int n = 0;
         CouchbaseLiteException err;
         try {
@@ -900,8 +900,8 @@ abstract class AbstractDatabase {
                 }
 
                 try {
-                    resolveConflictAsync(resolver, docId);
-                    notify.accept(null);
+                    resolveConflictOnce(resolver, docId);
+                    callback.accept(null);
                     return;
                 }
                 catch (CouchbaseLiteException e) {
@@ -912,12 +912,17 @@ abstract class AbstractDatabase {
                 }
             }
         }
-        catch (Exception e) {
-            err = new CouchbaseLiteException(e.getMessage(), e, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
+        catch (RuntimeException e) {
+            final String msg = e.getMessage();
+            err = new CouchbaseLiteException(
+                (msg != null) ? msg : "Conflict resolution failed",
+                e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
         }
 
         Log.w(LogDomain.REPLICATOR, "Conflict resolution failed: %s", err);
-        notify.accept(err);
+        callback.accept(err);
     }
 
     //////// Execution:
@@ -1137,7 +1142,7 @@ abstract class AbstractDatabase {
     }
 
     //////// RESOLVE REPLICATED CONFLICTS:
-    private void resolveConflictAsync(@Nullable ConflictResolver resolver, @NonNull String docID)
+    private void resolveConflictOnce(@Nullable ConflictResolver resolver, @NonNull String docID)
         throws CouchbaseLiteException {
         final Document localDoc;
         final Document remoteDoc;
@@ -1160,7 +1165,6 @@ abstract class AbstractDatabase {
             finally { endTransaction(commit); }
         }
     }
-
 
     private Document getConflictingRevision(@NonNull String docID) throws CouchbaseLiteException {
         final Document remoteDoc = new Document((Database) this, docID, true);
