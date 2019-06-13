@@ -303,7 +303,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private final Set<Fn.Consumer> pendingResolutions = new HashSet<>();
     private final List<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
 
-    private Status status;
+    private Status status = new Status(ActivityLevel.IDLE, new Progress(0, 0), null);
     private C4Replicator c4repl;
     private C4ReplicatorStatus c4ReplStatus;
     private C4ReplicatorListener c4ReplListener;
@@ -365,7 +365,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             if (c4repl != null) { c4repl.stop(); }
             else { Log.i(DOMAIN, "%s: Replicator has been stopped or offlined.", this); }
 
-            if (c4ReplStatus.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.OFFLINE) {
+            if ((c4ReplStatus != null)
+                && (c4ReplStatus.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
                 Log.i(DOMAIN, "%s: Replicator is offline.  Stopping.", this);
                 dispatcher.execute(
                     () -> this.c4StatusChanged(new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED)));
