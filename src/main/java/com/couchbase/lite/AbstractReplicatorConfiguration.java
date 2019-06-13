@@ -169,6 +169,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     public ReplicatorConfiguration setConflictResolver(@Nullable ConflictResolver conflictResolver) {
+        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
         this.conflictResolver = conflictResolver;
         return getReplicatorConfiguration();
     }

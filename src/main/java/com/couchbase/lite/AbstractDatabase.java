@@ -882,163 +882,42 @@ abstract class AbstractDatabase {
     void removeActiveLiveQuery(@NonNull LiveQuery query) { activeLiveQueries.remove(query); }
 
     //////// RESOLVING REPLICATED CONFLICTS:
-    void resolveConflictInDocument(
-        @Nullable ConflictResolver resolver,
-        @NonNull String docId,
-        @NonNull Fn.Consumer<CouchbaseLiteException> notify) {
-        CouchbaseLite.getExecutionService().getConcurrentExecutor()
-            .execute(() -> resolveConflictAsync(resolver, docId, notify));
-    }
 
     void resolveConflictAsync(
         @Nullable ConflictResolver resolver,
         @NonNull String docId,
         @NonNull Fn.Consumer<CouchbaseLiteException> notify) {
         int n = 0;
-        while (true) {
-            try {
+        CouchbaseLiteException err;
+        try {
+            while (true) {
                 if (n++ > MAX_CONFLICT_RESOLUTION_RETRIES) {
-                    throw new CouchbaseLiteException(
+                    err = new CouchbaseLiteException(
                         "Too many attempts to resolve a conflicted document: " + n,
                         CBLError.Domain.CBLITE,
                         CBLError.Code.UNEXPECTED_ERROR);
+                    break;
                 }
 
-                resolveConflictAsync(resolver, docId);
-                notify.accept(null);
+                try {
+                    resolveConflictAsync(resolver, docId);
+                    notify.accept(null);
+                    return;
+                }
+                catch (CouchbaseLiteException e) {
+                    if (!CouchbaseLiteException.isConflict(e)) {
+                        err = e;
+                        break;
+                    }
+                }
             }
-            catch (CouchbaseLiteException err) {
-                Log.w(LogDomain.REPLICATOR, "Conflict resolution failed: %s", err);
-                notify.accept(err);
-            }
         }
-    }
-
-
-    void resolveConflictAsync(@Nullable ConflictResolver resolver, @NonNull String docID)
-        throws CouchbaseLiteException {
-        final Document localDoc;
-        final Document remoteDoc;
-        synchronized (lock) {
-            localDoc = new Document((Database) this, docID, true);
-            remoteDoc = getConflictingRevision(docID);
+        catch (Exception e) {
+            err = new CouchbaseLiteException(e.getMessage(), e, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
         }
 
-        // Resolve conflict:
-        final Document resolvedDoc
-            = resolveConflict((resolver != null) ? resolver : ConflictResolver.DEFAULT, docID, localDoc, remoteDoc);
-
-        synchronized (lock) {
-            boolean commit = false;
-            beginTransaction();
-            try {
-                saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                commit = true;
-            }
-            finally { endTransaction(commit); }
-        }
-    }
-
-
-    private Document getConflictingRevision(@NonNull String docID) throws CouchbaseLiteException {
-        final Document remoteDoc = new Document((Database) this, docID, true);
-        try {
-            if (remoteDoc.selectConflictingRevision()) { return remoteDoc; }
-        }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
-
-        final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping.";
-        Log.w(DOMAIN, msg);
-        throw new CouchbaseLiteException(
-            msg,
-            CBLError.Domain.CBLITE,
-            CBLError.Code.UNEXPECTED_ERROR);
-    }
-
-    private Document resolveConflict(
-        @NonNull ConflictResolver resolver,
-        @NonNull String docID,
-        @NonNull Document localDoc,
-        @NonNull Document remoteDoc)
-        throws CouchbaseLiteException {
-        Log.v(
-            DOMAIN,
-            "Resolving doc '%s' (local=%s and remote=%s) with resolver %s",
-            docID,
-            localDoc.getRevID(),
-            remoteDoc.getRevID(),
-            resolver);
-
-        final Conflict conflict
-            = new Conflict(localDoc.isDeleted() ? null : localDoc, remoteDoc.isDeleted() ? null : remoteDoc);
-
-        final Document doc;
-        try { doc = resolver.resolve(conflict); }
-        catch (Exception err) {
-            throw new CouchbaseLiteException(
-                "Conflict resolver failed. Skipping.",
-                err,
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-
-        if (doc == null) { return null; }
-
-        if (!docID.equals(doc.getId())) {
-            throw new CouchbaseLiteException(
-                "Resolved document's id does not match that of the documents being resolved. Skipping.",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-
-        final Database db = doc.getDatabase();
-        if (db == null) { doc.setDatabase(localDoc.getDatabase()); }
-        else if (!db.equals(localDoc.getDatabase())) {
-            throw new CouchbaseLiteException(
-                "Resolved document belongs to a database different than the documents being resolved. Skipping.",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
-        }
-
-        return doc;
-    }
-
-    // Call holding lock and in a transaction
-    private void saveResolvedDocument(
-        @Nullable Document resolvedDoc,
-        @NonNull Document localDoc,
-        @NonNull Document remoteDoc)
-        throws CouchbaseLiteException {
-        if (resolvedDoc == null) {
-            if (remoteDoc.isDeleted()) { resolvedDoc = remoteDoc; }
-            else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
-        }
-
-        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
-
-        // The remote branch has to win, so that the doc revision history matches the server's.
-        final String winningRevID = remoteDoc.getRevID();
-        final String losingRevID = localDoc.getRevID();
-
-        try {
-            int mergedFlags = C4Constants.RevisionFlags.DELETED;
-            byte[] mergedBody = null;
-            if ((resolvedDoc != remoteDoc) && (resolvedDoc != null)) {
-                // Unless the remote revision is being used as-is, we need a new revision:
-                mergedBody = resolvedDoc.encode().getBuf();
-                if (mergedBody == null) { return; } // !!! return false!
-
-                if (!resolvedDoc.isDeleted()) { mergedFlags = 0x00; }
-            }
-
-            // Tell LiteCore to do the resolution:
-            final C4Document rawDoc = localDoc.getC4doc();
-            rawDoc.resolveConflict(winningRevID, losingRevID, mergedBody, mergedFlags);
-            rawDoc.save(0);
-
-            Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
-        }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        Log.w(LogDomain.REPLICATOR, "Conflict resolution failed: %s", err);
+        notify.accept(err);
     }
 
     //////// Execution:
@@ -1060,7 +939,6 @@ abstract class AbstractDatabase {
     //---------------------------------------------
 
     //////// DATABASES:
-
     private void beginTransaction() throws CouchbaseLiteException {
         try { getC4Database().beginTransaction(); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
@@ -1138,7 +1016,6 @@ abstract class AbstractDatabase {
     }
 
     //////// DOCUMENTS:
-
     private void deleteC4DB() throws CouchbaseLiteException {
         try { getC4Database().delete(); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
@@ -1259,9 +1136,127 @@ abstract class AbstractDatabase {
         }
     }
 
+    //////// RESOLVE REPLICATED CONFLICTS:
+    private void resolveConflictAsync(@Nullable ConflictResolver resolver, @NonNull String docID)
+        throws CouchbaseLiteException {
+        final Document localDoc;
+        final Document remoteDoc;
+        synchronized (lock) {
+            localDoc = new Document((Database) this, docID, true);
+            remoteDoc = getConflictingRevision(docID);
+        }
+
+        // Resolve conflict:
+        final Document resolvedDoc
+            = resolveConflict((resolver != null) ? resolver : ConflictResolver.DEFAULT, docID, localDoc, remoteDoc);
+
+        synchronized (lock) {
+            boolean commit = false;
+            beginTransaction();
+            try {
+                saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                commit = true;
+            }
+            finally { endTransaction(commit); }
+        }
+    }
+
+
+    private Document getConflictingRevision(@NonNull String docID) throws CouchbaseLiteException {
+        final Document remoteDoc = new Document((Database) this, docID, true);
+        try {
+            if (!remoteDoc.selectConflictingRevision()) {
+                final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping.";
+                Log.w(DOMAIN, msg);
+                throw new CouchbaseLiteException(
+                    msg,
+                    CBLError.Domain.CBLITE,
+                    CBLError.Code.UNEXPECTED_ERROR);
+            }
+        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+
+        return remoteDoc;
+    }
+
+    private Document resolveConflict(
+        @NonNull ConflictResolver resolver,
+        @NonNull String docID,
+        @NonNull Document localDoc,
+        @NonNull Document remoteDoc)
+        throws CouchbaseLiteException {
+        final Conflict conflict
+            = new Conflict(localDoc.isDeleted() ? null : localDoc, remoteDoc.isDeleted() ? null : remoteDoc);
+
+        Log.v(
+            DOMAIN,
+            "Resolving doc '%s' (local=%s and remote=%s) with resolver %s",
+            docID,
+            localDoc.getRevID(),
+            remoteDoc.getRevID(),
+            resolver);
+
+        final Document doc;
+        try { doc = resolver.resolve(conflict); }
+        catch (Exception err) {
+            throw new CouchbaseLiteException(
+                "Conflict resolver failed. Skipping.",
+                err,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNEXPECTED_ERROR);
+        }
+
+        if (doc == null) { return null; }
+
+        doc.setId(docID);
+        doc.setDatabase(localDoc.getDatabase());
+
+        return doc;
+    }
+
+    // Call holding lock and in a transaction
+    private void saveResolvedDocument(
+        @Nullable Document resolvedDoc,
+        @NonNull Document localDoc,
+        @NonNull Document remoteDoc)
+        throws CouchbaseLiteException {
+        if (resolvedDoc == null) {
+            if (remoteDoc.isDeleted()) { resolvedDoc = remoteDoc; }
+            else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
+        }
+
+        if ((resolvedDoc != localDoc) && (resolvedDoc != null)) { resolvedDoc.setDatabase((Database) this); }
+
+        byte[] mergedBody = null;
+        int mergedFlags = 0x00;
+
+        try {
+            // Unless the remote revision is being used as-is, we need a new revision:
+            if (resolvedDoc != remoteDoc) {
+                mergedFlags = C4Constants.RevisionFlags.DELETED;
+
+                if (resolvedDoc == null) { mergedBody = null; }
+                else {
+                    mergedBody = resolvedDoc.encode().getBuf();
+                    if (!resolvedDoc.isDeleted()) { mergedFlags = 0x00; }
+                }
+            }
+
+            // Ask LiteCore to do the resolution:
+            final C4Document rawDoc = localDoc.getC4doc();
+            // The remote branch has to win so that the doc revision history matches the server's.
+            rawDoc.resolveConflict(remoteDoc.getRevID(), localDoc.getRevID(), mergedBody, mergedFlags);
+            rawDoc.save(0);
+
+            Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
+        }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
+        }
+    }
+
     private void saveWithConflictHandler(@NonNull MutableDocument document, @NonNull ConflictHandler handler)
         throws CouchbaseLiteException {
-
         Document oldDoc = null;
         int n = 0;
         while (true) {
@@ -1277,9 +1272,7 @@ abstract class AbstractDatabase {
                 return;
             }
             catch (CouchbaseLiteException e) {
-                if (!(e.getDomain().equals(CBLError.Domain.CBLITE) && (e.getCode() == CBLError.Code.CONFLICT))) {
-                    throw e;
-                }
+                if (!CouchbaseLiteException.isConflict(e)) { throw e; }
             }
 
             // Conflict

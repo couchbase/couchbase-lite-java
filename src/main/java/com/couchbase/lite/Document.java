@@ -46,10 +46,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
     //---------------------------------------------
     private final Object lock = new Object(); // lock for thread-safety
 
-    private final String id;
+    private String id;
+    private Database database;
 
     private Dictionary internalDict;
-    private Database database;
     private C4Document c4doc;
     private FLDict data;
     private MRoot root;
@@ -384,6 +384,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
     String getRevID() {
         synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
     }
+
+    void setId(String id) { this.id = id; }
 
     Database getDatabase() { return database; }
     void setDatabase(Database database) { this.database = database; }

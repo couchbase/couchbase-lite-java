@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +53,7 @@ import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
+import com.couchbase.lite.utils.Fn;
 
 
 /**
@@ -185,10 +187,20 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: " + context + ", status: " + status);
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl == replicator.c4repl) {
-                try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
-                catch (RejectedExecutionException ignored) { }
+
+            if (repl != replicator.c4repl) { return; }
+
+            // delay the delivery of STOPPED messages, while there are still pending resolutions.
+            synchronized (lock) {
+                if (!pendingResolutions.isEmpty()
+                    && (status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)) {
+                    pendingStatusNotifications.add(status);
+                }
+                if (!pendingStatusNotifications.isEmpty()) { return; }
             }
+
+            try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
+            catch (RejectedExecutionException ignored) { }
         }
 
         @Override
@@ -277,6 +289,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // member variables
     //---------------------------------------------
 
+    final ReplicatorConfiguration config;
+
     private final Object lock = new Object();
 
     // Protected by lock
@@ -286,7 +300,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
 
-    final ReplicatorConfiguration config;
+    private final Set<Fn.Consumer> pendingResolutions = new HashSet<>();
+    private final List<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
 
     private Status status;
     private C4Replicator c4repl;
@@ -326,6 +341,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 return;
             }
 
+            if (pendingResolutions.size() > 0) {
+                Log.i(DOMAIN, "%s is already running", this);
+                return;
+            }
+
             Log.i(DOMAIN, "%s: Starting", this);
             retryCount = 0;
             internalStart();
@@ -340,18 +360,15 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public void stop() {
         synchronized (lock) {
             Log.i(DOMAIN, "%s: Replicator is stopping ...", this);
-            if (c4repl != null) {
-                c4repl.stop(); // this is async; status will change when repl actually stops
-            }
-            else {
-                Log.i(DOMAIN, "%s: Replicator has been stopped or offlined ...", this);
-            }
+
+            // this is async; status will change when repl actually stops
+            if (c4repl != null) { c4repl.stop(); }
+            else { Log.i(DOMAIN, "%s: Replicator has been stopped or offlined.", this); }
 
             if (c4ReplStatus.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.OFFLINE) {
                 Log.i(DOMAIN, "%s: Replicator is offline.  Stopping.", this);
-                final C4ReplicatorStatus c4replStatus = new C4ReplicatorStatus();
-                c4replStatus.setActivityLevel(C4ReplicatorStatus.ActivityLevel.STOPPED);
-                this.c4StatusChanged(c4replStatus);
+                dispatcher.execute(
+                    () -> this.c4StatusChanged(new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED)));
             }
 
             if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
@@ -519,6 +536,68 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     @Override
     void networkUnreachable() { Log.v(DOMAIN, "%s: Server may NOT be reachable now.", this); }
 
+    ///// Notification
+
+    void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
+        final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
+        for (C4DocumentEnded docEnd : docEnds) {
+            final String docID = docEnd.getDocID();
+            CouchbaseLiteException error = null;
+            final C4Error c4Error = docEnd.getC4Error();
+            if ((c4Error != null) && (c4Error.getCode() != 0)) {
+                if (!pushing && docEnd.isConflicted()) {
+                    Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
+                    queueConflictResolution(
+                        docID,
+                        config.getConflictResolver(),
+                        new Fn.Consumer<CouchbaseLiteException>() {
+                            public void accept(CouchbaseLiteException err) {
+                                onConflictResolved(this, new ReplicatedDocument(docID, docEnd.getFlags(), err, false));
+                            }
+                        });
+                    continue;
+                }
+
+                error = CBLStatus.convertError(c4Error);
+            }
+
+            unconflictedDocs.add(new ReplicatedDocument(docID, docEnd.getFlags(), error, docEnd.errorIsTransient()));
+        }
+
+        notifyDocumentEnded(pushing, unconflictedDocs);
+    }
+
+    void queueConflictResolution(
+        @NonNull String docId,
+        @Nullable ConflictResolver resolver,
+        @NonNull Fn.Consumer<CouchbaseLiteException> notify) {
+        synchronized (lock) {
+            CouchbaseLite.getExecutionService().getConcurrentExecutor()
+                .execute(() -> config.getDatabase().resolveConflictAsync(resolver, docId, notify));
+            pendingResolutions.add(notify);
+        }
+    }
+
+    void onConflictResolved(Fn.Consumer notify, ReplicatedDocument doc) {
+        List<C4ReplicatorStatus> pendingNotifications = null;
+        try {
+            synchronized (lock) {
+                try { dispatcher.execute(() -> notifyDocumentEnded(false, Arrays.asList(doc))); }
+                catch (RejectedExecutionException ignored) { }
+                finally {
+                    pendingResolutions.remove(notify);
+                    if (pendingResolutions.size() <= 0) {
+                        pendingNotifications = new ArrayList<>(pendingStatusNotifications);
+                        pendingStatusNotifications.clear();
+                    }
+                }
+            }
+        }
+        finally {
+            deliverPendingStatusNotifications(pendingNotifications);
+        }
+    }
+
     //---------------------------------------------
     // Private methods
     //---------------------------------------------
@@ -644,40 +723,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         c4ReplListener.statusChanged(c4repl, c4ReplStatus, this);
     }
 
-    private void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
-        final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
-        for (C4DocumentEnded docEnd : docEnds) {
-            final String docID = docEnd.getDocID();
-
-            CouchbaseLiteException error = null;
-            final C4Error c4Error = docEnd.getC4Error();
-            if ((c4Error != null) && (c4Error.getCode() != 0)) {
-                if (!pushing && docEnd.isConflicted()) {
-                    Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docID);
-                    config.getDatabase().resolveConflictInDocument(
-                        config.getConflictResolver(),
-                        docID,
-                        (CouchbaseLiteException err) -> notifyDocumentEnded(
-                            (Replicator) this,
-                            false,
-                            Arrays.asList(new ReplicatedDocument(docID, docEnd.getFlags(), err, false))));
-                    continue;
-                }
-
-                error = CBLStatus.convertError(c4Error);
-            }
-
-            unconflictedDocs.add(new ReplicatedDocument(docID, docEnd.getFlags(), error, docEnd.errorIsTransient()));
-        }
-
-        notifyDocumentEnded((Replicator) this, pushing, unconflictedDocs);
-    }
-
-    private void notifyDocumentEnded(Replicator replicator, boolean pushing, List<ReplicatedDocument> docs) {
-        final DocumentReplication update = new DocumentReplication(replicator, pushing, docs);
-        synchronized (lock) {
-            for (DocumentReplicationListenerToken token : docEndedListenerTokens) { token.notify(update); }
-        }
+    private void notifyDocumentEnded(boolean pushing, List<ReplicatedDocument> docs) {
+        final DocumentReplication update = new DocumentReplication((Replicator) this, pushing, docs);
+        final List<DocumentReplicationListenerToken> tokens;
+        synchronized (lock) { tokens = new ArrayList<>(docEndedListenerTokens); }
+        for (DocumentReplicationListenerToken token : tokens) { token.notify(update); }
         Log.i(DOMAIN, "C4ReplicatorListener.documentEnded() " + update.toString());
     }
 
@@ -707,7 +757,19 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         }
     }
 
+
+    private void deliverPendingStatusNotifications(List<C4ReplicatorStatus> pendingNotifications) {
+        if (pendingNotifications != null) {
+            for (C4ReplicatorStatus status : pendingNotifications) {
+                try { dispatcher.execute(() -> c4StatusChanged(status)); }
+                catch (RejectedExecutionException ignored) { }
+            }
+        }
+    }
+
     private void c4StatusChanged(C4ReplicatorStatus c4Status) {
+        final ReplicatorChange change;
+        final List<ReplicatorChangeListenerToken> tokens;
         synchronized (lock) {
             if (responseHeaders == null && c4repl != null) {
                 final byte[] h = c4repl.getResponseHeaders();
@@ -715,15 +777,14 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
 
             Log.i(DOMAIN, "%s: status changed: " + c4Status, this);
-            if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                if (handleError(c4Status.getC4Error())) {
-                    // Change c4Status to offline, so my state will reflect that, and proceed:
-                    c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
-                }
-            }
-            else if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
+            if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
                 retryCount = 0;
                 if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
+            }
+            else if ((c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
+                && (handleError(c4Status.getC4Error()))) {
+                // Change c4Status to offline, so my state will reflect that, and proceed:
+                c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
             }
 
             // Update my properties:
@@ -731,8 +792,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             // Post notification
             // Replicator.getStatus() creates a copy of Status.
-            final ReplicatorChange change = new ReplicatorChange((Replicator) this, this.getStatus());
-            for (ReplicatorChangeListenerToken token : changeListenerTokens) { token.notify(change); }
+            change = new ReplicatorChange((Replicator) this, this.getStatus());
+            tokens = new ArrayList<>(changeListenerTokens);
 
             // If Stopped:
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
@@ -740,12 +801,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
             }
         }
+
+        for (ReplicatorChangeListenerToken token : tokens) { token.notify(change); }
     }
 
-    // - (bool) handleError: (C4Error)c4err
+    // If this is a transient error, or if I'm continuous and the error might go away with a change
+    // in network (i.e. network down, hostname unknown), then go offline and retry later.
     private boolean handleError(C4Error c4err) {
-        // If this is a transient error, or if I'm continuous and the error might go away with a change
-        // in network (i.e. network down, hostname unknown), then go offline and retry later.
         final boolean isTransient = C4Replicator.mayBeTransient(c4err) ||
             ((c4err.getDomain() == C4Constants.ErrorDomain.WEB_SOCKET) &&
                 (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));

@@ -65,13 +65,12 @@ public class C4Replicator {
 
     //-------------------------------------------------------------------------
     // Private static methods
-    //
-    // ??? These appear to be unused...
     //-------------------------------------------------------------------------
 
     private static void statusChangedCallback(long handle, C4ReplicatorStatus status) {
         final C4Replicator repl = getReplicatorForHandle(handle);
         Log.d(LogDomain.REPLICATOR, "statusChangedCallback() handle: " + handle + ", status: " + status);
+
         if ((repl == null) || !repl.isAlive.get()) { return; }
         // there is a race here (the repl may no longer be alive) but I hope that it is not important
 
@@ -82,6 +81,7 @@ public class C4Replicator {
     private static void documentEndedCallback(long handle, boolean pushing, C4DocumentEnded[] documentsEnded) {
         final C4Replicator repl = getReplicatorForHandle(handle);
         Log.d(LogDomain.REPLICATOR, "documentEndedCallback() handle: " + handle + ", pushing: " + pushing);
+
         if ((repl == null) || !repl.isAlive.get()) { return; }
         // there is a race here (the repl may no longer be alive) but I hope that it is not important
 
@@ -91,6 +91,7 @@ public class C4Replicator {
 
     private static boolean validationFunction(String docID, int flags, long dict, boolean isPush, Object context) {
         final C4Replicator repl = getReplicatorForContext(context);
+
         if ((repl == null) || !repl.isAlive.get()) { return true; }
         // there is a race here (the repl may no longer be alive) but I hope that it is not important
 
