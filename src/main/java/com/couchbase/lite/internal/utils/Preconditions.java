@@ -15,10 +15,17 @@
 //
 package com.couchbase.lite.internal.utils;
 
+import com.couchbase.lite.utils.Fn;
+
+
 public class Preconditions {
     private Preconditions() {}
 
     public static void checkArgNotNull(Object obj, String name) {
         if (obj == null) { throw new IllegalArgumentException(name + " cannot be null"); }
+    }
+
+    public static <T> void testArg(T obj, String msg, Fn.Predicate<T> predicate) {
+        if (!predicate.test(obj)) { throw new IllegalArgumentException(msg); }
     }
 }

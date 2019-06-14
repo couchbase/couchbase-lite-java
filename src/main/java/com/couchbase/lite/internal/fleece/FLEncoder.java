@@ -24,63 +24,21 @@ import com.couchbase.lite.LiteCoreException;
 
 
 public class FLEncoder {
-    static native long init(); // FLEncoder FLEncoder_New(void);
-
-    static native void free(long encoder);
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-
-    static native boolean writeNull(long encoder);
-
-    static native boolean writeBool(long encoder, boolean value);
-
-    static native boolean writeInt(long encoder, long value); // 64bit
-
-    static native boolean writeFloat(long encoder, float value);
-
-    static native boolean writeDouble(long encoder, double value);
-
-    static native boolean writeString(long encoder, String value);
-
-    static native boolean writeData(long encoder, byte[] value);
-
-    static native boolean beginArray(long encoder, long reserve);
-
-    static native boolean endArray(long encoder);
-
-    static native boolean beginDict(long encoder, long reserve);
-
-    static native boolean endDict(long encoder);
-
-    static native boolean writeKey(long encoder, String slice);
-
-    static native byte[] finish(long encoder) throws LiteCoreException;
-
-    static native long finish2(long encoder) throws LiteCoreException;
-
-    static native void setExtraInfo(long encoder, Object info);
-
-    static native Object getExtraInfo(long encoder);
-
-    static native void reset(long encoder);
-
-
     private final boolean managed;
     long handle;
 
-    public FLEncoder() {
-        this(init());
-    }
+    public FLEncoder() { this(init()); }
 
-    public FLEncoder(long handle) {
-        this(handle, false);
-    }
+    public FLEncoder(long handle) { this(handle, false); }
 
     public FLEncoder(long handle, boolean managed) {
         this.managed = managed;
         this.handle = handle;
     }
+
+    //-------------------------------------------------------------------------
+    // public methods
+    //-------------------------------------------------------------------------
 
     public void free() {
         if (handle != 0 && !managed) {
@@ -89,33 +47,19 @@ public class FLEncoder {
         }
     }
 
-    public boolean writeString(String value) {
-        return writeString(handle, value);
-    }
+    public boolean writeString(String value) { return writeString(handle, value); }
 
-    public boolean writeData(byte[] value) {
-        return writeData(handle, value);
-    }
+    public boolean writeData(byte[] value) { return writeData(handle, value); }
 
-    public boolean beginDict(long reserve) {
-        return beginDict(handle, reserve);
-    }
+    public boolean beginDict(long reserve) { return beginDict(handle, reserve); }
 
-    public boolean endDict() {
-        return endDict(handle);
-    }
+    public boolean endDict() { return endDict(handle); }
 
-    public boolean beginArray(long reserve) {
-        return beginArray(handle, reserve);
-    }
+    public boolean beginArray(long reserve) { return beginArray(handle, reserve); }
 
-    public boolean endArray() {
-        return endArray(handle);
-    }
+    public boolean endArray() { return endArray(handle); }
 
-    public boolean writeKey(String slice) {
-        return writeKey(handle, slice);
-    }
+    public boolean writeKey(String slice) { return writeKey(handle, slice); }
 
     // C/Fleece+CoreFoundation.mm
     // bool FLEncoder_WriteNSObject(FLEncoder encoder, id obj)
@@ -176,25 +120,15 @@ public class FLEncoder {
         return endArray();
     }
 
-    public byte[] finish() throws LiteCoreException {
-        return finish(handle);
-    }
+    public byte[] finish() throws LiteCoreException { return finish(handle); }
 
-    public FLSliceResult finish2() throws LiteCoreException {
-        return new FLSliceResult(finish2(handle));
-    }
+    public FLSliceResult finish2() throws LiteCoreException { return new FLSliceResult(finish2(handle)); }
 
-    public Object getExtraInfo() {
-        return getExtraInfo(handle);
-    }
+    public Object getExtraInfo() { return getExtraInfo(handle); }
 
-    public void setExtraInfo(Object info) {
-        setExtraInfo(handle, info);
-    }
+    public void setExtraInfo(Object info) { setExtraInfo(handle, info); }
 
-    public void reset() {
-        reset(handle);
-    }
+    public void reset() { reset(handle); }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -205,4 +139,46 @@ public class FLEncoder {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    static native long init(); // FLEncoder FLEncoder_New(void);
+
+    static native void free(long encoder);
+
+    static native boolean writeNull(long encoder);
+
+    static native boolean writeBool(long encoder, boolean value);
+
+    static native boolean writeInt(long encoder, long value); // 64bit
+
+    static native boolean writeFloat(long encoder, float value);
+
+    static native boolean writeDouble(long encoder, double value);
+
+    static native boolean writeString(long encoder, String value);
+
+    static native boolean writeData(long encoder, byte[] value);
+
+    static native boolean beginArray(long encoder, long reserve);
+
+    static native boolean endArray(long encoder);
+
+    static native boolean beginDict(long encoder, long reserve);
+
+    static native boolean endDict(long encoder);
+
+    static native boolean writeKey(long encoder, String slice);
+
+    static native byte[] finish(long encoder) throws LiteCoreException;
+
+    static native long finish2(long encoder) throws LiteCoreException;
+
+    static native void setExtraInfo(long encoder, Object info);
+
+    static native Object getExtraInfo(long encoder);
+
+    static native void reset(long encoder);
 }
