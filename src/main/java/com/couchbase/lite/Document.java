@@ -41,6 +41,23 @@ public class Document implements DictionaryInterface, Iterable<String> {
     //---------------------------------------------
     static { NativeLibraryLoader.load(); }
 
+
+    /**
+     * !!! This code is from v1.x. Replace with c4rev_getGeneration().
+     */
+    static long generationFromRevID(String revID) {
+        long generation = 0;
+        final long length = Math.min(revID == null ? 0 : revID.length(), 9);
+        for (int i = 0; i < length; ++i) {
+            final char c = revID.charAt(i);
+            if (Character.isDigit(c)) { generation = 10 * generation + Character.getNumericValue(c); }
+            else if (c == '-') { return generation; }
+            else { break; }
+        }
+        return 0;
+    }
+
+
     //---------------------------------------------
     // member variables
     //---------------------------------------------
@@ -463,21 +480,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
             root = null;
             internalDict = isMutable() ? new MutableDictionary() : new Dictionary();
         }
-    }
-
-    /**
-     * TODO: This code is from v1.x. Better to replace with c4rev_getGeneration().
-     */
-    private long generationFromRevID(String revID) {
-        long generation = 0;
-        final long length = Math.min(revID == null ? 0 : revID.length(), 9);
-        for (int i = 0; i < length; ++i) {
-            final char c = revID.charAt(i);
-            if (Character.isDigit(c)) { generation = 10 * generation + Character.getNumericValue(c); }
-            else if (c == '-') { return generation; }
-            else { break; }
-        }
-        return 0;
     }
 
     private void free() {

@@ -59,9 +59,6 @@ import com.couchbase.lite.utils.Fn;
  * AbstractDatabase is a base class of A Couchbase Lite Database.
  */
 abstract class AbstractDatabase {
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
 
     /**
      * Gets the logging controller for the Couchbase Lite library to configure the
@@ -73,6 +70,9 @@ abstract class AbstractDatabase {
     @NonNull
     public static final com.couchbase.lite.Log log;
 
+    //---------------------------------------------
+    // Load LiteCore library and its dependencies
+    //---------------------------------------------
     static {
         NativeLibraryLoader.load();
         log = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
@@ -82,6 +82,12 @@ abstract class AbstractDatabase {
     //---------------------------------------------
     // Constants
     //---------------------------------------------
+    private static final String ERROR_RESOLVER_FAILED = "Conflict resolution failed for document '%s': %s";
+    private static final String WARN_WRONG_DATABASE = "The database to which the document produced by"
+        + " conflict resolution for document '%s' belongs, '%s', is not the one in which it will be stored (%s)";
+    private static final String WARN_WRONG_ID = "The ID of the document produced by conflict resolution"
+        + " for document (%s) does not match the IDs of the conflicting documents (%s)";
+
     private static final LogDomain DOMAIN = LogDomain.DATABASE;
     private static final String DB_EXTENSION = "cblite2";
 
@@ -921,7 +927,6 @@ abstract class AbstractDatabase {
                 CBLError.Code.UNEXPECTED_ERROR);
         }
 
-        Log.w(LogDomain.REPLICATOR, "Conflict resolution failed: %s", err);
         callback.accept(err);
     }
 
@@ -1203,17 +1208,27 @@ abstract class AbstractDatabase {
         final Document doc;
         try { doc = resolver.resolve(conflict); }
         catch (Exception err) {
-            throw new CouchbaseLiteException(
-                "Conflict resolver failed. Skipping.",
-                err,
-                CBLError.Domain.CBLITE,
-                CBLError.Code.UNEXPECTED_ERROR);
+            final String msg = String.format(ERROR_RESOLVER_FAILED, docID, err.getLocalizedMessage());
+            Log.w(DOMAIN, msg);
+            throw new CouchbaseLiteException(msg, err, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
         }
 
         if (doc == null) { return null; }
 
-        doc.setId(docID);
-        doc.setDatabase(localDoc.getDatabase());
+        final Database target = doc.getDatabase();
+        if (!this.equals(target)) {
+            if (target == null) { doc.setDatabase((Database) this); }
+            else {
+                final String msg = String.format(WARN_WRONG_DATABASE, docID, target.getName(), getName());
+                Log.w(DOMAIN, msg);
+                throw new CouchbaseLiteException(msg, CBLError.Domain.CBLITE, CBLError.Code.UNEXPECTED_ERROR);
+            }
+        }
+
+        if (!docID.equals(doc.getId())) {
+            Log.w(DOMAIN, WARN_WRONG_ID, doc.getId(), docID);
+            doc.setId(docID);
+        }
 
         return doc;
     }

@@ -183,23 +183,14 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         Status copy() { return new Status(activityLevel, progress.copy(), error); }
     }
 
+    // just queue everything up for in-order processing.
     final class ReplicatorListener implements C4ReplicatorListener {
         @Override
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: " + context + ", status: " + status);
+
             final AbstractReplicator replicator = (AbstractReplicator) context;
-
             if (repl != replicator.c4repl) { return; }
-
-            // delay the delivery of STOPPED messages, while there are still pending resolutions.
-            synchronized (lock) {
-                if (!pendingResolutions.isEmpty()
-                    && (status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
-                    && actuallyMeansOffline(status.getC4Error())) {
-                    pendingStatusNotifications.add(status);
-                }
-                if (!pendingStatusNotifications.isEmpty()) { return; }
-            }
 
             try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
             catch (RejectedExecutionException ignored) { }
@@ -208,11 +199,12 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         @Override
         public void documentEnded(C4Replicator repl, boolean pushing, C4DocumentEnded[] documents, Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: " + context + ", pushing: " + pushing);
+
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl == replicator.c4repl) {
-                try { dispatcher.execute(() -> replicator.documentEnded(pushing, documents)); }
-                catch (RejectedExecutionException ignored) { }
-            }
+            if (repl != replicator.c4repl) { return; }
+
+            try { dispatcher.execute(() -> replicator.documentEnded(pushing, documents)); }
+            catch (RejectedExecutionException ignored) { }
         }
     }
 
@@ -541,12 +533,63 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     ///// Notification
 
+    void c4StatusChanged(C4ReplicatorStatus c4Status) {
+        final ReplicatorChange change;
+        final List<ReplicatorChangeListenerToken> tokens;
+
+        synchronized (lock) {
+            if (!pendingResolutions.isEmpty()
+                && (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
+                && actuallyMeansOffline(c4Status.getC4Error())) {
+                pendingStatusNotifications.add(c4Status);
+            }
+            if (!pendingStatusNotifications.isEmpty()) { return; }
+
+            if (responseHeaders == null && c4repl != null) {
+                final byte[] h = c4repl.getResponseHeaders();
+                if (h != null) { responseHeaders = FLValue.fromData(h).asDict(); }
+            }
+
+            Log.i(DOMAIN, "%s: status changed: " + c4Status, this);
+            if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
+                retryCount = 0;
+                if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
+            }
+            else if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
+                final C4Error error = c4Status.getC4Error();
+                if (actuallyMeansOffline(error)) {
+                    handleError(error);
+                    // Change c4Status to offline, so my state will reflect that, and proceed:
+                    c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
+                }
+            }
+
+            // Update my properties:
+            updateStateProperties(c4Status);
+
+            // Post notification
+            // Replicator.getStatus() creates a copy of Status.
+            change = new ReplicatorChange((Replicator) this, this.getStatus());
+            tokens = new ArrayList<>(changeListenerTokens);
+
+            // If Stopped:
+            if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
+                this.clearRepl();
+                config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
+            }
+        }
+
+        for (ReplicatorChangeListenerToken token : tokens) { token.notify(change); }
+    }
+
     void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
         final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
+
         for (C4DocumentEnded docEnd : docEnds) {
             final String docId = docEnd.getDocID();
-            CouchbaseLiteException error = null;
             final C4Error c4Error = docEnd.getC4Error();
+
+            CouchbaseLiteException error = null;
 
             if ((c4Error != null) && (c4Error.getCode() != 0)) {
                 if (!pushing && docEnd.isConflicted()) {
@@ -560,7 +603,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             unconflictedDocs.add(new ReplicatedDocument(docId, docEnd.getFlags(), error, docEnd.errorIsTransient()));
         }
 
-        notifyDocumentEnded(pushing, unconflictedDocs);
+        if (unconflictedDocs.size() > 0) { notifyDocumentEnded(pushing, unconflictedDocs); }
     }
 
     void queueConflictResolution(@NonNull String docId, int flags) {
@@ -583,6 +626,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     void onConflictResolved(Fn.Consumer task, String docId, int flags, CouchbaseLiteException err) {
         List<C4ReplicatorStatus> pendingNotifications = null;
         final ReplicatedDocument doc = new ReplicatedDocument(docId, flags, err, false);
+        android.util.Log.d("###", "error: " + err);
         try {
             synchronized (lock) {
                 try { dispatcher.execute(() -> notifyDocumentEnded(false, Arrays.asList(doc))); }
@@ -598,8 +642,21 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
         }
         finally {
-            if (pendingNotifications != null) { deliverPendingStatusNotifications(pendingNotifications); }
+            if (pendingNotifications != null) {
+                for (C4ReplicatorStatus status : pendingNotifications) {
+                    try { dispatcher.execute(() -> c4StatusChanged(status)); }
+                    catch (RejectedExecutionException ignored) { }
+                }
+            }
         }
+    }
+
+    void notifyDocumentEnded(boolean pushing, List<ReplicatedDocument> docs) {
+        final DocumentReplication update = new DocumentReplication((Replicator) this, pushing, docs);
+        final List<DocumentReplicationListenerToken> tokens;
+        synchronized (lock) { tokens = new ArrayList<>(docEndedListenerTokens); }
+        for (DocumentReplicationListenerToken token : tokens) { token.notify(update); }
+        Log.i(DOMAIN, "C4ReplicatorListener.documentEnded() " + update.toString());
     }
 
     //---------------------------------------------
@@ -727,14 +784,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         c4ReplListener.statusChanged(c4repl, c4ReplStatus, this);
     }
 
-    private void notifyDocumentEnded(boolean pushing, List<ReplicatedDocument> docs) {
-        final DocumentReplication update = new DocumentReplication((Replicator) this, pushing, docs);
-        final List<DocumentReplicationListenerToken> tokens;
-        synchronized (lock) { tokens = new ArrayList<>(docEndedListenerTokens); }
-        for (DocumentReplicationListenerToken token : tokens) { token.notify(update); }
-        Log.i(DOMAIN, "C4ReplicatorListener.documentEnded() " + update.toString());
-    }
-
     private EnumSet<DocumentFlag> documentFlags(int flags) {
         final EnumSet<DocumentFlag> documentFlags = EnumSet.noneOf(DocumentFlag.class);
         if ((flags & C4Constants.RevisionFlags.DELETED) == C4Constants.RevisionFlags.DELETED) {
@@ -763,53 +812,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
 
     private void deliverPendingStatusNotifications(List<C4ReplicatorStatus> pendingNotifications) {
-        if (pendingNotifications != null) {
-            for (C4ReplicatorStatus status : pendingNotifications) {
-                try { dispatcher.execute(() -> c4StatusChanged(status)); }
-                catch (RejectedExecutionException ignored) { }
-            }
-        }
-    }
-
-    private void c4StatusChanged(C4ReplicatorStatus c4Status) {
-        final ReplicatorChange change;
-        final List<ReplicatorChangeListenerToken> tokens;
-        synchronized (lock) {
-            if (responseHeaders == null && c4repl != null) {
-                final byte[] h = c4repl.getResponseHeaders();
-                if (h != null) { responseHeaders = FLValue.fromData(h).asDict(); }
-            }
-
-            Log.i(DOMAIN, "%s: status changed: " + c4Status, this);
-            if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
-                retryCount = 0;
-                if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
-            }
-            else if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                final C4Error error = c4Status.getC4Error();
-                if (actuallyMeansOffline(error)) {
-                    handleError(error);
-                    // Change c4Status to offline, so my state will reflect that, and proceed:
-                    c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
-                }
-            }
-
-            // Update my properties:
-            updateStateProperties(c4Status);
-
-            // Post notification
-            // Replicator.getStatus() creates a copy of Status.
-            change = new ReplicatorChange((Replicator) this, this.getStatus());
-            tokens = new ArrayList<>(changeListenerTokens);
-
-            // If Stopped:
-            if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                this.clearRepl();
-                config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
-            }
-        }
-
-        for (ReplicatorChangeListenerToken token : tokens) { token.notify(change); }
     }
 
     // See if this is a transient error, or if I'm continuous and the error might go away with a change
