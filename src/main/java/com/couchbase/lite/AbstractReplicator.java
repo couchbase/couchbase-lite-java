@@ -540,7 +540,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         synchronized (lock) {
             if (!pendingResolutions.isEmpty()
                 && (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
-                && actuallyMeansOffline(c4Status.getC4Error())) {
+                && !actuallyMeansOffline(c4Status.getC4Error())) {
                 pendingStatusNotifications.add(c4Status);
             }
             if (!pendingStatusNotifications.isEmpty()) { return; }
@@ -626,7 +626,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     void onConflictResolved(Fn.Consumer task, String docId, int flags, CouchbaseLiteException err) {
         List<C4ReplicatorStatus> pendingNotifications = null;
         final ReplicatedDocument doc = new ReplicatedDocument(docId, flags, err, false);
-        android.util.Log.d("###", "error: " + err);
         try {
             synchronized (lock) {
                 try { dispatcher.execute(() -> notifyDocumentEnded(false, Arrays.asList(doc))); }

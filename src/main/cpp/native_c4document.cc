@@ -327,8 +327,7 @@ JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4Document_resolveC
     jbyteArraySlice mergedBody(env, jMergedBody, false);
     C4RevisionFlags revisionFlag = (C4RevisionFlags)jMergedFlags;
     C4Error error = {};
-    if (!c4doc_resolveConflict((C4Document *) jdoc, winningRevID, losingRevID, mergedBody, revisionFlag,
-                               &error))
+    if (!c4doc_resolveConflict((C4Document *) jdoc, winningRevID, losingRevID, mergedBody, revisionFlag, &error))
         throwError(env, error);
 }
 

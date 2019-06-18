@@ -45,6 +45,7 @@ import com.couchbase.lite.internal.core.C4DatabaseObserver;
 import com.couchbase.lite.internal.core.C4Document;
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.core.SharedKeys;
+import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.support.Run;
@@ -1244,7 +1245,7 @@ abstract class AbstractDatabase {
             else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
         }
 
-        if ((resolvedDoc != localDoc) && (resolvedDoc != null)) { resolvedDoc.setDatabase((Database) this); }
+        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
 
         byte[] mergedBody = null;
         int mergedFlags = 0x00;
@@ -1252,12 +1253,16 @@ abstract class AbstractDatabase {
         try {
             // Unless the remote revision is being used as-is, we need a new revision:
             if (resolvedDoc != remoteDoc) {
-                mergedFlags = C4Constants.RevisionFlags.DELETED;
-
-                if (resolvedDoc == null) { mergedBody = null; }
-                else {
+                if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) {
                     mergedBody = resolvedDoc.encode().getBuf();
-                    if (!resolvedDoc.isDeleted()) { mergedFlags = 0x00; }
+                }
+                else {
+                    mergedFlags = C4Constants.RevisionFlags.DELETED;
+
+                    // won't work without an empty dictionary here.  Sheesh.
+                    final FLEncoder enc = getC4Database().getSharedFleeceEncoder();
+                    enc.writeValue(new HashMap<>());
+                    mergedBody = enc.finish();
                 }
             }
 
