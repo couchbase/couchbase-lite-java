@@ -363,7 +363,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 && (c4ReplStatus.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
                 Log.i(DOMAIN, "%s: Replicator is offline.  Stopping.", this);
                 dispatcher.execute(
-                    () -> this.c4StatusChanged(new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED)));
+                    () -> c4StatusChanged(new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED)));
             }
 
             if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
@@ -625,30 +625,25 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // callback from queueConflictResolution
     void onConflictResolved(Fn.Consumer task, String docId, int flags, CouchbaseLiteException err) {
         List<C4ReplicatorStatus> pendingNotifications = null;
-        final ReplicatedDocument doc = new ReplicatedDocument(docId, flags, err, false);
-        try {
-            synchronized (lock) {
-                try { dispatcher.execute(() -> notifyDocumentEnded(false, Arrays.asList(doc))); }
-                catch (RejectedExecutionException ignored) { }
-                finally {
-                    pendingResolutions.remove(task);
-                    // if no more resolutions, deliver any outstanding status notifications
-                    if (pendingResolutions.size() <= 0) {
-                        pendingNotifications = new ArrayList<>(pendingStatusNotifications);
-                        pendingStatusNotifications.clear();
-                    }
-                }
+        synchronized (lock) {
+            pendingResolutions.remove(task);
+            // if no more resolutions, deliver any outstanding status notifications
+            if (pendingResolutions.size() <= 0) {
+                pendingNotifications = new ArrayList<>(pendingStatusNotifications);
+                pendingStatusNotifications.clear();
             }
         }
-        finally {
-            if (pendingNotifications != null) {
-                for (C4ReplicatorStatus status : pendingNotifications) {
-                    try { dispatcher.execute(() -> c4StatusChanged(status)); }
-                    catch (RejectedExecutionException ignored) { }
-                }
+
+        notifyDocumentEnded(false, Arrays.asList(new ReplicatedDocument(docId, flags, err, false)));
+
+        if ((pendingNotifications != null) && (pendingNotifications.size() > 0)) {
+            for (C4ReplicatorStatus status : pendingNotifications) {
+                try { dispatcher.execute(() -> c4StatusChanged(status)); }
+                catch (RejectedExecutionException ignored) { }
             }
         }
     }
+
 
     void notifyDocumentEnded(boolean pushing, List<ReplicatedDocument> docs) {
         final DocumentReplication update = new DocumentReplication((Replicator) this, pushing, docs);
@@ -802,15 +797,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private void retry() {
         synchronized (lock) {
-            if (c4repl != null || this.c4ReplStatus
-                .getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE) { return; }
+            if ((c4repl != null)
+                || (this.c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
+                return;
+            }
             Log.i(DOMAIN, "%s: Retrying...", this);
             internalStart();
         }
-    }
-
-
-    private void deliverPendingStatusNotifications(List<C4ReplicatorStatus> pendingNotifications) {
     }
 
     // See if this is a transient error, or if I'm continuous and the error might go away with a change
@@ -826,7 +819,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     // If actuallyMeansOffline == true, go offline and retry later.
-    private boolean handleError(C4Error c4err) {
+    private void handleError(C4Error c4err) {
         clearRepl();
 
         if (!isTransient(c4err)) {
@@ -841,7 +834,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         // Also retry when the network changes:
         startReachabilityObserver();
-        return true;
     }
 
     private boolean isTransient(C4Error c4err) {
