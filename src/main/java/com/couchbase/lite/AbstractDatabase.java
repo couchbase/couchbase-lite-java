@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONException;
 
+import com.couchbase.lite.internal.CBLInternalException;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.core.C4BlobStore;
 import com.couchbase.lite.internal.core.C4Constants;
@@ -895,7 +896,7 @@ abstract class AbstractDatabase {
         @NonNull String docId,
         @NonNull Fn.Consumer<CouchbaseLiteException> callback) {
         int n = 0;
-        CouchbaseLiteException err;
+        CouchbaseLiteException err = null;
         try {
             while (true) {
                 if (n++ > MAX_CONFLICT_RESOLUTION_RETRIES) {
@@ -916,6 +917,18 @@ abstract class AbstractDatabase {
                         err = e;
                         break;
                     }
+                }
+                catch (CBLInternalException e) {
+                    // This error occurs when a resolver that starts after this one
+                    // fixes the conflict before this one does.  When this one attempts
+                    // to save, it gets a conflict error and retries.  During the retry,
+                    // it cannot find a conflicting revision and throws this error.
+                    // The other resolver did the right thing, so there is no reason
+                    // to report an error.
+                    if (e.getCode() != CBLInternalException.FAILED_SELECTING_CONFLICTING_REVISION) {
+                        err = new CouchbaseLiteException(e);
+                    }
+                    break;
                 }
             }
         }
@@ -1149,7 +1162,7 @@ abstract class AbstractDatabase {
 
     //////// RESOLVE REPLICATED CONFLICTS:
     private void resolveConflictOnce(@Nullable ConflictResolver resolver, @NonNull String docID)
-        throws CouchbaseLiteException {
+        throws CouchbaseLiteException, CBLInternalException {
         final Document localDoc;
         final Document remoteDoc;
         synchronized (lock) {
@@ -1172,16 +1185,14 @@ abstract class AbstractDatabase {
         }
     }
 
-    private Document getConflictingRevision(@NonNull String docID) throws CouchbaseLiteException {
+    private Document getConflictingRevision(@NonNull String docID)
+        throws CouchbaseLiteException, CBLInternalException {
         final Document remoteDoc = new Document((Database) this, docID, true);
         try {
             if (!remoteDoc.selectConflictingRevision()) {
                 final String msg = "Unable to select conflicting revision for doc '" + docID + "'. Skipping.";
                 Log.w(DOMAIN, msg);
-                throw new CouchbaseLiteException(
-                    msg,
-                    CBLError.Domain.CBLITE,
-                    CBLError.Code.UNEXPECTED_ERROR);
+                throw new CBLInternalException(CBLInternalException.FAILED_SELECTING_CONFLICTING_REVISION, msg);
             }
         }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
@@ -1259,7 +1270,7 @@ abstract class AbstractDatabase {
                 else {
                     mergedFlags = C4Constants.RevisionFlags.DELETED;
 
-                    // won't work without an empty dictionary here.  Sheesh.
+                    // Won't work without an empty dictionary here.  Sheesh.
                     final FLEncoder enc = getC4Database().getSharedFleeceEncoder();
                     enc.writeValue(new HashMap<>());
                     mergedBody = enc.finish();

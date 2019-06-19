@@ -21,6 +21,8 @@ import android.support.annotation.NonNull;
 
 import java.util.Map;
 
+import com.couchbase.lite.internal.CBLInternalException;
+
 
 /**
  * A CouchbaseLiteException gets raised whenever a Couchbase Lite faces errors.
@@ -100,6 +102,20 @@ public final class CouchbaseLiteException extends Exception {
      */
     public CouchbaseLiteException(@NonNull String message, @NonNull Throwable cause, @NonNull String domain, int code) {
         this(message, cause, domain, code, null);
+    }
+
+    /**
+     * Constructs a new exception from an internal exception
+     *
+     * @param cause the internal exception
+     */
+    public CouchbaseLiteException(@NonNull CBLInternalException cause) {
+        this(
+            (null == cause.getMessage()) ? "Internal error" : cause.getMessage(),
+            cause,
+            CBLError.Domain.CBLITE,
+            CBLError.Code.UNEXPECTED_ERROR, null);
+        setStackTrace(cause.getStackTrace());
     }
 
     CouchbaseLiteException(
