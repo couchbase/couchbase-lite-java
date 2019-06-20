@@ -1239,7 +1239,7 @@ abstract class AbstractDatabase {
 
         if (!docID.equals(doc.getId())) {
             Log.w(DOMAIN, WARN_WRONG_ID, doc.getId(), docID);
-            doc.setId(docID);
+            return new MutableDocument(docID, doc);
         }
 
         return doc;

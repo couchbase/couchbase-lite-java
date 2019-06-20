@@ -58,12 +58,15 @@ public final class DocumentReplication {
      */
     public boolean isPush() { return pushing; }
 
-
     /**
      * The list if affected documents.
      */
     @NonNull
     public List<ReplicatedDocument> getDocuments() { return documents; }
+
+    @Override
+    @NonNull
+    public String toString() { return "DocumentReplication{repl=" + replicator + ",#docs=" + documents.size() + "}"; }
 }
 
 

@@ -187,7 +187,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     final class ReplicatorListener implements C4ReplicatorListener {
         @Override
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
-            Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: " + context + ", status: " + status);
+            Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: %s, status: %s", context, status);
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
@@ -198,7 +198,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         @Override
         public void documentEnded(C4Replicator repl, boolean pushing, C4DocumentEnded[] documents, Object context) {
-            Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: " + context + ", pushing: " + pushing);
+            Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: %s, pushing: %s", context, pushing);
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
@@ -624,6 +624,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     // callback from queueConflictResolution
     void onConflictResolved(Fn.Consumer task, String docId, int flags, CouchbaseLiteException err) {
+        Log.i(DOMAIN, "Conflict resolved: %s", docId);
         List<C4ReplicatorStatus> pendingNotifications = null;
         synchronized (lock) {
             pendingResolutions.remove(task);
@@ -650,7 +651,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final List<DocumentReplicationListenerToken> tokens;
         synchronized (lock) { tokens = new ArrayList<>(docEndedListenerTokens); }
         for (DocumentReplicationListenerToken token : tokens) { token.notify(update); }
-        Log.i(DOMAIN, "C4ReplicatorListener.documentEnded() " + update.toString());
+        Log.i(DOMAIN, "notifyDocumentEnded: %s" + update);
     }
 
     //---------------------------------------------

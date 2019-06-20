@@ -90,6 +90,8 @@ public final class MutableDocument extends Document implements MutableDictionary
         }
     }
 
+    MutableDocument(String id, Document doc) { this(doc.getDatabase(), id, doc.getC4doc()); }
+
     private MutableDocument(Database database, String id, C4Document c4doc) {
         super(database, id != null ? id : createUUID(), c4doc);
     }
