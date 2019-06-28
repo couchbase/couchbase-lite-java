@@ -44,6 +44,9 @@ import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DatabaseChange;
 import com.couchbase.lite.internal.core.C4DatabaseObserver;
 import com.couchbase.lite.internal.core.C4Document;
+import com.couchbase.lite.internal.core.C4ReplicationFilter;
+import com.couchbase.lite.internal.core.C4Replicator;
+import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.core.SharedKeys;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -209,22 +212,25 @@ abstract class AbstractDatabase {
     // Member variables
     //---------------------------------------------
 
-    final Object lock = new Object();     // Main database lock object for thread-safety
+    protected C4Database c4db;
+
     final DatabaseConfiguration config;
 
-    private final SharedKeys sharedKeys;
-    private final boolean shellMode;
+
+    private final Object lock = new Object();     // Main database lock object for thread-safety
+
+    // guarded by 'lock'
+    private final Set<Replicator> activeReplications;
 
     // Executor for purge and posting Database/Document changes.
     private final ExecutionService.CloseableExecutor postExecutor;
     // Executor for LiveQuery.
     private final ExecutionService.CloseableExecutor queryExecutor;
 
-    private final Set<Replicator> activeReplications;
-
     private final Set<LiveQuery> activeLiveQueries;
 
-    protected C4Database c4db;
+    private final SharedKeys sharedKeys;
+    private final boolean shellMode;
 
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
@@ -280,8 +286,10 @@ abstract class AbstractDatabase {
         this.shellMode = false;
         this.postExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
         this.queryExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
-        this.activeReplications = Collections.synchronizedSet(new HashSet<>());
         this.activeLiveQueries = Collections.synchronizedSet(new HashSet<>());
+
+        // synchronized on 'lock'
+        this.activeReplications = new HashSet<>();
 
         // Set the temp directory based on Database Configuration:
         config.setTempDir();
@@ -690,7 +698,7 @@ abstract class AbstractDatabase {
 
             Log.i(DOMAIN, "Closing %s at path %s", this, getC4Database().getPath());
 
-            if (activeReplications.size() > 0) {
+            if (hasActiveReplicators()) {
                 throw new CouchbaseLiteException(
                     "Cannot close the database.  Please stop all replicators before closing.",
                     CBLError.Domain.CBLITE,
@@ -731,7 +739,7 @@ abstract class AbstractDatabase {
 
             Log.i(DOMAIN, "Deleting %s at path %s", this, getC4Database().getPath());
 
-            if (activeReplications.size() > 0) {
+            if (hasActiveReplicators()) {
                 throw new CouchbaseLiteException(
                     "Cannot delete the database.  Please stop all replicators before deleting.",
                     CBLError.Domain.CBLITE,
@@ -883,11 +891,60 @@ abstract class AbstractDatabase {
 
     //////// DOCUMENTS:
 
-    Set<Replicator> getActiveReplications() { return activeReplications; }
-
     void addActiveLiveQuery(@NonNull LiveQuery query) { activeLiveQueries.add(query); }
 
     void removeActiveLiveQuery(@NonNull LiveQuery query) { activeLiveQueries.remove(query); }
+
+    //////// REPLICATORS:
+
+    C4Replicator createReplicator(
+        Replicator replicator,
+        String schema,
+        String host,
+        int port,
+        String path,
+        String remoteDatabaseName,
+        C4Database otherLocalDB,
+        int push,
+        int pull,
+        byte[] options,
+        C4ReplicatorListener listener,
+        C4ReplicationFilter pushFilter,
+        C4ReplicationFilter pullFilter,
+        Object replicatorContext,
+        Object socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+        final C4Replicator c4Repl;
+        synchronized (lock) {
+            c4Repl = getC4Database().createReplicator(
+                schema,
+                host,
+                port,
+                path,
+                remoteDatabaseName,
+                otherLocalDB,
+                push,
+                pull,
+                options,
+                listener,
+                pushFilter,
+                pullFilter,
+                replicatorContext,
+                socketFactoryContext,
+                framing);
+            activeReplications.add(replicator); // keeps me from being deallocated
+        }
+        return c4Repl;
+    }
+
+    void removeActiveReplicator(Replicator replicator) {
+        synchronized (lock) { activeReplications.remove(replicator); }
+    }
+
+    boolean hasActiveReplicators() {
+        synchronized (lock) { return activeReplications.size() > 0; }
+    }
 
     //////// RESOLVING REPLICATED CONFLICTS:
 

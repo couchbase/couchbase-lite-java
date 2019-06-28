@@ -189,6 +189,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: %s, status: %s", context, status);
 
+            if (context == null) {
+                Log.w(DOMAIN, "C4ReplicatorListener.statusChanged, context is null!");
+                return;
+            }
+
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
 
@@ -199,6 +204,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         @Override
         public void documentEnded(C4Replicator repl, boolean pushing, C4DocumentEnded[] documents, Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: %s, pushing: %s", context, pushing);
+
+            if (context == null) {
+                Log.w(DOMAIN, "C4ReplicatorListener.documentEnded, context is null!");
+                return;
+            }
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
@@ -520,12 +530,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     @Override
     void networkReachable() {
+        Log.i(DOMAIN, "%s: Server may now be reachable; retrying...", this);
         synchronized (lock) {
-            if (c4repl == null) {
-                Log.i(DOMAIN, "%s: Server may now be reachable; retrying...", this);
-                resetRetryCount();
-                scheduleRetry(0);
-            }
+            if (c4repl != null) { return; }
+            resetRetryCount();
+            scheduleRetry(0);
         }
     }
 
@@ -538,6 +547,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final ReplicatorChange change;
         final List<ReplicatorChangeListenerToken> tokens;
 
+        Log.i(
+            DOMAIN,
+            "%s: status changed: %s (%d, %d) @%s",
+            c4Status, pendingResolutions.size(), pendingStatusNotifications.size(), this);
+
         synchronized (lock) {
             if (!pendingResolutions.isEmpty()
                 && (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
@@ -546,12 +560,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
             if (!pendingStatusNotifications.isEmpty()) { return; }
 
-            if (responseHeaders == null && c4repl != null) {
+            if ((responseHeaders == null) && (c4repl != null)) {
                 final byte[] h = c4repl.getResponseHeaders();
                 if (h != null) { responseHeaders = FLValue.fromData(h).asDict(); }
             }
 
-            Log.i(DOMAIN, "%s: status changed: " + c4Status, this);
             if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
                 resetRetryCount();
                 if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
@@ -577,7 +590,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
                 cancelScheduledRetry();
                 clearRepl();
-                config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
+                config.getDatabase().removeActiveReplicator((Replicator) this); // this is likely to dealloc me
             }
         }
 
@@ -659,9 +672,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Private methods
     //---------------------------------------------
 
+    // must be called holding lock
     private void internalStart() {
         // Source
-        final C4Database db = config.getDatabase().getC4Database();
+        final Database sourceDB = config.getDatabase();
 
         // Target:
         String schema;
@@ -670,7 +684,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final String path;
 
         final String dbName;
-        final C4Database otherDB;
+        final C4Database targetDb;
 
         final URI remoteUri = config.getTargetURI();
         // replicate against remote endpoint
@@ -681,7 +695,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             port = remoteUri.getPort() <= 0 ? 0 : remoteUri.getPort();
             path = StringUtils.stringByDeletingLastPathComponent(remoteUri.getPath());
             dbName = StringUtils.lastPathComponent(remoteUri.getPath());
-            otherDB = null;
+            targetDb = null;
         }
         // replicate against other database
         else {
@@ -691,8 +705,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             path = null;
             dbName = null;
 
-            final Database targetDb = config.getTargetDatabase();
-            otherDB = (targetDb == null) ? null : targetDb.getC4Database();
+            final Database otherDb = config.getTargetDatabase();
+            targetDb = (otherDb == null) ? null : otherDb.getC4Database();
         }
 
         // Encode the options:
@@ -750,19 +764,24 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         // Create a C4Replicator:
         C4ReplicatorStatus status;
         try {
-            synchronized (config.getDatabase().getLock()) {
-                c4repl = db.createReplicator(schema, host, port, path, dbName, otherDB,
-                    mkmode(push, continuous), mkmode(pull, continuous),
-                    optionsFleece,
-                    c4ReplListener,
-                    c4ReplPushFilter,
-                    c4ReplPullFilter,
-                    this,
-                    this,
-                    framing);
-            }
+            c4repl = sourceDB.createReplicator(
+                (Replicator) this,
+                schema,
+                host,
+                port,
+                path,
+                dbName,
+                targetDb,
+                mkmode(push, continuous),
+                mkmode(pull, continuous),
+                optionsFleece,
+                c4ReplListener,
+                c4ReplPushFilter,
+                c4ReplPullFilter,
+                this,
+                this,
+                framing);
             status = c4repl.getStatus();
-            config.getDatabase().getActiveReplications().add((Replicator) this); // keeps me from being deallocated
         }
         catch (LiteCoreException e) {
             status = new C4ReplicatorStatus(
@@ -799,10 +818,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private void retry() {
         synchronized (lock) {
-            if ((c4repl != null)
-                || (this.c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
+            if ((c4repl != null) || (c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
                 return;
             }
+
             Log.i(DOMAIN, "%s: Retrying...", this);
             internalStart();
         }
@@ -834,12 +853,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // in network (i.e. network down, hostname unknown)
     private boolean actuallyMeansOffline(C4Error c4err) {
         final boolean isContinuous = config.isContinuous();
-        if (isTransient(c4err) || (isContinuous && C4Replicator.mayBeNetworkDependent(c4err))) {
-            // transient: too many retries?
-            return isContinuous || retryCount < MAX_ONE_SHOT_RETRY_COUNT;
+        if (!(isTransient(c4err) || (isContinuous && C4Replicator.mayBeNetworkDependent(c4err)))) {
+            return false;
         }
         // this is permanent
-        return false;
+        return isContinuous || (retryCount < MAX_ONE_SHOT_RETRY_COUNT);
     }
 
     // If actuallyMeansOffline == true, go offline and retry later.
@@ -862,8 +880,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private boolean isTransient(C4Error c4err) {
         return C4Replicator.mayBeTransient(c4err) ||
-            ((c4err.getDomain() == C4Constants.ErrorDomain.WEB_SOCKET) &&
-                (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
+            ((c4err.getDomain() == C4Constants.ErrorDomain.WEB_SOCKET)
+                && (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
     }
 
     private void updateStateProperties(C4ReplicatorStatus c4Status) {
