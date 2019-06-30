@@ -128,11 +128,11 @@ abstract class AbstractQuery implements Query {
     @NonNull
     @Override
     public ResultSet execute() throws CouchbaseLiteException {
+        AllocSlice params = null;
         try {
             final C4QueryOptions options = new C4QueryOptions();
             if (parameters == null) { parameters = new Parameters(); }
-
-            final AllocSlice params = parameters.encode();
+            params = parameters.encode();
             final C4QueryEnumerator c4enum;
             synchronized (getDatabase().getLock()) {
                 check();
@@ -142,6 +142,9 @@ abstract class AbstractQuery implements Query {
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
+        }
+        finally {
+            if (params != null) { params.free(); }
         }
     }
 

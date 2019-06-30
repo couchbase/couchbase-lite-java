@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.couchbase.lite.internal.fleece.AllocSlice;
-import com.couchbase.lite.internal.fleece.Encoder;
+import com.couchbase.lite.internal.fleece.FLEncoder;
 
 
 /**
@@ -233,8 +233,11 @@ public final class Parameters {
     }
 
     AllocSlice encode() throws LiteCoreException {
-        final Encoder encoder = new Encoder();
-        encoder.write(map);
-        return encoder.finish();
+        final FLEncoder encoder = new FLEncoder();
+        try {
+            encoder.write(map);
+            return encoder.finish2();
+        }
+        finally { encoder.free(); }
     }
 }

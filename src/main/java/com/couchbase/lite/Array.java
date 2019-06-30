@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import com.couchbase.lite.internal.fleece.Encoder;
 import com.couchbase.lite.internal.fleece.FLEncodable;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.MArray;
@@ -326,9 +325,7 @@ public class Array implements ArrayInterface, FLEncodable, Iterable<Object> {
      */
     @Override
     public void encodeTo(FLEncoder enc) {
-        final Encoder encoder = new Encoder(enc);
-        internalArray.encodeTo(encoder);
-        encoder.release();
+        internalArray.encodeTo(enc);
     }
 
     @NonNull

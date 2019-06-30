@@ -24,24 +24,43 @@ import com.couchbase.lite.LiteCoreException;
 
 
 public class FLEncoder {
-    private final boolean managed;
-    long handle;
+    //-------------------------------------------------------------------------
+    // Member variables
+    //-------------------------------------------------------------------------
 
-    public FLEncoder() { this(init()); }
+    private long handle;
 
-    public FLEncoder(long handle) { this(handle, false); }
-
-    public FLEncoder(long handle, boolean managed) {
-        this.managed = managed;
-        this.handle = handle;
-    }
+    private boolean isMemoryManaged;
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
+    public FLEncoder() {
+        this(init());
+    }
+
+    public FLEncoder(long handle) {
+        this.handle = handle;
+    }
+
+    /*
+     * Allow the FLEncoder in managed mode. In the managed mode, the IllegalStateException will be
+     * thrown when the free() method is called and the finalize() will not throw the
+     * IllegalStateException as the free() method is not called. Use this method when the
+     * FLEncoder will be freed by the native code.
+     */
+    public FLEncoder managed() {
+        isMemoryManaged = true;
+        return this;
+    }
+
     public void free() {
-        if (handle != 0 && !managed) {
+        if (isMemoryManaged) {
+            throw new IllegalStateException("FLEncoder was marked as native memory managed.");
+        }
+
+        if (handle != 0) {
             free(handle);
             handle = 0L;
         }
@@ -61,8 +80,7 @@ public class FLEncoder {
 
     public boolean writeKey(String slice) { return writeKey(handle, slice); }
 
-    // C/Fleece+CoreFoundation.mm
-    // bool FLEncoder_WriteNSObject(FLEncoder encoder, id obj)
+    @SuppressWarnings("unchecked") /* Allow Unchecked Cast */
     public boolean writeValue(Object value) {
         // null
         if (value == null) { return writeNull(handle); }
@@ -76,16 +94,16 @@ public class FLEncoder {
             if (value instanceof Integer) { return writeInt(handle, ((Integer) value).longValue()); }
 
             // Long
-            else if (value instanceof Long) { return writeInt(handle, ((Long) value).longValue()); }
+            else if (value instanceof Long) { return writeInt(handle, (Long) value); }
 
             // Short
             else if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
 
             // Double
-            else if (value instanceof Double) { return writeDouble(handle, ((Double) value).doubleValue()); }
+            else if (value instanceof Double) { return writeDouble(handle,  (Double) value); }
 
             // Float
-            else { return writeFloat(handle, ((Float) value).floatValue()); }
+            else { return writeFloat(handle, (Float) value); }
         }
 
         // String
@@ -98,25 +116,58 @@ public class FLEncoder {
         else if (value instanceof List) { return write((List) value); }
 
         // Map
-        else if (value instanceof Map) { return write((Map) value); }
+        else if (value instanceof Map) { return write((Map<String, Object>) value); }
+
+        // FLValue
+        else if (value instanceof FLValue) {
+            return writeValue(handle, ((FLValue) value).getHandle());
+        }
+
+        // FLDict
+        else if (value instanceof FLDict) {
+            return writeValue(handle, ((FLDict) value).getHandle());
+        }
+
+        // FLArray
+        else if (value instanceof FLArray) {
+            return writeValue(handle, ((FLArray) value).getHandle());
+        }
+
+        // FLEncodable
+        else if (value instanceof FLEncodable) {
+            ((FLEncodable) value).encodeTo(this);
+            return true;
+        }
 
         return false;
     }
 
-    @SuppressWarnings("unchecked")
-    public boolean write(Map map) {
-        beginDict(map.size());
-        final Map<String, Object> m = (Map<String, Object>) map;
-        for (Map.Entry<String, Object> entry : m.entrySet()) {
-            writeKey(entry.getKey());
-            writeValue(entry.getValue());
+    public boolean writeNull() {
+        return writeNull(handle);
+    }
+
+    public boolean write(Map<String, Object> map) {
+        if (map == null) {
+            beginDict(0);
+        }
+        else {
+            beginDict(map.size());
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                writeKey(entry.getKey());
+                writeValue(entry.getValue());
+            }
         }
         return endDict();
     }
 
     public boolean write(List list) {
-        beginArray(list.size());
-        for (Object item : list) { writeValue(item); }
+        if (list == null) {
+            beginArray(0);
+        }
+        else {
+            beginArray(list.size());
+            for (Object item : list) { writeValue(item); }
+        }
         return endArray();
     }
 
@@ -133,10 +184,13 @@ public class FLEncoder {
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        if (handle != 0L && !isMemoryManaged) {
+            throw new IllegalStateException("FLEncoder was finalized before freeing.");
+        }
         super.finalize();
     }
 
@@ -161,6 +215,8 @@ public class FLEncoder {
     static native boolean writeString(long encoder, String value);
 
     static native boolean writeData(long encoder, byte[] value);
+
+    static native boolean writeValue(long encoder, long value /*FLValue*/);
 
     static native boolean beginArray(long encoder, long reserve);
 

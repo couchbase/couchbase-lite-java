@@ -66,7 +66,7 @@ JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4Prediction_regist
             .prediction = &prediction,
             .unregistered = &unregistered };
 
-    c4pred_registerModel(name.cStr(), predModel);
+    c4pred_registerModel(name.c_str(), predModel);
 #endif
 }
 
@@ -79,6 +79,6 @@ JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4Prediction_unregi
         (JNIEnv *env, jclass clazz, jstring jname) {
 #ifdef COUCHBASE_ENTERPRISE
     jstringSlice name(env, jname);
-    c4pred_unregisterModel(name.cStr());
+    c4pred_unregisterModel(name.c_str());
 #endif
 }

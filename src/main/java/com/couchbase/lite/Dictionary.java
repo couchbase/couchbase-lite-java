@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.couchbase.lite.internal.fleece.Encoder;
 import com.couchbase.lite.internal.fleece.FLEncodable;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.MCollection;
@@ -322,9 +321,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public void encodeTo(FLEncoder enc) {
-        final Encoder encoder = new Encoder(enc);
-        internalDict.encodeTo(encoder);
-        encoder.release();
+        internalDict.encodeTo(enc);
     }
 
     //---------------------------------------------

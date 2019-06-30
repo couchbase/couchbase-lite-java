@@ -19,6 +19,7 @@ package com.couchbase.lite.internal.core;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.AllocSlice;
+import com.couchbase.lite.internal.fleece.FLSliceResult;
 
 
 public class C4Query {
@@ -66,7 +67,7 @@ public class C4Query {
      * @return C4QueryEnumerator*
      * @throws LiteCoreException
      */
-    static native long run(long handle, boolean rankFullText, /*AllocSlice*/ long parameters)
+    static native long run(long handle, boolean rankFullText, /*FLSliceResult*/ long parameters)
         throws LiteCoreException;
 
     /**
@@ -133,8 +134,15 @@ public class C4Query {
 
     public C4QueryEnumerator run(C4QueryOptions options, AllocSlice parameters)
         throws LiteCoreException {
-        if (parameters == null) { parameters = new AllocSlice(null); }
-        return new C4QueryEnumerator(run(handle, options.isRankFullText(), parameters.getHandle()));
+        AllocSlice params = null;
+        try {
+            params = parameters;
+            if (params == null) {
+                params = new FLSliceResult();
+            }
+            return new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
+        }
+        finally { if (params != parameters) { params.free(); } }
     }
 
     public byte[] getFullTextMatched(C4FullTextMatch match) throws LiteCoreException {
@@ -144,6 +152,7 @@ public class C4Query {
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {

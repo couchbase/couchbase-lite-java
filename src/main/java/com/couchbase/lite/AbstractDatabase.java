@@ -1258,35 +1258,40 @@ abstract class AbstractDatabase {
 
         if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
 
-        byte[] mergedBody = null;
+        FLSliceResult mergedBody = null;
         int mergedFlags = 0x00;
-
         try {
             // Unless the remote revision is being used as-is, we need a new revision:
             if (resolvedDoc != remoteDoc) {
                 if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) {
-                    mergedBody = resolvedDoc.encode().getBuf();
+                    mergedBody = resolvedDoc.encode();
                 }
                 else {
                     mergedFlags = C4Constants.RevisionFlags.DELETED;
-
-                    // Won't work without an empty dictionary here.  Sheesh.
                     final FLEncoder enc = getC4Database().getSharedFleeceEncoder();
-                    enc.writeValue(new HashMap<>());
-                    mergedBody = enc.finish();
+                    try {
+                        enc.writeValue(new HashMap<>()); // Need an empty dictionary body
+                        mergedBody = enc.finish2();
+                    } finally { enc.reset(); }
                 }
             }
+
+            // Merged body:
+            final byte[] mergedBodyBytes = mergedBody != null ? mergedBody.getBuf() : null;
 
             // Ask LiteCore to do the resolution:
             final C4Document rawDoc = localDoc.getC4doc();
             // The remote branch has to win so that the doc revision history matches the server's.
-            rawDoc.resolveConflict(remoteDoc.getRevID(), localDoc.getRevID(), mergedBody, mergedFlags);
+            rawDoc.resolveConflict(remoteDoc.getRevID(), localDoc.getRevID(), mergedBodyBytes, mergedFlags);
             rawDoc.save(0);
 
             Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
+        }
+        finally {
+            if (mergedBody != null) { mergedBody.free(); }
         }
     }
 

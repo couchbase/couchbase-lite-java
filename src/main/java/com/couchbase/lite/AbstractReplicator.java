@@ -710,10 +710,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         byte[] optionsFleece = null;
         if (options.size() > 0) {
             final FLEncoder enc = new FLEncoder();
-
-            enc.write(options);
-
-            try { optionsFleece = enc.finish(); }
+            try {
+                enc.write(options);
+                optionsFleece = enc.finish();
+            }
             catch (LiteCoreException e) { Log.e(DOMAIN, "Failed to encode", e); }
             finally { enc.free(); }
         }
@@ -810,14 +810,14 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private void scheduleRetry(int delaySec) {
         cancelScheduledRetry();
-        ExecutionService exec = CouchbaseLite.getExecutionService();
+        final ExecutionService exec = CouchbaseLite.getExecutionService();
         retryTask = exec.postDelayedOnExecutor(delaySec * 1000, dispatcher, this::retry);
     }
 
     private void cancelScheduledRetry() {
         if (retryTask != null) {
             Log.v(DOMAIN, "%s Cancel the pending scheduled retry", this);
-            ExecutionService exec = CouchbaseLite.getExecutionService();
+            final ExecutionService exec = CouchbaseLite.getExecutionService();
             exec.cancelDelayedTask(retryTask);
             retryTask = null;
         }
