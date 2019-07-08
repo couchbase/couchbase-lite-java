@@ -306,6 +306,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private ReplicatorProgressLevel progressLevel = ReplicatorProgressLevel.OVERALL;
     private CouchbaseLiteException lastError;
     private int retryCount;
+    private Runnable retryTask;
     private String desc;
 
     private AbstractNetworkReachabilityManager reachabilityManager;
@@ -341,7 +342,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
 
             Log.i(DOMAIN, "%s: Starting", this);
-            retryCount = 0;
+            resetRetryCount();
             internalStart();
         }
     }
@@ -522,8 +523,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         synchronized (lock) {
             if (c4repl == null) {
                 Log.i(DOMAIN, "%s: Server may now be reachable; retrying...", this);
-                retryCount = 0;
-                retry();
+                resetRetryCount();
+                scheduleRetry(0);
             }
         }
     }
@@ -552,7 +553,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             Log.i(DOMAIN, "%s: status changed: " + c4Status, this);
             if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
-                retryCount = 0;
+                resetRetryCount();
                 if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
             }
             else if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
@@ -574,7 +575,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             // If Stopped:
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                this.clearRepl();
+                cancelScheduledRetry();
+                clearRepl();
                 config.getDatabase().getActiveReplications().remove(this); // this is likely to dealloc me
             }
         }
@@ -644,7 +646,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
         }
     }
-
 
     void notifyDocumentEnded(boolean pushing, List<ReplicatedDocument> docs) {
         final DocumentReplication update = new DocumentReplication((Replicator) this, pushing, docs);
@@ -807,6 +808,28 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         }
     }
 
+    private void scheduleRetry(int delaySec) {
+        cancelScheduledRetry();
+        ExecutionService exec = CouchbaseLite.getExecutionService();
+        retryTask = exec.postDelayedOnExecutor(delaySec * 1000, dispatcher, this::retry);
+    }
+
+    private void cancelScheduledRetry() {
+        if (retryTask != null) {
+            Log.v(DOMAIN, "%s Cancel the pending scheduled retry", this);
+            ExecutionService exec = CouchbaseLite.getExecutionService();
+            exec.cancelDelayedTask(retryTask);
+            retryTask = null;
+        }
+    }
+
+    private void resetRetryCount() {
+        if (retryCount > 0) {
+            retryCount = 0;
+            Log.v(DOMAIN, "%s Reset retry count to zero", this);
+        }
+    }
+
     // See if this is a transient error, or if I'm continuous and the error might go away with a change
     // in network (i.e. network down, hostname unknown)
     private boolean actuallyMeansOffline(C4Error c4err) {
@@ -830,7 +853,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             // On transient error, retry periodically, with exponential backoff:
             final int delaySec = retryDelay(++retryCount);
             Log.i(DOMAIN, "%s: Transient error (%s); will retry in %d sec...", this, c4err, delaySec);
-            CouchbaseLite.getExecutionService().postDelayedOnExecutor(delaySec * 1000, dispatcher, this::retry);
+            scheduleRetry(delaySec);
         }
 
         // Also retry when the network changes:
