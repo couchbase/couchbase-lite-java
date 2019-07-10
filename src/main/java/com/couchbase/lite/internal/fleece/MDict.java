@@ -61,7 +61,7 @@ public class MDict extends MCollection implements Iterable<String> {
     /* Encodable */
 
     @Override
-    public void encodeTo(Encoder enc) {
+    public void encodeTo(FLEncoder enc) {
         if (!isMutated()) {
             if (flDict != null) { enc.writeValue(flDict); }
             else {

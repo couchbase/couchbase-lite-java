@@ -90,7 +90,7 @@ Java_com_couchbase_lite_internal_core_C4Query_run(JNIEnv *env, jclass clazz,
             (bool) jrankFullText
     };
 
-    alloc_slice *params = (alloc_slice *) jparameters;
+    FLSliceResult *params = (FLSliceResult *) jparameters;
     C4Error error = {};
     C4QueryEnumerator *e = c4query_run((C4Query *) jquery, &options,
             (C4Slice){params->buf, params->size}, &error);
@@ -128,9 +128,7 @@ Java_com_couchbase_lite_internal_core_C4Query_createIndex(JNIEnv *env, jclass cl
     jstringSlice expressionsJSON(env, jexpressionsJSON);
     jstringSlice language(env, jlanguage);
     C4IndexOptions options = {};
-    slice sLang = language;
-    if(sLang.buf != NULL)
-        options.language = (const char *)sLang.buf;
+    options.language = language.c_str();
     options.ignoreDiacritics = (bool)ignoreDiacritics;
     C4Error error = {};
     bool res = c4db_createIndex((C4Database *) jdb, name, (C4Slice) expressionsJSON,

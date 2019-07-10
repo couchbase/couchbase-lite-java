@@ -132,8 +132,6 @@ namespace litecore {
             } else if (getEnvStat == JNI_EDETACHED) {
                 if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
                     env->DeleteGlobalRef(gRef);
-                    if (gJVM->DetachCurrentThread() != 0) {
-                    }
                 }
             }
         }
@@ -142,12 +140,14 @@ namespace litecore {
             assert(env != nullptr);
             if (js != nullptr) {
                 _str = JstringToUTF8(env, js);
-                _slice = slice(_str);
+                _slice = FLStr(_str.c_str());
+            } else {
+                _slice = kFLSliceNull;
             }
         }
 
-        const char *jstringSlice::cStr() {
-            return static_cast<const char *>(_slice.buf);
+        const char *jstringSlice::c_str() {
+            return (const char *)_slice.buf;
         };
 
         // ATTN: In critical, should not call any other JNI methods.
@@ -157,32 +157,33 @@ namespace litecore {
                   _jbytes(jbytes),
                   _critical(critical) {
             if (jbytes == nullptr) {
-                _slice = nullslice;
+                _slice = kFLSliceNull;
                 return;
             }
 
-            jboolean isCopy;
-            if (critical)
-                _slice.setBuf(env->GetPrimitiveArrayCritical(jbytes, &isCopy));
-            else
-                _slice.setBuf(env->GetByteArrayElements(jbytes, &isCopy));
-            _slice.setSize(env->GetArrayLength(jbytes));
+            void* data;
+            if (critical) {
+                data = env->GetPrimitiveArrayCritical(jbytes, NULL);
+            } else {
+                data = env->GetByteArrayElements(jbytes, NULL);
+            }
+            _slice = { data, (size_t) env->GetArrayLength(jbytes) };
         }
 
         jbyteArraySlice::~jbyteArraySlice() {
             if (_slice.buf) {
-                if (_critical)
+                if (_critical) {
                     _env->ReleasePrimitiveArrayCritical(_jbytes, (void *) _slice.buf, JNI_ABORT);
-                else
+                } else {
                     _env->ReleaseByteArrayElements(_jbytes, (jbyte *) _slice.buf, JNI_ABORT);
+                }
             }
         }
 
-        alloc_slice jbyteArraySlice::copy(JNIEnv *env, jbyteArray jbytes) {
-            jsize size = env->GetArrayLength(jbytes);
-            alloc_slice slice(size);
-            env->GetByteArrayRegion(jbytes, 0, size, (jbyte *) slice.buf);
-            return slice;
+        FLSliceResult jbyteArraySlice::copy(JNIEnv *env, jbyteArray jbytes) {
+            jbyteArraySlice bytes(env, jbytes, true);
+            return FLSlice_Copy(bytes);
+
         }
 
         void throwError(JNIEnv *env, C4Error error) {
@@ -230,7 +231,7 @@ namespace litecore {
             outKey->algorithm = (C4EncryptionAlgorithm) keyAlg;
             if (keyAlg != kC4EncryptionNone) {
                 jbyteArraySlice keyBytes(env, jKeyBytes);
-                fleece::slice keySlice = keyBytes;
+                FLSlice keySlice = keyBytes;
                 if (!keySlice.buf || keySlice.size > sizeof(outKey->bytes)) {
                     throwError(env, C4Error{LiteCoreDomain, kC4ErrorCrypto});
                     return false;

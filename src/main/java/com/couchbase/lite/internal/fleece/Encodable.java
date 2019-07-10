@@ -18,5 +18,5 @@
 package com.couchbase.lite.internal.fleece;
 
 public interface Encodable {
-    void encodeTo(Encoder enc);
+    void encodeTo(FLEncoder enc);
 }

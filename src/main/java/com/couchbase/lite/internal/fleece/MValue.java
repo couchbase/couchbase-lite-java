@@ -28,13 +28,17 @@ public class MValue implements Encodable {
 
         MCollection collectionFromNative(Object object);
 
-        void encodeNative(Encoder encoder, Object object);
+        void encodeNative(FLEncoder encoder, Object object);
     }
     private static Delegate delegate;
 
     public static void registerDelegate(Delegate delegate) {
         if (delegate == null) { throw new IllegalArgumentException("delegate cannot be null."); }
         MValue.delegate = delegate;
+    }
+
+    public static Delegate getRegisteredDelegate() {
+        return delegate;
     }
 
     private static void checkDelegate() {
@@ -102,7 +106,7 @@ public class MValue implements Encodable {
         return delegate.collectionFromNative(obj);
     }
 
-    private void encodeNative(Encoder encoder, Object object) {
+    private void encodeNative(FLEncoder encoder, Object object) {
         checkDelegate();
         delegate.encodeNative(encoder, object);
     }
@@ -120,7 +124,7 @@ public class MValue implements Encodable {
     }
 
     @Override
-    public void encodeTo(Encoder enc) {
+    public void encodeTo(FLEncoder enc) {
         if (empty) { throw new IllegalStateException("MValue is empty."); }
 
         if (value != null) { enc.writeValue(value); }

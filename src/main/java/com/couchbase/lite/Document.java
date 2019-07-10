@@ -454,6 +454,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
         finally {
             encoder.setExtraInfo(null);
+            encoder.reset();
         }
     }
 

@@ -17,10 +17,7 @@
 //
 package com.couchbase.lite;
 
-import java.nio.charset.StandardCharsets;
-
 import com.couchbase.lite.internal.core.C4Document;
-import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.MContext;
 
 
@@ -33,7 +30,7 @@ class DocContext extends MContext {
     private final C4Document doc;
 
     DocContext(Database db, C4Document doc) {
-        super(new AllocSlice("{}".getBytes(StandardCharsets.UTF_8)));
+        super(null);
         this.db = db;
         this.doc = doc;
         if (this.doc != null) { this.doc.retain(); }

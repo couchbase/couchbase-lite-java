@@ -234,7 +234,7 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_free(JNIEnv *env, jclass 
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_fromData(JNIEnv *env, jclass clazz, jlong jflslice) {
-    alloc_slice *s = (alloc_slice *) jflslice;
+    FLSliceResult *s = (FLSliceResult *) jflslice;
     return (jlong) FLValue_FromData({s->buf, s->size}, kFLUntrusted);
 }
 
@@ -246,8 +246,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_fromData(JNIEnv *env, jclass cla
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_fromTrustedData(JNIEnv *env, jclass clazz, jbyteArray jdata) {
     jbyteArraySlice data(env, jdata, true);
-    slice s = data;
-    return (jlong) FLValue_FromData({s.buf, s.size}, kFLTrusted);
+    return (jlong) FLValue_FromData(data, kFLTrusted);
 }
 
 /*
@@ -445,11 +444,26 @@ Java_com_couchbase_lite_internal_fleece_FLValue_toJSON5(JNIEnv *env, jclass claz
  * Method:    init
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_fleece_FLSliceResult_init
-        (JNIEnv *env, jclass clazz) {
+JNIEXPORT jlong JNICALL
+Java_com_couchbase_lite_internal_fleece_FLSliceResult_init(JNIEnv *env, jclass clazz) {
     C4SliceResult *sliceResult = (C4SliceResult *) ::malloc(sizeof(C4SliceResult));
     sliceResult->buf = NULL;
     sliceResult->size = 0;
+    return (jlong) sliceResult;
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_fleece_FLSliceResult
+ * Method:    initWithBytes
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_couchbase_lite_internal_fleece_FLSliceResult_initWithBytes(JNIEnv *env, jclass clazz, jbyteArray jvalue) {
+    jbyteArraySlice bytes(env, jvalue, true);
+    FLSlice slice = bytes;
+    FLSliceResult *sliceResult = (FLSliceResult *) ::malloc(sizeof(FLSliceResult));
+    sliceResult->buf = slice.buf;
+    sliceResult->size = slice.size;
     return (jlong) sliceResult;
 }
 
