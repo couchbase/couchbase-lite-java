@@ -132,8 +132,6 @@ namespace litecore {
             } else if (getEnvStat == JNI_EDETACHED) {
                 if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
                     env->DeleteGlobalRef(gRef);
-                    if (gJVM->DetachCurrentThread() != 0) {
-                    }
                 }
             }
         }
@@ -163,21 +161,22 @@ namespace litecore {
                 return;
             }
 
-            jboolean isCopy;
             void* data;
-            if (critical)
-                data = env->GetPrimitiveArrayCritical(jbytes, &isCopy);
-            else
-                data = env->GetByteArrayElements(jbytes, &isCopy);
+            if (critical) {
+                data = env->GetPrimitiveArrayCritical(jbytes, NULL);
+            } else {
+                data = env->GetByteArrayElements(jbytes, NULL);
+            }
             _slice = { data, (size_t) env->GetArrayLength(jbytes) };
         }
 
         jbyteArraySlice::~jbyteArraySlice() {
             if (_slice.buf) {
-                if (_critical)
+                if (_critical) {
                     _env->ReleasePrimitiveArrayCritical(_jbytes, (void *) _slice.buf, JNI_ABORT);
-                else
+                } else {
                     _env->ReleaseByteArrayElements(_jbytes, (jbyte *) _slice.buf, JNI_ABORT);
+                }
             }
         }
 

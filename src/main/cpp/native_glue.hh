@@ -75,7 +75,7 @@ namespace litecore {
 
             operator FLSlice() { return _slice; }
 
-            // Copies a Java byte[] to an alloc_slice
+            // Copies a Java byte[] to FLSliceResult
             static FLSliceResult copy(JNIEnv *env, jbyteArray jbytes);
 
         private:
