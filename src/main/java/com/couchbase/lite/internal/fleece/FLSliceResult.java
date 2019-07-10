@@ -17,7 +17,11 @@
 //
 package com.couchbase.lite.internal.fleece;
 
-
+/*
+ * Represent a block of memory returned from the API call. The caller takes ownership, and must
+ * call free() method to release the memory except the managed() method is called to indicate
+ * that the memory will be managed and released by the native code.
+ */
 public class FLSliceResult implements AllocSlice {
     //-------------------------------------------------------------------------
     // Member variables

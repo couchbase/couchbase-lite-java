@@ -17,6 +17,10 @@
 //
 package com.couchbase.lite.internal.fleece;
 
+/*
+ * Represent a block of memory returned from the API call. The caller takes ownership, and must
+ * call free() method to release the memory.
+ */
 public interface AllocSlice {
     long getHandle();
 
