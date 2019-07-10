@@ -55,20 +55,20 @@ public class MRoot extends MCollection {
     }
 
     public AllocSlice encode() throws LiteCoreException {
-        final Encoder encoder = new Encoder(new FLEncoder());
+        final FLEncoder encoder = new FLEncoder();
         try {
             slot.encodeTo(encoder);
-            return encoder.finish();
+            return encoder.finish2();
         }
         finally {
-            encoder.release();
+            encoder.free();
         }
     }
 
     /* Encodable */
 
     @Override
-    public void encodeTo(Encoder enc) {
+    public void encodeTo(FLEncoder enc) {
         slot.encodeTo(enc);
     }
 }

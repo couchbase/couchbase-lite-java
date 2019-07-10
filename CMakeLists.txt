@@ -65,8 +65,6 @@ set(JNI_CLASSES
     com.couchbase.lite.internal.core.C4RawDocument
     com.couchbase.lite.internal.core.C4Replicator
     com.couchbase.lite.internal.core.C4Socket
-    com.couchbase.lite.internal.fleece.AllocSlice
-    com.couchbase.lite.internal.fleece.Encoder
     com.couchbase.lite.internal.fleece.FLArray
     com.couchbase.lite.internal.fleece.FLArrayIterator
     com.couchbase.lite.internal.fleece.FLDict

@@ -20,11 +20,11 @@
 #define native_glue_hpp
 
 #include <jni.h>
+#include <string>
 #include <vector>
 #include <c4.h>
 #include "RefCounted.hh"
 #include "fleece/Fleece.h"
-#include "fleece/slice.hh"
 
 namespace litecore {
     namespace jni {
@@ -49,20 +49,16 @@ namespace litecore {
         public:
             jstringSlice(JNIEnv *env, jstring js);
 
-            jstringSlice(jstringSlice &&s) // move constructor
-                    : _str(std::move(s._str)), _slice(s._slice) {}
+            jstringSlice(jstringSlice &&s)
+                : _str(std::move(s._str)), _slice(s._slice) { s._slice = kFLSliceNull; }
 
-            operator slice() { return _slice; }
+            operator FLSlice() { return _slice; }
 
-            operator C4Slice() { return {_slice.buf, _slice.size}; }
-
-            const char* cStr();
-
+            const char* c_str();
         private:
             std::string _str;
-            slice _slice;
+            FLSlice _slice;
         };
-
 
         // Creates a temporary slice value from a Java byte[], attempting to avoid copying
         class jbyteArraySlice {
@@ -75,17 +71,15 @@ namespace litecore {
 
             jbyteArraySlice(jbyteArraySlice &&s) // move constructor
                     : _slice(s._slice), _env(s._env), _jbytes(s._jbytes),
-                      _critical(s._critical) { s._slice = nullslice; }
+                      _critical(s._critical) { s._slice = kFLSliceNull; }
 
-            operator slice() { return _slice; }
+            operator FLSlice() { return _slice; }
 
-            operator C4Slice() { return {_slice.buf, _slice.size}; }
-
-            // Copies a Java byte[] to an alloc_slice
-            static alloc_slice copy(JNIEnv *env, jbyteArray jbytes);
+            // Copies a Java byte[] to FLSliceResult
+            static FLSliceResult copy(JNIEnv *env, jbyteArray jbytes);
 
         private:
-            slice _slice;
+            FLSlice _slice;
             JNIEnv *_env;
             jbyteArray _jbytes;
             bool _critical;

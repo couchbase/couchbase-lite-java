@@ -17,56 +17,36 @@
 //
 package com.couchbase.lite.internal.fleece;
 
-
-public class FLSliceResult {
-
+/*
+ * Represent a block of memory returned from the API call. The caller takes ownership, and must
+ * call free() method to release the memory except the managed() method is called to indicate
+ * that the memory will be managed and released by the native code.
+ */
+public class FLSliceResult implements AllocSlice {
     //-------------------------------------------------------------------------
     // Member variables
     //-------------------------------------------------------------------------
 
-    static native long init();
-
-    static native void free(long slice);
-
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-
-    static native byte[] getBuf(long slice);
-
-    static native long getSize(long slice);
     private long handle; // hold pointer to FLSliceResult
-    private boolean shouldRetain;
+
+    private boolean isMemoryManaged = false;
+
+    //-------------------------------------------------------------------------
+    // Public methods
+    //-------------------------------------------------------------------------
 
     public FLSliceResult() {
         this.handle = init();
+    }
+
+    public FLSliceResult(byte[] bytes) {
+        this.handle = initWithBytes(bytes);
     }
 
     public FLSliceResult(long handle) {
         if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
         this.handle = handle;
     }
-
-    public void free() {
-        if (!shouldRetain && handle != 0L) {
-            free(handle);
-            handle = 0L;
-        }
-    }
-
-    //-------------------------------------------------------------------------
-    // protected methods
-    //-------------------------------------------------------------------------
-
-    // Use when the native data needs to be retained and will be freed later in the native code
-    public FLSliceResult retain() {
-        shouldRetain = true;
-        return this;
-    }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
 
     public long getHandle() {
         return handle;
@@ -80,10 +60,48 @@ public class FLSliceResult {
         return getSize(handle);
     }
 
+    /*
+     * Allow the FLSliceResult in managed mode. In the managed mode, the IllegalStateException will be
+     * thrown when the free() method is called and the finalize() will not throw the
+     * IllegalStateException as the free() method is not called. Use this method when the
+     * FLSliceResult will be freed by the native code.
+     */
+    public FLSliceResult managed() {
+        isMemoryManaged = true;
+        return this;
+    }
+
+    public void free() {
+        if (isMemoryManaged) {
+            throw new IllegalStateException("FLSliceResult was marked as memory managed.");
+        }
+
+        if (handle != 0L) {
+            free(handle);
+            handle = 0L;
+        }
+    }
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        if (handle != 0L && !isMemoryManaged) {
+            throw new IllegalStateException("FLSliceResult was finalized before freeing.");
+        }
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // Native methods
+    //-------------------------------------------------------------------------
+
+    static native long init();
+
+    static native long initWithBytes(byte[] bytes);
+
+    static native void free(long slice);
+
+    static native byte[] getBuf(long slice);
+
+    static native long getSize(long slice);
 }

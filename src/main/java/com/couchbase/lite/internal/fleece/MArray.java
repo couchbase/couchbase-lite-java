@@ -158,7 +158,7 @@ public class MArray extends MCollection {
         }
     }
 
-    public void encodeTo(Encoder enc) {
+    public void encodeTo(FLEncoder enc) {
         if (!isMutated()) {
             if (baseArray == null) {
                 enc.beginArray(0);

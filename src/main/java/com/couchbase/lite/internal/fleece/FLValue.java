@@ -28,8 +28,10 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // public static methods
     //-------------------------------------------------------------------------
+
     public static FLValue fromData(AllocSlice slice) {
-        final long value = fromData(slice.handle);
+        if (slice == null) { return null; }
+        final long value = fromData(slice.getHandle());
         return value != 0 ? new FLValue(value) : null;
     }
 
@@ -42,6 +44,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
     private long handle; // pointer to FLValue
 
     //-------------------------------------------------------------------------

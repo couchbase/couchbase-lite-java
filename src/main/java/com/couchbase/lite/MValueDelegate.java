@@ -19,9 +19,9 @@ package com.couchbase.lite;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.couchbase.lite.internal.fleece.Encoder;
 import com.couchbase.lite.internal.fleece.FLConstants;
 import com.couchbase.lite.internal.fleece.FLDict;
+import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
@@ -55,9 +55,9 @@ final class MValueDelegate implements MValue.Delegate {
     }
 
     @Override
-    public void encodeNative(Encoder enc, Object object) {
+    public void encodeNative(FLEncoder enc, Object object) {
         if (object == null) { enc.writeNull(); }
-        else { enc.writeObject(object); }
+        else { enc.writeValue(object); }
     }
 
     private Object mValueToArray(MValue mv, MCollection parent) {

@@ -21,7 +21,6 @@
 #include <c4Base.h>
 #include "com_couchbase_lite_internal_core_C4Document.h"
 #include "native_glue.hh"
-#include "fleece/Fleece.hh"
 
 using namespace litecore;
 using namespace litecore::jni;
@@ -579,8 +578,9 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Document_update2
 JNIEXPORT jboolean JNICALL
 Java_com_couchbase_lite_internal_core_C4Document_dictContainsBlobs(JNIEnv *env, jclass clazz,
                                                           jlong jbody, jlong jsk) {
-    Doc doc(*(alloc_slice *) jbody, kFLTrusted, (FLSharedKeys) jsk);
-    return c4doc_dictContainsBlobs(doc);
+    FLDoc doc = FLDoc_FromResultData(*(FLSliceResult *) jbody, kFLTrusted, (FLSharedKeys) jsk, kFLSliceNull);
+    FLDict dict = (FLDict)FLDoc_GetRoot(doc);
+    return c4doc_dictContainsBlobs(dict);
 }
 
 /*

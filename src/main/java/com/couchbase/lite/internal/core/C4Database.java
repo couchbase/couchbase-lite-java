@@ -255,7 +255,7 @@ public class C4Database {
     }
 
     public FLEncoder getSharedFleeceEncoder() {
-        return new FLEncoder(getSharedFleeceEncoder(handle), true);
+        return new FLEncoder(getSharedFleeceEncoder(handle)).managed();
     }
 
     // NOTE: Should param be String instead of byte[]?

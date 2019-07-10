@@ -125,6 +125,17 @@ Java_com_couchbase_lite_internal_fleece_FLEncoder_writeData(JNIEnv *env, jclass 
 
 /*
  * Class:     com_couchbase_lite_internal_fleece_FLEncoder
+ * Method:    writeValue
+ * Signature: (JJ)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_couchbase_lite_internal_fleece_FLEncoder_writeValue(JNIEnv *env, jclass clazz, jlong jenc,
+                                                             jlong jvalue) {
+    return (jboolean) FLEncoder_WriteValue((FLEncoder) jenc, (FLValue) jvalue);
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_fleece_FLEncoder
  * Method:    beginArray
  * Signature: (JJ)Z
  */
