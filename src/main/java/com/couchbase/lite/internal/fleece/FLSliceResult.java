@@ -35,30 +35,20 @@ public class FLSliceResult implements AllocSlice {
     // Public methods
     //-------------------------------------------------------------------------
 
-    public FLSliceResult() {
-        this.handle = init();
-    }
+    public FLSliceResult() { this.handle = init(); }
 
-    public FLSliceResult(byte[] bytes) {
-        this.handle = initWithBytes(bytes);
-    }
+    public FLSliceResult(byte[] bytes) { this.handle = initWithBytes(bytes); }
 
     public FLSliceResult(long handle) {
         if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
         this.handle = handle;
     }
 
-    public long getHandle() {
-        return handle;
-    }
+    public long getHandle() { return handle; }
 
-    public byte[] getBuf() {
-        return getBuf(handle);
-    }
+    public byte[] getBuf() { return getBuf(handle); }
 
-    public long getSize() {
-        return getSize(handle);
-    }
+    public long getSize() { return getSize(handle); }
 
     /*
      * Allow the FLSliceResult in managed mode. In the managed mode, the IllegalStateException will be
@@ -72,9 +62,7 @@ public class FLSliceResult implements AllocSlice {
     }
 
     public void free() {
-        if (isMemoryManaged) {
-            throw new IllegalStateException("FLSliceResult was marked as memory managed.");
-        }
+        if (isMemoryManaged) { throw new IllegalStateException("FLSliceResult was marked as memory managed."); }
 
         if (handle != 0L) {
             free(handle);

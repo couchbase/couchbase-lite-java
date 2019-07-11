@@ -25,11 +25,6 @@ import com.couchbase.lite.internal.fleece.FLValue;
 
 
 public class C4Database {
-    static native long open(
-        String path, int flags,
-        String storageEngine, int versioning,
-        int algorithm, byte[] encryptionKey)
-        throws LiteCoreException;
 
     public static native void copy(
         String sourcePath, String destinationPath,
@@ -40,75 +35,12 @@ public class C4Database {
         byte[] encryptionKey)
         throws LiteCoreException;
 
-    static native void free(long db);
-
-    static native void close(long db) throws LiteCoreException;
-
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-
-    // - Lifecycle
-
-    static native void delete(long db) throws LiteCoreException;
-
-    public static native void deleteAtPath(String path) throws LiteCoreException;
-
-    static native void rekey(long db, int keyType, byte[] newKey) throws LiteCoreException;
-
-    static native String getPath(long db);
-
-    static native long getDocumentCount(long db);
-
-    // - Accessors
-
-    static native long getLastSequence(long db);
-
-    static native long nextDocExpiration(long db);
-
-    static native int purgeExpiredDocs(long db);
-
-    static native void purgeDoc(long db, String id) throws LiteCoreException;
-
-    static native int getMaxRevTreeDepth(long db);
-
-    static native void setMaxRevTreeDepth(long db, int maxRevTreeDepth);
-
-    static native byte[] getPublicUUID(long db) throws LiteCoreException;
-
-    static native byte[] getPrivateUUID(long db) throws LiteCoreException;
-
-    // - Compaction
-    static native void compact(long db) throws LiteCoreException;
-
-    // - Transactions
-    static native void beginTransaction(long db) throws LiteCoreException;
-
-    // - Compaction
-
-    static native void endTransaction(long db, boolean commit) throws LiteCoreException;
-
-    static native void rawFree(long rawDoc) throws LiteCoreException;
-
-    static native long rawGet(long db, String storeName, String docID)
+    static native long open(
+        String path, int flags,
+        String storageEngine, int versioning,
+        int algorithm, byte[] encryptionKey)
         throws LiteCoreException;
 
-    // - RawDocs Raw Documents
-
-    static native void rawPut(
-        long db, String storeName,
-        String key, String meta, byte[] body)
-        throws LiteCoreException;
-
-    static native long getSharedFleeceEncoder(long db);
-
-    // c4Document+Fleece.h
-
-    // - Fleece-related
-
-    static native long encodeJSON(long db, byte[] jsonData) throws LiteCoreException;
-
-    static native long getFLSharedKeys(long db);
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
@@ -130,13 +62,7 @@ public class C4Database {
         this.handle = open(path, flags, storageEngine, versioning, algorithm, encryptionKey);
     }
 
-    ////////////////////////////////
-    // C4Document
-    ////////////////////////////////
-
-    public C4Database(long handle) {
-        this.handle = handle;
-    }
+    public C4Database(long handle) { this.handle = handle; }
 
     public void free() {
         if (!shouldRetain) {
@@ -145,6 +71,10 @@ public class C4Database {
         }
     }
 
+    ////////////////
+    // C4Document
+    ////////////////
+
     // - Purging and Expiration
 
     public C4Database retain() {
@@ -152,96 +82,52 @@ public class C4Database {
         return this;
     }
 
-    public void close() throws LiteCoreException {
-        close(handle);
-    }
+    public void close() throws LiteCoreException { close(handle); }
 
     // - Creating and Updating Documents
 
-    public void delete() throws LiteCoreException {
-        delete(handle);
-    }
+    public void delete() throws LiteCoreException { delete(handle); }
 
-    public void rekey(int keyType, byte[] newKey) throws LiteCoreException {
-        rekey(handle, keyType, newKey);
-    }
+    public void rekey(int keyType, byte[] newKey) throws LiteCoreException { rekey(handle, keyType, newKey); }
 
-    public String getPath() {
-        return getPath(handle);
-    }
+    public String getPath() { return getPath(handle); }
 
-    public long getDocumentCount() {
-        return getDocumentCount(handle);
-    }
+    public long getDocumentCount() { return getDocumentCount(handle); }
 
     ////////////////////////////////////////////////////////////////
     // C4DatabaseObserver/C4DocumentObserver
     ////////////////////////////////////////////////////////////////
 
-    public long getLastSequence() {
-        return getLastSequence(handle);
-    }
+    public long getLastSequence() { return getLastSequence(handle); }
 
-    public long nextDocExpiration() {
-        return nextDocExpiration(handle);
-    }
+    public long nextDocExpiration() { return nextDocExpiration(handle); }
 
-    public int purgeExpiredDocs() {
-        return purgeExpiredDocs(handle);
-    }
+    public int purgeExpiredDocs() { return purgeExpiredDocs(handle); }
 
     ////////////////////////////////
     // C4Query
     ////////////////////////////////
 
-    public void purgeDoc(String docID) throws LiteCoreException {
-        purgeDoc(handle, docID);
-    }
+    public void purgeDoc(String docID) throws LiteCoreException { purgeDoc(handle, docID); }
 
-    public int getMaxRevTreeDepth() {
-        return getMaxRevTreeDepth(handle);
-    }
+    public int getMaxRevTreeDepth() { return getMaxRevTreeDepth(handle); }
 
-    public void setMaxRevTreeDepth(int maxRevTreeDepth) {
-        setMaxRevTreeDepth(handle, maxRevTreeDepth);
-    }
+    public void setMaxRevTreeDepth(int maxRevTreeDepth) { setMaxRevTreeDepth(handle, maxRevTreeDepth); }
 
-    public byte[] getPublicUUID() throws LiteCoreException {
-        return getPublicUUID(handle);
-    }
+    public byte[] getPublicUUID() throws LiteCoreException { return getPublicUUID(handle); }
 
     ////////////////////////////////
     // C4Replicator
     ////////////////////////////////
 
-    public byte[] getPrivateUUID() throws LiteCoreException {
-        return getPrivateUUID(handle);
-    }
+    public byte[] getPrivateUUID() throws LiteCoreException { return getPrivateUUID(handle); }
 
-    public void compact() throws LiteCoreException {
-        compact(handle);
-    }
-
-    //-------------------------------------------------------------------------
-    // protected methods
-    //-------------------------------------------------------------------------
+    public void compact() throws LiteCoreException { compact(handle); }
 
     // - Transactions
-    public void beginTransaction() throws LiteCoreException {
-        beginTransaction(handle);
-    }
+    public void beginTransaction() throws LiteCoreException { beginTransaction(handle); }
 
-    //-------------------------------------------------------------------------
-    // package access
-    //-------------------------------------------------------------------------
-
-    public void endTransaction(boolean commit) throws LiteCoreException {
-        endTransaction(handle, commit);
-    }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
+    public void endTransaction(boolean commit) throws LiteCoreException { endTransaction(handle, commit); }
 
     // - Lifecycle
 
@@ -249,23 +135,18 @@ public class C4Database {
         return new C4RawDocument(rawGet(handle, storeName, docID));
     }
 
-    public void rawPut(String storeName, String key, String meta, byte[] body)
-        throws LiteCoreException {
+    public void rawPut(String storeName, String key, String meta, byte[] body) throws LiteCoreException {
         rawPut(handle, storeName, key, meta, body);
     }
 
-    public FLEncoder getSharedFleeceEncoder() {
-        return new FLEncoder(getSharedFleeceEncoder(handle)).managed();
-    }
+    public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle)).managed(); }
 
     // NOTE: Should param be String instead of byte[]?
     public FLSliceResult encodeJSON(byte[] jsonData) throws LiteCoreException {
         return new FLSliceResult(encodeJSON(handle, jsonData));
     }
 
-    public final FLSharedKeys getFLSharedKeys() {
-        return new FLSharedKeys(getFLSharedKeys(handle));
-    }
+    public final FLSharedKeys getFLSharedKeys() { return new FLSharedKeys(getFLSharedKeys(handle)); }
 
     public C4DocEnumerator enumerateChanges(long since, int flags) throws LiteCoreException {
         return new C4DocEnumerator(handle, since, flags);
@@ -285,8 +166,7 @@ public class C4Database {
         return new C4Document(handle, sequence);
     }
 
-    public void setExpiration(String docID, long timestamp)
-        throws LiteCoreException {
+    public void setExpiration(String docID, long timestamp) throws LiteCoreException {
         C4Document.setExpiration(handle, docID, timestamp);
     }
 
@@ -326,8 +206,7 @@ public class C4Database {
             history, save, maxRevTreeDepth, remoteDBID));
     }
 
-    public C4Document create(String docID, byte[] body, int revisionFlags)
-        throws LiteCoreException {
+    public C4Document create(String docID, byte[] body, int revisionFlags) throws LiteCoreException {
         return new C4Document(C4Document.create(handle, docID, body, revisionFlags));
     }
 
@@ -335,9 +214,7 @@ public class C4Database {
         return new C4Document(C4Document.create2(handle, docID, body != null ? body.getHandle() : 0, flags));
     }
 
-    public C4DatabaseObserver createDatabaseObserver(
-        C4DatabaseObserverListener listener,
-        Object context) {
+    public C4DatabaseObserver createDatabaseObserver(C4DatabaseObserverListener listener, Object context) {
         return new C4DatabaseObserver(handle, listener, context);
     }
 
@@ -369,13 +246,9 @@ public class C4Database {
 
     // -RawDocs Raw Documents
 
-    public void deleteIndex(String name) throws LiteCoreException {
-        C4Query.deleteIndex(handle, name);
-    }
+    public void deleteIndex(String name) throws LiteCoreException { C4Query.deleteIndex(handle, name); }
 
-    public FLValue getIndexes() throws LiteCoreException {
-        return new FLValue(C4Query.getIndexes(handle));
-    }
+    public FLValue getIndexes() throws LiteCoreException { return new FLValue(C4Query.getIndexes(handle)); }
 
     public C4Replicator createReplicator(
         String schema, String host, int port, String path,
@@ -419,6 +292,10 @@ public class C4Database {
             options, listener, replicatorContext);
     }
 
+    //-------------------------------------------------------------------------
+    // protected methods
+    //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
@@ -426,7 +303,77 @@ public class C4Database {
         super.finalize();
     }
 
-    long getHandle() {
-        return handle;
-    }
+    long getHandle() { return handle; }
+
+    //-------------------------------------------------------------------------
+    // Native methods
+    //-------------------------------------------------------------------------
+
+    static native void free(long db);
+
+    static native void close(long db) throws LiteCoreException;
+
+    // - Lifecycle
+
+    static native void delete(long db) throws LiteCoreException;
+
+    public static native void deleteAtPath(String path) throws LiteCoreException;
+
+    static native void rekey(long db, int keyType, byte[] newKey) throws LiteCoreException;
+
+    static native String getPath(long db);
+
+    static native long getDocumentCount(long db);
+
+    // - Accessors
+
+    static native long getLastSequence(long db);
+
+    static native long nextDocExpiration(long db);
+
+    static native int purgeExpiredDocs(long db);
+
+    static native void purgeDoc(long db, String id) throws LiteCoreException;
+
+    static native int getMaxRevTreeDepth(long db);
+
+    static native void setMaxRevTreeDepth(long db, int maxRevTreeDepth);
+
+    static native byte[] getPublicUUID(long db) throws LiteCoreException;
+
+    static native byte[] getPrivateUUID(long db) throws LiteCoreException;
+
+    // - Compaction
+    static native void compact(long db) throws LiteCoreException;
+
+    // - Transactions
+    static native void beginTransaction(long db) throws LiteCoreException;
+
+    // - Compaction
+
+    static native void endTransaction(long db, boolean commit) throws LiteCoreException;
+
+    static native void rawFree(long rawDoc) throws LiteCoreException;
+
+    static native long rawGet(long db, String storeName, String docID) throws LiteCoreException;
+
+    // - RawDocs Raw Documents
+
+    static native void rawPut(
+        long db,
+        String storeName,
+        String key,
+        String meta,
+        byte[] body)
+        throws LiteCoreException;
+
+    static native long getSharedFleeceEncoder(long db);
+
+    // c4Document+Fleece.h
+
+    // - Fleece-related
+
+    static native long encodeJSON(long db, byte[] jsonData) throws LiteCoreException;
+
+    static native long getFLSharedKeys(long db);
 }

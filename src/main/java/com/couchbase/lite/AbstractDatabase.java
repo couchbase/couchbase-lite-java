@@ -1329,7 +1329,8 @@ abstract class AbstractDatabase {
                     try {
                         enc.writeValue(new HashMap<>()); // Need an empty dictionary body
                         mergedBody = enc.finish2();
-                    } finally { enc.reset(); }
+                    }
+                    finally { enc.reset(); }
                 }
             }
 

@@ -925,9 +925,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         // an unknown host is surely not local
         catch (UnknownHostException ignore) { }
 
-        if (reachabilityManager == null) {
-            reachabilityManager = new NetworkReachabilityManager();
-        }
+        if (reachabilityManager == null) { reachabilityManager = new NetworkReachabilityManager(); }
 
         reachabilityManager.addNetworkReachabilityListener(this);
     }

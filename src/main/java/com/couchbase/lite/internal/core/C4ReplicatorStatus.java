@@ -78,41 +78,23 @@ public class C4ReplicatorStatus {
             errorInternalInfo);
     }
 
-    public int getActivityLevel() {
-        return activityLevel;
-    }
+    public int getActivityLevel() { return activityLevel; }
 
-    public void setActivityLevel(int activityLevel) {
-        this.activityLevel = activityLevel;
-    }
+    public void setActivityLevel(int activityLevel) { this.activityLevel = activityLevel; }
 
-    public long getProgressUnitsCompleted() {
-        return progressUnitsCompleted;
-    }
+    public long getProgressUnitsCompleted() { return progressUnitsCompleted; }
 
-    public long getProgressUnitsTotal() {
-        return progressUnitsTotal;
-    }
+    public long getProgressUnitsTotal() { return progressUnitsTotal; }
 
-    public long getProgressDocumentCount() {
-        return progressDocumentCount;
-    }
+    public long getProgressDocumentCount() { return progressDocumentCount; }
 
-    public int getErrorDomain() {
-        return errorDomain;
-    }
+    public int getErrorDomain() { return errorDomain; }
 
-    public int getErrorCode() {
-        return errorCode;
-    }
+    public int getErrorCode() { return errorCode; }
 
-    public int getErrorInternalInfo() {
-        return errorInternalInfo;
-    }
+    public int getErrorInternalInfo() { return errorInternalInfo; }
 
-    public C4Error getC4Error() {
-        return new C4Error(errorDomain, errorCode, errorInternalInfo);
-    }
+    public C4Error getC4Error() { return new C4Error(errorDomain, errorCode, errorInternalInfo); }
 
     @Override
     public String toString() {

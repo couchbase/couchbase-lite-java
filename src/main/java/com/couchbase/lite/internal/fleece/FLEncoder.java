@@ -38,13 +38,9 @@ public class FLEncoder {
     // public methods
     //-------------------------------------------------------------------------
 
-    public FLEncoder() {
-        this(init());
-    }
+    public FLEncoder() { this(init()); }
 
-    public FLEncoder(long handle) {
-        this.handle = handle;
-    }
+    public FLEncoder(long handle) { this.handle = handle; }
 
     /*
      * Allow the FLEncoder in managed mode. In the managed mode, the IllegalStateException will be
@@ -121,19 +117,13 @@ public class FLEncoder {
         else if (value instanceof Map) { return write((Map<String, Object>) value); }
 
         // FLValue
-        else if (value instanceof FLValue) {
-            return writeValue(handle, ((FLValue) value).getHandle());
-        }
+        else if (value instanceof FLValue) { return writeValue(handle, ((FLValue) value).getHandle()); }
 
         // FLDict
-        else if (value instanceof FLDict) {
-            return writeValue(handle, ((FLDict) value).getHandle());
-        }
+        else if (value instanceof FLDict) { return writeValue(handle, ((FLDict) value).getHandle()); }
 
         // FLArray
-        else if (value instanceof FLArray) {
-            return writeValue(handle, ((FLArray) value).getHandle());
-        }
+        else if (value instanceof FLArray) { return writeValue(handle, ((FLArray) value).getHandle()); }
 
         // FLEncodable
         else if (value instanceof FLEncodable) {
@@ -144,14 +134,10 @@ public class FLEncoder {
         return false;
     }
 
-    public boolean writeNull() {
-        return writeNull(handle);
-    }
+    public boolean writeNull() { return writeNull(handle); }
 
     public boolean write(Map<String, Object> map) {
-        if (map == null) {
-            beginDict(0);
-        }
+        if (map == null) { beginDict(0); }
         else {
             beginDict(map.size());
             for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -163,9 +149,7 @@ public class FLEncoder {
     }
 
     public boolean write(List list) {
-        if (list == null) {
-            beginArray(0);
-        }
+        if (list == null) { beginArray(0); }
         else {
             beginArray(list.size());
             for (Object item : list) { writeValue(item); }

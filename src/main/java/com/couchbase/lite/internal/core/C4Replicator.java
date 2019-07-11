@@ -210,11 +210,13 @@ public class C4Replicator {
         if (!live) { return; }
 
         Log.d(LogDomain.REPLICATOR, "Handle: %s", handle);
-        Log.d(LogDomain.REPLICATOR,
+        Log.d(
+            LogDomain.REPLICATOR,
             "Replicator ctxt: %s $%s",
             replicatorContext,
             (replicatorContext == null) ? null : replicatorContext.getClass());
-        Log.d(LogDomain.REPLICATOR,
+        Log.d(
+            LogDomain.REPLICATOR,
             "Factory ctxt: %s $%s",
             socketFactoryContext,
             (socketFactoryContext == null) ? null : socketFactoryContext.getClass());
