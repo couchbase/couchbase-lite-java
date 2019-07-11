@@ -165,7 +165,7 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if(getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) != 0) {
+        if (attachCurrentThread(&env) != 0) {
             C4Warn("logCallback(): Failed to attach the current thread to a Java VM)");
             return;
         }

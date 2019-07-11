@@ -33,7 +33,7 @@ static C4SliceResult prediction(void* context, FLDict input, C4Database* c4db, C
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if (getEnvStat == JNI_EDETACHED)
-        gJVM->AttachCurrentThread(&env, NULL);
+        attachCurrentThread(&env);
 
     jobject model = (jobject)context;
     jlong result = env->CallLongMethod(model, m_prediction, (jlong)input, (jlong)c4db);

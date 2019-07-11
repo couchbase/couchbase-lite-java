@@ -124,13 +124,21 @@ namespace litecore {
 
         JavaVM *gJVM;
 
+        int attachCurrentThread(JNIEnv** env) {
+#ifdef JNI_VERSION_1_8
+            return gJVM->AttachCurrentThread(reinterpret_cast<void **>(env), NULL);
+#else
+            return gJVM->AttachCurrentThread(env, NULL);
+#endif
+        }
+
         void deleteGlobalRef(jobject gRef) {
             JNIEnv *env = NULL;
             jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
             if (getEnvStat == JNI_OK) {
                 env->DeleteGlobalRef(gRef);
             } else if (getEnvStat == JNI_EDETACHED) {
-                if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+                if (attachCurrentThread(&env) == 0) {
                     env->DeleteGlobalRef(gRef);
                 }
             }

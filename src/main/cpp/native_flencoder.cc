@@ -225,43 +225,6 @@ Java_com_couchbase_lite_internal_fleece_FLEncoder_finish2(JNIEnv *env, jclass cl
 
 /*
  * Class:     com_couchbase_lite_internal_fleece_FLEncoder
- * Method:    setExtraInfo
- * Signature: (JLjava/lang/Object;)V
- */
-JNIEXPORT void JNICALL
-Java_com_couchbase_lite_internal_fleece_FLEncoder_setExtraInfo(JNIEnv *env, jclass clazz, jlong jenc,
-                                                          jobject jobj) {
-    void *info = FLEncoder_GetExtraInfo((FLEncoder) jenc);
-    if (info != NULL) {
-        JNative *ref = (JNative *) info;
-        delete ref;
-    }
-
-    if (jobj != NULL) {
-        JNative *ref = new JNative(new JNIRef(env, jobj));
-        FLEncoder_SetExtraInfo((FLEncoder) jenc, (void *) ref);
-    } else {
-        FLEncoder_SetExtraInfo((FLEncoder) jenc, (void *) 0);
-    }
-}
-
-/*
- * Class:     com_couchbase_lite_internal_fleece_FLEncoder
- * Method:    getExtraInfo
- * Signature: (J)Ljava/lang/Object;
- */
-JNIEXPORT jobject JNICALL
-Java_com_couchbase_lite_internal_fleece_FLEncoder_getExtraInfo(JNIEnv *env, jclass clazz, jlong jenc) {
-    void *info = FLEncoder_GetExtraInfo((FLEncoder) jenc);
-    JNative *ref = (JNative *) info;
-    if (info != NULL)
-        return (jobject) ref->get()->native();
-    else
-        return NULL;
-}
-
-/*
- * Class:     com_couchbase_lite_internal_fleece_FLEncoder
  * Method:    reset
  * Signature: (J)V
  */

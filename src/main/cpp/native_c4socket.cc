@@ -108,7 +108,7 @@ socket_open(C4Socket *socket, const C4Address *addr, C4Slice options, void *sock
                                   toJString(env, addr->path),
                                   toJByteArray(env, options));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket,
                                       m_C4Socket_open,
                                       (jlong) socket,
@@ -138,7 +138,7 @@ static void socket_write(C4Socket *socket, C4SliceResult allocatedData) {
                                   (jlong) socket,
                                   toJByteArray(env, allocatedData));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket,
                                       m_C4Socket_write,
                                       (jlong) socket,
@@ -164,7 +164,7 @@ static void socket_completedReceive(C4Socket *socket, size_t byteCount) {
                                   (jlong) socket,
                                   (jlong) byteCount);
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket,
                                       m_C4Socket_completedReceive,
                                       (jlong) socket,
@@ -191,7 +191,7 @@ static void socket_requestClose(C4Socket *socket, int status, C4String messageSl
                                   (jint) status,
                                   toJString(env, messageSlice));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env)== 0) {
             env->CallStaticVoidMethod(cls_C4Socket,
                                       m_C4Socket_requestClose,
                                       (jlong) socket,
@@ -214,7 +214,7 @@ static void socket_close(C4Socket *socket) {
     if (getEnvStat == JNI_OK) {
         env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_close, (jlong) socket);
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env)== 0) {
             env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_close, (jlong) socket);
             if (gJVM->DetachCurrentThread() != 0) {
                 C4Warn("socket_close(): Failed to detach the current thread from a Java VM");
@@ -235,7 +235,7 @@ static void socket_dispose(C4Socket *socket) {
     if (getEnvStat == JNI_OK) {
         env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_dispose, (jlong) socket);
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Socket, m_C4Socket_dispose, (jlong) socket);
         } else {
             C4Warn("socket_dispose(): Failed to attaches the current thread to a Java VM");

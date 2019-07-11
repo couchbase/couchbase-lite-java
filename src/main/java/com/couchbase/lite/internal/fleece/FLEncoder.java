@@ -32,6 +32,8 @@ public class FLEncoder {
 
     private boolean isMemoryManaged;
 
+    private Object extraInfo;
+
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
@@ -175,9 +177,9 @@ public class FLEncoder {
 
     public FLSliceResult finish2() throws LiteCoreException { return new FLSliceResult(finish2(handle)); }
 
-    public Object getExtraInfo() { return getExtraInfo(handle); }
+    public Object getExtraInfo() { return extraInfo; }
 
-    public void setExtraInfo(Object info) { setExtraInfo(handle, info); }
+    public void setExtraInfo(Object info) { extraInfo = info; }
 
     public void reset() { reset(handle); }
 
@@ -231,10 +233,6 @@ public class FLEncoder {
     static native byte[] finish(long encoder) throws LiteCoreException;
 
     static native long finish2(long encoder) throws LiteCoreException;
-
-    static native void setExtraInfo(long encoder, Object info);
-
-    static native Object getExtraInfo(long encoder);
 
     static native void reset(long encoder);
 }

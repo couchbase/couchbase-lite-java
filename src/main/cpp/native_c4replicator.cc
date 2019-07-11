@@ -265,7 +265,7 @@ static void statusChangedCallback(C4Replicator *repl, C4ReplicatorStatus status,
                                   (jlong) repl,
                                   toJavaObject(env, status));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Replicator,
                                       m_C4Replicator_statusChangedCallback,
                                       (jlong) repl,
@@ -303,7 +303,7 @@ static void documentEndedCallback(C4Replicator *repl,
                                   pushing,
                                   toJavaDocumentEndedArray(env, numDocs, documentEnded));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env)== 0) {
             env->CallStaticVoidMethod(cls_C4Replicator,
                                       m_C4Replicator_documentEndedCallback,
                                       (jlong) repl,
@@ -332,7 +332,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
                                            isPush,
                                            (jobject) ctx);
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+        if (attachCurrentThread(&env) == 0) {
             res = env->CallStaticBooleanMethod(cls_C4Replicator,
                                                m_C4Replicator_validationFunction,
                                                toJString(env, docID),

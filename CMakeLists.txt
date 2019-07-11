@@ -57,7 +57,6 @@ set(JNI_CLASSES
     com.couchbase.lite.internal.core.C4DocumentObserver
     com.couchbase.lite.internal.core.C4FullTextMatch
     com.couchbase.lite.internal.core.C4Key
-    com.couchbase.lite.internal.core.C4Listener
     com.couchbase.lite.internal.core.C4Log
     com.couchbase.lite.internal.core.C4Prediction
     com.couchbase.lite.internal.core.C4Query

@@ -38,6 +38,8 @@ namespace litecore {
 
         extern JavaVM *gJVM;
 
+        int attachCurrentThread(JNIEnv** p_env);
+
         void deleteGlobalRef(jobject gRef);
 
         bool initC4Observer(JNIEnv *);   // Implemented in native_c4observer.cc
@@ -84,33 +86,6 @@ namespace litecore {
             jbyteArray _jbytes;
             bool _critical;
         };
-
-        class JNIRef : public RefCounted {
-        public:
-            JNIRef(JNIEnv *env, jobject native) {
-                if (env != NULL && native != NULL) {
-                    _native = env->NewGlobalRef(native);
-                } else {
-                    _native = NULL;
-                }
-            }
-
-            ~JNIRef() {
-                if (_native != NULL) {
-                    deleteGlobalRef(_native);
-                    _native = NULL;
-                }
-            }
-
-            jobject native() {
-                return _native;
-            }
-
-        private:
-            jobject _native;
-        };
-
-        typedef Retained<JNIRef> JNative;
 
         // Creates a Java String from the contents of a C4Slice.
 
