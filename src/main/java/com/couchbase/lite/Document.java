@@ -123,6 +123,18 @@ public class Document implements DictionaryInterface, Iterable<String> {
     public String getId() { return id; }
 
     /**
+     * Get the document's revision id. The revision id in the Document class is a constant, while
+     * the revision id in the MutableDocument class is not. The newly created Document will have
+     * a null revision id. The revision id in MutableDocument will be updated on save.
+     * The revision id format is opaque, which means its format has no meaning and shouldn't be
+     * parsed to get information.
+     *
+     * @return the document's revision id
+     */
+    public String getRevisionID() {
+        synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
+    }
+    /**
      * Return the sequence number of the document in the database.
      * This indicates how recently the document has been changed: every time any document is updated,
      * the database assigns it the next sequential sequence number. Thus, if a document's `sequence`
@@ -375,7 +387,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     boolean isEmpty() { return internalDict.isEmpty(); }
 
-    boolean isNewDocument() { return getRevID() == null; }
+    boolean isNewDocument() { return getRevisionID() == null; }
 
     /**
      * Return whether the document exists in the database.
@@ -395,11 +407,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     // TODO: c4rev_getGeneration
     long generation() {
-        synchronized (lock) { return generationFromRevID(getRevID()); }
-    }
-
-    String getRevID() {
-        synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
+        synchronized (lock) { return generationFromRevID(getRevisionID()); }
     }
 
     void setId(String id) { this.id = id; }
