@@ -1213,8 +1213,8 @@ abstract class AbstractDatabase {
             DOMAIN,
             "Resolving doc '%s' (local=%s and remote=%s) with resolver %s",
             docID,
-            localDoc.getRevID(),
-            remoteDoc.getRevID(),
+            localDoc.getRevisionID(),
+            remoteDoc.getRevisionID(),
             resolver);
 
         final Document doc;
@@ -1282,7 +1282,7 @@ abstract class AbstractDatabase {
             // Ask LiteCore to do the resolution:
             final C4Document rawDoc = localDoc.getC4doc();
             // The remote branch has to win so that the doc revision history matches the server's.
-            rawDoc.resolveConflict(remoteDoc.getRevID(), localDoc.getRevID(), mergedBodyBytes, mergedFlags);
+            rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
             rawDoc.save(0);
 
             Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
