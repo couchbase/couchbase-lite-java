@@ -25,7 +25,6 @@
 #include "com_couchbase_lite_internal_fleece_FLEncoder.h"
 #include "com_couchbase_lite_internal_fleece_FLSliceResult.h"
 
-using namespace fleece;
 using namespace litecore;
 using namespace litecore::jni;
 

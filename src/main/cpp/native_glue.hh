@@ -23,13 +23,10 @@
 #include <string>
 #include <vector>
 #include <c4.h>
-#include "RefCounted.hh"
 #include "fleece/Fleece.h"
 
 namespace litecore {
     namespace jni {
-
-        using namespace fleece;
 
         // Soft limit of number of local JNI refs to use. Even using PushLocalFrame(), you may not get as
         // many refs as you asked for. At least, that's what happens on Android: the new frame won't have
