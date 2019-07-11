@@ -17,11 +17,16 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.ExecutionService;
 
 public final class CouchbaseLite {
     private CouchbaseLite() {}
 
     public static void init() { }
+
+    public static ExecutionService getExecutionService() {
+        return null;
+    }
 
     public static String getDbDirectoryPath() {
         return null;
