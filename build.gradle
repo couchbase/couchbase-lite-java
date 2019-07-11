@@ -18,7 +18,6 @@
 import java.time.Instant
 import org.apache.tools.ant.filters.ReplaceTokens
 
-
 // The Module-level Build File
 buildscript {
     repositories {
@@ -30,10 +29,11 @@ buildscript {
     }
 }
 
-apply plugin: 'java-library'
 apply plugin: 'com.jfrog.bintray'
-apply plugin: 'maven-publish'
 apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'cpp'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
 
 ext {
     buildHost = 'hostname'.execute().text.trim()
@@ -92,6 +92,112 @@ dependencies {
     implementation 'org.json:json:20180813'
 
     testImplementation 'junit:junit:4.12'
+}
+
+// ----------------------------------------------------------------
+// Native Build
+// ----------------------------------------------------------------
+
+// For generating JNI headers:
+compileJava.options.compilerArgs += ["-h", "${projectDir}/src/main/cpp"]
+
+// JAVA_HOME:
+def javaHome = org.gradle.internal.jvm.Jvm.current().javaHome
+
+// LiteCore:
+def liteCoreDir = "${baseDir}/couchbase-lite-core"
+def liteCoreBuildDir = "${liteCoreDir}/build_cmake"
+
+// Native Components:
+model {
+    repositories {
+        libs(PrebuiltLibraries) {
+            liteCore {
+                headers.srcDir "${liteCoreDir}/C/include"
+                headers.srcDir "${liteCoreDir}/vendor/fleece/API"
+                headers.srcDir "${liteCoreDir}/vendor/fleece/Fleece/Support"
+                binaries.withType(SharedLibraryBinary) {
+                    def os = targetPlatform.operatingSystem
+                    def arch = targetPlatform.architecture.name
+                    if (os.macOsX && arch == 'x86-64') {
+                        sharedLibraryFile = file("${liteCoreBuildDir}/macos/libLiteCore.dylib")
+                        setupCopyLibraryTask("CopyLiteCore", sharedLibraryFile, targetPlatform)
+                    }
+                }
+            }
+            mbedCrypto {
+                headers.srcDir "${liteCoreDir}/vendor/mbedtls/include"
+                binaries.withType(StaticLibraryBinary) {
+                    def os = targetPlatform.operatingSystem
+                    def arch = targetPlatform.architecture.name
+                    if (os.macOsX && arch == 'x86-64') {
+                        staticLibraryFile = file("${liteCoreBuildDir}/macos/vendor/mbedtls/library/libmbedcrypto.a")
+                    }
+                }
+            }
+        }
+    }
+    components {
+        LiteCoreJNI(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDir "src/main/cpp"
+                        include "**/*.cc"
+                    }
+                    lib library: 'liteCore', linkage: 'shared'
+                    lib library: 'mbedCrypto', linkage: 'static'
+                }
+            }
+
+            binaries.withType(StaticLibraryBinarySpec) {
+                buildable = false
+            }
+
+            binaries.withType(SharedLibraryBinarySpec) { binary ->
+                setupNativeLibraryTasks(binary.sharedLibraryFile, targetPlatform)
+            }
+
+            binaries.all {
+                if (targetPlatform.operatingSystem.macOsX) {
+                    cppCompiler.args '-I', "${javaHome}/include"
+                    cppCompiler.args '-I', "${javaHome}/include/darwin"
+                    cppCompiler.args '-std=c++11'
+                    linker.args '-stdlib=libc++'
+                }
+            }
+        }
+    }
+}
+
+def setupNativeLibraryTasks(library, platform) {
+    tasks.whenTaskAdded { task ->
+        if (task.name == "LiteCoreJNISharedLibrary") {
+            def taskName = "CopyLiteCoreJNI"
+            setupCopyLibraryTask(taskName, library, platform)
+            tasks.named(taskName).get().dependsOn(task)
+        }
+    }
+}
+
+def setupCopyLibraryTask(taskName, library, platform) {
+    def resourcesDir = sourceSets.main.output.resourcesDir.path        
+    def libPath = getLibraryTargetPath(platform)
+    project.task([type: Copy], taskName) {
+        from (library)
+        into "${resourcesDir}/libs/${libPath}"
+    }
+    jar.dependsOn(tasks.named(taskName).get())
+}
+
+def getLibraryTargetPath(platform) {
+    def os = platform.operatingSystem.name
+    def arch = platform.architecture.name.replaceAll("-", "_")
+    def name = platform.name
+    if (name == "windows_amd64" || name == "linux_amd64") {
+        arch = "amd64"
+    }
+    return "${os}/${arch}"
 }
 
 // ----------------------------------------------------------------
