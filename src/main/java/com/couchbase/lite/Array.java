@@ -62,11 +62,6 @@ public class Array implements ArrayInterface, FLEncodable, Iterable<Object> {
     }
 
     //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static { NativeLibraryLoader.load(); }
-
-    //---------------------------------------------
     // Constructors
     //---------------------------------------------
     protected final Object lock;

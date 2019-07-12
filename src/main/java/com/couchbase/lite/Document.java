@@ -36,15 +36,7 @@ import com.couchbase.lite.internal.fleece.MRoot;
  * Readonly version of the Document.
  */
 public class Document implements DictionaryInterface, Iterable<String> {
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static { NativeLibraryLoader.load(); }
-
-
-    /**
-     * !!! This code is from v1.x. Replace with c4rev_getGeneration().
-     */
+    // !!! This code is from v1.x. Replace with c4rev_getGeneration().
     static long generationFromRevID(String revID) {
         long generation = 0;
         final long length = Math.min(revID == null ? 0 : revID.length(), 9);

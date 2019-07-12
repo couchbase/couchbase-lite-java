@@ -596,11 +596,4 @@ public final class Blob implements FLEncodable {
             if (blobStore != null) { blobStore.free(); }
         }
     }
-
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static {
-        NativeLibraryLoader.load();
-    }
 }

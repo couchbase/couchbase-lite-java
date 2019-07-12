@@ -73,16 +73,8 @@ abstract class AbstractDatabase {
      */
     @SuppressWarnings("ConstantName")
     @NonNull
-    public static final com.couchbase.lite.Log log;
-
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static {
-        NativeLibraryLoader.load();
-        log = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
-        Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING);
-    }
+    public static final com.couchbase.lite.Log log = new com.couchbase.lite.Log();
+    static { Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING); }
 
     //---------------------------------------------
     // Constants

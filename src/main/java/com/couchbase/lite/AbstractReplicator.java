@@ -72,16 +72,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private static final List<String> REPLICATOR_ACTIVITY_LEVEL_NAMES
         = Collections.unmodifiableList(Arrays.asList("stopped", "offline", "connecting", "idle", "busy"));
 
-    //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static {
-        NativeLibraryLoader.load();
-
-        // Register CBLWebSocket which is C4Socket implementation
-        // CBLWebSocket.register();
-    }
-
     /**
      * Progress of a replicator. If `total` is zero, the progress is indeterminate; otherwise,
      * dividing the two will produce a fraction that can be used to draw a progress bar.

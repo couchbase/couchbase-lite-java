@@ -43,12 +43,6 @@ abstract class AbstractQuery implements Query {
     private static final LogDomain DOMAIN = LogDomain.QUERY;
 
     //---------------------------------------------
-    // Load LiteCore library and its dependencies
-    //---------------------------------------------
-    static { NativeLibraryLoader.load(); }
-
-
-    //---------------------------------------------
     // member variables
     //---------------------------------------------
     private final Object lock = new Object();
