@@ -18,6 +18,7 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 
 import com.couchbase.lite.internal.ExecutionService;
+import com.couchbase.lite.internal.JavaExecutionService;
 
 public final class CouchbaseLite {
     private CouchbaseLite() {}
@@ -25,7 +26,7 @@ public final class CouchbaseLite {
     public static void init() { }
 
     public static ExecutionService getExecutionService() {
-        return null;
+        return new JavaExecutionService();
     }
 
     public static String getDbDirectoryPath() {
