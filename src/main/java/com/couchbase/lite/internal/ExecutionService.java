@@ -74,14 +74,14 @@ public interface ExecutionService {
      * @param delayMs  delay before posting the task.  There may be additional queue delays in the executor.
      * @param executor a executor on which to execute the task.
      * @param task     the task to be executed.
-     * @return a cancellable task
+     * @return a cancellable token representing the task to be executed.
      */
-    Runnable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
+    Object postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
 
     /**
      * Best effort cancellation of a delayed task.
      *
-     * @param cancellableTask returned by a previous call to postDelayedOnExecutor.
+     * @param cancellableToken returned by a previous call to postDelayedOnExecutor.
      */
-    void cancelDelayedTask(@NonNull Runnable cancellableTask);
+    void cancelDelayedTask(@NonNull Object cancellableToken);
 }

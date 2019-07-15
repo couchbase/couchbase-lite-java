@@ -306,7 +306,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private ReplicatorProgressLevel progressLevel = ReplicatorProgressLevel.OVERALL;
     private CouchbaseLiteException lastError;
     private int retryCount;
-    private Runnable retryTask;
+    private Object retryTask;
     private String desc;
 
     private AbstractNetworkReachabilityManager reachabilityManager;

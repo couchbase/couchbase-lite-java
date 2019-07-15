@@ -31,7 +31,7 @@ class DocumentExpirationStrategy {
     private final long expirationInterval;
 
     private boolean expirationCancelled;
-    private Runnable expirationTask;
+    private Object expirationTask;
 
     DocumentExpirationStrategy(
         @NonNull AbstractDatabase db,
@@ -60,7 +60,7 @@ class DocumentExpirationStrategy {
     }
 
     void cancelPurges() {
-        final Runnable task;
+        final Object task;
         synchronized (this) {
             expirationCancelled = true;
             task = expirationTask;
