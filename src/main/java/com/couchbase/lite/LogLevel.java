@@ -62,4 +62,17 @@ public enum LogLevel {
     public int getValue() {
         return value;
     }
+
+    @Override
+    public String toString() {
+        switch(this) {
+            case DEBUG: return "D";
+            case VERBOSE: return "V";
+            case INFO: return "I";
+            case WARNING: return "W";
+            case ERROR: return "E";
+            case NONE: return "";
+            default: throw new IllegalArgumentException();
+        }
+    }
 }
