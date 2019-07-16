@@ -19,13 +19,35 @@ package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 /**
  * ExecutionService for Java.
  */
 public class JavaExecutionService extends AbstractExecutionService {
+    private static class CancellableTask implements Cancellable {
+        private Future future;
+
+        private CancellableTask(@NonNull Future future) {
+            Preconditions.checkArgNotNull(future, "future");
+            this.future = future;
+        }
+
+        @Override
+        public void cancel() { future.cancel(false); }
+    }
+
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
     private static final int CORE_POOL_SIZE = Math.max(2, Math.min(CPU_COUNT - 1, 4));
     private static final int MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1;
@@ -65,23 +87,23 @@ public class JavaExecutionService extends AbstractExecutionService {
     }
 
     @Override
-    public Object postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task) {
-        if (null == task) { throw new IllegalArgumentException("Task may not be null"); }
-        if (null == executor) { throw new IllegalArgumentException("Executor may not be null"); }
-
-        Runnable delayedTask = () -> {
+    public Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task) {
+        Preconditions.checkArgNotNull(executor, "executor");
+        Preconditions.checkArgNotNull(task, "task");
+        final Runnable delayedTask = () -> {
             try {
                 executor.execute(task);
             }
             catch (RejectedExecutionException ignored) { }
         };
-        return scheduler.schedule(delayedTask, delayMs, TimeUnit.MILLISECONDS);
+
+        final Future future = scheduler.schedule(delayedTask, delayMs, TimeUnit.MILLISECONDS);
+        return new CancellableTask(future);
     }
 
     @Override
-    public void cancelDelayedTask(@NonNull Object task) {
-        if (null == task) { throw new IllegalArgumentException("Task may not be null"); }
-        if (!(task instanceof Future)) { throw new IllegalArgumentException("Task is not Future"); }
-        ((Future) task).cancel(false);
+    public void cancelDelayedTask(@NonNull Cancellable cancellableTask) {
+        Preconditions.checkArgNotNull(cancellableTask, "future");
+        cancellableTask.cancel();
     }
 }

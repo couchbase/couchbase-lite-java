@@ -132,16 +132,16 @@ public abstract class AbstractExecutionService implements ExecutionService {
     }
 
     @NonNull
-    abstract public Executor getThreadPoolExecutor();
+    public abstract Executor getThreadPoolExecutor();
 
     @NonNull
-    abstract public Executor getMainExecutor();
+    public abstract Executor getMainExecutor();
 
     @Override
-    abstract public Object postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
+    public abstract Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
 
     @Override
-    abstract public void cancelDelayedTask(@NonNull Object cancellableTask);
+    public abstract void cancelDelayedTask(@NonNull Cancellable cancellableTask);
 
     @NonNull
     @Override
