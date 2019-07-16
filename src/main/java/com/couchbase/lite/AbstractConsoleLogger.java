@@ -20,6 +20,7 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 
 import com.couchbase.lite.internal.core.C4Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 import java.util.EnumSet;
 
@@ -34,8 +35,7 @@ abstract class AbstractConsoleLogger implements Logger {
     AbstractConsoleLogger() { }
 
     /**
-     * Gets the domains that will be considered for writing to
-     * the Android system log
+     * Gets the domains that will be considered for writing to the console log.
      *
      * @return The currently active domains
      */
@@ -45,19 +45,18 @@ abstract class AbstractConsoleLogger implements Logger {
     }
 
     /**
-     * Sets the domains that will be considered for writing to
-     * the Android system log
+     * Sets the domains that will be considered for writing to the console log.
      *
      * @param domains The domains to make active
      */
     public void setDomains(@NonNull EnumSet<LogDomain> domains) {
-        if (domains == null) { throw new IllegalArgumentException("domains cannot be null."); }
+        Preconditions.checkArgNotNull(domains, "domains");
 
         logDomains = domains;
     }
 
     private void setCallbackLevel(@NonNull LogLevel level) {
-        if (level == null) { throw new IllegalArgumentException("level cannot be null."); }
+        Preconditions.checkArgNotNull(level, "level");
 
         LogLevel callbackLevel = level;
         final Logger custom = Database.log.getCustom();
@@ -75,13 +74,12 @@ abstract class AbstractConsoleLogger implements Logger {
     }
 
     /**
-     * Sets the overall logging level that will be written to
-     * the Android system log
+     * Sets the overall logging level that will be written to the console log.
      *
      * @param level The maximum level to include in the logs
      */
     public void setLevel(@NonNull LogLevel level) {
-        if (level == null) { throw new IllegalArgumentException("level cannot be null."); }
+        Preconditions.checkArgNotNull(level, "level");
 
         if (logLevel == level) { return; }
 
