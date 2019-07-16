@@ -1,4 +1,6 @@
 //
+// ConsoleLogger.java
+//
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,14 +19,17 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.io.PrintStream;
 
-public class ConsoleLogger implements Logger {
-    @NonNull
+/**
+ * A class for sending log messages to standard output stream.  This is useful
+ * for debugging during development, but is recommended to be disabled in production (the
+ * file logger is both more durable and more efficient)
+ */
+public class ConsoleLogger extends AbstractConsoleLogger {
     @Override
-    public LogLevel getLevel() {
-        return LogLevel.DEBUG;
+    public void doLog(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
+        PrintStream ps = (level == LogLevel.ERROR) ? System.err : System.out;
+        ps.println(level + "/CouchbaseLite/" + domain + ":" + message);
     }
-
-    @Override
-    public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) { }
 }
