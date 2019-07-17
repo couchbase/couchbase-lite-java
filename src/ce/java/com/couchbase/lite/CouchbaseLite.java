@@ -19,9 +19,16 @@ import android.support.annotation.NonNull;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.JavaExecutionService;
+import com.couchbase.lite.internal.fleece.MValue;
+
+import java.io.File;
+import java.nio.file.Paths;
 
 public final class CouchbaseLite {
-    private CouchbaseLite() {}
+    private CouchbaseLite() {
+        NativeLibraryLoader.load();
+        MValue.registerDelegate(new MValueDelegate());
+    }
 
     public static void init() { }
 
@@ -29,15 +36,21 @@ public final class CouchbaseLite {
         return new JavaExecutionService();
     }
 
-    public static String getDbDirectoryPath() {
-        return null;
+    static String getDbDirectoryPath() {
+        return Paths.get("").toAbsolutePath().toString();
     }
 
-    public static String getTmpDirectory(@NonNull String name) {
-        return null;
+    static String getTmpDirectory(@NonNull String name) {
+        String root = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
+        return getTmpDirectory(root, name);
     }
 
-    public static String getTmpDirectory(String root, String name) {
-        return null;
+    static String getTmpDirectory(String root, String name) {
+        final File dir = new File(root, name);
+
+        final String path = dir.getAbsolutePath();
+        if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
+
+        throw new IllegalStateException("Cannot create or access temp directory at " + path);
     }
 }
