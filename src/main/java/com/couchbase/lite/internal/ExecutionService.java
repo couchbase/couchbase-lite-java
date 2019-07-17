@@ -41,6 +41,16 @@ public interface ExecutionService {
     }
 
     /**
+     * A Cancellable represents a delayed task that is cancellable.
+     */
+    interface Cancellable {
+        /**
+         * Best effort cancellation of a delayed task.
+         */
+        void cancel();
+    }
+
+    /**
      * Get the main executor.  It is guaranteed to be a single thread.
      * The thread on which most of the application runs.
      * Suitable for any task that doesn't take a long time to complete.
@@ -76,12 +86,12 @@ public interface ExecutionService {
      * @param task     the task to be executed.
      * @return a cancellable task
      */
-    Runnable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
+    Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
 
     /**
      * Best effort cancellation of a delayed task.
      *
-     * @param cancellableTask returned by a previous call to postDelayedOnExecutor.
+     * @param future object returned by a previous call to postDelayedOnExecutor.
      */
-    void cancelDelayedTask(@NonNull Runnable cancellableTask);
+    void cancelDelayedTask(@NonNull Cancellable future);
 }

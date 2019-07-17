@@ -19,8 +19,8 @@ import android.support.annotation.NonNull;
 
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.internal.ExecutionService.Cancellable;
 import com.couchbase.lite.internal.support.Log;
-
 
 /**
  * Expire documents at a regular interval, once started.
@@ -31,7 +31,7 @@ class DocumentExpirationStrategy {
     private final long expirationInterval;
 
     private boolean expirationCancelled;
-    private Runnable expirationTask;
+    private Cancellable expirationTask;
 
     DocumentExpirationStrategy(
         @NonNull AbstractDatabase db,
@@ -60,7 +60,7 @@ class DocumentExpirationStrategy {
     }
 
     void cancelPurges() {
-        final Runnable task;
+        final Cancellable task;
         synchronized (this) {
             expirationCancelled = true;
             task = expirationTask;
