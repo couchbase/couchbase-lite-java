@@ -540,8 +540,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         Log.i(
             DOMAIN,
-            "%s: status changed: %s (%d, %d) @%s",
-            c4Status, pendingResolutions.size(), pendingStatusNotifications.size(), this);
+            "%s: status changed: (%d, %d) @%s",
+            this, pendingResolutions.size(), pendingStatusNotifications.size(), c4Status);
 
         synchronized (lock) {
             if (!pendingResolutions.isEmpty()
