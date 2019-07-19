@@ -41,8 +41,8 @@ MESSAGE( STATUS "Java_JAVAH_EXECUTABLE: " ${Java_JAVAH_EXECUTABLE} )
 #
 # Generate JNI header files
 #
-set(JNI_CLASSPATH  ${PROJECT_SOURCE_DIR}/src/main/java)
-set(JNI_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/src/main/cpp)
+set(JNI_CLASSPATH  ${PROJECT_SOURCE_DIR}/src/shared/main/java)
+set(JNI_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/src/shared/main/cpp)
 set(JNI_CLASSES
     com.couchbase.lite.internal.core.C4
     com.couchbase.lite.internal.core.C4Base
@@ -114,10 +114,7 @@ if(BUILD_ENTERPRISE)
                     -DSQLITE_HAS_CODEC)         # Enables SQLite encryption extension (SEE)
 endif()
 
-aux_source_directory(./src/main/cpp  JNI_SRC)
-if (NOT REST)
-    list(REMOVE_ITEM JNI_SRC "./src/main/cpp/native_c4listener.cc")
-endif()
+aux_source_directory(./src/shared/main/cpp  JNI_SRC)
 add_library(LiteCoreJNI SHARED ${JNI_SRC})
 
 # set dependency

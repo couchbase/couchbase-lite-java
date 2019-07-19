@@ -1,4 +1,6 @@
 //
+// Function.java
+//
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,31 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package com.couchbase.lite;
 
-import android.support.annotation.NonNull;
-
-import com.couchbase.lite.internal.core.C4Database;
-
-
-public class Database extends AbstractDatabase {
-    protected Database(
-        @NonNull String name,
-        @NonNull DatabaseConfiguration config) throws CouchbaseLiteException {
-        super(name, config);
-    }
-
-    protected Database(C4Database c4db) {
-        super(c4db);
-    }
-
-    @Override
-    int getEncryptionAlgorithm() {
-        return 0;
-    }
-
-    @Override
-    byte[] getEncryptionKey() {
-        return new byte[0];
-    }
+/**
+ * Query functions.
+ */
+public final class Function extends AbstractFunction {
+    private Function() { }
 }

@@ -75,7 +75,11 @@ java {
     targetCompatibility JavaVersion.VERSION_1_8
     sourceCompatibility JavaVersion.VERSION_1_8
 
-    sourceSets.main.java.srcDirs += "${projectDir}/src/ce/java"
+    sourceSets.main.java.srcDirs = [
+        "${projectDir}/src/main/java", 
+        "${projectDir}/src/shared/main/java",
+        "${projectDir}/src/shared/ce/java"
+    ]
 }
 
 repositories {
@@ -99,7 +103,7 @@ dependencies {
 // ----------------------------------------------------------------
 
 // For generating JNI headers:
-compileJava.options.compilerArgs += ["-h", "${projectDir}/src/main/cpp"]
+compileJava.options.compilerArgs += ["-h", "${projectDir}/src/shared/main/cpp"]
 
 // JAVA_HOME:
 def javaHome = org.gradle.internal.jvm.Jvm.current().javaHome
@@ -142,7 +146,7 @@ model {
             sources {
                 cpp {
                     source {
-                        srcDir "src/main/cpp"
+                        srcDir "src/shared/main/cpp"
                         include "**/*.cc"
                     }
                     lib library: 'liteCore', linkage: 'shared'

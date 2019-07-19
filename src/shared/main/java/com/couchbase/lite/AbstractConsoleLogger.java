@@ -19,10 +19,10 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.util.EnumSet;
+
 import com.couchbase.lite.internal.core.C4Log;
 import com.couchbase.lite.internal.utils.Preconditions;
-
-import java.util.EnumSet;
 
 /**
  * The base console logger class.

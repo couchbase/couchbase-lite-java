@@ -17,12 +17,12 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.io.File;
+import java.nio.file.Paths;
+
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.JavaExecutionService;
 import com.couchbase.lite.internal.fleece.MValue;
-
-import java.io.File;
-import java.nio.file.Paths;
 
 public final class CouchbaseLite {
     private CouchbaseLite() {
@@ -41,7 +41,7 @@ public final class CouchbaseLite {
     }
 
     static String getTmpDirectory(@NonNull String name) {
-        String root = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
+        final String root = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
         return getTmpDirectory(root, name);
     }
 

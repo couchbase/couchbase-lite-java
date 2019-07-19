@@ -42,7 +42,7 @@ final class NativeLibraryLoader {
 
     private static void load(String libName) {
         try {
-            File libFile = extractLibrary(libName);
+            final File libFile = extractLibrary(libName);
             System.load(libFile.getAbsolutePath());
         }
         catch (Exception e) {
@@ -52,25 +52,23 @@ final class NativeLibraryLoader {
 
     @NonNull
     private static File extractLibrary(@NonNull String libName) throws IOException, InterruptedException {
-        String libResPath = getLibraryResourcePath(libName);
-        String tmpDir = CouchbaseLite.getTmpDirectory(TMP_DIR_NAME);
-        String targetDir = new File(tmpDir).getAbsolutePath();
-        File targetFile = new File(targetDir, System.mapLibraryName(libName));
+        final String libResPath = getLibraryResourcePath(libName);
+        final String tmpDir = CouchbaseLite.getTmpDirectory(TMP_DIR_NAME);
+        final String targetDir = new File(tmpDir).getAbsolutePath();
+        final File targetFile = new File(targetDir, System.mapLibraryName(libName));
 
-        if (targetFile.exists()) {
-            if (!targetFile.delete()) {
-                throw new IllegalStateException("Failed to delete the existing native library at " +
+        if (targetFile.exists() && !targetFile.delete()) {
+            throw new IllegalStateException("Failed to delete the existing native library at " +
                         targetFile.getAbsolutePath());
-            }
         }
 
         // Extract the library to the target directory:
-        InputStream in = NativeLibraryLoader.class.getResourceAsStream(libResPath);
+        final InputStream in = NativeLibraryLoader.class.getResourceAsStream(libResPath);
         if (in == null) { throw new IllegalStateException("Native library not found at " + libResPath); }
 
-        FileOutputStream out = new FileOutputStream(targetFile);
+        final FileOutputStream out = new FileOutputStream(targetFile);
         try {
-            byte[] buffer = new byte[1024];
+            final byte[] buffer = new byte[1024];
             int bytesRead = 0;
             while ((bytesRead = in.read(buffer)) != -1) {
                 out.write(buffer, 0, bytesRead);
@@ -84,7 +82,7 @@ final class NativeLibraryLoader {
         // On non-windows systems set up permissions for the extracted native library.
         if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
             Runtime.getRuntime().exec(
-                    new String[]{"chmod", "755", targetFile.getAbsolutePath()}).waitFor();
+                    new String[] {"chmod", "755", targetFile.getAbsolutePath()}).waitFor();
         }
         return targetFile;
     }
@@ -95,7 +93,7 @@ final class NativeLibraryLoader {
         String path = LIBS_RES_PATH;
 
         // OS:
-        String osName = System.getProperty("os.name");
+        final String osName = System.getProperty("os.name");
         if (osName.contains("Linux")) { path += "/linux"; }
         else if (osName.contains("Mac")) { path += "/osx"; }
         else if (osName.contains("Windows")) { path += "/windows"; }
