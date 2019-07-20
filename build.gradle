@@ -54,7 +54,6 @@ def buildCommit = 'git rev-parse --short HEAD'.execute([], file(homeDir)).text.t
 
 group = 'com.couchbase.lite'
 
-
 // Copy the version template into the source, inserting build info
 task copyVersion(type: Copy) {
     from("${projectDir}/templates/CBLVersion.java") {
@@ -62,9 +61,7 @@ task copyVersion(type: Copy) {
             ReplaceTokens,
             tokens: [VERSION: cblVersion, TIME: buildTime, HOST: buildHost, VARIANT: 'CE', TYPE: 'debug', BUILD: buildNum, COMMIT: buildCommit])
     }
-    into "${projectDir}/src/ce/java/com/couchbase/lite/internal/core"
-
-
+    into "${projectDir}/src/main/java/com/couchbase/lite/internal/core"
 }
 copyVersion.outputs.upToDateWhen { false }
 compileJava.dependsOn copyVersion
