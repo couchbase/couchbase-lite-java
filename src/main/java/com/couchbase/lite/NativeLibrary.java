@@ -1,5 +1,5 @@
 //
-// NativeLibraryLoader.java
+// NativeLibrary.java
 //
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-final class NativeLibraryLoader {
+final class NativeLibrary {
     private static final String[] LIBRARIES = { "LiteCore", "LiteCoreJNI" };
 
     private static final String LIBS_RES_PATH = "/libs";
@@ -63,7 +63,7 @@ final class NativeLibraryLoader {
         }
 
         // Extract the library to the target directory:
-        final InputStream in = NativeLibraryLoader.class.getResourceAsStream(libResPath);
+        final InputStream in = NativeLibrary.class.getResourceAsStream(libResPath);
         if (in == null) { throw new IllegalStateException("Native library not found at " + libResPath); }
 
         final FileOutputStream out = new FileOutputStream(targetFile);
@@ -110,5 +110,5 @@ final class NativeLibraryLoader {
         return path;
     }
 
-    NativeLibraryLoader() { }
+    NativeLibrary() { }
 }

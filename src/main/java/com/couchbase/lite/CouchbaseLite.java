@@ -1,4 +1,6 @@
 //
+// CouchbaseLite.java
+//
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +28,7 @@ import com.couchbase.lite.internal.fleece.MValue;
 
 public final class CouchbaseLite {
     private CouchbaseLite() {
-        NativeLibraryLoader.load();
+        NativeLibrary.load();
         MValue.registerDelegate(new MValueDelegate());
     }
 
