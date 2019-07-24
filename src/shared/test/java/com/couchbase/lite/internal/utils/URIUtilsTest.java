@@ -1,7 +1,7 @@
-package com.couchbase.lite;
-
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// URIUtilsTest.java
+//
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +15,20 @@ package com.couchbase.lite;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-final class NetworkReachabilityManager extends AbstractNetworkReachabilityManager {
-    @Override
-    void startListening() { }
+package com.couchbase.lite.internal.utils;
 
-    @Override
-    void stopListening() { }
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+
+public class URIUtilsTest {
+    @Test
+    public void testGetPort() throws URISyntaxException {
+        URI uri = new URI("ws://foo.couchbase.com/db");
+        assertEquals(-1, uri.getPort());
+    }
 }

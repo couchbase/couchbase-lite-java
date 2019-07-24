@@ -21,21 +21,34 @@ import android.support.annotation.NonNull;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.JavaExecutionService;
 import com.couchbase.lite.internal.fleece.MValue;
 
 public final class CouchbaseLite {
-    private CouchbaseLite() {
+    private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
+
+    /**
+     * Initialize CouchbaseLite library. This method MUST be called before
+     * using CouchbaseLite.
+     */
+    public static void init() {
         NativeLibrary.load();
         MValue.registerDelegate(new MValueDelegate());
     }
 
-    public static void init() { }
-
+    /**
+     * This method is for internal used only and will be removed in the future release.
+     */
     public static ExecutionService getExecutionService() {
-        return new JavaExecutionService();
+        ExecutionService executionService = EXECUTION_SERVICE.get();
+        if (executionService == null) {
+            EXECUTION_SERVICE.compareAndSet(null, new JavaExecutionService());
+            executionService = EXECUTION_SERVICE.get();
+        }
+        return executionService;
     }
 
     static String getDbDirectoryPath() {

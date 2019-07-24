@@ -1,5 +1,3 @@
-package com.couchbase.lite;
-
 //
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
@@ -15,10 +13,24 @@ package com.couchbase.lite;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-final class NetworkReachabilityManager extends AbstractNetworkReachabilityManager {
-    @Override
-    void startListening() { }
+package com.couchbase.lite.utils;
 
-    @Override
-    void stopListening() { }
+import com.couchbase.lite.LogLevel;
+
+import java.io.PrintStream;
+
+/**
+ * Platform console logging utility for tests
+ */
+public final class Report {
+    private Report() {}
+
+    public static void log(LogLevel level, String message) {
+        Report.log(level, message, null);
+    }
+
+    public static void log(LogLevel level, String message, Throwable err) {
+        final PrintStream ps = (level == LogLevel.ERROR) ? System.err : System.out;
+        ps.println(level + "/CouchbaseLite/Test:" + message + (err != null ? err : ""));
+    }
 }
