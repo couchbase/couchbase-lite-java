@@ -1,5 +1,3 @@
-package com.couchbase.lite;
-
 //
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
@@ -15,10 +13,14 @@ package com.couchbase.lite;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-final class NetworkReachabilityManager extends AbstractNetworkReachabilityManager {
-    @Override
-    void startListening() { }
+package com.couchbase.lite.utils;
 
-    @Override
-    void stopListening() { }
-}
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SlowTest {}

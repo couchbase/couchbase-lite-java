@@ -7,6 +7,9 @@ bin/
 gen/
 out/
 
+# Native build files
+native_build/
+
 # Gradle files
 .gradle/
 build/
