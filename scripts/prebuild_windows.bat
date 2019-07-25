@@ -1,4 +1,4 @@
-pushd ../couchbase-lite-core/build_cmake
+pushd ..\couchbase-lite-core\build_cmake
 mkdir x64
 pushd x64
 "C:\Program Files\CMake\bin\cmake.exe" -G "Visual Studio 14 2015 Win64" ..\..
