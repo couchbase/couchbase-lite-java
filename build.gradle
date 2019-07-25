@@ -290,48 +290,8 @@ task pmd(type: Pmd) {
     }
 }
 
-apply plugin: 'findbugs'
-def findbugsAll = task('findbugs') {
-    description 'Findbugs with all reports'
-    group 'verification'
-}
-
-['Html', 'Xml'].each { reportType ->
-    findbugsAll.dependsOn task("findbugs${reportType}", type: FindBugs) {
-        description "Findbugs with $reportType report"
-        group 'verification'
-
-        dependsOn 'compileJava'
-
-        findbugs.toolVersion = "3.0.1"
-
-        effort = "max"
-        reportLevel = "medium"
-        ignoreFailures = false
-
-        source = sourceSets.main.java.srcDirs
-
-        classpath = files()
-
-        excludeFilter = file("${etcDir}/findbugs/findbugs.xml")
-
-        findbugsTest.enabled = false
-
-        reports {
-            xml {
-                enabled = (reportType == "Xml")
-                setDestination(file("${reportsDir}/findbugs.xml"))
-            }
-            html {
-                enabled = (reportType == "Html")
-                setDestination(file("${reportsDir}/findbugs.html"))
-            }
-        }
-    }
-}
-
-task smoketest(dependsOn: ['checkstyleMain', 'findbugsHtml', 'pmdMain'])
+task smoketest(dependsOn: ['checkstyleMain', 'pmdMain'])
 
 task checkLocal(dependsOn: ['smoketest', 'test'])
 
-task buildCI(dependsOn: ['checkstyleMain', 'findbugsXml', 'pmdMain', 'test'])
+task buildCI(dependsOn: ['checkstyleMain', 'pmdMain', 'test'])
