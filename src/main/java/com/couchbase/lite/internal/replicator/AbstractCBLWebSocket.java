@@ -78,8 +78,10 @@ public class AbstractCBLWebSocket extends C4Socket {
     private static final LogDomain TAG = LogDomain.NETWORK;
 
     private static final OkHttpClient BASE_HTTP_CLIENT = new OkHttpClient.Builder()
-        // timeouts
-        .connectTimeout(10, TimeUnit.SECONDS)
+        // timeouts: Core manages this: set no timeout, here.
+        .connectTimeout(0, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)
+        .writeTimeout(0, TimeUnit.SECONDS)
         // redirection
         .followRedirects(true)
         .followSslRedirects(true)
