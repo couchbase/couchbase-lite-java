@@ -254,7 +254,7 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_read(JNIEnv *env, jclass 
                                                   jlong jsize) {
 
     C4Error error = {};
-    char buff[(size_t) jsize];
+    char* buff = new char[(size_t) jsize];
     size_t read = c4stream_read((C4ReadStream *) jstream,
                                 buff,
                                 (size_t) jsize,

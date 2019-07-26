@@ -19,6 +19,7 @@
 #include <c4.h>
 #include <c4Document+Fleece.h>
 #include <c4Base.h>
+#include <algorithm>
 #include "com_couchbase_lite_internal_core_C4Document.h"
 #include "native_glue.hh"
 

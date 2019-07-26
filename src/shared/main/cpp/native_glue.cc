@@ -17,6 +17,7 @@
 //
 
 #include "native_glue.hh"
+#include <assert.h>
 #include <queue>
 #include <new>
 #include <codecvt>
