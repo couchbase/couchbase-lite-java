@@ -196,7 +196,7 @@ Java_com_couchbase_lite_internal_core_C4Log_setCallbackLevel(JNIEnv* env, jclass
     if(cls_C4Log == nullptr) {
         cls_C4Log = reinterpret_cast<jclass>(env->NewGlobalRef(clazz));
         if(!cls_C4Log) {
-            C4Error err = { .code = kC4ErrorUnexpectedError, .domain = LiteCoreDomain };
+            C4Error err = c4error_make(LiteCoreDomain, kC4ErrorUnexpectedError, {});
             throwError(env, err);
         }
 
@@ -205,7 +205,7 @@ Java_com_couchbase_lite_internal_core_C4Log_setCallbackLevel(JNIEnv* env, jclass
                                                      "(Ljava/lang/String;ILjava/lang/String;)V");
 
         if(!m_C4Log_logCallback) {
-            C4Error err { .code = kC4ErrorUnexpectedError, .domain = LiteCoreDomain };
+            C4Error err = c4error_make(LiteCoreDomain, kC4ErrorUnexpectedError, {});
             throwError(env, err);
         }
 
