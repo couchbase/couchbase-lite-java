@@ -154,7 +154,7 @@ Java_com_couchbase_lite_internal_core_C4DatabaseObserver_getChanges(JNIEnv *env,
                                                           jlong observer,
                                                           jint maxChanges) {
     //static const uint32_t kMaxChanges = 100u;
-    C4DatabaseChange c4changes[maxChanges];
+    C4DatabaseChange *c4changes = new C4DatabaseChange[maxChanges];
     bool external = false;
     uint32_t nChanges = c4dbobs_getChanges((C4DatabaseObserver *) observer,
                                            c4changes,

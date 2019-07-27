@@ -40,7 +40,7 @@ Java_com_couchbase_lite_internal_core_C4_setenv(JNIEnv *env, jclass clazz, jstri
                                       jint overwrite) {
     jstringSlice name(env, jname);
     jstringSlice value(env, jvalue);
-    setenv(name.c_str(), value.c_str(), overwrite);
+    _putenv_s(name.c_str(), value.c_str());
 }
 
 /*
@@ -196,7 +196,7 @@ Java_com_couchbase_lite_internal_core_C4Log_setCallbackLevel(JNIEnv* env, jclass
     if(cls_C4Log == nullptr) {
         cls_C4Log = reinterpret_cast<jclass>(env->NewGlobalRef(clazz));
         if(!cls_C4Log) {
-            C4Error err { .code = kC4ErrorUnexpectedError, .domain = LiteCoreDomain };
+            C4Error err = c4error_make(LiteCoreDomain, kC4ErrorUnexpectedError, {});
             throwError(env, err);
         }
 
@@ -205,7 +205,7 @@ Java_com_couchbase_lite_internal_core_C4Log_setCallbackLevel(JNIEnv* env, jclass
                                                      "(Ljava/lang/String;ILjava/lang/String;)V");
 
         if(!m_C4Log_logCallback) {
-            C4Error err { .code = kC4ErrorUnexpectedError, .domain = LiteCoreDomain };
+            C4Error err = c4error_make(LiteCoreDomain, kC4ErrorUnexpectedError, {});
             throwError(env, err);
         }
 
@@ -254,7 +254,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_internal_core_C4Key_pbkdf2
 
     // PKCS5 PBKDF2 HMAC SHA256
     const int keyLen = (const int) jkeyLen;
-    unsigned char key[keyLen];
+    unsigned char *key = new unsigned char[keyLen];
 
     mbedtls_md_context_t ctx;
     mbedtls_md_init(&ctx);
