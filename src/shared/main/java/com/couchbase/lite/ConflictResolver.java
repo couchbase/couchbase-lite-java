@@ -40,11 +40,10 @@ public interface ConflictResolver {
 class DefaultConflictResolver implements ConflictResolver {
     @Override
     public Document resolve(@NonNull Conflict conflict) {
-        // if one of the docs was deleted, return the other.
+        // deletion always wins.
         final Document localDoc = conflict.getLocalDocument();
         final Document remoteDoc = conflict.getRemoteDocument();
-        if (localDoc == null) { return remoteDoc; }
-        else if (remoteDoc == null) { return localDoc; }
+        if ((localDoc == null) || (remoteDoc == null)) { return null; }
 
         // if one of the docs is newer, return it
         final long localGen = localDoc.generation();
