@@ -223,7 +223,13 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testCreateWithSpecialCharacterDBNames() throws CouchbaseLiteException {
-        Database db = openDatabase("`~@#$%^&*()_+{}|\\][=-/.,<>?\":;'ABCDEabcde");
+        Database db;
+        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+            //  windows doesn't allow \ / : * ? " < > |
+            db = openDatabase("`~@#$%&'()_+{}][=-.,;'ABCDEabcde");
+        } else {
+            db = openDatabase("`~@#$%^&*()_+{}|\\][=-/.,<>?\":;'ABCDEabcde");
+        }
         try {
             assertNotNull(db);
             assertEquals(0, db.getCount());
