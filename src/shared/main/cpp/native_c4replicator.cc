@@ -540,7 +540,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_mayBeTransient(JNIEnv *env,
                                                                   jint domain,
                                                                   jint code,
                                                                   jint ii) {
-    C4Error c4Error = {(C4ErrorDomain) domain, code, ii};
+    C4Error c4Error = { (C4ErrorDomain) domain, code, ii };
     return c4error_mayBeTransient(c4Error);
 }
 
@@ -555,7 +555,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_mayBeNetworkDependent(JNIEnv 
                                                                          jint domain,
                                                                          jint code,
                                                                          jint ii) {
-    C4Error c4Error = {(C4ErrorDomain) domain, code, ii};
+    C4Error c4Error = { (C4ErrorDomain) domain, code, ii };
     return c4error_mayBeNetworkDependent(c4Error);
 }
 

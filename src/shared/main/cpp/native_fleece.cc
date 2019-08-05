@@ -484,7 +484,7 @@ Java_com_couchbase_lite_internal_fleece_FLSliceResult_free(JNIEnv *env, jclass c
 JNIEXPORT jbyteArray JNICALL
 Java_com_couchbase_lite_internal_fleece_FLSliceResult_getBuf(JNIEnv *env, jclass clazz, jlong jslice) {
     FLSliceResult *res = (FLSliceResult *) jslice;
-    C4Slice s = {res->buf, res->size};
+    C4Slice s = { res->buf, res->size };
     return toJByteArray(env, s);
 }
 

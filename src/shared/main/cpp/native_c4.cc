@@ -40,7 +40,12 @@ Java_com_couchbase_lite_internal_core_C4_setenv(JNIEnv *env, jclass clazz, jstri
                                       jint overwrite) {
     jstringSlice name(env, jname);
     jstringSlice value(env, jvalue);
+
+    #ifdef _MSC_VER
     _putenv_s(name.c_str(), value.c_str());
+    #else
+    setenv(name.c_str(), value.c_str(), overwrite);
+    #endif
 }
 
 /*
@@ -108,6 +113,7 @@ Java_com_couchbase_lite_internal_core_C4Log_log(JNIEnv* env, jclass clazz, jstri
     const char* domain = env->GetStringUTFChars(jdomain, NULL);
     C4LogDomain logDomain = c4log_getDomain(domain, false);
     c4slog(logDomain, (C4LogLevel)jlevel, message);
+    env->ReleaseStringUTFChars(jdomain, domain);
 }
 
 /*

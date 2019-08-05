@@ -103,11 +103,12 @@ final class NativeLibrary {
         else { path += "/" + osName; }
 
         // Arch:
-        String archName = System.getProperty("os.arch");
-        archName = archName.replaceAll("\\W", "");
-        archName = archName.replace("-", "_");
-        if (osName.contains("Windows")) {
-            archName = "x86_64";
+        String archName  = null;
+        if (osName.contains("Windows")) { archName = "x86_64"; }
+        else {
+            archName = System.getProperty("os.arch");
+            archName = archName.replaceAll("\\W", "");
+            archName = archName.replace("-", "_");
         }
         path += '/' + archName;
 
