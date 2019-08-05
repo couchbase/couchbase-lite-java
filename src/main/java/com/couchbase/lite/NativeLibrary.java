@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 final class NativeLibrary {
     private static final String[] LIBRARIES = { "LiteCore", "LiteCoreJNI" };
 
@@ -50,7 +52,7 @@ final class NativeLibrary {
         }
     }
 
-    @NonNull
+    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private static File extractLibrary(@NonNull String libName) throws IOException, InterruptedException {
         final String libResPath = getLibraryResourcePath(libName);
         final String tmpDir = CouchbaseLite.getTmpDirectory(TMP_DIR_NAME);
@@ -63,11 +65,13 @@ final class NativeLibrary {
         }
 
         // Extract the library to the target directory:
-        final InputStream in = NativeLibrary.class.getResourceAsStream(libResPath);
-        if (in == null) { throw new IllegalStateException("Native library not found at " + libResPath); }
-
-        final FileOutputStream out = new FileOutputStream(targetFile);
+        InputStream in = null;
+        FileOutputStream out = null;
         try {
+            in = NativeLibrary.class.getResourceAsStream(libResPath);
+            if (in == null) { throw new IllegalStateException("Native library not found at " + libResPath); }
+
+            out = new FileOutputStream(targetFile);
             final byte[] buffer = new byte[1024];
             int bytesRead = 0;
             while ((bytesRead = in.read(buffer)) != -1) {
@@ -75,8 +79,8 @@ final class NativeLibrary {
             }
         }
         finally {
-            out.close();
-            in.close();
+            if (in != null) { try { in.close(); } catch (IOException e) { } }
+            if (out != null) { try { out.close(); } catch (IOException e) { } }
         }
 
         // On non-windows systems set up permissions for the extracted native library.
@@ -96,13 +100,15 @@ final class NativeLibrary {
         final String osName = System.getProperty("os.name");
         if (osName.contains("Linux")) { path += "/linux"; }
         else if (osName.contains("Mac")) { path += "/osx"; }
-        else if (osName.contains("Windows")) { path += "/windows"; }
-        else { path += '/' + osName.replaceAll("\\W", "").toLowerCase(); }
+        else { path += "/" + osName; }
 
         // Arch:
         String archName = System.getProperty("os.arch");
         archName = archName.replaceAll("\\W", "");
         archName = archName.replace("-", "_");
+        if (osName.contains("Windows")) {
+            archName = "x86_64";
+        }
         path += '/' + archName;
 
         // Platform specific name part of path.
