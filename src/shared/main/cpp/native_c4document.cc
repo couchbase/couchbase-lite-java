@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <algorithm>
 #include <c4Document.h>
 #include <c4.h>
 #include <c4Document+Fleece.h>

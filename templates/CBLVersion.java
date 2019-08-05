@@ -29,7 +29,7 @@ public class CBLVersion {
     private static final String USER_AGENT
         = "CouchbaseLite/@VERSION@ (%s) %s";
     private static final String VERSION_INFO
-        = "CouchbaseLite Android v@VERSION@ (%s at @TIME@ on @HOST@) on %s";
+        = "CouchbaseLite Android v@VERSION@ (%s) %s";
     private static final String LIB_INFO
         = "@VARIANT@/@TYPE@ Build/@BUILD@ Commit/@COMMIT@ Core/%s";
     private static final String SYS_INFO
