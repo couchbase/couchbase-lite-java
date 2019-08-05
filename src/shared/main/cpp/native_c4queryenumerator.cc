@@ -94,7 +94,7 @@ Java_com_couchbase_lite_internal_core_C4QueryEnumerator_refresh(JNIEnv *env, jcl
     C4QueryEnumerator *e = (C4QueryEnumerator *) handle;
     if (e == NULL)
         return 0L;
-    C4Error error = {.code=0};
+    C4Error error = {};
     C4QueryEnumerator *result = c4queryenum_refresh(e, &error);
     // NOTE: if result is null, it indicates no update. it is not error.
     if (error.code != 0)

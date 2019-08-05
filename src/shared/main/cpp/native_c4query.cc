@@ -92,8 +92,8 @@ Java_com_couchbase_lite_internal_core_C4Query_run(JNIEnv *env, jclass clazz,
 
     FLSliceResult *params = (FLSliceResult *) jparameters;
     C4Error error = {};
-    C4QueryEnumerator *e = c4query_run((C4Query *) jquery, &options,
-            (C4Slice){params->buf, params->size}, &error);
+    C4Slice s = { params->buf, params->size };
+    C4QueryEnumerator *e = c4query_run((C4Query *) jquery, &options, s, &error);
     if (!e)
         throwError(env, error);
     return (jlong) e;

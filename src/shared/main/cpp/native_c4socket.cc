@@ -267,15 +267,15 @@ static void socket_dispose(C4Socket *socket) {
     }
 }
 
-static const C4SocketFactory kSocketFactory{
-        //.framing            = kC4WebSocketClientFraming, //kC4NoFraming
-        .framing            = kC4NoFraming, //kC4NoFraming
-        .open               = &socket_open,
-        .write              = &socket_write,
-        .completedReceive   = &socket_completedReceive,
-        .requestClose       = &socket_requestClose,
-        .close              = &socket_close,
-        .dispose            = &socket_dispose,
+static const C4SocketFactory kSocketFactory {
+        kC4NoFraming,               // framing
+        nullptr,                    // context
+        &socket_open,               // open
+        &socket_write,              // write
+        &socket_completedReceive,   // completedReceive
+        &socket_close,              // close
+        &socket_requestClose,       // requestClose
+        &socket_dispose,            // dispose
 };
 
 const C4SocketFactory socket_factory() {
