@@ -78,7 +78,7 @@ public final class MutableDocument extends Document implements MutableDictionary
      * @param data the Map object
      */
     public MutableDocument(String id, Map<String, Object> data) {
-        this(null, id, (C4Document) null);
+        this(null, id, null);
         setData(data);
     }
 
@@ -90,7 +90,10 @@ public final class MutableDocument extends Document implements MutableDictionary
         }
     }
 
-    MutableDocument(String id, Document doc) { this(doc.getDatabase(), id, doc.getC4doc()); }
+    MutableDocument(String id, Document doc) {
+        this(doc.getDatabase(), id, null);
+        setData(doc.getContent().toMap());
+    }
 
     private MutableDocument(Database database, String id, C4Document c4doc) {
         super(database, id != null ? id : createUUID(), c4doc);
