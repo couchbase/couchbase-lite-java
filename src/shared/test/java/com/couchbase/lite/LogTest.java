@@ -12,12 +12,12 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.UUID;
 
-import com.couchbase.lite.internal.core.CBLVersion;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
 
 import static org.junit.Assert.assertEquals;
