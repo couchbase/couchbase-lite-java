@@ -8,7 +8,7 @@ gen/
 out/
 
 # Native build files
-native_build/
+build_native/
 
 # Gradle files
 .gradle/
