@@ -238,13 +238,7 @@ public class LogTest extends BaseTest {
             // this should create two files, as the 1KB logs + extra header
             writeOneKiloByteOfLog();
 
-            int maxRotateCount = config.getMaxRotateCount();
-            int totalFilesShouldBeInDirectory = (maxRotateCount + 1) * 5;
-            if (!isDebugBuild()) {
-                totalFilesShouldBeInDirectory -= 1;
-            }
-            int totalLogFilesSaved = path.listFiles().length;
-            assertEquals(totalFilesShouldBeInDirectory, totalLogFilesSaved);
+            assertEquals((config.getMaxRotateCount() + 1) * 5, path.listFiles().length);
         });
     }
 
@@ -331,12 +325,8 @@ public class LogTest extends BaseTest {
                     BufferedReader fin = new BufferedReader(new FileReader(log));
                     String firstLine = fin.readLine();
 
-                    System.out.println(">>>>>" + firstLine);
-
                     assertNotNull(firstLine);
                     assertTrue(firstLine.contains("CouchbaseLite Android"));
-                    assertTrue(firstLine.contains("Build/"));
-                    assertTrue(firstLine.contains("Commit/"));
                     assertTrue(firstLine.contains("Core/"));
                     assertTrue(firstLine.contains(CBLVersion.getSysInfo()));
                 }

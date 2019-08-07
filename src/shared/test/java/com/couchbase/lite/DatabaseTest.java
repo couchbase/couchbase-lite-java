@@ -1308,17 +1308,9 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testCopy() throws CouchbaseLiteException {
-        // NOTE: On Stack emulator ARM v7a Android API 16, testCopy() test fails with a directory
-        //       operation in the native library. This test can pass with real ARM device with
-        //       API 17. Also it can pass with x86 stack emulator with API 16.
-        if (isAndroidEmulator() && "armv7l".equals(System.getProperty("os.arch"))) {
-            return;
-        }
-
         final int NUM_DOCS = 10;
-
         for (int i = 0; i < NUM_DOCS; i++) {
-            String docID = String.format(Locale.US, "doc_%03d", i);
+            String docID = "doc_" + i;
             MutableDocument doc = new MutableDocument(docID);
             doc.setValue("name", docID);
             byte[] data = docID.getBytes();

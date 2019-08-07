@@ -24,6 +24,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.time.Instant
 import java.util.Stack
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.RejectedExecutionException
@@ -246,13 +247,12 @@ class ExecutionServicesTest {
         // note that only the mainThreadExecutor guarantees execution on a single thread...
         executor.execute { threads[0] = Thread.currentThread() }
 
-        val queuedTime = System.currentTimeMillis()
-
+        var t = System.currentTimeMillis()
         executionService.postDelayedOnExecutor(
                 777,
                 executor,
                 Runnable {
-                    executionTime[0] = System.currentTimeMillis()
+                    t = System.currentTimeMillis() - t
                     threads[1] = Thread.currentThread()
                     finishLatch.countDown()
                 })
@@ -260,7 +260,8 @@ class ExecutionServicesTest {
         try { assertTrue(finishLatch.await(5, TimeUnit.SECONDS)) }
         catch (ignore: InterruptedException) { }
 
-        assertTrue(Math.abs(queuedTime + 777 - executionTime[0]) < 10)
+        // within 10% is good enough
+        assertEquals((t - 777) / 10, 0L)
         assertEquals(threads[0], threads[1])
     }
 
