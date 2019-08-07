@@ -59,8 +59,10 @@ public class EncodingTest extends BaseTest {
         testRoundTrip("Goodbye cruel \uD83D world", ""); // cheshire cat: half missing.
         testRoundTrip("Goodbye cruel \uD83D\uC03A world", ""); // a bad cat
 
-        // Weird: windows is parsing in this case, third byte is illegal without the preceding 4byte char
-        if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
+        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+            // Weird: windows is parsing in this case, third byte is illegal without the preceding 4byte char
+            testRoundTrip("Goodbye cruel \uD83D\uDE3A\uDE3A world"); // a cat and a half
+        } else {
             testRoundTrip("Goodbye cruel \uD83D\uDE3A\uDE3A world", ""); // a cat and a half
         }
     }
