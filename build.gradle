@@ -16,8 +16,6 @@
 // limitations under the License.
 //
 
-import java.time.Instant
-import org.gradle.internal.jvm.Jvm
 import org.gradle.internal.os.OperatingSystem;
 import org.apache.tools.ant.filters.ReplaceTokens
 
@@ -35,9 +33,10 @@ buildscript {
 }
 
 apply plugin: 'com.jfrog.bintray'
-apply plugin: 'kotlin'
 apply plugin: 'cpp'
 apply plugin: 'java-library'
+apply plugin: 'java-library-distribution'
+apply plugin: 'kotlin'
 apply plugin: 'maven-publish'
 
 ext {
