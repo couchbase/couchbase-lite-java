@@ -148,14 +148,13 @@ abstract class AbstractDatabase {
         return getDatabasePath(directory, name).exists();
     }
 
-    public static void copy(
+    protected static void copy(
         @NonNull File path,
         @NonNull String name,
-        @NonNull DatabaseConfiguration config)
+        @NonNull DatabaseConfiguration config,
+        int algorithm,
+        byte[] encryptionKey)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(path, "path");
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(config, "config");
 
         String fromPath = path.getPath();
         if (fromPath.charAt(fromPath.length() - 1) != File.separatorChar) { fromPath += File.separator; }
@@ -172,8 +171,8 @@ abstract class AbstractDatabase {
                 DEFAULT_DATABASE_FLAGS,
                 null,
                 C4Constants.DocumentVersioning.REVISION_TREES,
-                C4Constants.EncryptionAlgorithm.NONE,
-                null);
+                algorithm,
+                encryptionKey);
         }
         catch (LiteCoreException e) {
             FileUtils.deleteRecursive(toPath);
