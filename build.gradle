@@ -15,7 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 import java.time.Instant
+import org.gradle.internal.jvm.Jvm
+import org.gradle.internal.os.OperatingSystem;
 import org.apache.tools.ant.filters.ReplaceTokens
 
 // The Module-level Build File
@@ -38,22 +41,26 @@ apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
 ext {
-    buildHost = 'hostname'.execute().text.trim()
-    buildTime = Instant.now().toString()
+    PROJECT_DIR = "${projectDir}"
+    ROOT_DIR = "${PROJECT_DIR}/.."
+    ETC_DIR = "${PROJECT_DIR}/etc"
+    REPORTS_DIR = "${buildDir}/reports"
+
+    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
+    CBL_CORE_BUILD_DIR = "${CBL_CORE_DIR}/build_cmake"
+    CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/native_build"
+    CBL_NATIVE_LIBRARIES = []
+
+    JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
 }
 
-def homeDir = "${projectDir}"
-def baseDir = "${homeDir}/.."
-def etcDir = "${homeDir}/etc"
-def cblCoreDir = "${baseDir}/couchbase-lite-core"
-
-def cblVersion = file("${baseDir}/version.txt").text.trim()
+def cblVersion = file("${ROOT_DIR}/version.txt").text.trim()
 
 // -PbuildNumber=123
 def buildNum = (!hasProperty("buildNumber")) ? "0" : buildNumber
 
-def buildCommit = 'git rev-parse --short HEAD'.execute([], file(homeDir)).text.trim() +
-    (('git status -uno --porcelain'.execute([], file(homeDir)).text.length() <= 0) ? "" : "+")
+def buildCommit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim() +
+    (('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) ? "" : "+")
 
 group = 'com.couchbase.lite'
 
@@ -62,7 +69,7 @@ task generateCBLVersion(type: Copy) {
     from("${projectDir}/templates/CBLVersion.java") {
         filter(
             ReplaceTokens,
-            tokens: [VERSION: cblVersion, TIME: buildTime, HOST: buildHost, VARIANT: 'CE', TYPE: 'debug', BUILD: buildNum, COMMIT: buildCommit])
+            tokens: [VERSION: cblVersion, VARIANT: 'CE', TYPE: 'debug', BUILD: buildNum, COMMIT: buildCommit])
     }
     into "${projectDir}/src/main/java/com/couchbase/lite/internal/core"
 }
@@ -82,7 +89,7 @@ java {
                 "src/shared/ce/java",               // Shared code between Java and Android (CE Only)
                 "src/shared/main/java",             // Shared code between Java and Android
             ]
-            resources.srcDirs = ["native_build"]    // Native Libraries
+            resources.srcDirs = [CBL_NATIVE_BUILD_DIR]    // Native Libraries
         }
         test {
             java.srcDirs = [
@@ -91,7 +98,7 @@ java {
             ]
             resources.srcDirs = [
                 "src/shared/test/assets",          // Shared test assets between Java and Android
-                "${cblCoreDir}/C/tests/data"       // lite-core test assets
+                "${CBL_CORE_DIR}/C/tests/data"       // lite-core test assets
             ]
         }
     }
@@ -126,37 +133,45 @@ dependencies {
 // For generating JNI headers:
 compileJava.options.compilerArgs += ["-h", "${projectDir}/src/shared/main/cpp"]
 
-// JAVA_HOME:
-def javaHome = org.gradle.internal.jvm.Jvm.current().javaHome
+// UTF-8
+compileJava.options.encoding = "UTF-8"
+compileTestJava.options.encoding = "UTF-8"
 
-// LiteCore:
-def liteCoreDir = "${baseDir}/couchbase-lite-core"
-def liteCoreBuildDir = "${liteCoreDir}/build_cmake"
 
 // Native Components:
 model {
+    platforms {
+        osx {
+            architecture "x86_64"
+            operatingSystem "osx"
+        }
+        windows {
+            architecture "x86_64"
+            operatingSystem "windows"
+        }
+    }
     repositories {
         libs(PrebuiltLibraries) {
             liteCore {
-                headers.srcDir "${liteCoreDir}/C/include"
-                headers.srcDir "${liteCoreDir}/vendor/fleece/API"
-                headers.srcDir "${liteCoreDir}/vendor/fleece/Fleece/Support"
+                headers.srcDir "${CBL_CORE_DIR}/C/include"
+                headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/API"
+                headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/Fleece/Support"
                 binaries.withType(SharedLibraryBinary) {
                     def os = targetPlatform.operatingSystem
-                    def arch = targetPlatform.architecture.name
-                    if (os.macOsX && arch == 'x86-64') {
-                        sharedLibraryFile = file("${liteCoreBuildDir}/macos/libLiteCore.dylib")
-                        setupCopyNativeLibraryTask("CopyLiteCore", sharedLibraryFile, targetPlatform)
+                    if (os.macOsX) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib")
+                    } else if (os.windows) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll")
+                        sharedLibraryLinkFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.lib")
                     }
                 }
             }
             mbedCrypto {
-                headers.srcDir "${liteCoreDir}/vendor/mbedtls/include"
+                headers.srcDir "${CBL_CORE_DIR}/vendor/mbedtls/include"
                 binaries.withType(StaticLibraryBinary) {
                     def os = targetPlatform.operatingSystem
-                    def arch = targetPlatform.architecture.name
-                    if (os.macOsX && arch == 'x86-64') {
-                        staticLibraryFile = file("${liteCoreBuildDir}/macos/vendor/mbedtls/library/libmbedcrypto.a")
+                    if (os.macOsX) {
+                        staticLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/vendor/mbedtls/library/libmbedcrypto.a")
                     }
                 }
             }
@@ -164,6 +179,8 @@ model {
     }
     components {
         LiteCoreJNI(NativeLibrarySpec) {
+            if (OperatingSystem.current().isMacOsX()) targetPlatform "osx"
+            if (OperatingSystem.current().isWindows()) targetPlatform "windows"
             sources {
                 cpp {
                     source {
@@ -171,7 +188,12 @@ model {
                         include "**/*.cc"
                     }
                     lib library: 'liteCore', linkage: 'shared'
-                    lib library: 'mbedCrypto', linkage: 'static'
+
+                    if (OperatingSystem.current().isMacOsX()) {
+                        lib library: 'mbedCrypto', linkage: 'static'
+                    } else {
+                        lib library: 'mbedCrypto', linkage: 'api'
+                    }
                 }
             }
 
@@ -180,48 +202,66 @@ model {
             }
 
             binaries.withType(SharedLibraryBinarySpec) { binary ->
-                setupNativeLibraryTasks(binary.sharedLibraryFile, targetPlatform)
+                setupJNILibraryBuildTasks(binary.sharedLibraryFile, targetPlatform)
             }
 
             binaries.all {
                 if (targetPlatform.operatingSystem.macOsX) {
-                    cppCompiler.args '-I', "${javaHome}/include"
-                    cppCompiler.args '-I', "${javaHome}/include/darwin"
+                    cppCompiler.args '-I', "${JAVA_HOME}/include"
+                    cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
                     cppCompiler.args '-std=c++11'
                     linker.args '-stdlib=libc++'
+                } else if (targetPlatform.operatingSystem.windows) {
+                    cppCompiler.args "-I${JAVA_HOME}/include"
+                    cppCompiler.args "-I${JAVA_HOME}/include/win32"
                 }
             }
         }
     }
 }
 
-def setupNativeLibraryTasks(library, platform) {
+def setupJNILibraryBuildTasks(library, platform) {
     tasks.whenTaskAdded { task ->
         if (task.name == "LiteCoreJNISharedLibrary") {
-            def copyTaskName = "CopyLiteCoreJNI"
-            setupCopyNativeLibraryTask(copyTaskName, library, platform)
-            tasks.named(copyTaskName).get().dependsOn(task)
+            task.dependsOn(compileJava)
+            createCopyNativeLibraryTask(library, platform)
         }
     }
 }
 
-def setupCopyNativeLibraryTask(copyTaskName, library, platform) {
-    def libPath = getLibraryOutputPath(platform)
-    project.task([type: Copy], copyTaskName) {
-        from (library)
-        into "native_build/libs/${libPath}"
+def createCopyNativeLibraryTask(library, targetPlatform) {
+    if (CBL_NATIVE_LIBRARIES.contains(library)) return
+
+    CBL_NATIVE_LIBRARIES.add(library)
+
+    def os = targetPlatform.operatingSystem
+    if (os.macOsX) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib"))
+    } else if (os.windows) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll"))
     }
-    classes.dependsOn(copyTaskName)
+
+    def libPath = getNativeLibraryResourcePath(targetPlatform)
+    def task = tasks.create("copyNativeLibraries", Copy) {
+        from CBL_NATIVE_LIBRARIES
+        into "${CBL_NATIVE_BUILD_DIR}/libs/${libPath}"
+    }
+
+    processResources.dependsOn(task)
+    task.dependsOn(LiteCoreJNISharedLibrary)
 }
 
-def getLibraryOutputPath(platform) {
-    def os = platform.operatingSystem.name
-    def arch = platform.architecture.name.replaceAll("-", "_")
-    def name = platform.name
-    if (name == "windows_amd64" || name == "linux_amd64") {
-        arch = "amd64"
-    }
-    return "${os}/${arch}"
+def getNativeLibraryResourcePath(platform) {
+    def os = ""
+    if (platform.operatingSystem.isMacOsX()) 
+        os = "osx";
+    else if (platform.operatingSystem.isWindows()) 
+        os = "windows"
+    else if (platform.operatingSystem.isLinux()) 
+        os = "linux"
+    else
+        os = platform.operatingSystem.name
+    return "${os}/x86_64"
 }
 
 // ----------------------------------------------------------------
@@ -231,36 +271,28 @@ def getLibraryOutputPath(platform) {
 apply plugin: 'checkstyle'
 checkstyle {
     toolVersion = "8.18"
-
     showViolations true
-
-    configFile file("${etcDir}/checkstyle/checkstyle.xml")
-    configProperties = ['configDir': file("${etcDir}/checkstyle")]
+    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
+    configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
 }
 
 task checkstyle(type: Checkstyle) {
     description 'Checkstyle'
     group 'verification'
 
-    configFile file("${etcDir}/checkstyle/checkstyle.xml")
-    configProperties = ['configDir': file("${etcDir}/checkstyle")]
-
     source sourceSets.main.java.srcDirs
     include '**/*.java'
-
     classpath = files()
-    showViolations true
 
     checkstyleTest.enabled = false
-
     reports {
         xml {
             enabled = true
-            setDestination(file("${reportsDir}/checkstyle.xml"))
+            setDestination(file("${REPORTS_DIR}/checkstyle.xml"))
         }
         html {
             enabled = true
-            setDestination(file("${reportsDir}/reports/checkstyle.html"))
+            setDestination(file("${REPORTS_DIR}/checkstyle.html"))
         }
     }
 }
@@ -271,7 +303,7 @@ task pmd(type: Pmd) {
     description 'PMD'
     group 'verification'
 
-    ruleSetFiles = files("${etcDir}/pmd/pmd.xml")
+    ruleSetFiles = files("${ETC_DIR}/pmd/pmd.xml")
 
     source = sourceSets.main.java.srcDirs
     include '**/*.java'
@@ -281,17 +313,17 @@ task pmd(type: Pmd) {
     reports {
         xml {
             enabled = true
-            setDestination(file("${reportsDir}/reports/pmd.xml"))
+            setDestination(file("${REPORTS_DIR}/pmd.xml"))
         }
         html {
             enabled = true
-            setDestination(file("${reportsDir}/pmd.html"))
+            setDestination(file("${REPORTS_DIR}/pmd.html"))
         }
     }
 }
 
-task smoketest(dependsOn: ['checkstyleMain', 'pmdMain'])
+task smoketest(dependsOn: ['checkstyle', 'pmd'])
+task unitTest(dependsOn: ['smoketest', 'test'])
+task buildCI(dependsOn: ['checkstyle', 'pmd', 'test'])
 
-task checkLocal(dependsOn: ['smoketest', 'test'])
-
-task buildCI(dependsOn: ['checkstyleMain', 'pmdMain', 'test'])
+clean.doLast { delete "${CBL_NATIVE_BUILD_DIR}" }
