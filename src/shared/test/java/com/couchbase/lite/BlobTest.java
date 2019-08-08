@@ -288,13 +288,21 @@ public class BlobTest extends BaseTest {
 
         int len = 0;
         final byte[] buffer = new byte[1024];
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        InputStream inputStream = savedBlob.getContentStream();
-        while ((len = inputStream.read(buffer)) != -1) {
-            out.write(buffer, 0, len);
+
+        ByteArrayOutputStream out = null;
+        InputStream in = null;
+        try {
+            out = new ByteArrayOutputStream();
+            in = savedBlob.getContentStream();
+            while ((len = in.read(buffer)) != -1) {
+                out.write(buffer, 0, len);
+            }
+            byte[] readBytes = out.toByteArray();
+            assertTrue(Arrays.equals(bytes, readBytes));
+        } finally {
+            if (out != null) try { out.close(); } catch (Exception e) { }
+            if (in != null) try { in.close(); } catch (Exception e) { }
         }
-        byte[] readBytes = out.toByteArray();
-        assertTrue(Arrays.equals(bytes, readBytes));
     }
 
     @Test
