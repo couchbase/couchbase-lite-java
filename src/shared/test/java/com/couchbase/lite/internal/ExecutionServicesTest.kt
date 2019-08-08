@@ -239,7 +239,6 @@ class ExecutionServicesTest {
         val finishLatch = CountDownLatch(1)
 
         val threads = arrayOfNulls<Thread>(2)
-        val executionTime = LongArray(1)
 
         val executor = executionService.mainExecutor
 
