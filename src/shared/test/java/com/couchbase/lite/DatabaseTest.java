@@ -1339,19 +1339,24 @@ public class DatabaseTest extends BaseTest {
         SelectResult S_DOCID = SelectResult.expression(Meta.id);
         Query query = QueryBuilder.select(S_DOCID).from(DataSource.database(nudb));
         ResultSet rs = query.execute();
-        for (Result r : rs) {
-            String docID = r.getString(0);
-            assertNotNull(docID);
+        try {
+            for (Result r : rs) {
+                String docID = r.getString(0);
+                assertNotNull(docID);
 
-            Document doc = nudb.getDocument(docID);
-            assertNotNull(doc);
-            assertEquals(docID, doc.getString("name"));
+                Document doc = nudb.getDocument(docID);
+                assertNotNull(doc);
+                assertEquals(docID, doc.getString("name"));
 
-            Blob blob = doc.getBlob("data");
-            assertNotNull(blob);
+                Blob blob = doc.getBlob("data");
+                assertNotNull(blob);
 
-            String data = new String(blob.getContent());
-            assertEquals(docID, data);
+                String data = new String(blob.getContent());
+                assertEquals(docID, data);
+            }
+        } finally {
+            freeResultSet(rs);
+            freeQuery(query);
         }
 
         // Clean up:

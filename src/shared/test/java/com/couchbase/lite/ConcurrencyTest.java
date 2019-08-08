@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.couchbase.lite.utils.Report;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.ConcurrencyUnitTest;
@@ -49,6 +50,7 @@ public class ConcurrencyTest extends BaseTest {
     @Test
     @ConcurrencyUnitTest
     public void testConcurrentCreate() throws CouchbaseLiteException {
+        Database.log.getConsole().setLevel(LogLevel.DEBUG);
         final int kNDocs = 50;
         final int kNThreads = 4;
         final int kWaitInSec = 180;
@@ -456,16 +458,23 @@ public class ConcurrencyTest extends BaseTest {
             10,
             threadIndex -> {
                 ResultSet rs = null;
-
-                try { rs = query.execute(); }
-                catch (CouchbaseLiteException e) { fail(); }
-
-                List<Result> results = rs.allResults();
-
-                assertEquals(100, results.size());
-                assertEquals(db.getCount(), results.size());
+                try {
+                    rs = query.execute();
+                    List<Result> results = rs.allResults();
+                    assertEquals(100, results.size());
+                    assertEquals(db.getCount(), results.size());
+                }
+                catch (CouchbaseLiteException e) {
+                    Report.log(LogLevel.ERROR, "Query Error", e);
+                    fail();
+                }
+                finally {
+                    freeResultSet(rs);
+                }
             },
             180);
+
+        freeQuery(query);
     }
 
     private MutableDocument createDocumentWithTag(String tag) {
@@ -547,11 +556,17 @@ public class ConcurrencyTest extends BaseTest {
         Expression TAG_EXPR = Expression.property("tag");
         SelectResult DOCID = SelectResult.expression(Meta.id);
         DataSource ds = DataSource.database(db);
-        Query q = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = q.execute();
-        Result result;
-        int n = 0;
-        while ((result = rs.next()) != null) { block.verify(++n, result); }
+        Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
+        ResultSet rs = null;
+        try {
+            rs = query.execute();
+            Result result;
+            int n = 0;
+            while ((result = rs.next()) != null) { block.verify(++n, result); }
+        } finally {
+            freeResultSet(rs);
+            freeQuery(query);
+        }
     }
 
     private void verifyByTagName(String tag, int nRows) throws CouchbaseLiteException {
