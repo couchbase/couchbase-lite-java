@@ -251,8 +251,13 @@ public class BlobTest extends BaseTest {
 
         Blob blob = new Blob("application/json", bytes);
         try {
-            String blobToString = "Blob[application/json; 6560 KB]";
-            assertEquals(blob.toString(), blobToString);
+            // The "iTunesMusicLibrary.json has different size on Windowss
+            if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+                assertEquals(blob.toString(), "Blob[application/json; 6572 KB]");
+            }
+            else {
+                assertEquals(blob.toString(), "Blob[application/json; 6560 KB]");
+            }
             assertEquals(blob.getContentStream().read(), bytes[0]);
 
             blob = new Blob("application/json", bytes);
