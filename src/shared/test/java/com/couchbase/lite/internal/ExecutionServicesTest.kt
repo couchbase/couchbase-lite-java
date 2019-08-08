@@ -260,8 +260,8 @@ class ExecutionServicesTest {
         try { assertTrue(finishLatch.await(5, TimeUnit.SECONDS)) }
         catch (ignore: InterruptedException) { }
 
-        // within 10% is good enough
-        assertEquals((t - 777) / 10, 0L)
+        // within 10% is good enough for MacOS (30% for windows)
+        assertEquals((t - 777) / 30, 0L)
         assertEquals(threads[0], threads[1])
     }
 
