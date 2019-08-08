@@ -247,8 +247,9 @@ class ExecutionServicesTest {
         executor.execute { threads[0] = Thread.currentThread() }
 
         var t = System.currentTimeMillis()
+        var delay: Long = 777;
         executionService.postDelayedOnExecutor(
-                777,
+                delay,
                 executor,
                 Runnable {
                     t = System.currentTimeMillis() - t
@@ -259,8 +260,8 @@ class ExecutionServicesTest {
         try { assertTrue(finishLatch.await(5, TimeUnit.SECONDS)) }
         catch (ignore: InterruptedException) { }
 
-        // within ~10% is good enough
-        assertEquals(0L, (t - 777) / 80)
+        // within 10% is good enough
+        assertEquals(0L, (t - delay) / (delay / 10))
         assertEquals(threads[0], threads[1])
     }
 
