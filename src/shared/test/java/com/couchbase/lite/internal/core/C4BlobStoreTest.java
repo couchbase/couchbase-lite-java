@@ -184,13 +184,6 @@ public class C4BlobStoreTest extends C4BaseTest {
         }
     }
 
-    // - create blob, key mismatch
-    @Test
-    public void createBlobKeyMismatch() throws LiteCoreException {
-        // JNI binding does not support
-        // c4blob_create() call with expected key
-    }
-
     // - read blob with stream
     @Test
     public void testReadBlobWithStream() throws LiteCoreException {
@@ -263,6 +256,7 @@ public class C4BlobStoreTest extends C4BaseTest {
             assertTrue(Arrays.equals(readBuf, buf.getBytes()));
         }
         stream.close();
+        reader.close();
 
         key.free();
     }

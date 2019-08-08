@@ -212,13 +212,6 @@ public class C4DatabaseTest extends C4BaseTest {
         }
     }
 
-    // - Database Rekey
-    @Test
-    public void testDatabaseRekey() throws LiteCoreException {
-        // NOTE: C4Database.rekey() does not work with Java because no JNI binding to setup
-        //       BlobStore individually.
-    }
-
     // - "Database AllDocs"
     @Test
     public void testDatabaseAllDocs() throws LiteCoreException {
@@ -384,8 +377,6 @@ public class C4DatabaseTest extends C4BaseTest {
         assertEquals(expire, db.getExpiration(docID));
         assertEquals(expire, db.getExpiration(docID2));
         assertEquals(expire, db.nextDocExpiration());
-
-        // TODO: DB00x - Java does not hava the implementation of c4db_enumerateExpired and c4exp_next yet.
     }
 
     @Test

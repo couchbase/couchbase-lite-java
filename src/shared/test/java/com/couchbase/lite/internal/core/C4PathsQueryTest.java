@@ -10,8 +10,6 @@ import static org.junit.Assert.assertEquals;
 
 
 public class C4PathsQueryTest extends C4QueryBaseTest {
-    C4Query query = null;
-
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
