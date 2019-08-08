@@ -100,6 +100,7 @@ final class NativeLibrary {
         final String osName = System.getProperty("os.name");
         if (osName.contains("Linux")) { path += "/linux"; }
         else if (osName.contains("Mac")) { path += "/osx"; }
+        else if (osName.contains("Windows")) { path += "/windows"; }
         else { path += "/" + osName; }
 
         // Arch:
