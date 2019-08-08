@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.couchbase.lite.utils.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -257,16 +258,10 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testCreateWithCustomDirectory() throws CouchbaseLiteException {
-
-        String dbName = "db";
+        final String dbName = "db";
 
         File dir = new File(getDatabaseDirectory(), "CouchbaseLite");
-        try {
-            Database.delete(dbName, dir);
-        }
-        catch (CouchbaseLiteException ex) {
-        }
-
+        try { Database.delete(dbName, dir); } catch (CouchbaseLiteException e) { }
         assertFalse(Database.exists(dbName, dir));
 
         // create db with custom directory
@@ -282,8 +277,8 @@ public class DatabaseTest extends BaseTest {
             assertEquals(0, db.getCount());
         }
         finally {
-            // delete database
             deleteDatabase(db);
+            FileUtils.cleanDirectory(dir);
         }
     }
 
