@@ -255,32 +255,55 @@ public class BaseTest extends PlatformBaseTest {
         return numbers;
     }
 
+    /* CBL-214 : A workaround for tests to free the Query object. */
+    protected static void freeQuery(Query query) {
+        if (query != null) { ((AbstractQuery) query).free(); }
+    }
+
+    /* CBL-214 : A workaround for tests to free the ResultSet object. */
+    protected static void freeResultSet(ResultSet resultSet) {
+        if (resultSet != null) { resultSet.free(); }
+    }
+
     protected interface QueryResult {
         void check(int n, Result result) throws Exception;
     }
 
-    protected static int verifyQuery(Query query, QueryResult queryResult) throws Exception {
+    protected static int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
-        Result result;
         ResultSet rs = query.execute();
-        while ((result = rs.next()) != null) {
-            n += 1;
-            queryResult.check(n, result);
+        try {
+            Result result;
+            while ((result = rs.next()) != null) {
+                n += 1;
+                queryResult.check(n, result);
+            }
+        } finally {
+            freeResultSet(rs);
         }
         return n;
     }
 
     protected static int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
-        for (Result result : query.execute()) {
-            n += 1;
-            queryResult.check(n, result);
+        ResultSet rs = query.execute();
+        try {
+            for (Result result : rs) {
+                n += 1;
+                queryResult.check(n, result);
+            }
+        } finally {
+            freeResultSet(rs);
         }
         return n;
     }
 
-    protected static int verifyQuery(Query query, QueryResult result, boolean runBoth) throws Exception {
-        int counter1 = verifyQuery(query, result);
+    protected static int verifyQuery(Query query, QueryResult result) throws Exception {
+        return verifyQuery(query, true, result);
+    }
+
+    protected static int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
+        int counter1 = verifyQueryWithEnumerator(query, result);
         if (runBoth) {
             int counter2 = verifyQueryWithIterable(query, result);
             assertEquals(counter1, counter2);

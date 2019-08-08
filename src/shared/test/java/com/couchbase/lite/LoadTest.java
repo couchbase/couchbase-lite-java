@@ -326,12 +326,18 @@ public class LoadTest extends BaseTest {
         Expression TAG_EXPR = Expression.property("tag");
         SelectResult DOCID = SelectResult.expression(Meta.id);
         DataSource ds = DataSource.database(db);
-        Query q = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = q.execute();
-        Result row;
-        int n = 0;
-        while ((row = rs.next()) != null) {
-            block.verify(++n, row);
+        Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
+        ResultSet rs = null;
+        try {
+            rs = query.execute();
+            Result row;
+            int n = 0;
+            while ((row = rs.next()) != null) {
+                block.verify(++n, row);
+            }
+        } finally {
+            freeResultSet(rs);
+            freeQuery(query);
         }
     }
 

@@ -375,7 +375,8 @@ abstract class AbstractQuery implements Query {
         }
     }
 
-    private void free() {
+    /* CBL-214: Make the method internal as a workaround for tests to free the query. */
+    void free() {
         synchronized (lock) {
             if (c4query != null && getDatabase() != null) {
                 synchronized (getDatabase().getLock()) {

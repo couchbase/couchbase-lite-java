@@ -324,9 +324,9 @@ public class LogTest extends BaseTest {
                 for (File log : path.listFiles()) {
                     BufferedReader fin = new BufferedReader(new FileReader(log));
                     String firstLine = fin.readLine();
-
                     assertNotNull(firstLine);
-                    assertTrue(firstLine.contains("CouchbaseLite Android"));
+                    if (isAndroid()) { assertTrue(firstLine.contains("CouchbaseLite Android")); }
+                    else { assertTrue(firstLine.contains("CouchbaseLite Java")); }
                     assertTrue(firstLine.contains("Core/"));
                     assertTrue(firstLine.contains(CBLVersion.getSysInfo()));
                 }
@@ -466,7 +466,14 @@ public class LogTest extends BaseTest {
         save(doc);
 
         Query query = QueryBuilder.select(SelectResult.all()).from(DataSource.database(db));
-        assertEquals(query.execute().allResults().size(), 1);
+        ResultSet rs = null;
+        try {
+            rs = query.execute();
+            assertEquals(rs.allResults().size(), 1);
+        } finally {
+            freeResultSet(rs);
+            freeQuery(query);
+        }
 
         String expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
         boolean found = false;

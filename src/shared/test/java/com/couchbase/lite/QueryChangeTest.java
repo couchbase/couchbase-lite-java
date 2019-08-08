@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -46,12 +48,15 @@ public class QueryChangeTest  extends BaseTest{
                 .select(SelectResult.expression(Meta.id))
                 .from(DataSource.database(db))
                 .where(Expression.property("number1").lessThan(Expression.intValue(5)));
+
+        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
         QueryChangeListener listener = new QueryChangeListener() {
             @Override
             public void changed(QueryChange change) {
                 assertNotNull(change);
                 ResultSet rs = change.getResults();
+                resultSets.add(rs);
                 while ((rs != null) && (rs.next() != null)) { // here
                     query.removeChangeListener(token);
                     token = null;
@@ -61,5 +66,8 @@ public class QueryChangeTest  extends BaseTest{
         };
         token = query.addChangeListener(executor, listener);
         assertTrue(latch.await(2, TimeUnit.SECONDS));
+
+        freeQuery(query);
+        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 }
