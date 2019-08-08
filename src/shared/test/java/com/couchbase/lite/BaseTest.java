@@ -95,13 +95,16 @@ public class BaseTest extends PlatformBaseTest {
 
     @After
     public void tearDown() {
-        try {
-            closeDB();
-            // database exist, delete it
-            deleteDatabase(TEST_DB);
-        }
+        try { closeDB(); }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR,"Failed closing DB: " + TEST_DB, e);
+            fail();
+        }
+
+        try { deleteDatabase(TEST_DB); }
+        catch (CouchbaseLiteException e) {
+            Report.log(LogLevel.ERROR,"Failed deleting DB: " + TEST_DB, e);
+            fail();
         }
 
         // clean dir
@@ -119,8 +122,6 @@ public class BaseTest extends PlatformBaseTest {
     }
 
     protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
-        if (config != null && !config.deleteDatabaseInTearDown()) { return; }
-
         // database exist, delete it
         if (Database.exists(dbName, getDir())) {
             // sometimes, db is still in used, wait for a while. Maximum 3 sec
