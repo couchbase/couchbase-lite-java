@@ -22,24 +22,16 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.couchbase.lite.utils.Config;
 import com.couchbase.lite.utils.IOUtils;
-import com.couchbase.lite.utils.ReplicatorIntegrationTest;
+import com.couchbase.lite.utils.ReplicatorSystemTest;
 
 
 /**
  * Note: https://github.com/couchbase/couchbase-lite-android/tree/master/test/replicator
  */
 public class ReplicatorWithSyncGatewaySSLTest extends BaseReplicatorTest {
-    @Before
-    public void setUp() throws Exception {
-        config = new Config(getAsset(Config.TEST_PROPERTIES_FILE));
-        super.setUp();
-    }
-
     @After
     public void tearDown() { super.tearDown(); }
 
@@ -47,7 +39,7 @@ public class ReplicatorWithSyncGatewaySSLTest extends BaseReplicatorTest {
      * This test assumes an SG is serving SSL at port 4994 with a self-signed cert.
      */
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testSelfSignedSSLFailure() throws InterruptedException, URISyntaxException {
         Endpoint target = getRemoteEndpoint("beer", true);
         ReplicatorConfiguration config = makeConfig(false, true, false, target);
@@ -55,7 +47,7 @@ public class ReplicatorWithSyncGatewaySSLTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testSelfSignedSSLPinned() throws InterruptedException, IOException, URISyntaxException {
         timeout = 180; // seconds
         InputStream is = getAsset("cert.cer"); // this is self-signed certificate. Can not pass with Android platform.

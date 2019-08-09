@@ -25,12 +25,11 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.json.JSONObject;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.couchbase.lite.utils.Config;
-import com.couchbase.lite.utils.ReplicatorIntegrationTest;
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.utils.ReplicatorSystemTest;
 
 
 /**
@@ -39,17 +38,30 @@ import com.couchbase.lite.utils.ReplicatorIntegrationTest;
 public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
+    private String remoteHost;
+
+//    private String remoteHost;
+//    private String remotePort;
+//    private String secureRemotePort;
+
+
     @Before
     public void setUp() throws Exception {
-        config = new Config(getAsset(Config.TEST_PROPERTIES_FILE));
+        super.setUp();
+
+//        remoteHost = System.getenv().get("couchbase.remoteHost");
+//        Preconditions.checkArgNotNull(remoteHost, "couchbase.remoteHost");
+//        remotePort = System.getenv().get("couchbase.remotePort");
+//        Preconditions.checkArgNotNull(remotePort, "couchbase.remotePort");
+//        secureRemotePort = System.getenv().get("couchbase.secureRemotePort");
+//        Preconditions.checkArgNotNull(secureRemotePort, "couchbase.secureRemotePort");
+        remoteHost = System.getenv().get("couchbase.remoteHost");
+        Preconditions.checkArgNotNull(remoteHost, "remoteHost");
         super.setUp();
     }
 
-    @After
-    public void tearDown() { super.tearDown(); }
-
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testEmptyPullFromRemoteDB() throws Exception {
         Endpoint target = getRemoteEndpoint("scratch", false);
         ReplicatorConfiguration config = makeConfig(false, true, false, target);
@@ -57,7 +69,7 @@ public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testAuthenticationFailure() throws Exception {
         Endpoint target = getRemoteEndpoint("seekrit", false);
         ReplicatorConfiguration config = makeConfig(false, true, false, target);
@@ -65,7 +77,7 @@ public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testAuthenticatedPullWithIncorrectPassword() throws Exception {
         Endpoint target = getRemoteEndpoint("seekrit", false);
         ReplicatorConfiguration config = makeConfig(false, true, false, target);
@@ -74,7 +86,7 @@ public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testAuthenticatedPull() throws Exception {
         Endpoint target = getRemoteEndpoint("seekrit", false);
         ReplicatorConfiguration config = makeConfig(false, true, false, target);
@@ -83,7 +95,7 @@ public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testSessionAuthenticatorPull() throws Exception {
         // Obtain Sync-Gateway Session ID
         SessionAuthenticator auth = getSessionAuthenticatorFromSG();
@@ -97,7 +109,7 @@ public class ReplicatorWithSyncGatewayTest extends BaseReplicatorTest {
         // Obtain Sync-Gateway Session ID
         final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         OkHttpClient client = new OkHttpClient();
-        String url = String.format(Locale.ENGLISH, "http://%s:4985/seekrit/_session", config.remoteHost());
+        String url = String.format(Locale.ENGLISH, "http://%s:4985/seekrit/_session", remoteHost);
         RequestBody body = RequestBody.create(JSON, "{\"name\": \"pupshaw\"}");
         Request request = new Request.Builder().url(url).post(body).build();
         Response response = client.newCall(request).execute();

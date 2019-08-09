@@ -17,14 +17,13 @@
 //
 package com.couchbase.lite;
 
-import org.junit.After;
-import org.junit.Before;
-
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
+import org.junit.Before;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.Report;
 
@@ -48,8 +47,9 @@ public class BaseReplicatorTest extends BaseTest {
 
         timeout = 15; // seconds
         otherDB = openDB(OTHERDB);
-        assertTrue(otherDB.isOpen());
+
         assertNotNull(otherDB);
+        assertTrue(otherDB.isOpen());
 
         try { Thread.sleep(500); }
         catch (Exception ignore) { }
@@ -57,15 +57,14 @@ public class BaseReplicatorTest extends BaseTest {
 
     @After
     public void tearDown() {
-        if (!otherDB.isOpen()) {
+        if ((otherDB == null) || !otherDB.isOpen()) {
             Report.log(LogLevel.ERROR, "expected otherDB to be open");
+            return;
         }
 
         try {
-            if (otherDB != null) {
-                otherDB.close();
-                otherDB = null;
-            }
+            otherDB.close();
+            otherDB = null;
             deleteDatabase(OTHERDB);
         }
         catch (CouchbaseLiteException e) {
@@ -74,15 +73,8 @@ public class BaseReplicatorTest extends BaseTest {
 
         super.tearDown();
 
-        try { Thread.sleep(500); } catch (Exception ignore) { }
-    }
-
-    protected URLEndpoint getRemoteEndpoint(String dbName, boolean secure) throws URISyntaxException {
-        String uri = (secure ? "wss://" : "ws://")
-            + config.remoteHost() + ":"
-            + (secure ? config.secureRemotePort() : config.remotePort()) + "/"
-            + dbName;
-        return new URLEndpoint(new URI(uri));
+        try { Thread.sleep(500); }
+        catch (Exception ignore) { }
     }
 
     protected ReplicatorConfiguration makeConfig(boolean push, boolean pull, boolean continuous, Endpoint target) {
@@ -147,7 +139,11 @@ public class BaseReplicatorTest extends BaseTest {
         final Fn.Consumer<Replicator> onReady) {
         repl = r;
 
-        TestReplicatorChangeListener listener = new TestReplicatorChangeListener(r, domain, code, ignoreErrorAtStopped);
+        TestReplicatorChangeListener listener = new TestReplicatorChangeListener(
+            r,
+            domain,
+            code,
+            ignoreErrorAtStopped);
 
         ListenerToken token = repl.addChangeListener(executor, listener);
 
@@ -173,7 +169,9 @@ public class BaseReplicatorTest extends BaseTest {
         ListenerToken token = repl.addChangeListener(
             executor,
             change -> {
-                if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) { latch.countDown(); }
+                if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
+                    latch.countDown();
+                }
             });
         try {
             repl.stop();

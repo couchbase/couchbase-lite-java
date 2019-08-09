@@ -19,7 +19,6 @@ package com.couchbase.lite;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ import org.junit.rules.ExpectedException;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.utils.JsonUtils;
-import com.couchbase.lite.utils.Config;
+import com.couchbase.lite.internal.utils.StringUtils;
 import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Report;
 
@@ -50,10 +49,9 @@ import static org.junit.Assert.fail;
 
 
 public class BaseTest extends PlatformBaseTest {
-    public final static String TAG = "test";
     public final static String TEST_DB = "testdb";
 
-    protected interface Execution {
+    interface Execution {
         void run() throws CouchbaseLiteException;
     }
 
@@ -61,7 +59,54 @@ public class BaseTest extends PlatformBaseTest {
         void validate(final T doc);
     }
 
-    protected Config config;
+    interface QueryResult {
+        void check(int n, Result result) throws Exception;
+    }
+
+    /* CBL-214 : A workaround for tests to free the Query object. */
+    protected static void freeQuery(Query query) {
+        if (query != null) { ((AbstractQuery) query).free(); }
+    }
+
+    /* CBL-214 : A workaround for tests to free the ResultSet object. */
+    protected static void freeResultSet(ResultSet resultSet) {
+        if (resultSet != null) { resultSet.free(); }
+    }
+    static int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
+        int n = 0;
+        ResultSet rs = query.execute();
+        Result result;
+        while ((result = rs.next()) != null) {
+            n += 1;
+            queryResult.check(n, result);
+        }
+        return n;
+    }
+
+    static int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
+        int n = 0;
+        ResultSet rs = query.execute();
+        for (Result result : rs) {
+            n += 1;
+            queryResult.check(n, result);
+        }
+        return n;
+    }
+
+    static int verifyQuery(Query query, QueryResult result) throws Exception {
+        return verifyQuery(query, true, result);
+    }
+
+    static int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
+        int counter1 = verifyQueryWithEnumerator(query, result);
+        if (runBoth) {
+            int counter2 = verifyQueryWithIterable(query, result);
+            assertEquals(counter1, counter2);
+        }
+        return counter1;
+    }
+
+
     protected Database db;
     protected ExecutionService.CloseableExecutor executor;
 
@@ -79,9 +124,6 @@ public class BaseTest extends PlatformBaseTest {
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
-        try { config = new Config(openTestPropertiesFile()); }
-        catch (IOException e) { fail("Failed to load test.properties"); }
-
         setDir(new File(getDatabaseDirectory(), "CouchbaseLiteTest"));
 
         // database exist, delete it
@@ -97,13 +139,13 @@ public class BaseTest extends PlatformBaseTest {
     public void tearDown() {
         try { closeDB(); }
         catch (CouchbaseLiteException e) {
-            Report.log(LogLevel.ERROR,"Failed closing DB: " + TEST_DB, e);
+            Report.log(LogLevel.ERROR, "Failed closing DB: " + TEST_DB, e);
             fail();
         }
 
         try { deleteDatabase(TEST_DB); }
         catch (CouchbaseLiteException e) {
-            Report.log(LogLevel.ERROR,"Failed deleting DB: " + TEST_DB, e);
+            Report.log(LogLevel.ERROR, "Failed deleting DB: " + TEST_DB, e);
             fail();
         }
 
@@ -112,6 +154,34 @@ public class BaseTest extends PlatformBaseTest {
 
         executor.stop(60, TimeUnit.SECONDS);
         executor = null;
+    }
+
+    protected Document save(MutableDocument doc) throws CouchbaseLiteException {
+        db.save(doc);
+        Document savedDoc = db.getDocument(doc.getId());
+        assertNotNull(savedDoc);
+        assertEquals(doc.getId(), savedDoc.getId());
+        return savedDoc;
+    }
+
+    protected Document save(MutableDocument doc, Validator<Document> validator) throws CouchbaseLiteException {
+        validator.validate(doc);
+        db.save(doc);
+        Document savedDoc = db.getDocument(doc.getId());
+        validator.validate(doc);
+        validator.validate(savedDoc);
+        return savedDoc;
+    }
+
+    // helper method to save document
+    protected Document generateDocument(String docID) throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument(docID);
+        doc.setValue("key", 1);
+        save(doc);
+        Document savedDoc = db.getDocument(docID);
+        assertTrue(db.getCount() > 0);
+        assertEquals(1, savedDoc.getSequence());
+        return savedDoc;
     }
 
     protected File getDir() { return dir; }
@@ -194,34 +264,6 @@ public class BaseTest extends PlatformBaseTest {
         }
     }
 
-    protected Document save(MutableDocument doc) throws CouchbaseLiteException {
-        db.save(doc);
-        Document savedDoc = db.getDocument(doc.getId());
-        assertNotNull(savedDoc);
-        assertEquals(doc.getId(), savedDoc.getId());
-        return savedDoc;
-    }
-
-    protected Document save(MutableDocument doc, Validator<Document> validator) throws CouchbaseLiteException {
-        validator.validate(doc);
-        db.save(doc);
-        Document savedDoc = db.getDocument(doc.getId());
-        validator.validate(doc);
-        validator.validate(savedDoc);
-        return savedDoc;
-    }
-
-    // helper method to save document
-    protected Document generateDocument(String docID) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument(docID);
-        doc.setValue("key", 1);
-        save(doc);
-        Document savedDoc = db.getDocument(docID);
-        assertTrue(db.getCount() > 0);
-        assertEquals(1, savedDoc.getSequence());
-        return savedDoc;
-    }
-
     protected String createDocNumbered(int i, int num) throws CouchbaseLiteException {
         String docID = String.format(Locale.ENGLISH, "doc%d", i);
         MutableDocument doc = new MutableDocument(docID);
@@ -253,44 +295,6 @@ public class BaseTest extends PlatformBaseTest {
             }
         });
         return numbers;
-    }
-
-    protected interface QueryResult {
-        void check(int n, Result result) throws Exception;
-    }
-
-    protected static int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        Result result;
-        while ((result = rs.next()) != null) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
-    }
-
-    protected static int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        for (Result result : rs) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
-    }
-
-    protected static int verifyQuery(Query query, QueryResult result) throws Exception {
-        return verifyQuery(query, true, result);
-    }
-
-    protected static int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
-        int counter1 = verifyQueryWithEnumerator(query, result);
-        if (runBoth) {
-            int counter2 = verifyQueryWithIterable(query, result);
-            assertEquals(counter1, counter2);
-        }
-        return counter1;
     }
 
     protected void runSafely(Runnable test) {
@@ -326,9 +330,5 @@ public class BaseTest extends PlatformBaseTest {
             assertEquals(domain, e.getDomain());
             assertEquals(code, e.getCode());
         }
-    }
-
-    private InputStream openTestPropertiesFile() {
-        return getAsset(Config.TEST_PROPERTIES_FILE);
     }
 }

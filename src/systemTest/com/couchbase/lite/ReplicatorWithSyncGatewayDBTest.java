@@ -38,7 +38,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.couchbase.lite.utils.ReplicatorIntegrationTest;
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.utils.ReplicatorSystemTest;
 import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
@@ -60,9 +61,14 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final String DB_NAME = "db";
 
+    private String remoteHost;
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        remoteHost = System.getenv().get("couchbase.remoteHost");
+        Preconditions.checkArgNotNull(remoteHost, "remoteHost");
 
         remoteDeleteDb(DB_NAME);
         remotePutDb(DB_NAME);
@@ -76,7 +82,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testEmptyPushToRemoteDB() throws Exception {
         Endpoint target = getRemoteEndpoint(DB_NAME, false);
         ReplicatorConfiguration config = makeConfig(true, false, false, target);
@@ -84,7 +90,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testPushToRemoteDB() throws Exception {
         // Create 100 docs in local db
         loadJSONResource("names_100.json");
@@ -103,7 +109,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testProgress() throws Exception {
         timeout = 60;
 
@@ -166,7 +172,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
      * 7. Confirm if sync gateway receives some messages
      */
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testContinuousPush() throws Exception {
         loadJSONResource("names_100.json");
 
@@ -178,7 +184,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testChannelPull() throws CouchbaseLiteException, InterruptedException, URISyntaxException {
         assertEquals(0, otherDB.getCount());
         db.inBatch(new Runnable() {
@@ -224,7 +230,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
      * https://github.com/couchbase/couchbase-lite-core/issues/354
      */
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testPushToRemoteDBWithAttachment() throws Exception {
         // store doc with attachment into db.
         {
@@ -287,7 +293,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1545
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testPushDocAndDocChangeListener()
         throws CouchbaseLiteException, URISyntaxException, InterruptedException {
 
@@ -358,7 +364,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testPullReplicateMultipleDocs() throws IOException, URISyntaxException {
         // create multiple documents on sync gateway
         final int N = 10;
@@ -406,7 +412,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     }
 
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testPullConflictDeleteWins_SG() throws Exception {
         URLEndpoint target = getRemoteEndpoint(DB_NAME, false);
 
@@ -447,7 +453,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
     // SG does not support document ID filter with continuous mode
     // Currently CBL ignore the error wight setting  code 26 (Unknown error).
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testDocIDFilterSG() throws Exception {
         URLEndpoint target = getRemoteEndpoint(DB_NAME, false);
 
@@ -475,7 +481,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
 
     // https://github.com/couchbase/couchbase-lite-core/issues/447
     @Test
-    @ReplicatorIntegrationTest
+    @ReplicatorSystemTest
     public void testResetCheckpoint() throws CouchbaseLiteException, InterruptedException, URISyntaxException {
         URLEndpoint target = getRemoteEndpoint(DB_NAME, false);
 
@@ -555,7 +561,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
 
     private boolean remotePutDb(String db) throws IOException {
         OkHttpClient client = new OkHttpClient();
-        String url = String.format(Locale.ENGLISH, "http://%s:4985/%s/", this.config.remoteHost(), db);
+        String url = String.format(Locale.ENGLISH, "http://%s:4985/%s/", remoteHost, db);
         RequestBody body = RequestBody.create(
             JSON,
             "{\"server\": \"walrus:\", \"users\": { \"GUEST\": { \"disabled\": false, \"admin_channels\": [\"*\"] } "
@@ -570,7 +576,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
 
     private boolean remoteDeleteDb(String db) throws IOException {
         OkHttpClient client = new OkHttpClient();
-        String url = String.format(Locale.ENGLISH, "http://%s:4985/%s/", this.config.remoteHost(), db);
+        String url = String.format(Locale.ENGLISH, "http://%s:4985/%s/", remoteHost, db);
         okhttp3.Request request = new okhttp3.Request.Builder()
             .url(url)
             .delete()
@@ -581,7 +587,7 @@ public class ReplicatorWithSyncGatewayDBTest extends BaseReplicatorTest {
 
     private boolean remotePutDb(String db, String docID, String jsonBody) throws IOException {
         OkHttpClient client = new OkHttpClient();
-        String url = String.format(Locale.ENGLISH, "http://%s:4984/%s/%s", this.config.remoteHost(), db, docID);
+        String url = String.format(Locale.ENGLISH, "http://%s:4984/%s/%s", remoteHost, db, docID);
         RequestBody body = RequestBody.create(JSON, jsonBody);
         okhttp3.Request request = new okhttp3.Request.Builder()
             .url(url)
