@@ -34,19 +34,18 @@ import static org.junit.Assert.assertTrue;
 
 
 public class LoadTest extends BaseTest {
-    interface VerifyBlock {
-        void verify(int n, Result result);
-    }
+    private static final int ITERATIONS = 2000;
+
+    interface VerifyBlock { void verify(int n, Result result); }
 
     @Test
     public void testCreate() throws Exception {
         long start = System.currentTimeMillis();
 
-        final int n = numIteration();
         final String tag = "Create";
-        createDocumentNSave(tag, n);
-        verifyByTagName(tag, n);
-        assertEquals(n, db.getCount());
+        createDocumentNSave(tag, ITERATIONS);
+        verifyByTagName(tag, ITERATIONS);
+        assertEquals(ITERATIONS, db.getCount());
 
         logPerformanceStats("testCreate()", (System.currentTimeMillis() - start));
     }
@@ -63,7 +62,6 @@ public class LoadTest extends BaseTest {
     public void testUpdate() throws CouchbaseLiteException {
         long start = System.currentTimeMillis();
 
-        final int n = numIteration();
         final String docID = "doc1";
         String tag = "Create";
 
@@ -77,17 +75,17 @@ public class LoadTest extends BaseTest {
 
         // update doc n times
         tag = "Update";
-        updateDoc(doc, n, tag);
+        updateDoc(doc, ITERATIONS, tag);
 
         // check document
         doc = db.getDocument(docID);
         assertNotNull(doc);
         assertEquals(docID, doc.getId());
         assertEquals(tag, doc.getString("tag"));
-        assertEquals(n, doc.getInt("update"));
+        assertEquals(ITERATIONS, doc.getInt("update"));
 
-        String street = String.format(Locale.ENGLISH, "%d street.", n);
-        String phone = String.format(Locale.ENGLISH, "650-000-%04d", n);
+        String street = String.format(Locale.ENGLISH, "%d street.", ITERATIONS);
+        String phone = String.format(Locale.ENGLISH, "650-000-%04d", ITERATIONS);
         assertEquals(street, doc.getDictionary("address").getString("street"));
         assertEquals(phone, doc.getArray("phones").getString(0));
 
@@ -99,7 +97,6 @@ public class LoadTest extends BaseTest {
     public void testRead() throws CouchbaseLiteException {
         long start = System.currentTimeMillis();
 
-        final int n = numIteration();
         final String docID = "doc1";
         final String tag = "Read";
 
@@ -107,7 +104,7 @@ public class LoadTest extends BaseTest {
         createDocumentNSave(docID, tag);
 
         // read the doc n times
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < ITERATIONS; i++) {
             Document doc = db.getDocument(docID);
             assertNotNull(doc);
             assertEquals(docID, doc.getId());
@@ -122,11 +119,10 @@ public class LoadTest extends BaseTest {
     public void testDelete() throws CouchbaseLiteException {
         long start = System.currentTimeMillis();
 
-        final int n = numIteration();
         final String tag = "Delete";
 
         // create & delete doc n times
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < ITERATIONS; i++) {
             String docID = String.format(Locale.ENGLISH, "doc-%010d", i);
             createDocumentNSave(docID, tag);
             assertEquals(1, db.getCount());
@@ -147,11 +143,10 @@ public class LoadTest extends BaseTest {
         long start = System.currentTimeMillis();
 
         // final int n = 20000; // num of docs;
-        final int n = numIteration(); // NOTE: changed for unit test
         final int m = 100; // num of fields
 
         // Without Batch
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < ITERATIONS; i++) {
             MutableDocument doc = new MutableDocument(String.format(Locale.ENGLISH, "doc-%05d", i));
             for (int j = 0; j < m; j++) {
                 doc.setInt(String.valueOf(j), j);
@@ -164,7 +159,7 @@ public class LoadTest extends BaseTest {
             }
         }
 
-        assertEquals(n, db.getCount());
+        assertEquals(ITERATIONS, db.getCount());
 
         logPerformanceStats("testGlobalReferenceExcceded()", (System.currentTimeMillis() - start));
     }
@@ -350,11 +345,5 @@ public class LoadTest extends BaseTest {
             }
         });
         assertEquals(nRows, count.intValue());
-    }
-
-    private int numIteration() {
-        return (isAndroidEmulator() /*&& isARM()*/)
-            ? 1000 // arm emulator
-            : 2000; // real device
     }
 }

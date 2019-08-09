@@ -26,6 +26,8 @@ import java.io.PrintStream;
  * Platform test class for Java.
  */
 public abstract class PlatformBaseTest implements PlatformTest {
+    public static final String PRODUCT = "Java";
+
 
     @Override
     public void initCouchbaseLite() {
@@ -43,27 +45,6 @@ public abstract class PlatformBaseTest implements PlatformTest {
     }
 
     @Override
-    public boolean isAndroid() {
-        return false;
-    }
-
-    @Override
-    public boolean isAndroidEmulator() {
-        return false;
-    }
-
-    @Override
-    public boolean isDebugBuild() {
-        // How to detect this if we need to run unit tests on release mode?
-        return true;
-    }
-
-    @Override
-    public int getSystemVersion() {
-        return 0;
-    }
-
-    @Override
     public InputStream getAsset(String assetFile) {
         return getClass().getClassLoader().getResourceAsStream(assetFile);
     }
@@ -73,5 +54,4 @@ public abstract class PlatformBaseTest implements PlatformTest {
         ExecutionService executionService = CouchbaseLite.getExecutionService();
         executionService.postDelayedOnExecutor(delayMs, executionService.getMainExecutor(), task);
     }
-
 }

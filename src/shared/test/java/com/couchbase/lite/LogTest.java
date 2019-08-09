@@ -325,8 +325,7 @@ public class LogTest extends BaseTest {
                     BufferedReader fin = new BufferedReader(new FileReader(log));
                     String firstLine = fin.readLine();
                     assertNotNull(firstLine);
-                    if (isAndroid()) { assertTrue(firstLine.contains("CouchbaseLite Android")); }
-                    else { assertTrue(firstLine.contains("CouchbaseLite Java")); }
+                    assertTrue(firstLine.contains("CouchbaseLite " + PlatformBaseTest.PRODUCT));
                     assertTrue(firstLine.contains("Core/"));
                     assertTrue(firstLine.contains(CBLVersion.getSysInfo()));
                 }

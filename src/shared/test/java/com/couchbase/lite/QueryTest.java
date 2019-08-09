@@ -19,12 +19,12 @@ package com.couchbase.lite;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,6 +47,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+
 public class QueryTest extends BaseTest {
     private static Expression EXPR_NUMBER1 = Expression.property("number1");
     private static Expression EXPR_NUMBER2 = Expression.property("number2");
@@ -67,7 +68,7 @@ public class QueryTest extends BaseTest {
     }
 
     private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases)
-            throws Exception {
+        throws Exception {
         for (Object[] c : cases) {
             Expression w = (Expression) c[0];
             String[] documentIDs = (String[]) c[1];
@@ -78,8 +79,7 @@ public class QueryTest extends BaseTest {
                     @Override
                     public void check(int n, Result result) throws Exception {
                         String docID = result.getString(0);
-                        if (docIDList.contains(docID))
-                            docIDList.remove(docID);
+                        if (docIDList.contains(docID)) { docIDList.remove(docID); }
                     }
                 });
                 assertEquals(0, docIDList.size());
@@ -91,11 +91,9 @@ public class QueryTest extends BaseTest {
         }
     }
 
-    private String[] $docids(int... numbers) {
+    private String[] docids(int... numbers) {
         String[] documentIDs = new String[numbers.length];
-        for (int i = 0; i < numbers.length; i++) {
-            documentIDs[i] = "doc" + numbers[i];
-        }
+        for (int i = 0; i < numbers.length; i++) { documentIDs[i] = "doc" + numbers[i]; }
         return documentIDs;
     }
 
@@ -186,8 +184,8 @@ public class QueryTest extends BaseTest {
         // This should get all but the one that has expired
         // and the one that was deleted
         query = QueryBuilder.select(SR_DOCID, SR_EXPIRATION)
-                .from(DataSource.database(db))
-                .where(Meta.expiration.lessThan(Expression.longValue(now + 6000L)));
+            .from(DataSource.database(db))
+            .where(Meta.expiration.lessThan(Expression.longValue(now + 6000L)));
         int rows = verifyQuery(query, false, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception { }
@@ -203,9 +201,9 @@ public class QueryTest extends BaseTest {
         db.save(doc1a);
 
         query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-                .from(DataSource.database(db))
-                .where(Meta.id.equalTo(Expression.string("doc1"))
-                        .and(Meta.deleted.equalTo(Expression.booleanValue(false))));
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(Expression.string("doc1"))
+                .and(Meta.deleted.equalTo(Expression.booleanValue(false))));
         int rows = verifyQuery(query, false, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -226,9 +224,9 @@ public class QueryTest extends BaseTest {
         db.delete(db.getDocument("doc1"));
 
         query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-                .from(DataSource.database(db))
-                .where(Meta.deleted.equalTo(Expression.booleanValue(true))
-                    .and(Meta.id.equalTo(Expression.string("doc1"))));
+            .from(DataSource.database(db))
+            .where(Meta.deleted.equalTo(Expression.booleanValue(true))
+                .and(Meta.id.equalTo(Expression.string("doc1"))));
         int numRows = verifyQuery(query, false, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception { }
@@ -261,16 +259,16 @@ public class QueryTest extends BaseTest {
     @Test
     public void testWhereComparison() throws Exception {
         Object[][] cases = {
-                {EXPR_NUMBER1.lessThan(Expression.intValue(3)), $docids(1, 2)},
-                {EXPR_NUMBER1.greaterThanOrEqualTo(Expression.intValue(3)), $docids(3, 4, 5, 6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.lessThanOrEqualTo(Expression.intValue(3)), $docids(1, 2, 3)},
-                {EXPR_NUMBER1.greaterThan(Expression.intValue(3)), $docids(4, 5, 6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.greaterThan(Expression.intValue(6)), $docids(7, 8, 9, 10)},
-                {EXPR_NUMBER1.lessThanOrEqualTo(Expression.intValue(6)), $docids(1, 2, 3, 4, 5, 6)},
-                {EXPR_NUMBER1.greaterThanOrEqualTo(Expression.intValue(6)), $docids(6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.lessThan(Expression.intValue(6)), $docids(1, 2, 3, 4, 5)},
-                {EXPR_NUMBER1.equalTo(Expression.intValue(7)), $docids(7)},
-                {EXPR_NUMBER1.notEqualTo(Expression.intValue(7)), $docids(1, 2, 3, 4, 5, 6, 8, 9, 10)}
+            {EXPR_NUMBER1.lessThan(Expression.intValue(3)), docids(1, 2)},
+            {EXPR_NUMBER1.greaterThanOrEqualTo(Expression.intValue(3)), docids(3, 4, 5, 6, 7, 8, 9, 10)},
+            {EXPR_NUMBER1.lessThanOrEqualTo(Expression.intValue(3)), docids(1, 2, 3)},
+            {EXPR_NUMBER1.greaterThan(Expression.intValue(3)), docids(4, 5, 6, 7, 8, 9, 10)},
+            {EXPR_NUMBER1.greaterThan(Expression.intValue(6)), docids(7, 8, 9, 10)},
+            {EXPR_NUMBER1.lessThanOrEqualTo(Expression.intValue(6)), docids(1, 2, 3, 4, 5, 6)},
+            {EXPR_NUMBER1.greaterThanOrEqualTo(Expression.intValue(6)), docids(6, 7, 8, 9, 10)},
+            {EXPR_NUMBER1.lessThan(Expression.intValue(6)), docids(1, 2, 3, 4, 5)},
+            {EXPR_NUMBER1.equalTo(Expression.intValue(7)), docids(7)},
+            {EXPR_NUMBER1.notEqualTo(Expression.intValue(7)), docids(1, 2, 3, 4, 5, 6, 8, 9, 10)}
         };
         List<Map<String, Object>> numbers = loadNumbers(10);
         runTestWithNumbers(numbers, cases);
@@ -279,16 +277,46 @@ public class QueryTest extends BaseTest {
     @Test
     public void testWhereArithmetic() throws Exception {
         Object[][] cases = {
-                {EXPR_NUMBER1.multiply(Expression.intValue(2)).greaterThan(Expression.intValue(3)), $docids(2, 3, 4, 5, 6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.divide(Expression.intValue(2)).greaterThan(Expression.intValue(3)), $docids(8, 9, 10)},
-                {EXPR_NUMBER1.modulo(Expression.intValue(2)).equalTo(Expression.intValue(0)), $docids(2, 4, 6, 8, 10)},
-                {EXPR_NUMBER1.add(Expression.intValue(5)).greaterThan(Expression.intValue(10)), $docids(6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.subtract(Expression.intValue(5)).greaterThan(Expression.intValue(0)), $docids(6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.multiply(EXPR_NUMBER2).greaterThan(Expression.intValue(10)), $docids(2, 3, 4, 5, 6, 7, 8)},
-                {EXPR_NUMBER2.divide(EXPR_NUMBER1).greaterThan(Expression.intValue(3)), $docids(1, 2)},
-                {EXPR_NUMBER2.modulo(EXPR_NUMBER1).equalTo(Expression.intValue(0)), $docids(1, 2, 5, 10)},
-                {EXPR_NUMBER1.add(EXPR_NUMBER2).equalTo(Expression.intValue(10)), $docids(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)},
-                {EXPR_NUMBER1.subtract(EXPR_NUMBER2).greaterThan(Expression.intValue(0)), $docids(6, 7, 8, 9, 10)}
+            {
+                EXPR_NUMBER1.multiply(Expression.intValue(2)).greaterThan(Expression.intValue(3)),
+                docids(2, 3, 4, 5, 6, 7, 8, 9, 10)
+            },
+            {
+                EXPR_NUMBER1.divide(Expression.intValue(2)).greaterThan(Expression.intValue(3)),
+                docids(8, 9, 10)
+            },
+            {
+                EXPR_NUMBER1.modulo(Expression.intValue(2)).equalTo(Expression.intValue(0)),
+                docids(2, 4, 6, 8, 10)
+            },
+            {
+                EXPR_NUMBER1.add(Expression.intValue(5)).greaterThan(Expression.intValue(10)),
+                docids(6, 7, 8, 9, 10)
+            },
+            {
+                EXPR_NUMBER1.subtract(Expression.intValue(5)).greaterThan(Expression.intValue(0)),
+                docids(6, 7, 8, 9, 10)
+            },
+            {
+                EXPR_NUMBER1.multiply(EXPR_NUMBER2).greaterThan(Expression.intValue(10)),
+                docids(2, 3, 4, 5, 6, 7, 8)
+            },
+            {
+                EXPR_NUMBER2.divide(EXPR_NUMBER1).greaterThan(Expression.intValue(3)),
+                docids(1, 2)
+            },
+            {
+                EXPR_NUMBER2.modulo(EXPR_NUMBER1).equalTo(Expression.intValue(0)),
+                docids(1, 2, 5, 10)
+            },
+            {
+                EXPR_NUMBER1.add(EXPR_NUMBER2).equalTo(Expression.intValue(10)),
+                docids(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            },
+            {
+                EXPR_NUMBER1.subtract(EXPR_NUMBER2).greaterThan(Expression.intValue(0)),
+                docids(6, 7, 8, 9, 10)
+            }
         };
         List<Map<String, Object>> numbers = loadNumbers(10);
         runTestWithNumbers(numbers, cases);
@@ -297,8 +325,14 @@ public class QueryTest extends BaseTest {
     @Test
     public void testWhereAndOr() throws Exception {
         Object[][] cases = {
-                {EXPR_NUMBER1.greaterThan(Expression.intValue(3)).and(EXPR_NUMBER2.greaterThan(Expression.intValue(3))), $docids(4, 5, 6)},
-                {EXPR_NUMBER1.lessThan(Expression.intValue(3)).or(EXPR_NUMBER2.lessThan(Expression.intValue(3))), $docids(1, 2, 8, 9, 10)}
+            {
+                EXPR_NUMBER1.greaterThan(Expression.intValue(3)).and(EXPR_NUMBER2.greaterThan(Expression.intValue(3))),
+                docids(4, 5, 6)
+            },
+            {
+                EXPR_NUMBER1.lessThan(Expression.intValue(3)).or(EXPR_NUMBER2.lessThan(Expression.intValue(3))),
+                docids(1, 2, 8, 9, 10)
+            }
         };
         List<Map<String, Object>> numbers = loadNumbers(10);
         runTestWithNumbers(numbers, cases);
@@ -324,14 +358,14 @@ public class QueryTest extends BaseTest {
         Expression work = Expression.property("work");
 
         Object[][] cases = {
-                {name.isNullOrMissing(), $docids()},
-                {name.notNullOrMissing(), $docids(1, 2)},
-                {address.isNullOrMissing(), $docids(1)},
-                {address.notNullOrMissing(), $docids(2)},
-                {age.isNullOrMissing(), $docids(1)},
-                {age.notNullOrMissing(), $docids(2)},
-                {work.isNullOrMissing(), $docids(1, 2)},
-                {work.notNullOrMissing(), $docids()},
+            {name.isNullOrMissing(), docids()},
+            {name.notNullOrMissing(), docids(1, 2)},
+            {address.isNullOrMissing(), docids(1)},
+            {address.notNullOrMissing(), docids(2)},
+            {age.isNullOrMissing(), docids(1)},
+            {age.notNullOrMissing(), docids(2)},
+            {work.isNullOrMissing(), docids(1, 2)},
+            {work.notNullOrMissing(), docids()},
         };
 
         for (Object[] c : cases) {
@@ -363,9 +397,9 @@ public class QueryTest extends BaseTest {
         save(doc1);
 
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(DataSource.database(db))
-                .where(Expression.property("string").is(Expression.string("string")));
+            .select(SR_DOCID)
+            .from(DataSource.database(db))
+            .where(Expression.property("string").is(Expression.string("string")));
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -385,9 +419,9 @@ public class QueryTest extends BaseTest {
         save(doc1);
 
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(DataSource.database(db))
-                .where(Expression.property("string").isNot(Expression.string("string1")));
+            .select(SR_DOCID)
+            .from(DataSource.database(db))
+            .where(Expression.property("string").isNot(Expression.string("string1")));
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -403,7 +437,7 @@ public class QueryTest extends BaseTest {
     @Test
     public void testWhereBetween() throws Exception {
         Object[][] cases = {
-                {EXPR_NUMBER1.between(Expression.intValue(3), Expression.intValue(7)), $docids(3, 4, 5, 6, 7)}
+            {EXPR_NUMBER1.between(Expression.intValue(3), Expression.intValue(7)), docids(3, 4, 5, 6, 7)}
         };
         List<Map<String, Object>> numbers = loadNumbers(10);
         runTestWithNumbers(numbers, cases);
@@ -414,20 +448,20 @@ public class QueryTest extends BaseTest {
         loadJSONResource("names_100.json");
 
         final Expression[] expected = {
-                Expression.string("Marcy"),
-                Expression.string("Margaretta"),
-                Expression.string("Margrett"),
-                Expression.string("Marlen"),
-                Expression.string("Maryjo")};
+            Expression.string("Marcy"),
+            Expression.string("Margaretta"),
+            Expression.string("Margrett"),
+            Expression.string("Marlen"),
+            Expression.string("Maryjo")};
 
         DataSource ds = DataSource.database(db);
         Expression exprFirstName = Expression.property("name.first");
         SelectResult srFirstName = SelectResult.property("name.first");
         Ordering orderByFirstName = Ordering.property("name.first");
         query = QueryBuilder.select(srFirstName)
-                .from(ds)
-                .where(exprFirstName.in(expected))
-                .orderBy(orderByFirstName);
+            .from(ds)
+            .where(exprFirstName.in(expected))
+            .orderBy(orderByFirstName);
 
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
@@ -445,10 +479,10 @@ public class QueryTest extends BaseTest {
 
         Expression w = Expression.property("name.first").like(Expression.string("%Mar%"));
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(DataSource.database(db))
-                .where(w)
-                .orderBy(Ordering.property("name.first").ascending());
+            .select(SR_DOCID)
+            .from(DataSource.database(db))
+            .where(w)
+            .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
         int numRows = verifyQuery(query, false, new QueryResult() {
@@ -476,10 +510,10 @@ public class QueryTest extends BaseTest {
 
         Expression w = Expression.property("name.first").regex(Expression.string("^Mar.*"));
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(DataSource.database(db))
-                .where(w)
-                .orderBy(Ordering.property("name.first").ascending());
+            .select(SR_DOCID)
+            .from(DataSource.database(db))
+            .where(w)
+            .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
         int numRows = verifyQuery(query, false, new QueryResult() {
@@ -510,10 +544,10 @@ public class QueryTest extends BaseTest {
         SelectResult S_SENTENCE = SelectResult.property("sentence");
         FullTextExpression SENTENCE = FullTextExpression.index("sentence");
         query = QueryBuilder
-                .select(SR_DOCID, S_SENTENCE)
-                .from(DataSource.database(db))
-                .where(SENTENCE.match("'Dummie woman'"))
-                .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
+            .select(SR_DOCID, S_SENTENCE)
+            .from(DataSource.database(db))
+            .where(SENTENCE.match("'Dummie woman'"))
+            .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
 
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
@@ -532,10 +566,8 @@ public class QueryTest extends BaseTest {
         boolean[] cases = {true, false};
         for (final boolean ascending : cases) {
             Ordering o;
-            if (ascending)
-                o = Ordering.expression(Expression.property("name.first")).ascending();
-            else
-                o = Ordering.expression(Expression.property("name.first")).descending();
+            if (ascending) { o = Ordering.expression(Expression.property("name.first")).ascending(); }
+            else { o = Ordering.expression(Expression.property("name.first")).descending(); }
 
             Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).orderBy(o);
             final List<String> firstNames = new ArrayList<String>();
@@ -708,11 +740,11 @@ public class QueryTest extends BaseTest {
         Ordering ordering = Ordering.expression(state);
 
         Query query = QueryBuilder
-                .select(rsState, rsCount, rsMaxZip)
-                .from(ds)
-                .where(gender.equalTo(Expression.string("female")))
-                .groupBy(groupByExpr)
-                .orderBy(ordering);
+            .select(rsState, rsCount, rsMaxZip)
+            .from(ds)
+            .where(gender.equalTo(Expression.string("female")))
+            .groupBy(groupByExpr)
+            .orderBy(ordering);
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
@@ -741,12 +773,12 @@ public class QueryTest extends BaseTest {
         Expression havingExpr = count.greaterThan(Expression.intValue(1));
 
         query = QueryBuilder
-                .select(rsState, rsCount, rsMaxZip)
-                .from(ds)
-                .where(gender.equalTo(Expression.string("female")))
-                .groupBy(groupByExpr)
-                .having(havingExpr)
-                .orderBy(ordering);
+            .select(rsState, rsCount, rsMaxZip)
+            .from(ds)
+            .where(gender.equalTo(Expression.string("female")))
+            .groupBy(groupByExpr)
+            .having(havingExpr)
+            .orderBy(ordering);
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
@@ -781,13 +813,13 @@ public class QueryTest extends BaseTest {
         Ordering ordering = Ordering.expression(EXPR_NUMBER1);
 
         query = QueryBuilder
-                .select(SR_NUMBER1)
-                .from(dataSource)
-                .where(EXPR_NUMBER1.between(paramN1, paramN2))
-                .orderBy(ordering);
+            .select(SR_NUMBER1)
+            .from(dataSource)
+            .where(EXPR_NUMBER1.between(paramN1, paramN2))
+            .orderBy(ordering);
         Parameters params = new Parameters(query.getParameters())
-                .setValue("num1", 2)
-                .setValue("num2", 5);
+            .setValue("num1", 2)
+            .setValue("num2", 5);
         query.setParameters(params);
 
         final long[] expectedNumbers = {2, 3, 4, 5};
@@ -808,9 +840,9 @@ public class QueryTest extends BaseTest {
         DataSource dataSource = DataSource.database(this.db);
 
         query = QueryBuilder
-                .select(SR_DOCID, SR_SEQUENCE, SR_NUMBER1)
-                .from(dataSource)
-                .orderBy(Ordering.expression(Meta.sequence));
+            .select(SR_DOCID, SR_SEQUENCE, SR_NUMBER1)
+            .from(dataSource)
+            .orderBy(Ordering.expression(Meta.sequence));
 
         final String[] expectedDocIDs = {"doc1", "doc2", "doc3", "doc4", "doc5"};
         final long[] expectedSeqs = {1, 2, 3, 4, 5};
@@ -854,10 +886,10 @@ public class QueryTest extends BaseTest {
         DataSource dataSource = DataSource.database(this.db);
 
         Query query = QueryBuilder
-                .select(SR_NUMBER1)
-                .from(dataSource)
-                .orderBy(Ordering.expression(EXPR_NUMBER1))
-                .limit(Expression.intValue(5));
+            .select(SR_NUMBER1)
+            .from(dataSource)
+            .orderBy(Ordering.expression(EXPR_NUMBER1))
+            .limit(Expression.intValue(5));
         try {
             final long[] expectedNumbers = {1, 2, 3, 4, 5};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -875,10 +907,10 @@ public class QueryTest extends BaseTest {
 
         Expression paramExpr = Expression.parameter("LIMIT_NUM");
         query = QueryBuilder
-                .select(SR_NUMBER1)
-                .from(dataSource)
-                .orderBy(Ordering.expression(EXPR_NUMBER1))
-                .limit(paramExpr);
+            .select(SR_NUMBER1)
+            .from(dataSource)
+            .orderBy(Ordering.expression(EXPR_NUMBER1))
+            .limit(paramExpr);
         Parameters params = new Parameters(query.getParameters()).setValue("LIMIT_NUM", 3);
         query.setParameters(params);
 
@@ -905,10 +937,10 @@ public class QueryTest extends BaseTest {
         DataSource dataSource = DataSource.database(this.db);
 
         Query query = QueryBuilder
-                .select(SR_NUMBER1)
-                .from(dataSource)
-                .orderBy(Ordering.expression(EXPR_NUMBER1))
-                .limit(Expression.intValue(5), Expression.intValue(3));
+            .select(SR_NUMBER1)
+            .from(dataSource)
+            .orderBy(Ordering.expression(EXPR_NUMBER1))
+            .limit(Expression.intValue(5), Expression.intValue(3));
         try {
             final long[] expectedNumbers = {4, 5, 6, 7, 8};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -927,13 +959,13 @@ public class QueryTest extends BaseTest {
         Expression paramLimitExpr = Expression.parameter("LIMIT_NUM");
         Expression paramOffsetExpr = Expression.parameter("OFFSET_NUM");
         query = QueryBuilder
-                .select(SR_NUMBER1)
-                .from(dataSource)
-                .orderBy(Ordering.expression(EXPR_NUMBER1))
-                .limit(paramLimitExpr, paramOffsetExpr);
+            .select(SR_NUMBER1)
+            .from(dataSource)
+            .orderBy(Ordering.expression(EXPR_NUMBER1))
+            .limit(paramLimitExpr, paramOffsetExpr);
         Parameters params = new Parameters(query.getParameters())
-                .setValue("LIMIT_NUM", 3)
-                .setValue("OFFSET_NUM", 5);
+            .setValue("LIMIT_NUM", 3)
+            .setValue("OFFSET_NUM", 5);
         query.setParameters(params);
         try {
             final long[] expectedNumbers2 = {6, 7, 8};
@@ -963,8 +995,8 @@ public class QueryTest extends BaseTest {
         DataSource DS = DataSource.database(db);
 
         query = QueryBuilder
-                .select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
-                .from(DS);
+            .select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
+            .from(DS);
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -997,8 +1029,8 @@ public class QueryTest extends BaseTest {
         SelectResult RES_SUM = SelectResult.expression(SUM).as("sum");
 
         query = QueryBuilder
-                .select(RES_AVG, RES_CNT, RES_MIN, RES_MAX, RES_SUM)
-                .from(DS);
+            .select(RES_AVG, RES_CNT, RES_MIN, RES_MAX, RES_SUM)
+            .from(DS);
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -1024,12 +1056,12 @@ public class QueryTest extends BaseTest {
 
         // ANY:
         Query query = QueryBuilder
-                .select(SR_DOCID)
-                .from(ds)
-                .where(ArrayExpression
-                        .any(exprVarLike)
-                        .in(exprLikes)
-                        .satisfies(exprVarLike.equalTo(Expression.string("climbing"))));
+            .select(SR_DOCID)
+            .from(ds)
+            .where(ArrayExpression
+                .any(exprVarLike)
+                .in(exprLikes)
+                .satisfies(exprVarLike.equalTo(Expression.string("climbing"))));
         try {
             final AtomicInteger i = new AtomicInteger(0);
             final String[] expected = {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
@@ -1047,18 +1079,17 @@ public class QueryTest extends BaseTest {
 
         // EVERY:
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(ds)
-                .where(ArrayExpression
-                        .every(ArrayExpression.variable("LIKE"))
-                        .in(exprLikes)
-                        .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
+            .select(SR_DOCID)
+            .from(ds)
+            .where(ArrayExpression
+                .every(ArrayExpression.variable("LIKE"))
+                .in(exprLikes)
+                .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
                 public void check(int n, Result result) throws Exception {
-                    if (n == 1)
-                        assertEquals("doc-007", result.getString(0));
+                    if (n == 1) { assertEquals("doc-007", result.getString(0)); }
                 }
             });
             assertEquals(42, numRows);
@@ -1069,12 +1100,12 @@ public class QueryTest extends BaseTest {
 
         // ANY AND EVERY:
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(ds)
-                .where(ArrayExpression
-                        .anyAndEvery(ArrayExpression.variable("LIKE"))
-                        .in(exprLikes)
-                        .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
+            .select(SR_DOCID)
+            .from(ds)
+            .where(ArrayExpression
+                .anyAndEvery(ArrayExpression.variable("LIKE"))
+                .in(exprLikes)
+                .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
@@ -1175,8 +1206,8 @@ public class QueryTest extends BaseTest {
 
         thrown.expect(IllegalArgumentException.class);
         Expression expression1 = ArrayFunction.contains(
-                null,
-                Expression.string("650-123-0001")
+            null,
+            Expression.string("650-123-0001")
         );
 
         thrown.expect(IllegalArgumentException.class);
@@ -1195,60 +1226,60 @@ public class QueryTest extends BaseTest {
         save(doc);
 
         final Double[] expectedValues = {
-                Math.abs(num),
-                Math.acos(num),
-                Math.asin(num),
-                Math.atan(num),
-                Math.atan2(num, 90.0), // NOTE: Math.atan2(double y, double x);
-                Math.ceil(num),
-                Math.cos(num),
-                num * 180.0 / Math.PI,
-                Math.exp(num),
-                Math.floor(num),
-                Math.log(num),
-                Math.log10(num),
-                Math.pow(num, 2),
-                num * Math.PI / 180.0,
-                (double) Math.round(num),
-                Math.round(num * 10.0) / 10.0,
-                (double) 1,
-                Math.sin(num),
-                Math.sqrt(num),
-                Math.tan(num),
-                (double) 0,
-                0.6
+            Math.abs(num),
+            Math.acos(num),
+            Math.asin(num),
+            Math.atan(num),
+            Math.atan2(num, 90.0), // NOTE: Math.atan2(double y, double x);
+            Math.ceil(num),
+            Math.cos(num),
+            num * 180.0 / Math.PI,
+            Math.exp(num),
+            Math.floor(num),
+            Math.log(num),
+            Math.log10(num),
+            Math.pow(num, 2),
+            num * Math.PI / 180.0,
+            (double) Math.round(num),
+            Math.round(num * 10.0) / 10.0,
+            (double) 1,
+            Math.sin(num),
+            Math.sqrt(num),
+            Math.tan(num),
+            (double) 0,
+            0.6
         };
 
         Expression p = Expression.property("number");
         List<Expression> functions = Arrays.asList(
-                Function.abs(p),
-                Function.acos(p),
-                Function.asin(p),
-                Function.atan(p),
-                Function.atan2(Expression.doubleValue(90.0), Expression.doubleValue(num)),
-                Function.ceil(p),
-                Function.cos(p),
-                Function.degrees(p),
-                Function.exp(p),
-                Function.floor(p),
-                Function.ln(p),
-                Function.log(p),
-                Function.power(p, Expression.intValue(2)),
-                Function.radians(p),
-                Function.round(p),
-                Function.round(p, Expression.intValue(1)),
-                Function.sign(p),
-                Function.sin(p),
-                Function.sqrt(p),
-                Function.tan(p),
-                Function.trunc(p),
-                Function.trunc(p, Expression.intValue(1))
+            Function.abs(p),
+            Function.acos(p),
+            Function.asin(p),
+            Function.atan(p),
+            Function.atan2(Expression.doubleValue(90.0), Expression.doubleValue(num)),
+            Function.ceil(p),
+            Function.cos(p),
+            Function.degrees(p),
+            Function.exp(p),
+            Function.floor(p),
+            Function.ln(p),
+            Function.log(p),
+            Function.power(p, Expression.intValue(2)),
+            Function.radians(p),
+            Function.round(p),
+            Function.round(p, Expression.intValue(1)),
+            Function.sign(p),
+            Function.sin(p),
+            Function.sqrt(p),
+            Function.tan(p),
+            Function.trunc(p),
+            Function.trunc(p, Expression.intValue(1))
         );
         final AtomicInteger index = new AtomicInteger(0);
         for (Expression f : functions) {
             Query query = QueryBuilder
-                    .select(SelectResult.expression(f))
-                    .from(DataSource.database(db));
+                .select(SelectResult.expression(f))
+                .from(DataSource.database(db));
             try {
                 int numRows = verifyQuery(query, new QueryResult() {
                     @Override
@@ -1322,12 +1353,12 @@ public class QueryTest extends BaseTest {
         Expression fnUpper = Function.upper(prop);
 
         query = QueryBuilder.select(
-                SelectResult.expression(fnLower),
-                SelectResult.expression(fnLTrim),
-                SelectResult.expression(fnRTrim),
-                SelectResult.expression(fnTrim),
-                SelectResult.expression(fnUpper))
-                .from(ds);
+            SelectResult.expression(fnLower),
+            SelectResult.expression(fnLTrim),
+            SelectResult.expression(fnRTrim),
+            SelectResult.expression(fnTrim),
+            SelectResult.expression(fnUpper))
+            .from(ds);
 
         try {
             int numRows = verifyQuery(query, new QueryResult() {
@@ -1460,13 +1491,13 @@ public class QueryTest extends BaseTest {
 
         // Without locale:
         Collation NO_LOCALE = Collation.unicode()
-                .locale(null)
-                .ignoreCase(false)
-                .ignoreAccents(false);
+            .locale(null)
+            .ignoreCase(false)
+            .ignoreAccents(false);
 
         Query query = QueryBuilder.select(S_STRING)
-                .from(DataSource.database(db))
-                .orderBy(Ordering.expression(STRING.collate(NO_LOCALE)));
+            .from(DataSource.database(db))
+            .orderBy(Ordering.expression(STRING.collate(NO_LOCALE)));
         try {
             final String[] expected = {"A", "Å", "B", "Z"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -1484,13 +1515,13 @@ public class QueryTest extends BaseTest {
         // Spanish
         // With locale:
         Collation WITH_LOCALE = Collation.unicode()
-                .locale("es")
-                .ignoreCase(false)
-                .ignoreAccents(false);
+            .locale("es")
+            .ignoreCase(false)
+            .ignoreAccents(false);
 
         query = QueryBuilder.select(S_STRING)
-                .from(DataSource.database(db))
-                .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
+            .from(DataSource.database(db))
+            .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
         try {
             final String[] expected2 = {"A", "Å", "B", "Z"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -1505,32 +1536,30 @@ public class QueryTest extends BaseTest {
             freeQuery(query);
         }
 
-        // NOTE: Android API 16 - 22, ICU does not support Locale "se"
-        if (isAndroid() && getSystemVersion() >= 23 /* Build.VERSION_CODES.M */) {
-            // With locale:
-            WITH_LOCALE = Collation.unicode()
-                    .locale("se")
-                    .ignoreCase(false)
-                    .ignoreAccents(false);
+        // With locale:
+        WITH_LOCALE = Collation.unicode()
+            .locale("se")
+            .ignoreCase(false)
+            .ignoreAccents(false);
 
-            query = QueryBuilder.select(S_STRING)
-                    .from(DataSource.database(db))
-                    .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
-            try {
-                final String[] expected2 = {"A", "B", "Z", "Å"};
-                int numRows = verifyQuery(query, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        assertEquals(expected2[n - 1], result.getString(0));
-                    }
-                });
-                assertEquals(expected2.length, numRows);
-            }
-            finally {
-                freeQuery(query);
-            }
+        query = QueryBuilder.select(S_STRING)
+            .from(DataSource.database(db))
+            .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
+        try {
+            final String[] expected2 = {"A", "B", "Z", "Å"};
+            int numRows = verifyQuery(query, new QueryResult() {
+                @Override
+                public void check(int n, Result result) throws Exception {
+                    assertEquals(expected2[n - 1], result.getString(0));
+                }
+            });
+            assertEquals(expected2.length, numRows);
+        }
+        finally {
+            freeQuery(query);
         }
     }
+
 
     @Test
     public void testCompareWithUnicodeCollation() throws Exception {
@@ -1540,70 +1569,70 @@ public class QueryTest extends BaseTest {
         Collation noSensitive = Collation.unicode().locale(null).ignoreCase(true).ignoreAccents(true);
 
         List<List<Object>> testData = new ArrayList<>(
-                Arrays.asList(
-                        // Edge cases: empty and 1-char strings:
-                        Arrays.asList("", "", true, bothSensitive),
-                        Arrays.asList("", "a", false, bothSensitive),
-                        Arrays.asList("a", "a", true, bothSensitive),
+            Arrays.asList(
+                // Edge cases: empty and 1-char strings:
+                Arrays.asList("", "", true, bothSensitive),
+                Arrays.asList("", "a", false, bothSensitive),
+                Arrays.asList("a", "a", true, bothSensitive),
 
-                        // Case sensitive: lowercase come first by unicode rules:
-                        Arrays.asList("a", "A", false, bothSensitive),
-                        Arrays.asList("abc", "abc", true, bothSensitive),
-                        Arrays.asList("Aaa", "abc", false, bothSensitive),
-                        Arrays.asList("abc", "abC", false, bothSensitive),
-                        Arrays.asList("AB", "abc", false, bothSensitive),
+                // Case sensitive: lowercase come first by unicode rules:
+                Arrays.asList("a", "A", false, bothSensitive),
+                Arrays.asList("abc", "abc", true, bothSensitive),
+                Arrays.asList("Aaa", "abc", false, bothSensitive),
+                Arrays.asList("abc", "abC", false, bothSensitive),
+                Arrays.asList("AB", "abc", false, bothSensitive),
 
-                        // Case insenstive:
-                        Arrays.asList("ABCDEF", "ZYXWVU", false, accentSensitive),
-                        Arrays.asList("ABCDEF", "Z", false, accentSensitive),
+                // Case insenstive:
+                Arrays.asList("ABCDEF", "ZYXWVU", false, accentSensitive),
+                Arrays.asList("ABCDEF", "Z", false, accentSensitive),
 
-                        Arrays.asList("a", "A", true, accentSensitive),
-                        Arrays.asList("abc", "ABC", true, accentSensitive),
-                        Arrays.asList("ABA", "abc", false, accentSensitive),
+                Arrays.asList("a", "A", true, accentSensitive),
+                Arrays.asList("abc", "ABC", true, accentSensitive),
+                Arrays.asList("ABA", "abc", false, accentSensitive),
 
-                        Arrays.asList("commonprefix1", "commonprefix2", false, accentSensitive),
-                        Arrays.asList("commonPrefix1", "commonprefix2", false, accentSensitive),
+                Arrays.asList("commonprefix1", "commonprefix2", false, accentSensitive),
+                Arrays.asList("commonPrefix1", "commonprefix2", false, accentSensitive),
 
-                        Arrays.asList("abcdef", "abcdefghijklm", false, accentSensitive),
-                        Arrays.asList("abcdeF", "abcdefghijklm", false, accentSensitive),
+                Arrays.asList("abcdef", "abcdefghijklm", false, accentSensitive),
+                Arrays.asList("abcdeF", "abcdefghijklm", false, accentSensitive),
 
-                        // Now bring in non-ASCII characters:
-                        Arrays.asList("a", "á", false, accentSensitive),
-                        Arrays.asList("", "á", false, accentSensitive),
-                        Arrays.asList("á", "á", true, accentSensitive),
-                        Arrays.asList("•a", "•A", true, accentSensitive),
+                // Now bring in non-ASCII characters:
+                Arrays.asList("a", "á", false, accentSensitive),
+                Arrays.asList("", "á", false, accentSensitive),
+                Arrays.asList("á", "á", true, accentSensitive),
+                Arrays.asList("•a", "•A", true, accentSensitive),
 
-                        Arrays.asList("test a", "test á", false, accentSensitive),
-                        Arrays.asList("test á", "test b", false, accentSensitive),
-                        Arrays.asList("test á", "test Á", true, accentSensitive),
-                        Arrays.asList("test á1", "test Á2", false, accentSensitive),
+                Arrays.asList("test a", "test á", false, accentSensitive),
+                Arrays.asList("test á", "test b", false, accentSensitive),
+                Arrays.asList("test á", "test Á", true, accentSensitive),
+                Arrays.asList("test á1", "test Á2", false, accentSensitive),
 
-                        // Case sensitive, diacritic sensitive:
-                        Arrays.asList("ABCDEF", "ZYXWVU", false, bothSensitive),
-                        Arrays.asList("ABCDEF", "Z", false, bothSensitive),
-                        Arrays.asList("a", "A", false, bothSensitive),
-                        Arrays.asList("abc", "ABC", false, bothSensitive),
-                        Arrays.asList("•a", "•A", false, bothSensitive),
-                        Arrays.asList("test a", "test á", false, bothSensitive),
-                        Arrays.asList("Ähnlichkeit", "apple", false, bothSensitive), // Because 'h'-vs-'p' beats 'Ä'-vs-'a'
-                        Arrays.asList("ax", "Äz", false, bothSensitive),
-                        Arrays.asList("test a", "test Á", false, bothSensitive),
-                        Arrays.asList("test Á", "test e", false, bothSensitive),
-                        Arrays.asList("test á", "test Á", false, bothSensitive),
-                        Arrays.asList("test á", "test b", false, bothSensitive),
-                        Arrays.asList("test u", "test Ü", false, bothSensitive),
+                // Case sensitive, diacritic sensitive:
+                Arrays.asList("ABCDEF", "ZYXWVU", false, bothSensitive),
+                Arrays.asList("ABCDEF", "Z", false, bothSensitive),
+                Arrays.asList("a", "A", false, bothSensitive),
+                Arrays.asList("abc", "ABC", false, bothSensitive),
+                Arrays.asList("•a", "•A", false, bothSensitive),
+                Arrays.asList("test a", "test á", false, bothSensitive),
+                Arrays.asList("Ähnlichkeit", "apple", false, bothSensitive), // Because 'h'-vs-'p' beats 'Ä'-vs-'a'
+                Arrays.asList("ax", "Äz", false, bothSensitive),
+                Arrays.asList("test a", "test Á", false, bothSensitive),
+                Arrays.asList("test Á", "test e", false, bothSensitive),
+                Arrays.asList("test á", "test Á", false, bothSensitive),
+                Arrays.asList("test á", "test b", false, bothSensitive),
+                Arrays.asList("test u", "test Ü", false, bothSensitive),
 
-                        // Case sensitive, diacritic insensitive
-                        Arrays.asList("abc", "ABC", false, caseSensitive),
-                        Arrays.asList("test á", "test a", true, caseSensitive),
-                        Arrays.asList("test a", "test á", true, caseSensitive),
-                        Arrays.asList("test á", "test A", false, caseSensitive),
-                        Arrays.asList("test á", "test b", false, caseSensitive),
-                        Arrays.asList("test á", "test Á", false, caseSensitive),
+                // Case sensitive, diacritic insensitive
+                Arrays.asList("abc", "ABC", false, caseSensitive),
+                Arrays.asList("test á", "test a", true, caseSensitive),
+                Arrays.asList("test a", "test á", true, caseSensitive),
+                Arrays.asList("test á", "test A", false, caseSensitive),
+                Arrays.asList("test á", "test b", false, caseSensitive),
+                Arrays.asList("test á", "test Á", false, caseSensitive),
 
-                        // Case and diacritic insensitive
-                        Arrays.asList("test á", "test Á", true, noSensitive)
-                )
+                // Case and diacritic insensitive
+                Arrays.asList("test á", "test Á", true, noSensitive)
+            )
         );
 
         for (List<Object> data : testData) {
@@ -1613,8 +1642,8 @@ public class QueryTest extends BaseTest {
 
             Expression VALUE = Expression.property("value");
             Expression comparison = (Boolean) data.get(2) == true ?
-                    VALUE.collate((Collation) data.get(3)).equalTo(Expression.value(data.get(1))) :
-                    VALUE.collate((Collation) data.get(3)).lessThan(Expression.value(data.get(1)));
+                VALUE.collate((Collation) data.get(3)).equalTo(Expression.value(data.get(1))) :
+                VALUE.collate((Collation) data.get(3)).lessThan(Expression.value(data.get(1)));
 
             Query query = QueryBuilder.select().from(DataSource.database(db)).where(comparison);
             try {
@@ -1639,10 +1668,10 @@ public class QueryTest extends BaseTest {
         loadNumbers(100);
 
         query = QueryBuilder
-                .select(SR_DOCID)
-                .from(DataSource.database(db))
-                .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
-                .orderBy(Ordering.property("number1").ascending());
+            .select(SR_DOCID)
+            .from(DataSource.database(db))
+            .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
+            .orderBy(Ordering.property("number1").ascending());
 
         final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(2);
@@ -1655,10 +1684,10 @@ public class QueryTest extends BaseTest {
                 resultSets.add(rs);
                 if (latch.getCount() == 2) {
                     int count = 0;
-                    while (rs.next() != null)
-                        count++;
+                    while (rs.next() != null) { count++; }
                     assertEquals(9, count);
-                } else if (latch.getCount() == 1) {
+                }
+                else if (latch.getCount() == 1) {
                     Result result;
                     int count = 0;
                     while ((result = rs.next()) != null) {
@@ -1681,14 +1710,16 @@ public class QueryTest extends BaseTest {
                 public void run() {
                     try {
                         createDocNumbered(-1, 100);
-                    } catch (CouchbaseLiteException e) {
+                    }
+                    catch (CouchbaseLiteException e) {
                         throw new RuntimeException(e);
                     }
                 }
             });
             // wait till listener is called
             assertTrue(latch.await(20, TimeUnit.SECONDS));
-        } finally {
+        }
+        finally {
             query.removeChangeListener(token);
             for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
@@ -1708,10 +1739,10 @@ public class QueryTest extends BaseTest {
         loadNumbers(100);
 
         query = QueryBuilder
-                .select()
-                .from(DataSource.database(db))
-                .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
-                .orderBy(Ordering.property("number1").ascending());
+            .select()
+            .from(DataSource.database(db))
+            .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
+            .orderBy(Ordering.property("number1").ascending());
 
         final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(2);
@@ -1721,7 +1752,7 @@ public class QueryTest extends BaseTest {
                 ResultSet rs = change.getResults();
                 resultSets.add(rs);
                 if (consumeAll) {
-                    while (rs.next() != null);
+                    while (rs.next() != null) { ; }
                 }
                 latch.countDown();
                 // should come only once!
@@ -1735,7 +1766,8 @@ public class QueryTest extends BaseTest {
                 public void run() {
                     try {
                         createDocNumbered(111, 100);
-                    } catch (CouchbaseLiteException e) {
+                    }
+                    catch (CouchbaseLiteException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -1744,9 +1776,10 @@ public class QueryTest extends BaseTest {
             // wait till listener is called
             assertFalse(latch.await(5, TimeUnit.SECONDS));
             assertEquals(1, latch.getCount());
-        } finally {
+        }
+        finally {
             query.removeChangeListener(token);
-            for (ResultSet rs: resultSets) { freeResultSet(rs); }
+            for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
@@ -1819,10 +1852,10 @@ public class QueryTest extends BaseTest {
         SelectResult srMainAll = SelectResult.all().from("main");
         SelectResult srSecondaryAll = SelectResult.all().from("secondary");
         query = QueryBuilder
-                .select(srMainAll, srSecondaryAll)
-                .from(mainDS)
-                .join(join)
-                .where(typeExpr.equalTo(Expression.string("bookmark")));
+            .select(srMainAll, srSecondaryAll)
+            .from(mainDS)
+            .join(join)
+            .where(typeExpr.equalTo(Expression.string("bookmark")));
         verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -1836,16 +1869,16 @@ public class QueryTest extends BaseTest {
         DataSource mainDS = DataSource.database(this.db).as("main");
 
         thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).join((Join[])null);
+        QueryBuilder.select(SelectResult.all()).from(mainDS).join((Join[]) null);
 
         thrown.expect(IllegalArgumentException.class);
         QueryBuilder.select(SelectResult.all()).from(mainDS).where(null);
 
         thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).groupBy((Expression[])null);
+        QueryBuilder.select(SelectResult.all()).from(mainDS).groupBy((Expression[]) null);
 
         thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).orderBy((Ordering[])null);
+        QueryBuilder.select(SelectResult.all()).from(mainDS).orderBy((Ordering[]) null);
 
         thrown.expect(IllegalArgumentException.class);
         QueryBuilder.select(SelectResult.all()).from(mainDS).limit(null);
@@ -1871,18 +1904,19 @@ public class QueryTest extends BaseTest {
         db.save(exam2);
 
         query = QueryBuilder.select(SelectResult.all())
-                .from(DataSource.database(db))
-                .where(Expression.property("exam type").equalTo(Expression.string("final"))
-                        .and(Expression.property("answer").equalTo(Expression.booleanValue(true))));
+            .from(DataSource.database(db))
+            .where(Expression.property("exam type").equalTo(Expression.string("final"))
+                .and(Expression.property("answer").equalTo(Expression.booleanValue(true))));
 
         verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
                 Map<String, Object> maps = result.toMap();
                 Map<String, Object> map = (Map<String, Object>) maps.get("testdb");
-                if(map.get("question").equals("There are 45 states in the US.")) {
+                if (map.get("question").equals("There are 45 states in the US.")) {
                     assertFalse((Boolean) map.get("answer"));
-                } if(map.get("question").equals("There are 100 senators in the US.")) {
+                }
+                if (map.get("question").equals("There are 100 senators in the US.")) {
                     assertTrue((Boolean) map.get("answer"));
                 }
             }
@@ -1898,7 +1932,9 @@ public class QueryTest extends BaseTest {
         assertEquals(2, db.getCount());
 
         // STEP 2: query documents before deletion
-        query = QueryBuilder.select(SR_DOCID, SR_ALL).from(DataSource.database(this.db)).where(Expression.property("type").equalTo(Expression.string("task")));
+        query = QueryBuilder.select(SR_DOCID, SR_ALL)
+            .from(DataSource.database(this.db))
+            .where(Expression.property("type").equalTo(Expression.string("task")));
         int rows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception { }
@@ -1943,8 +1979,9 @@ public class QueryTest extends BaseTest {
 
         // regular query - true
         Query query = QueryBuilder.select(SR_ALL)
-                .from(DataSource.database(db))
-                .where(exprType.equalTo(Expression.string("task")).and(exprComplete.equalTo(Expression.booleanValue(true))));
+            .from(DataSource.database(db))
+            .where(exprType.equalTo(Expression.string("task"))
+                .and(exprComplete.equalTo(Expression.booleanValue(true))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
@@ -1963,8 +2000,9 @@ public class QueryTest extends BaseTest {
 
         // regular query - false
         query = QueryBuilder.select(SR_ALL)
-                .from(DataSource.database(db))
-                .where(exprType.equalTo(Expression.string("task")).and(exprComplete.equalTo(Expression.booleanValue(false))));
+            .from(DataSource.database(db))
+            .where(exprType.equalTo(Expression.string("task"))
+                .and(exprComplete.equalTo(Expression.booleanValue(false))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
@@ -1983,8 +2021,9 @@ public class QueryTest extends BaseTest {
 
         // aggregation query - true
         query = QueryBuilder.select(srCount)
-                .from(DataSource.database(db))
-                .where(exprType.equalTo(Expression.string("task")).and(exprComplete.equalTo(Expression.booleanValue(true))));
+            .from(DataSource.database(db))
+            .where(exprType.equalTo(Expression.string("task"))
+                .and(exprComplete.equalTo(Expression.booleanValue(true))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
@@ -2000,8 +2039,9 @@ public class QueryTest extends BaseTest {
 
         // aggregation query - false
         query = QueryBuilder.select(srCount)
-                .from(DataSource.database(db))
-                .where(exprType.equalTo(Expression.string("task")).and(exprComplete.equalTo(Expression.booleanValue(false))));
+            .from(DataSource.database(db))
+            .where(exprType.equalTo(Expression.string("task"))
+                .and(exprComplete.equalTo(Expression.booleanValue(false))));
         try {
             int numRows = verifyQuery(query, false, new QueryResult() {
                 @Override
@@ -2098,14 +2138,14 @@ public class QueryTest extends BaseTest {
     @Test
     public void testGenerateJSONCollation() {
         Collation[] collations = {
-                Collation.ascii().ignoreCase(false),
-                Collation.ascii().ignoreCase(true),
-                Collation.unicode().locale(null).ignoreCase(false).ignoreAccents(false),
-                Collation.unicode().locale(null).ignoreCase(true).ignoreAccents(false),
-                Collation.unicode().locale(null).ignoreCase(true).ignoreAccents(true),
-                Collation.unicode().locale("en").ignoreCase(false).ignoreAccents(false),
-                Collation.unicode().locale("en").ignoreCase(true).ignoreAccents(false),
-                Collation.unicode().locale("en").ignoreCase(true).ignoreAccents(true)
+            Collation.ascii().ignoreCase(false),
+            Collation.ascii().ignoreCase(true),
+            Collation.unicode().locale(null).ignoreCase(false).ignoreAccents(false),
+            Collation.unicode().locale(null).ignoreCase(true).ignoreAccents(false),
+            Collation.unicode().locale(null).ignoreCase(true).ignoreAccents(true),
+            Collation.unicode().locale("en").ignoreCase(false).ignoreAccents(false),
+            Collation.unicode().locale("en").ignoreCase(true).ignoreAccents(false),
+            Collation.unicode().locale("en").ignoreCase(true).ignoreAccents(true)
         };
 
         List<Map<String, Object>> expected = new ArrayList<>();
@@ -2157,8 +2197,7 @@ public class QueryTest extends BaseTest {
         json8.put("CASE", false);
         json8.put("DIAC", false);
         expected.add(json8);
-        for (int i = 0; i < collations.length; i++)
-            assertEquals(expected.get(i), collations[i].asJSON());
+        for (int i = 0; i < collations.length; i++) { assertEquals(expected.get(i), collations[i].asJSON()); }
     }
 
     @Test
@@ -2171,27 +2210,31 @@ public class QueryTest extends BaseTest {
         }
         List<List<Object>> testData = new ArrayList<>();
         testData.add(Arrays.asList("BINARY collation", Collation.ascii(),
-                Arrays.asList("Aardvark", "Apple", "Zebra", "Ångström", "äpple")));
+            Arrays.asList("Aardvark", "Apple", "Zebra", "Ångström", "äpple")));
         testData.add(Arrays.asList("NOCASE collation", Collation.ascii().ignoreCase(true),
-                Arrays.asList("Aardvark", "Apple", "Zebra", "Ångström", "äpple")));
-        testData.add(Arrays.asList("Unicode case-sensitive, diacritic-sensitive collation",
-                Collation.unicode(),
-                Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
-        testData.add(Arrays.asList("Unicode case-INsensitive, diacritic-sensitive collation",
-                Collation.unicode().ignoreCase(true),
-                Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
-        testData.add(Arrays.asList("Unicode case-sensitive, diacritic-INsensitive collation",
-                Collation.unicode().ignoreAccents(true),
-                Arrays.asList("Aardvark", "Ångström", "äpple", "Apple", "Zebra")));
-        testData.add(Arrays.asList("Unicode case-INsensitive, diacritic-INsensitive collation",
-                Collation.unicode().ignoreAccents(true).ignoreCase(true),
-                Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
+            Arrays.asList("Aardvark", "Apple", "Zebra", "Ångström", "äpple")));
+        testData.add(Arrays.asList(
+            "Unicode case-sensitive, diacritic-sensitive collation",
+            Collation.unicode(),
+            Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
+        testData.add(Arrays.asList(
+            "Unicode case-INsensitive, diacritic-sensitive collation",
+            Collation.unicode().ignoreCase(true),
+            Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
+        testData.add(Arrays.asList(
+            "Unicode case-sensitive, diacritic-INsensitive collation",
+            Collation.unicode().ignoreAccents(true),
+            Arrays.asList("Aardvark", "Ångström", "äpple", "Apple", "Zebra")));
+        testData.add(Arrays.asList(
+            "Unicode case-INsensitive, diacritic-INsensitive collation",
+            Collation.unicode().ignoreAccents(true).ignoreCase(true),
+            Arrays.asList("Aardvark", "Ångström", "Apple", "äpple", "Zebra")));
 
         Expression property = Expression.property("hey");
         for (List<Object> data : testData) {
             Query query = QueryBuilder.select(SelectResult.property("hey"))
-                    .from(DataSource.database(db))
-                    .orderBy(Ordering.expression(property.collate((Collation) data.get(1))));
+                .from(DataSource.database(db))
+                .orderBy(Ordering.expression(property.collate((Collation) data.get(1))));
             try {
                 final List<String> list = new ArrayList<>();
                 verifyQuery(query, false, new QueryResult() {
@@ -2212,7 +2255,7 @@ public class QueryTest extends BaseTest {
     public void testCloseDatabaseWithActiveLiveQuery() throws CouchbaseLiteException, InterruptedException {
         final CountDownLatch latch1 = new CountDownLatch(1);
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db));
+            .from(DataSource.database(db));
 
         final List<ResultSet> resultSets = new ArrayList<>();
         ListenerToken token = query.addChangeListener(executor, new QueryChangeListener() {
@@ -2227,12 +2270,14 @@ public class QueryTest extends BaseTest {
         try {
             closeDB();
             fail();
-        } catch (CouchbaseLiteException e) {
+        }
+        catch (CouchbaseLiteException e) {
             assertEquals(CBLError.Domain.CBLITE, e.getDomain());
             assertEquals(CBLError.Code.BUSY, e.getCode());
-        } finally {
+        }
+        finally {
             query.removeChangeListener(token);
-            for (ResultSet rs: resultSets) { freeResultSet(rs); }
+            for (ResultSet rs : resultSets) { freeResultSet(rs); }
             freeQuery(query);
             closeDB();
         }
@@ -2264,7 +2309,8 @@ public class QueryTest extends BaseTest {
         SelectResult rsCntDate = SelectResult.expression(cntDate);
         SelectResult rsCntNotExist = SelectResult.expression(cntNotExist);
 
-        query = QueryBuilder.select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist).from(ds);
+        query = QueryBuilder.select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist)
+            .from(ds);
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -2329,8 +2375,8 @@ public class QueryTest extends BaseTest {
         loadNumbers(5);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .orderBy(Ordering.property("number1"));
+            .from(DataSource.database(db))
+            .orderBy(Ordering.property("number1"));
         // Type 1: Enumeration by ResultSet.next()
         int i = 0;
         Result result;
@@ -2406,8 +2452,8 @@ public class QueryTest extends BaseTest {
         loadNumbers(5);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .orderBy(Ordering.property("number1"));
+            .from(DataSource.database(db))
+            .orderBy(Ordering.property("number1"));
 
         // Get all results by get(int)
         int i = 0;
@@ -2472,9 +2518,9 @@ public class QueryTest extends BaseTest {
         loadNumbers(5);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(Expression.property("number1").is(Expression.intValue(100)))
-                .orderBy(Ordering.property("number1"));
+            .from(DataSource.database(db))
+            .where(Expression.property("number1").is(Expression.intValue(100)))
+            .orderBy(Ordering.property("number1"));
 
         // Type 1: Enumeration by ResultSet.next()
         int i = 0;
@@ -2550,10 +2596,10 @@ public class QueryTest extends BaseTest {
         save(doc1);
 
         query = QueryBuilder.select(
-                SelectResult.property("name"),
-                SelectResult.property("address"),
-                SelectResult.property("age"))
-                .from(DataSource.database(db));
+            SelectResult.property("name"),
+            SelectResult.property("address"),
+            SelectResult.property("age"))
+            .from(DataSource.database(db));
 
         // Array:
         verifyQuery(query, new QueryResult() {
@@ -2590,17 +2636,16 @@ public class QueryTest extends BaseTest {
         loadNumbers(10);
 
         query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
-                .from(DataSource.database(db))
-                .where(Expression.not(Expression.property("number1").between(Expression.intValue(3), Expression.intValue(5))))
-                .orderBy(Ordering.expression(Expression.property("number1")).ascending());
+            .select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
+            .from(DataSource.database(db))
+            .where(Expression.not(Expression.property("number1")
+                .between(Expression.intValue(3), Expression.intValue(5))))
+            .orderBy(Ordering.expression(Expression.property("number1")).ascending());
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
-                if (n < 3)
-                    assertEquals(n, result.getInt("number1"));
-                else
-                    assertEquals(n + 3, result.getInt("number1"));
+                if (n < 3) { assertEquals(n, result.getInt("number1")); }
+                else { assertEquals(n + 3, result.getInt("number1")); }
             }
         });
         assertEquals(7, numRows);
@@ -2611,9 +2656,9 @@ public class QueryTest extends BaseTest {
         final int N = 4;
         loadNumbers(N);
         query = QueryBuilder
-                .select(SelectResult.all())
-                .from(DataSource.database(db))
-                .limit(Expression.intValue(10));
+            .select(SelectResult.all())
+            .from(DataSource.database(db))
+            .limit(Expression.intValue(10));
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception { }
@@ -2650,9 +2695,9 @@ public class QueryTest extends BaseTest {
         String[] expectedIDs = {"doc1", "doc2", "doc3"};
         String[] expectedContents = {"beauty", "beautifully", "beautiful"};
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("beautiful"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("beautiful"))
+            .orderBy(Ordering.expression(Meta.id));
 
         int numRows = verifyQuery(query, new QueryResult() {
             @Override
@@ -2667,8 +2712,12 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-net/blob/master/src/Couchbase.Lite.Tests.Shared/QueryTest.cs#L1721
     @Test
     public void testFTSStemming2() throws Exception {
-        db.createIndex("passageIndex", IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage("en"));
-        db.createIndex("passageIndexStemless", IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage(null));
+        db.createIndex(
+            "passageIndex",
+            IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage("en"));
+        db.createIndex(
+            "passageIndexStemless",
+            IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage(null));
 
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
@@ -2679,8 +2728,8 @@ public class QueryTest extends BaseTest {
         save(mDoc2);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("passageIndex").match("cat"));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("passageIndex").match("cat"));
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
@@ -2696,8 +2745,8 @@ public class QueryTest extends BaseTest {
         }
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("passageIndexStemless").match("cat"));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("passageIndexStemless").match("cat"));
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
@@ -2738,9 +2787,9 @@ public class QueryTest extends BaseTest {
 
         // AND binary set operator
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             final String[] expectedIDs = {"doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2757,9 +2806,9 @@ public class QueryTest extends BaseTest {
 
         // implicit AND operator
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             final String[] expectedIDs2 = {"doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2776,9 +2825,9 @@ public class QueryTest extends BaseTest {
 
         // OR operator
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs3 = {"doc1", "doc2", "doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2795,9 +2844,9 @@ public class QueryTest extends BaseTest {
 
         // NOT operator
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("database NOT sqlite"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("database NOT sqlite"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs4 = {"doc1"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2836,9 +2885,9 @@ public class QueryTest extends BaseTest {
 
         // A AND B AND C
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs = {"doc2"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2856,9 +2905,9 @@ public class QueryTest extends BaseTest {
 
         // (A AND B) OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR database"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs2 = {"doc1", "doc2", "doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2874,9 +2923,9 @@ public class QueryTest extends BaseTest {
         }
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR system"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR system"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs3 = {"doc1", "doc2"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2893,9 +2942,9 @@ public class QueryTest extends BaseTest {
 
         // (A OR B) AND C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND database"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs4 = {"doc1", "doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2911,9 +2960,9 @@ public class QueryTest extends BaseTest {
         }
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND system"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND system"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs5 = {"doc1", "doc2"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2930,9 +2979,9 @@ public class QueryTest extends BaseTest {
 
         // A OR B OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("database OR software OR system"))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("database OR software OR system"))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             String[] expectedIDs6 = {"doc1", "doc2", "doc3"};
             int numRows = verifyQuery(query, new QueryResult() {
@@ -2954,10 +3003,10 @@ public class QueryTest extends BaseTest {
         loadNumbers(50);
 
         query = QueryBuilder
-                .select()
-                .from(DataSource.database(db))
-                .where(EXPR_NUMBER1.greaterThan(Expression.intValue(25)))
-                .orderBy(Ordering.property("number1").ascending());
+            .select()
+            .from(DataSource.database(db))
+            .where(EXPR_NUMBER1.greaterThan(Expression.intValue(25)))
+            .orderBy(Ordering.property("number1").ascending());
 
         final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
@@ -2967,10 +3016,8 @@ public class QueryTest extends BaseTest {
                 int count = 0;
                 ResultSet rs = change.getResults();
                 resultSets.add(rs);
-                while (rs.next() != null)
-                    count++;
-                if (count == 75)// 26-100
-                    latch.countDown();
+                while (rs.next() != null) { count++; }
+                if (count == 75) { latch.countDown(); } // 26-100
             }
         };
         ListenerToken token = query.addChangeListener(executor, listener);
@@ -2982,7 +3029,8 @@ public class QueryTest extends BaseTest {
                 public void run() {
                     try {
                         loadNumbers(51, 100);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         e.printStackTrace();
                     }
                     latchAdd.countDown();
@@ -2990,13 +3038,15 @@ public class QueryTest extends BaseTest {
             });
             assertTrue(latchAdd.await(20, TimeUnit.SECONDS));
             assertTrue(latch.await(20, TimeUnit.SECONDS));
-        } finally {
+        }
+        finally {
             query.removeChangeListener(token);
             for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
-    // https://forums.couchbase.com/t/how-to-be-notifed-that-docuemnt-is-changed-but-livequerys-query-isnt-catching-it-anymore/16199/9
+    // https://forums.couchbase.com/t/
+    //     how-to-be-notifed-that-docuemnt-is-changed-but-livequerys-query-isnt-catching-it-anymore/16199/9
     @Test
     public void testLiveQueryNotification() throws CouchbaseLiteException, InterruptedException {
         // save doc1 with number1 -> 5
@@ -3005,9 +3055,9 @@ public class QueryTest extends BaseTest {
         db.save(doc);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
-                .from(DataSource.database(db))
-                .where(Expression.property("number1").lessThan(Expression.intValue(10)))
-                .orderBy(Ordering.property("number1"));
+            .from(DataSource.database(db))
+            .where(Expression.property("number1").lessThan(Expression.intValue(10)))
+            .orderBy(Ordering.property("number1"));
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
         final List<ResultSet> resultSets = new ArrayList<>();
@@ -3020,10 +3070,10 @@ public class QueryTest extends BaseTest {
                 for (Result r : rs) {
                     matchs++;
                 }
-                if (matchs == 1) // match doc1 with number1 -> 5 which is less than 10
-                    latch1.countDown();
-                else // Not match with doc1 because number1 -> 15 which does not quarify the query cliteria
-                    latch2.countDown();
+                // match doc1 with number1 -> 5 which is less than 10
+                if (matchs == 1) { latch1.countDown(); }
+                // Not match with doc1 because number1 -> 15 which does not quarify the query criteria
+                else { latch2.countDown(); }
             }
         });
         try {
@@ -3034,7 +3084,8 @@ public class QueryTest extends BaseTest {
             db.save(doc);
 
             assertTrue(latch2.await(5, TimeUnit.SECONDS));
-        } finally {
+        }
+        finally {
             query.removeChangeListener(token);
             for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
@@ -3065,18 +3116,16 @@ public class QueryTest extends BaseTest {
 
         // LIKE operator only
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(Expression.property("name").like(Expression.string("%foo%")))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(Expression.property("name").like(Expression.string("%foo%")))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
                 public void check(int n, Result result) throws Exception {
                     assertEquals(1, result.count());
-                    if (n == 1)
-                        assertEquals("doc1", result.getString(0));
-                    else
-                        assertEquals("doc2", result.getString(0));
+                    if (n == 1) { assertEquals("doc1", result.getString(0)); }
+                    else { assertEquals("doc2", result.getString(0)); }
 
                 }
             });
@@ -3088,18 +3137,16 @@ public class QueryTest extends BaseTest {
 
         // EQUAL operator only
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(Expression.property("description").equalTo(Expression.string("bar")))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(Expression.property("description").equalTo(Expression.string("bar")))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
                 public void check(int n, Result result) throws Exception {
                     assertEquals(1, result.count());
-                    if (n == 1)
-                        assertEquals("doc1", result.getString(0));
-                    else
-                        assertEquals("doc4", result.getString(0));
+                    if (n == 1) { assertEquals("doc1", result.getString(0)); }
+                    else { assertEquals("doc4", result.getString(0)); }
 
                 }
             });
@@ -3111,10 +3158,10 @@ public class QueryTest extends BaseTest {
 
         // AND and LIKE operators
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
-                .where(Expression.property("name").like(Expression.string("%foo%"))
-                        .and(Expression.property("description").equalTo(Expression.string("bar"))))
-                .orderBy(Ordering.expression(Meta.id));
+            .from(DataSource.database(db))
+            .where(Expression.property("name").like(Expression.string("%foo%"))
+                .and(Expression.property("description").equalTo(Expression.string("bar"))))
+            .orderBy(Ordering.expression(Meta.id));
         try {
             int numRows = verifyQuery(query, new QueryResult() {
                 @Override
@@ -3130,7 +3177,8 @@ public class QueryTest extends BaseTest {
         }
     }
 
-    // https://forums.couchbase.com/t/how-to-implement-an-index-join-clause-in-couchbase-lite-2-0-using-objective-c-api/16246
+    // https://forums.couchbase.com/t/
+    //     how-to-implement-an-index-join-clause-in-couchbase-lite-2-0-using-objective-c-api/16246
     // https://github.com/couchbase/couchbase-lite-core/issues/497
     @Test
     public void testQueryJoinAndSelectAll() throws Exception {
@@ -3176,8 +3224,8 @@ public class QueryTest extends BaseTest {
         db.save(doc1a);
 
         query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-                .from(DataSource.database(db))
-                .where(Meta.id.equalTo(Expression.string("doc1")));
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(Expression.string("doc1")));
 
         ResultSet rs = query.execute();
         try {
@@ -3285,7 +3333,7 @@ public class QueryTest extends BaseTest {
         Function.trunc(null);
 
         thrown.expect(IllegalArgumentException.class);
-        Function.trunc(null,  Expression.intValue(1));
+        Function.trunc(null, Expression.intValue(1));
 
         thrown.expect(IllegalArgumentException.class);
         Function.trunc(Expression.doubleValue(79.15), null);
@@ -3361,17 +3409,17 @@ public class QueryTest extends BaseTest {
         expectedLocal.add(499132800000L - offset);
 
         boolean first = true;
-        for(Number entry : expectedUTC) {
-            if(first) {
+        for (Number entry : expectedUTC) {
+            if (first) {
                 first = false;
                 continue;
             }
-            expectedLocal.add((long)entry - offset);
+            expectedLocal.add((long) entry - offset);
         }
 
         query = QueryBuilder.select(selections)
-                .from(DataSource.database(db))
-                .orderBy(Ordering.property("local").ascending());
+            .from(DataSource.database(db))
+            .orderBy(Ordering.property("local").ascending());
         verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -3430,8 +3478,8 @@ public class QueryTest extends BaseTest {
         expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.555"));
 
         query = QueryBuilder.select(selections)
-                .from(DataSource.database(db))
-                .orderBy(Ordering.property("local").ascending());
+            .from(DataSource.database(db))
+            .orderBy(Ordering.property("local").ascending());
         verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {
@@ -3456,11 +3504,11 @@ public class QueryTest extends BaseTest {
         millisToUse.add(499137690555L);
 
         ArrayList<String> expectedLocal = new ArrayList<>();
-        for(Number millis : millisToUse) {
+        for (Number millis : millisToUse) {
             MutableDocument doc = new MutableDocument();
             doc.setNumber("timestamp", millis);
             db.save(doc);
-            expectedLocal.add(ToLocal((long)millis));
+            expectedLocal.add(ToLocal((long) millis));
         }
 
         ArrayList<String> expectedUTC = new ArrayList<>();
@@ -3476,8 +3524,8 @@ public class QueryTest extends BaseTest {
         selections[1] = SelectResult.expression(Function.millisToUTC(Expression.property("timestamp")));
 
         query = QueryBuilder.select(selections)
-                .from(DataSource.database(db))
-                .orderBy(Ordering.property("timestamp").ascending());
+            .from(DataSource.database(db))
+            .orderBy(Ordering.property("timestamp").ascending());
         verifyQuery(query, new QueryResult() {
             @Override
             public void check(int n, Result result) throws Exception {

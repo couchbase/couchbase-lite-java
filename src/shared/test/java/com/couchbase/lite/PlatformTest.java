@@ -35,22 +35,9 @@ public interface PlatformTest {
     /* Gets the platform specific temp directory. */
     String getTempDirectory(String name);
 
-    /* Checks whether the current system is Android or not. */
-    boolean isAndroid();
-
-    /* Checks whether the current system is Android Emulator or not. */
-    boolean isAndroidEmulator();
-
-    /* Checks whether the test is currently running on Debug mode or not. */
-    boolean isDebugBuild();
-
-    /* Gets the current system version in the interger format. */
-    int getSystemVersion();
-
     /* Gets the assert as InputStream  by asset's name */
     InputStream getAsset(String asset) throws IOException;
 
     /* Scheduled to execute a task asynchronously. */
     void executeAsync(long delayMs, Runnable task);
-
 }

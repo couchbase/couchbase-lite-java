@@ -247,7 +247,7 @@ class ExecutionServicesTest {
         executor.execute { threads[0] = Thread.currentThread() }
 
         var t = System.currentTimeMillis()
-        var delay: Long = 777;
+        val delay: Long = 777;
         executionService.postDelayedOnExecutor(
                 delay,
                 executor,
