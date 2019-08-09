@@ -239,7 +239,6 @@ class ExecutionServicesTest {
         val finishLatch = CountDownLatch(1)
 
         val threads = arrayOfNulls<Thread>(2)
-        val executionTime = LongArray(1)
 
         val executor = executionService.mainExecutor
 
@@ -248,8 +247,9 @@ class ExecutionServicesTest {
         executor.execute { threads[0] = Thread.currentThread() }
 
         var t = System.currentTimeMillis()
+        var delay: Long = 777;
         executionService.postDelayedOnExecutor(
-                777,
+                delay,
                 executor,
                 Runnable {
                     t = System.currentTimeMillis() - t
@@ -261,7 +261,7 @@ class ExecutionServicesTest {
         catch (ignore: InterruptedException) { }
 
         // within 10% is good enough
-        assertEquals((t - 777) / 10, 0L)
+        assertEquals(0L, (t - delay) / (delay / 10))
         assertEquals(threads[0], threads[1])
     }
 

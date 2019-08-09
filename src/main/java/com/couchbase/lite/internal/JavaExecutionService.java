@@ -70,7 +70,7 @@ public class JavaExecutionService extends AbstractExecutionService {
     private final ScheduledExecutorService scheduler;
 
     public JavaExecutionService() {
-        mainExecutor = getSerialExecutor();
+        mainExecutor = Executors.newSingleThreadExecutor();
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
