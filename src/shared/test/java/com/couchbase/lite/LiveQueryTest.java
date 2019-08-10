@@ -17,7 +17,6 @@
 //
 package com.couchbase.lite;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
@@ -39,12 +38,6 @@ public class LiveQueryTest extends BaseTest {
     private CountDownLatch latch3;
     private AtomicInteger value;
 
-    @Override
-    public void tearDown() {
-        if (query != null) { freeQuery(query); }
-        super.tearDown();
-    }
-
     // Null query is illegal
     @Test(expected = IllegalArgumentException.class)
     public void testIllegalArgumentException() { new LiveQuery(null); }
@@ -58,10 +51,8 @@ public class LiveQueryTest extends BaseTest {
             .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = query.addChangeListener(executor, change -> {
-            resultSets.add(change.getResults());
             latch.countDown();
         });
 
@@ -69,8 +60,6 @@ public class LiveQueryTest extends BaseTest {
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
         query.removeChangeListener(token);
-
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 
     // All listeners should hear an update
@@ -82,14 +71,11 @@ public class LiveQueryTest extends BaseTest {
             .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(2);
         ListenerToken token1 = query.addChangeListener(executor, change -> {
-            resultSets.add(change.getResults());
             latch.countDown();
         });
         ListenerToken token2 = query.addChangeListener(executor, change -> {
-            resultSets.add(change.getResults());
             latch.countDown();
         });
 
@@ -98,8 +84,6 @@ public class LiveQueryTest extends BaseTest {
 
         query.removeChangeListener(token1);
         query.removeChangeListener(token2);
-
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 
     // Multiple changes in a short time should cause only a single update
@@ -111,10 +95,8 @@ public class LiveQueryTest extends BaseTest {
             .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         value = new AtomicInteger(0);
         ListenerToken token = query.addChangeListener(executor, change -> {
-            resultSets.add(change.getResults());
             value.incrementAndGet();
         });
 
@@ -128,8 +110,6 @@ public class LiveQueryTest extends BaseTest {
         assertEquals(1, value.get());
 
         query.removeChangeListener(token);
-
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 
     // Changing query parameters should cause an update.
@@ -145,9 +125,7 @@ public class LiveQueryTest extends BaseTest {
         Parameters params = new Parameters();
         params.setInt("VALUE", 2);
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         ListenerToken token = query.addChangeListener(executor, change -> {
-            resultSets.add(change.getResults());
             latch1.countDown();
         });
 
@@ -163,8 +141,6 @@ public class LiveQueryTest extends BaseTest {
         assertTrue(latch1.await(10, TimeUnit.SECONDS));
 
         query.removeChangeListener(token);
-
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1606
@@ -175,11 +151,9 @@ public class LiveQueryTest extends BaseTest {
         latch3 = new CountDownLatch(1);
         value = new AtomicInteger(1);
 
-        final List<ResultSet> resultSets = new ArrayList<>();
-
         // setup initial
         query = generateQuery();
-        listener = generateQueryChangeListener(resultSets);
+        listener = generateQueryChangeListener();
         token = query.addChangeListener(executor, listener);
 
         // creates doc1 -> first query match
@@ -195,8 +169,6 @@ public class LiveQueryTest extends BaseTest {
         assertTrue(latch3.await(10, TimeUnit.SECONDS));
 
         query.removeChangeListener(token);
-
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 
     // create test docs
@@ -217,11 +189,9 @@ public class LiveQueryTest extends BaseTest {
             .orderBy(Ordering.property("number1").ascending());
     }
 
-    private QueryChangeListener generateQueryChangeListener(final List<ResultSet> resultSets) {
+    private QueryChangeListener generateQueryChangeListener() {
         return change -> {
             ResultSet rs = change.getResults();
-            resultSets.add(rs);
-
             List<Result> list = rs.allResults();
             if (list.size() <= 0) { return; }
 
@@ -233,11 +203,9 @@ public class LiveQueryTest extends BaseTest {
                 return;
             }
 
-            freeQuery(query);
-
             // update query and listener.
             query = generateQuery();
-            listener = generateQueryChangeListener(resultSets);
+            listener = generateQueryChangeListener();
             token = query.addChangeListener(executor, listener);
 
             // notify to main thread to continue

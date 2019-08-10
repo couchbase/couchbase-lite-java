@@ -26,10 +26,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.couchbase.lite.utils.Report;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.ConcurrencyUnitTest;
+import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -457,9 +457,8 @@ public class ConcurrencyTest extends BaseTest {
         concurrentValidator(
             10,
             threadIndex -> {
-                ResultSet rs = null;
                 try {
-                    rs = query.execute();
+                    ResultSet rs = query.execute();
                     List<Result> results = rs.allResults();
                     assertEquals(100, results.size());
                     assertEquals(db.getCount(), results.size());
@@ -468,13 +467,8 @@ public class ConcurrencyTest extends BaseTest {
                     Report.log(LogLevel.ERROR, "Query Error", e);
                     fail();
                 }
-                finally {
-                    freeResultSet(rs);
-                }
             },
             180);
-
-        freeQuery(query);
     }
 
     private MutableDocument createDocumentWithTag(String tag) {
@@ -557,16 +551,10 @@ public class ConcurrencyTest extends BaseTest {
         SelectResult DOCID = SelectResult.expression(Meta.id);
         DataSource ds = DataSource.database(db);
         Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = null;
-        try {
-            rs = query.execute();
-            Result result;
-            int n = 0;
-            while ((result = rs.next()) != null) { block.verify(++n, result); }
-        } finally {
-            freeResultSet(rs);
-            freeQuery(query);
-        }
+        ResultSet rs = query.execute();
+        Result result;
+        int n = 0;
+        while ((result = rs.next()) != null) { block.verify(++n, result); }
     }
 
     private void verifyByTagName(String tag, int nRows) throws CouchbaseLiteException {

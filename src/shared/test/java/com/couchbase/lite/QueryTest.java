@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -59,14 +58,6 @@ public class QueryTest extends BaseTest {
     private static SelectResult SR_ALL = SelectResult.all();
     private static SelectResult SR_NUMBER1 = SelectResult.property("number1");
 
-    private Query query = null;
-
-    @Override
-    public void tearDown() {
-        freeQuery(query);
-        super.tearDown();
-    }
-
     private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases)
         throws Exception {
         for (Object[] c : cases) {
@@ -74,20 +65,12 @@ public class QueryTest extends BaseTest {
             String[] documentIDs = (String[]) c[1];
             final List<String> docIDList = new ArrayList<String>(Arrays.asList(documentIDs));
             Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(w);
-            try {
-                int numRows = verifyQuery(q, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        String docID = result.getString(0);
-                        if (docIDList.contains(docID)) { docIDList.remove(docID); }
-                    }
-                });
-                assertEquals(0, docIDList.size());
-                assertEquals(documentIDs.length, numRows);
-            }
-            finally {
-                freeQuery(q);
-            }
+            int numRows = verifyQuery(q, (n, result) -> {
+                String docID = result.getString(0);
+                if (docIDList.contains(docID)) { docIDList.remove(docID); }
+            });
+            assertEquals(0, docIDList.size());
+            assertEquals(documentIDs.length, numRows);
         }
     }
 
@@ -183,13 +166,11 @@ public class QueryTest extends BaseTest {
 
         // This should get all but the one that has expired
         // and the one that was deleted
-        query = QueryBuilder.select(SR_DOCID, SR_EXPIRATION)
+        Query query = QueryBuilder.select(SR_DOCID, SR_EXPIRATION)
             .from(DataSource.database(db))
             .where(Meta.expiration.lessThan(Expression.longValue(now + 6000L)));
-        int rows = verifyQuery(query, false, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception { }
-        });
+
+        int rows = verifyQuery(query, false, (n, result) -> { });
         assertEquals(3, rows);
     }
 
@@ -200,16 +181,14 @@ public class QueryTest extends BaseTest {
         doc1a.setString("a", "string");
         db.save(doc1a);
 
-        query = QueryBuilder.select(SR_DOCID, SR_DELETED)
+        Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
             .from(DataSource.database(db))
             .where(Meta.id.equalTo(Expression.string("doc1"))
                 .and(Meta.deleted.equalTo(Expression.booleanValue(false))));
-        int rows = verifyQuery(query, false, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(result.getString(0), "doc1");
-                assertFalse(result.getBoolean(1));
-            }
+
+        int rows = verifyQuery(query, false, (n, result) -> {
+            assertEquals(result.getString(0), "doc1");
+            assertFalse(result.getBoolean(1));
         });
         assertEquals(1, rows);
     }
@@ -223,35 +202,30 @@ public class QueryTest extends BaseTest {
 
         db.delete(db.getDocument("doc1"));
 
-        query = QueryBuilder.select(SR_DOCID, SR_DELETED)
+        Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
             .from(DataSource.database(db))
             .where(Meta.deleted.equalTo(Expression.booleanValue(true))
                 .and(Meta.id.equalTo(Expression.string("doc1"))));
-        int numRows = verifyQuery(query, false, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception { }
-        });
+
+        int numRows = verifyQuery(query, false, (n, result) -> { });
         assertEquals(1, numRows);
     }
 
     @Test
     public void testNoWhereQuery() throws Exception {
         loadJSONResource("names_100.json");
-        query = QueryBuilder.select(SR_DOCID, SR_SEQUENCE).from(DataSource.database(db));
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                String expectedID = String.format(Locale.ENGLISH, "doc-%03d", n);
-                assertEquals(expectedID, docID);
+        Query query = QueryBuilder.select(SR_DOCID, SR_SEQUENCE).from(DataSource.database(db));
+        int numRows = verifyQuery(query, (n, result) -> {
+            String docID = result.getString(0);
+            String expectedID = String.format(Locale.ENGLISH, "doc-%03d", n);
+            assertEquals(expectedID, docID);
 
-                int sequence = result.getInt(1);
-                assertEquals(n, sequence);
+            int sequence = result.getInt(1);
+            assertEquals(n, sequence);
 
-                Document doc = db.getDocument(docID);
-                assertEquals(expectedID, doc.getId());
-                assertEquals(n, doc.getSequence());
-            }
+            Document doc = db.getDocument(docID);
+            assertEquals(expectedID, doc.getId());
+            assertEquals(n, doc.getSequence());
         });
         assertEquals(100, numRows);
     }
@@ -372,21 +346,13 @@ public class QueryTest extends BaseTest {
             Expression exp = (Expression) c[0];
             final String[] documentIDs = (String[]) c[1];
             Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(exp);
-            try {
-                int numRows = verifyQuery(query, true, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        if (n < documentIDs.length) {
-                            String docID = documentIDs[(int) n - 1];
-                            assertEquals(docID, result.getString(0));
-                        }
-                    }
-                });
-                assertEquals(documentIDs.length, numRows);
-            }
-            finally {
-                freeQuery(query);
-            }
+            int numRows = verifyQuery(query, true, (n, result) -> {
+                if (n < documentIDs.length) {
+                    String docID = documentIDs[(int) n - 1];
+                    assertEquals(docID, result.getString(0));
+                }
+            });
+            assertEquals(documentIDs.length, numRows);
         }
     }
 
@@ -396,18 +362,16 @@ public class QueryTest extends BaseTest {
         doc1.setValue("string", "string");
         save(doc1);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID)
             .from(DataSource.database(db))
             .where(Expression.property("string").is(Expression.string("string")));
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                assertEquals(doc1.getId(), docID);
-                Document doc = db.getDocument(docID);
-                assertEquals(doc1.getValue("string"), doc.getValue("string"));
-            }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            String docID = result.getString(0);
+            assertEquals(doc1.getId(), docID);
+            Document doc = db.getDocument(docID);
+            assertEquals(doc1.getValue("string"), doc.getValue("string"));
         });
         assertEquals(1, numRows);
     }
@@ -418,18 +382,16 @@ public class QueryTest extends BaseTest {
         doc1.setValue("string", "string");
         save(doc1);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID)
             .from(DataSource.database(db))
             .where(Expression.property("string").isNot(Expression.string("string1")));
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                assertEquals(doc1.getId(), docID);
-                Document doc = db.getDocument(docID);
-                assertEquals(doc1.getValue("string"), doc.getValue("string"));
-            }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            String docID = result.getString(0);
+            assertEquals(doc1.getId(), docID);
+            Document doc = db.getDocument(docID);
+            assertEquals(doc1.getValue("string"), doc.getValue("string"));
         });
         assertEquals(1, numRows);
     }
@@ -458,17 +420,14 @@ public class QueryTest extends BaseTest {
         Expression exprFirstName = Expression.property("name.first");
         SelectResult srFirstName = SelectResult.property("name.first");
         Ordering orderByFirstName = Ordering.property("name.first");
-        query = QueryBuilder.select(srFirstName)
+        Query query = QueryBuilder.select(srFirstName)
             .from(ds)
             .where(exprFirstName.in(expected))
             .orderBy(orderByFirstName);
 
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String name = result.getString(0);
-                assertEquals(expected[n - 1].asJSON(), name);
-            }
+        int numRows = verifyQuery(query, (n, result) -> {
+            String name = result.getString(0);
+            assertEquals(expected[n - 1].asJSON(), name);
         });
         assertEquals(expected.length, numRows);
     }
@@ -478,28 +437,24 @@ public class QueryTest extends BaseTest {
         loadJSONResource("names_100.json");
 
         Expression w = Expression.property("name.first").like(Expression.string("%Mar%"));
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID)
             .from(DataSource.database(db))
             .where(w)
             .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
-        int numRows = verifyQuery(query, false, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                Document doc = db.getDocument(docID);
-                Map<String, Object> name = doc.getDictionary("name").toMap();
-                if (name != null) {
-                    String firstName = (String) name.get("first");
-                    if (firstName != null) {
-                        firstNames.add(firstName);
-                    }
+        int numRows = verifyQuery(query, false, (n, result) -> {
+            String docID = result.getString(0);
+            Document doc = db.getDocument(docID);
+            Map<String, Object> name = doc.getDictionary("name").toMap();
+            if (name != null) {
+                String firstName = (String) name.get("first");
+                if (firstName != null) {
+                    firstNames.add(firstName);
                 }
             }
         });
-
         assertEquals(5, numRows);
         assertEquals(5, firstNames.size());
     }
@@ -509,24 +464,21 @@ public class QueryTest extends BaseTest {
         loadJSONResource("names_100.json");
 
         Expression w = Expression.property("name.first").regex(Expression.string("^Mar.*"));
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID)
             .from(DataSource.database(db))
             .where(w)
             .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
-        int numRows = verifyQuery(query, false, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                Document doc = db.getDocument(docID);
-                Map<String, Object> name = doc.getDictionary("name").toMap();
-                if (name != null) {
-                    String firstName = (String) name.get("first");
-                    if (firstName != null) {
-                        firstNames.add(firstName);
-                    }
+        int numRows = verifyQuery(query, false, (n, result) -> {
+            String docID = result.getString(0);
+            Document doc = db.getDocument(docID);
+            Map<String, Object> name = doc.getDictionary("name").toMap();
+            if (name != null) {
+                String firstName = (String) name.get("first");
+                if (firstName != null) {
+                    firstNames.add(firstName);
                 }
             }
         });
@@ -543,18 +495,15 @@ public class QueryTest extends BaseTest {
 
         SelectResult S_SENTENCE = SelectResult.property("sentence");
         FullTextExpression SENTENCE = FullTextExpression.index("sentence");
-        query = QueryBuilder
-            .select(SR_DOCID, S_SENTENCE)
-            .from(DataSource.database(db))
-            .where(SENTENCE.match("'Dummie woman'"))
-            .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
+        Query query = QueryBuilder
+                .select(SR_DOCID, S_SENTENCE)
+                .from(DataSource.database(db))
+                .where(SENTENCE.match("'Dummie woman'"))
+                .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
 
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertNotNull(result.getString(0));
-                assertNotNull(result.getString(1));
-            }
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertNotNull(result.getString(0));
+            assertNotNull(result.getString(1));
         });
         assertEquals(2, numRows);
     }
@@ -571,30 +520,18 @@ public class QueryTest extends BaseTest {
 
             Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).orderBy(o);
             final List<String> firstNames = new ArrayList<String>();
-            try {
-                int numRows = verifyQuery(query, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        String docID = result.getString(0);
-                        Document doc = db.getDocument(docID);
-                        Map<String, Object> name = doc.getDictionary("name").toMap();
-                        String firstName = (String) name.get("first");
-                        firstNames.add(firstName);
-                    }
-                });
-                assertEquals(100, numRows);
-            }
-            finally {
-                freeQuery(query);
-            }
+
+            int numRows = verifyQuery(query, (n, result) -> {
+                String docID = result.getString(0);
+                Document doc = db.getDocument(docID);
+                Map<String, Object> name = doc.getDictionary("name").toMap();
+                String firstName = (String) name.get("first");
+                firstNames.add(firstName);
+            });
+            assertEquals(100, numRows);
 
             List<String> sorted = new ArrayList<>(firstNames);
-            Collections.sort(sorted, new Comparator<String>() {
-                @Override
-                public int compare(String o1, String o2) {
-                    return ascending ? o1.compareTo(o2) : o2.compareTo(o1);
-                }
-            });
+            Collections.sort(sorted, (o1, o2) -> ascending ? o1.compareTo(o2) : o2.compareTo(o1));
             String[] array1 = firstNames.toArray(new String[firstNames.size()]);
             String[] array2 = firstNames.toArray(new String[sorted.size()]);
             assertTrue(Arrays.equals(array1, array2));
@@ -613,15 +550,10 @@ public class QueryTest extends BaseTest {
         doc2.setValue("number", 20);
         save(doc2);
 
-        //Expression NUMBER = Expression.property("number");
         SelectResult S_NUMBER = SelectResult.property("number");
-        query = QueryBuilder.selectDistinct(S_NUMBER).from(DataSource.database(db));
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(20, result.getInt(0));
-            }
-        });
+        Query query = QueryBuilder.selectDistinct(S_NUMBER).from(DataSource.database(db));
+
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(20, result.getInt(0)));
         assertEquals(1, numRows);
     }
 
@@ -643,14 +575,12 @@ public class QueryTest extends BaseTest {
 
         SelectResult MAIN_DOC_ID = SelectResult.expression(Meta.id.from("main"));
 
-        query = QueryBuilder.select(MAIN_DOC_ID).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID = result.getString(0);
-                Document doc = db.getDocument(docID);
-                assertEquals(42, doc.getInt("number1"));
-            }
+        Query query = QueryBuilder.select(MAIN_DOC_ID).from(mainDS).join(join);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            String docID = result.getString(0);
+            Document doc = db.getDocument(docID);
+            assertEquals(42, doc.getInt("number1"));
         });
         assertEquals(1, numRows);
     }
@@ -674,18 +604,16 @@ public class QueryTest extends BaseTest {
         SelectResult sr1 = SelectResult.expression(Expression.property("number2").from("main"));
         SelectResult sr2 = SelectResult.expression(Expression.property("theone").from("secondary"));
 
-        query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (n == 41) {
-                    assertEquals(59, result.getInt(0));
-                    assertNull(result.getValue(1));
-                }
-                if (n == 42) {
-                    assertEquals(58, result.getInt(0));
-                    assertEquals(42, result.getInt(1));
-                }
+        Query query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            if (n == 41) {
+                assertEquals(59, result.getInt(0));
+                assertNull(result.getValue(1));
+            }
+            if (n == 42) {
+                assertEquals(58, result.getInt(0));
+                assertEquals(42, result.getInt(1));
             }
         });
         assertEquals(101, numRows);
@@ -703,15 +631,13 @@ public class QueryTest extends BaseTest {
         SelectResult sr1 = SelectResult.expression(Expression.property("number1").from("main"));
         SelectResult sr2 = SelectResult.expression(Expression.property("number2").from("secondary"));
 
-        query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                int num1 = result.getInt(0);
-                int num2 = result.getInt(1);
-                assertEquals((num1 - 1) % 10, (n - 1) / 10);
-                assertEquals((10 - num2) % 10, n % 10);
-            }
+        Query query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            int num1 = result.getInt(0);
+            int num2 = result.getInt(1);
+            assertEquals((num1 - 1) % 10, (n - 1) / 10);
+            assertEquals((10 - num2) % 10, n % 10);
         });
         assertEquals(100, numRows);
     }
@@ -745,25 +671,18 @@ public class QueryTest extends BaseTest {
             .where(gender.equalTo(Expression.string("female")))
             .groupBy(groupByExpr)
             .orderBy(ordering);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    String state = (String) result.getValue(0);
-                    long count = (long) result.getValue(1);
-                    String maxZip = (String) result.getValue(2);
-                    if (n - 1 < expectedStates.size()) {
-                        assertEquals(expectedStates.get(n - 1), state);
-                        assertEquals((int) expectedCounts.get(n - 1), count);
-                        assertEquals(expectedMaxZips.get(n - 1), maxZip);
-                    }
-                }
-            });
-            assertEquals(31, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            String state1 = (String) result.getValue(0);
+            long count1 = (long) result.getValue(1);
+            String maxZip1 = (String) result.getValue(2);
+            if (n - 1 < expectedStates.size()) {
+                assertEquals(expectedStates.get(n - 1), state1);
+                assertEquals((int) expectedCounts.get(n - 1), count1);
+                assertEquals(expectedMaxZips.get(n - 1), maxZip1);
+            }
+        });
+        assertEquals(31, numRows);
 
         // With HAVING:
         final List<String> expectedStates2 = Arrays.asList("CA", "IA", "IN");
@@ -779,25 +698,18 @@ public class QueryTest extends BaseTest {
             .groupBy(groupByExpr)
             .having(havingExpr)
             .orderBy(ordering);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    String state = (String) result.getValue(0);
-                    long count = (long) result.getValue(1);
-                    String maxZip = (String) result.getValue(2);
-                    if (n - 1 < expectedStates2.size()) {
-                        assertEquals(expectedStates2.get(n - 1), state);
-                        assertEquals((long) expectedCounts2.get(n - 1), count);
-                        assertEquals(expectedMaxZips2.get(n - 1), maxZip);
-                    }
-                }
-            });
-            assertEquals(15, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            String state12 = (String) result.getValue(0);
+            long count12 = (long) result.getValue(1);
+            String maxZip12 = (String) result.getValue(2);
+            if (n - 1 < expectedStates2.size()) {
+                assertEquals(expectedStates2.get(n - 1), state12);
+                assertEquals((long) expectedCounts2.get(n - 1), count12);
+                assertEquals(expectedMaxZips2.get(n - 1), maxZip12);
+            }
+        });
+        assertEquals(15, numRows);
     }
 
     @Test
@@ -812,7 +724,7 @@ public class QueryTest extends BaseTest {
 
         Ordering ordering = Ordering.expression(EXPR_NUMBER1);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_NUMBER1)
             .from(dataSource)
             .where(EXPR_NUMBER1.between(paramN1, paramN2))
@@ -823,12 +735,9 @@ public class QueryTest extends BaseTest {
         query.setParameters(params);
 
         final long[] expectedNumbers = {2, 3, 4, 5};
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                long number = (long) result.getValue(0);
-                assertEquals(expectedNumbers[n - 1], number);
-            }
+        int numRows = verifyQuery(query, (n, result) -> {
+            long number = (long) result.getValue(0);
+            assertEquals(expectedNumbers[n - 1], number);
         });
         assertEquals(4, numRows);
     }
@@ -839,7 +748,7 @@ public class QueryTest extends BaseTest {
 
         DataSource dataSource = DataSource.database(this.db);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID, SR_SEQUENCE, SR_NUMBER1)
             .from(dataSource)
             .orderBy(Ordering.expression(Meta.sequence));
@@ -848,33 +757,30 @@ public class QueryTest extends BaseTest {
         final long[] expectedSeqs = {1, 2, 3, 4, 5};
         final long[] expectedNumbers = {1, 2, 3, 4, 5};
 
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                String docID1 = (String) result.getValue(0);
-                String docID2 = result.getString(0);
-                String docID3 = (String) result.getValue("id");
-                String docID4 = result.getString("id");
+        int numRows = verifyQuery(query, (n, result) -> {
+            String docID1 = (String) result.getValue(0);
+            String docID2 = result.getString(0);
+            String docID3 = (String) result.getValue("id");
+            String docID4 = result.getString("id");
 
-                long seq1 = (long) result.getValue(1);
-                long seq2 = result.getLong(1);
-                long seq3 = (long) result.getValue("sequence");
-                long seq4 = result.getLong("sequence");
+            long seq1 = (long) result.getValue(1);
+            long seq2 = result.getLong(1);
+            long seq3 = (long) result.getValue("sequence");
+            long seq4 = result.getLong("sequence");
 
-                long number = (long) result.getValue(2);
+            long number = (long) result.getValue(2);
 
-                assertEquals(expectedDocIDs[n - 1], docID1);
-                assertEquals(expectedDocIDs[n - 1], docID2);
-                assertEquals(expectedDocIDs[n - 1], docID3);
-                assertEquals(expectedDocIDs[n - 1], docID4);
+            assertEquals(expectedDocIDs[n - 1], docID1);
+            assertEquals(expectedDocIDs[n - 1], docID2);
+            assertEquals(expectedDocIDs[n - 1], docID3);
+            assertEquals(expectedDocIDs[n - 1], docID4);
 
-                assertEquals(expectedSeqs[n - 1], seq1);
-                assertEquals(expectedSeqs[n - 1], seq2);
-                assertEquals(expectedSeqs[n - 1], seq3);
-                assertEquals(expectedSeqs[n - 1], seq4);
+            assertEquals(expectedSeqs[n - 1], seq1);
+            assertEquals(expectedSeqs[n - 1], seq2);
+            assertEquals(expectedSeqs[n - 1], seq3);
+            assertEquals(expectedSeqs[n - 1], seq4);
 
-                assertEquals(expectedNumbers[n - 1], number);
-            }
+            assertEquals(expectedNumbers[n - 1], number);
         });
         assertEquals(5, numRows);
     }
@@ -890,20 +796,13 @@ public class QueryTest extends BaseTest {
             .from(dataSource)
             .orderBy(Ordering.expression(EXPR_NUMBER1))
             .limit(Expression.intValue(5));
-        try {
-            final long[] expectedNumbers = {1, 2, 3, 4, 5};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    long number = (long) result.getValue(0);
-                    assertEquals(expectedNumbers[n - 1], number);
-                }
-            });
-            assertEquals(5, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final long[] expectedNumbers = {1, 2, 3, 4, 5};
+        int numRows = verifyQuery(query, (n, result) -> {
+            long number = (long) result.getValue(0);
+            assertEquals(expectedNumbers[n - 1], number);
+        });
+        assertEquals(5, numRows);
 
         Expression paramExpr = Expression.parameter("LIMIT_NUM");
         query = QueryBuilder
@@ -914,20 +813,12 @@ public class QueryTest extends BaseTest {
         Parameters params = new Parameters(query.getParameters()).setValue("LIMIT_NUM", 3);
         query.setParameters(params);
 
-        try {
-            final long[] expectedNumbers2 = {1, 2, 3};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    long number = (long) result.getValue(0);
-                    assertEquals(expectedNumbers2[n - 1], number);
-                }
-            });
-            assertEquals(3, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        final long[] expectedNumbers2 = {1, 2, 3};
+        numRows = verifyQuery(query, (n, result) -> {
+            long number = (long) result.getValue(0);
+            assertEquals(expectedNumbers2[n - 1], number);
+        });
+        assertEquals(3, numRows);
     }
 
     @Test
@@ -941,20 +832,13 @@ public class QueryTest extends BaseTest {
             .from(dataSource)
             .orderBy(Ordering.expression(EXPR_NUMBER1))
             .limit(Expression.intValue(5), Expression.intValue(3));
-        try {
-            final long[] expectedNumbers = {4, 5, 6, 7, 8};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    long number = (long) result.getValue(0);
-                    assertEquals(expectedNumbers[n - 1], number);
-                }
-            });
-            assertEquals(5, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final long[] expectedNumbers = {4, 5, 6, 7, 8};
+        int numRows = verifyQuery(query, (n, result) -> {
+            long number = (long) result.getValue(0);
+            assertEquals(expectedNumbers[n - 1], number);
+        });
+        assertEquals(5, numRows);
 
         Expression paramLimitExpr = Expression.parameter("LIMIT_NUM");
         Expression paramOffsetExpr = Expression.parameter("OFFSET_NUM");
@@ -967,20 +851,13 @@ public class QueryTest extends BaseTest {
             .setValue("LIMIT_NUM", 3)
             .setValue("OFFSET_NUM", 5);
         query.setParameters(params);
-        try {
-            final long[] expectedNumbers2 = {6, 7, 8};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    long number = (long) result.getValue(0);
-                    assertEquals(expectedNumbers2[n - 1], number);
-                }
-            });
-            assertEquals(3, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final long[] expectedNumbers2 = {6, 7, 8};
+        numRows = verifyQuery(query, (n, result) -> {
+            long number = (long) result.getValue(0);
+            assertEquals(expectedNumbers2[n - 1], number);
+        });
+        assertEquals(3, numRows);
     }
 
     @Test
@@ -994,18 +871,16 @@ public class QueryTest extends BaseTest {
 
         DataSource DS = DataSource.database(db);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
             .from(DS);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(4, result.count());
-                assertEquals(result.getValue(0), result.getValue("firstname"));
-                assertEquals(result.getValue(1), result.getValue("lastname"));
-                assertEquals(result.getValue(2), result.getValue("gender"));
-                assertEquals(result.getValue(3), result.getValue("city"));
-            }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(4, result.count());
+            assertEquals(result.getValue(0), result.getValue("firstname"));
+            assertEquals(result.getValue(1), result.getValue("lastname"));
+            assertEquals(result.getValue(2), result.getValue("gender"));
+            assertEquals(result.getValue(3), result.getValue("city"));
         });
         assertEquals(100, numRows);
     }
@@ -1028,19 +903,17 @@ public class QueryTest extends BaseTest {
         SelectResult RES_MAX = SelectResult.expression(MAX);
         SelectResult RES_SUM = SelectResult.expression(SUM).as("sum");
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(RES_AVG, RES_CNT, RES_MIN, RES_MAX, RES_SUM)
             .from(DS);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(5, result.count());
-                assertEquals(result.getValue(0), result.getValue("$1"));
-                assertEquals(result.getValue(1), result.getValue("$2"));
-                assertEquals(result.getValue(2), result.getValue("min"));
-                assertEquals(result.getValue(3), result.getValue("$3"));
-                assertEquals(result.getValue(4), result.getValue("sum"));
-            }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(5, result.count());
+            assertEquals(result.getValue(0), result.getValue("$1"));
+            assertEquals(result.getValue(1), result.getValue("$2"));
+            assertEquals(result.getValue(2), result.getValue("min"));
+            assertEquals(result.getValue(3), result.getValue("$3"));
+            assertEquals(result.getValue(4), result.getValue("sum"));
         });
         assertEquals(1, numRows);
     }
@@ -1062,20 +935,13 @@ public class QueryTest extends BaseTest {
                 .any(exprVarLike)
                 .in(exprLikes)
                 .satisfies(exprVarLike.equalTo(Expression.string("climbing"))));
-        try {
-            final AtomicInteger i = new AtomicInteger(0);
-            final String[] expected = {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expected[i.getAndIncrement()], result.getString(0));
-                }
-            });
-            assertEquals(expected.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final AtomicInteger i = new AtomicInteger(0);
+        final String[] expected = {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
+        int numRows = verifyQuery(query, false, (n, result) -> {
+            assertEquals(expected[i.getAndIncrement()], result.getString(0));
+        });
+        assertEquals(expected.length, numRows);
 
         // EVERY:
         query = QueryBuilder
@@ -1085,18 +951,11 @@ public class QueryTest extends BaseTest {
                 .every(ArrayExpression.variable("LIKE"))
                 .in(exprLikes)
                 .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    if (n == 1) { assertEquals("doc-007", result.getString(0)); }
-                }
-            });
-            assertEquals(42, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, false, (n, result) -> {
+            if (n == 1) { assertEquals("doc-007", result.getString(0)); }
+        });
+        assertEquals(42, numRows);
 
         // ANY AND EVERY:
         query = QueryBuilder
@@ -1106,17 +965,9 @@ public class QueryTest extends BaseTest {
                 .anyAndEvery(ArrayExpression.variable("LIKE"))
                 .in(exprLikes)
                 .satisfies(exprVarLike.equalTo(Expression.string("taxes"))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                }
-            });
-            assertEquals(0, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, false, (n, result) -> { });
+        assertEquals(0, numRows);
     }
 
     @Test
@@ -1137,16 +988,13 @@ public class QueryTest extends BaseTest {
         SelectResult rsMax = SelectResult.expression(max);
         SelectResult rsSum = SelectResult.expression(sum);
 
-        query = QueryBuilder.select(rsAvg, rsCnt, rsMin, rsMax, rsSum).from(ds);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(50.5F, (float) result.getValue(0), 0.0F);
-                assertEquals(100L, (long) result.getValue(1));
-                assertEquals(1L, (long) result.getValue(2));
-                assertEquals(100L, (long) result.getValue(3));
-                assertEquals(5050L, (long) result.getValue(4));
-            }
+        Query query = QueryBuilder.select(rsAvg, rsCnt, rsMin, rsMax, rsSum).from(ds);
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(50.5F, (float) result.getValue(0), 0.0F);
+            assertEquals(100L, (long) result.getValue(1));
+            assertEquals(1L, (long) result.getValue(2));
+            assertEquals(100L, (long) result.getValue(3));
+            assertEquals(5050L, (long) result.getValue(4));
         });
         assertEquals(1, numRows);
     }
@@ -1166,18 +1014,9 @@ public class QueryTest extends BaseTest {
         SelectResult srArrayLength = SelectResult.expression(exprArrayLength);
 
         Query query = QueryBuilder.select(srArrayLength).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(2, result.getInt(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(2, result.getInt(0)));
+        assertEquals(1, numRows);
 
         Expression exArrayContains1 = ArrayFunction.contains(exprArray, Expression.string("650-123-0001"));
         Expression exArrayContains2 = ArrayFunction.contains(exprArray, Expression.string("650-123-0003"));
@@ -1185,19 +1024,12 @@ public class QueryTest extends BaseTest {
         SelectResult srArrayContains2 = SelectResult.expression(exArrayContains2);
 
         query = QueryBuilder.select(srArrayContains1, srArrayContains2).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(true, result.getBoolean(0));
-                    assertEquals(false, result.getBoolean(1));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(true, result.getBoolean(0));
+            assertEquals(false, result.getBoolean(1));
+        });
+        assertEquals(1, numRows);
     }
 
     @Test
@@ -1280,19 +1112,13 @@ public class QueryTest extends BaseTest {
             Query query = QueryBuilder
                 .select(SelectResult.expression(f))
                 .from(DataSource.database(db));
-            try {
-                int numRows = verifyQuery(query, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        double expected = expectedValues[index.intValue()];
-                        assertEquals(expected, result.getDouble(0), 0.0);
-                    }
-                });
-                assertEquals(1, numRows);
-            }
-            finally {
-                freeQuery(query);
-            }
+
+            int numRows = verifyQuery(query, (n, result) -> {
+                double expected = expectedValues[index.intValue()];
+                assertEquals(expected, result.getDouble(0), 0.0);
+            });
+            assertEquals(1, numRows);
+
             index.incrementAndGet();
         }
     }
@@ -1315,35 +1141,19 @@ public class QueryTest extends BaseTest {
         SelectResult srFnContains2 = SelectResult.expression(fnContains2);
 
         Query query = QueryBuilder.select(srFnContains1, srFnContains2).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertTrue(result.getBoolean(0));
-                    assertFalse(result.getBoolean(1));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertTrue(result.getBoolean(0));
+            assertFalse(result.getBoolean(1));
+        });
+        assertEquals(1, numRows);
 
         // Length
         Expression fnLength = Function.length(prop);
         query = QueryBuilder.select(SelectResult.expression(fnLength)).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(str.length(), result.getInt(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> assertEquals(str.length(), result.getInt(0)));
+        assertEquals(1, numRows);
 
         // Lower, Ltrim, Rtrim, Trim, Upper:
         Expression fnLower = Function.lower(prop);
@@ -1360,22 +1170,14 @@ public class QueryTest extends BaseTest {
             SelectResult.expression(fnUpper))
             .from(ds);
 
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(str.toLowerCase(Locale.ENGLISH), result.getString(0));
-                    assertEquals(str.replaceAll("^\\s+", ""), result.getString(1));
-                    assertEquals(str.replaceAll("\\s+$", ""), result.getString(2));
-                    assertEquals(str.trim(), result.getString(3));
-                    assertEquals(str.toUpperCase(Locale.ENGLISH), result.getString(4));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(str.toLowerCase(Locale.ENGLISH), result.getString(0));
+            assertEquals(str.replaceAll("^\\s+", ""), result.getString(1));
+            assertEquals(str.replaceAll("\\s+$", ""), result.getString(2));
+            assertEquals(str.trim(), result.getString(3));
+            assertEquals(str.toUpperCase(Locale.ENGLISH), result.getString(4));
+        });
+        assertEquals(1, numRows);
     }
 
     @Test
@@ -1390,91 +1192,63 @@ public class QueryTest extends BaseTest {
 
         // SELECT *
         Query query = QueryBuilder.select(SR_ALL).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    Dictionary a1 = result.getDictionary(0);
-                    Dictionary a2 = result.getDictionary(db.getName());
-                    assertEquals(n, a1.getInt("number1"));
-                    assertEquals(100 - n, a1.getInt("number2"));
-                    assertEquals(n, a2.getInt("number1"));
-                    assertEquals(100 - n, a2.getInt("number2"));
-                }
-            });
-            assertEquals(100, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            Dictionary a1 = result.getDictionary(0);
+            Dictionary a2 = result.getDictionary(db.getName());
+            assertEquals(n, a1.getInt("number1"));
+            assertEquals(100 - n, a1.getInt("number2"));
+            assertEquals(n, a2.getInt("number1"));
+            assertEquals(100 - n, a2.getInt("number2"));
+        });
+        assertEquals(100, numRows);
 
         // SELECT *, number1
         query = QueryBuilder.select(SR_ALL, SR_NUMBER1).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(2, result.count());
-                    Dictionary a1 = result.getDictionary(0);
-                    Dictionary a2 = result.getDictionary(db.getName());
-                    assertEquals(n, a1.getInt("number1"));
-                    assertEquals(100 - n, a1.getInt("number2"));
-                    assertEquals(n, a2.getInt("number1"));
-                    assertEquals(100 - n, a2.getInt("number2"));
-                    assertEquals(n, result.getInt(1));
-                    assertEquals(n, result.getInt("number1"));
-                }
-            });
-            assertEquals(100, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(2, result.count());
+            Dictionary a1 = result.getDictionary(0);
+            Dictionary a2 = result.getDictionary(db.getName());
+            assertEquals(n, a1.getInt("number1"));
+            assertEquals(100 - n, a1.getInt("number2"));
+            assertEquals(n, a2.getInt("number1"));
+            assertEquals(100 - n, a2.getInt("number2"));
+            assertEquals(n, result.getInt(1));
+            assertEquals(n, result.getInt("number1"));
+        });
+        assertEquals(100, numRows);
 
         // SELECT testdb.*
         query = QueryBuilder.select(srTestDBAll).from(ds.as("testdb"));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    Dictionary a1 = result.getDictionary(0);
-                    Dictionary a2 = result.getDictionary("testdb");
-                    assertEquals(n, a1.getInt("number1"));
-                    assertEquals(100 - n, a1.getInt("number2"));
-                    assertEquals(n, a2.getInt("number1"));
-                    assertEquals(100 - n, a2.getInt("number2"));
-                }
-            });
-            assertEquals(100, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            Dictionary a1 = result.getDictionary(0);
+            Dictionary a2 = result.getDictionary("testdb");
+            assertEquals(n, a1.getInt("number1"));
+            assertEquals(100 - n, a1.getInt("number2"));
+            assertEquals(n, a2.getInt("number1"));
+            assertEquals(100 - n, a2.getInt("number2"));
+        });
+        assertEquals(100, numRows);
 
         // SELECT testdb.*, testdb.number1
         query = QueryBuilder.select(srTestDBAll, srTestDBNum1).from(ds.as("testdb"));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(2, result.count());
-                    Dictionary a1 = result.getDictionary(0);
-                    Dictionary a2 = result.getDictionary("testdb");
-                    assertEquals(n, a1.getInt("number1"));
-                    assertEquals(100 - n, a1.getInt("number2"));
-                    assertEquals(n, a2.getInt("number1"));
-                    assertEquals(100 - n, a2.getInt("number2"));
-                    assertEquals(n, result.getInt(1));
-                    assertEquals(n, result.getInt("number1"));
-                }
-            });
-            assertEquals(100, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(2, result.count());
+            Dictionary a1 = result.getDictionary(0);
+            Dictionary a2 = result.getDictionary("testdb");
+            assertEquals(n, a1.getInt("number1"));
+            assertEquals(100 - n, a1.getInt("number2"));
+            assertEquals(n, a2.getInt("number1"));
+            assertEquals(100 - n, a2.getInt("number2"));
+            assertEquals(n, result.getInt(1));
+            assertEquals(n, result.getInt("number1"));
+        });
+        assertEquals(100, numRows);
     }
 
     @Test
@@ -1498,19 +1272,10 @@ public class QueryTest extends BaseTest {
         Query query = QueryBuilder.select(S_STRING)
             .from(DataSource.database(db))
             .orderBy(Ordering.expression(STRING.collate(NO_LOCALE)));
-        try {
-            final String[] expected = {"A", "Å", "B", "Z"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expected[n - 1], result.getString(0));
-                }
-            });
-            assertEquals(expected.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final String[] expected = {"A", "Å", "B", "Z"};
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(expected[n - 1], result.getString(0)));
+        assertEquals(expected.length, numRows);
 
         // Spanish
         // With locale:
@@ -1522,19 +1287,10 @@ public class QueryTest extends BaseTest {
         query = QueryBuilder.select(S_STRING)
             .from(DataSource.database(db))
             .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
-        try {
-            final String[] expected2 = {"A", "Å", "B", "Z"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expected2[n - 1], result.getString(0));
-                }
-            });
-            assertEquals(expected2.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final String[] expected2 = {"A", "Å", "B", "Z"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expected2[n - 1], result.getString(0)));
+        assertEquals(expected2.length, numRows);
 
         // With locale:
         WITH_LOCALE = Collation.unicode()
@@ -1545,19 +1301,10 @@ public class QueryTest extends BaseTest {
         query = QueryBuilder.select(S_STRING)
             .from(DataSource.database(db))
             .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
-        try {
-            final String[] expected2 = {"A", "B", "Z", "Å"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expected2[n - 1], result.getString(0));
-                }
-            });
-            assertEquals(expected2.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        final String[] expected3 = {"A", "B", "Z", "Å"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expected3[n - 1], result.getString(0)));
+        assertEquals(expected2.length, numRows);
     }
 
 
@@ -1646,19 +1393,13 @@ public class QueryTest extends BaseTest {
                 VALUE.collate((Collation) data.get(3)).lessThan(Expression.value(data.get(1)));
 
             Query query = QueryBuilder.select().from(DataSource.database(db)).where(comparison);
-            try {
-                int numRows = verifyQuery(query, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        assertEquals(1, n);
-                        assertNotNull(result);
-                    }
-                });
-                assertEquals(data.toString(), 1, numRows);
-            }
-            finally {
-                freeQuery(query);
-            }
+
+            int numRows = verifyQuery(query, (n, result) -> {
+                assertEquals(1, n);
+                assertNotNull(result);
+            });
+            assertEquals(data.toString(), 1, numRows);
+
             db.delete(doc);
         }
     }
@@ -1667,40 +1408,33 @@ public class QueryTest extends BaseTest {
     public void testLiveQuery() throws Exception {
         loadNumbers(100);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SR_DOCID)
             .from(DataSource.database(db))
             .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(2);
-        QueryChangeListener listener = new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                assertNotNull(change);
-                ResultSet rs = change.getResults();
-                assertNotNull(rs);
-                resultSets.add(rs);
-                if (latch.getCount() == 2) {
-                    int count = 0;
-                    while (rs.next() != null) { count++; }
-                    assertEquals(9, count);
-                }
-                else if (latch.getCount() == 1) {
-                    Result result;
-                    int count = 0;
-                    while ((result = rs.next()) != null) {
-                        if (count == 0) {
-                            Document doc = db.getDocument(result.getString(0));
-                            assertEquals(-1L, doc.getValue("number1"));
-                        }
-                        count++;
-                    }
-                    assertEquals(10, count);
-                }
-                latch.countDown();
+        QueryChangeListener listener = change -> {
+            ResultSet rs = change.getResults();
+            if (latch.getCount() == 2) {
+                int count = 0;
+                while (rs.next() != null) { count++; }
+                assertEquals(9, count);
             }
+            else if (latch.getCount() == 1) {
+                Result result;
+                int count = 0;
+                while ((result = rs.next()) != null) {
+                    if (count == 0) {
+                        Document doc = db.getDocument(result.getString(0));
+                        assertEquals(-1L, doc.getValue("number1"));
+                    }
+                    count++;
+                }
+                assertEquals(10, count);
+            }
+            latch.countDown();
         };
         ListenerToken token = query.addChangeListener(executor, listener);
         try {
@@ -1721,7 +1455,6 @@ public class QueryTest extends BaseTest {
         }
         finally {
             query.removeChangeListener(token);
-            for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
@@ -1738,25 +1471,20 @@ public class QueryTest extends BaseTest {
     private void _testLiveQueryNoUpdate(final boolean consumeAll) throws Exception {
         loadNumbers(100);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select()
             .from(DataSource.database(db))
             .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(2);
-        QueryChangeListener listener = new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                ResultSet rs = change.getResults();
-                resultSets.add(rs);
-                if (consumeAll) {
-                    while (rs.next() != null) { ; }
-                }
-                latch.countDown();
-                // should come only once!
+        QueryChangeListener listener = change -> {
+            ResultSet rs = change.getResults();
+            if (consumeAll) {
+                while (rs.next() != null) { ; }
             }
+            latch.countDown();
+            // should come only once!
         };
         ListenerToken token = query.addChangeListener(executor, listener);
         try {
@@ -1779,7 +1507,6 @@ public class QueryTest extends BaseTest {
         }
         finally {
             query.removeChangeListener(token);
-            for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
@@ -1792,13 +1519,9 @@ public class QueryTest extends BaseTest {
         Expression cnt = Function.count(EXPR_NUMBER1);
 
         SelectResult rsCnt = SelectResult.expression(cnt);
-        query = QueryBuilder.select(rsCnt).from(ds);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(100L, (long) result.getValue(0));
-            }
-        });
+        Query query = QueryBuilder.select(rsCnt).from(ds);
+
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(100L, (long) result.getValue(0)));
         assertEquals(1, numRows);
     }
 
@@ -1851,17 +1574,13 @@ public class QueryTest extends BaseTest {
 
         SelectResult srMainAll = SelectResult.all().from("main");
         SelectResult srSecondaryAll = SelectResult.all().from("secondary");
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(srMainAll, srSecondaryAll)
             .from(mainDS)
             .join(join)
             .where(typeExpr.equalTo(Expression.string("bookmark")));
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Report.log(LogLevel.INFO, "RESULT: " + result.toMap());
-            }
-        });
+
+        verifyQuery(query, (n, result) -> Report.log(LogLevel.INFO, "RESULT: " + result.toMap()));
     }
 
     @Test
@@ -1903,22 +1622,19 @@ public class QueryTest extends BaseTest {
         db.save(exam1);
         db.save(exam2);
 
-        query = QueryBuilder.select(SelectResult.all())
+        Query query = QueryBuilder.select(SelectResult.all())
             .from(DataSource.database(db))
             .where(Expression.property("exam type").equalTo(Expression.string("final"))
                 .and(Expression.property("answer").equalTo(Expression.booleanValue(true))));
 
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Map<String, Object> maps = result.toMap();
-                Map<String, Object> map = (Map<String, Object>) maps.get("testdb");
-                if (map.get("question").equals("There are 45 states in the US.")) {
-                    assertFalse((Boolean) map.get("answer"));
-                }
-                if (map.get("question").equals("There are 100 senators in the US.")) {
-                    assertTrue((Boolean) map.get("answer"));
-                }
+        verifyQuery(query, (n, result) -> {
+            Map<String, Object> maps = result.toMap();
+            Map<String, Object> map = (Map<String, Object>) maps.get("testdb");
+            if (map.get("question").equals("There are 45 states in the US.")) {
+                assertFalse((Boolean) map.get("answer"));
+            }
+            if (map.get("question").equals("There are 100 senators in the US.")) {
+                assertTrue((Boolean) map.get("answer"));
             }
         });
     }
@@ -1932,13 +1648,11 @@ public class QueryTest extends BaseTest {
         assertEquals(2, db.getCount());
 
         // STEP 2: query documents before deletion
-        query = QueryBuilder.select(SR_DOCID, SR_ALL)
+        Query query = QueryBuilder.select(SR_DOCID, SR_ALL)
             .from(DataSource.database(this.db))
             .where(Expression.property("type").equalTo(Expression.string("task")));
-        int rows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception { }
-        });
+
+        int rows = verifyQuery(query, (n, result) -> { });
         assertEquals(2, rows);
 
         // STEP 3: delete task 1
@@ -1947,12 +1661,7 @@ public class QueryTest extends BaseTest {
         assertNull(db.getDocument(task1.getId()));
 
         // STEP 4: query documents again after deletion
-        rows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(task2.getId(), result.getString(0));
-            }
-        });
+        rows = verifyQuery(query, (n, result) -> assertEquals(task2.getId(), result.getString(0)));
         assertEquals(1, rows);
     }
 
@@ -1982,78 +1691,46 @@ public class QueryTest extends BaseTest {
             .from(DataSource.database(db))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(true))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    Dictionary dict = result.getDictionary(db.getName());
-                    assertTrue(dict.getBoolean("complete"));
-                    assertEquals("task", dict.getString("type"));
-                    assertTrue(dict.getString("title").startsWith("Task "));
-                }
-            });
-            assertEquals(2, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, false, (n, result) -> {
+            Dictionary dict = result.getDictionary(db.getName());
+            assertTrue(dict.getBoolean("complete"));
+            assertEquals("task", dict.getString("type"));
+            assertTrue(dict.getString("title").startsWith("Task "));
+        });
+        assertEquals(2, numRows);
 
         // regular query - false
         query = QueryBuilder.select(SR_ALL)
             .from(DataSource.database(db))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(false))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    Dictionary dict = result.getDictionary(db.getName());
-                    assertFalse(dict.getBoolean("complete"));
-                    assertEquals("task", dict.getString("type"));
-                    assertTrue(dict.getString("title").startsWith("Task "));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, false, (n, result) -> {
+            Dictionary dict = result.getDictionary(db.getName());
+            assertFalse(dict.getBoolean("complete"));
+            assertEquals("task", dict.getString("type"));
+            assertTrue(dict.getString("title").startsWith("Task "));
+        });
+        assertEquals(1, numRows);
 
         // aggregation query - true
         query = QueryBuilder.select(srCount)
             .from(DataSource.database(db))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(true))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(2, result.getInt(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, false, (n, result) -> assertEquals(2, result.getInt(0)));
+        assertEquals(1, numRows);
 
         // aggregation query - false
         query = QueryBuilder.select(srCount)
             .from(DataSource.database(db))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(false))));
-        try {
-            int numRows = verifyQuery(query, false, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.getInt(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, false, (n, result) -> assertEquals(1, result.getInt(0)));
+        assertEquals(1, numRows);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1413
@@ -2076,21 +1753,19 @@ public class QueryTest extends BaseTest {
         SelectResult MAIN_ALL = SelectResult.all().from("main");
         SelectResult SECOND_ALL = SelectResult.all().from("secondary");
 
-        query = QueryBuilder.select(MAIN_ALL, SECOND_ALL).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Dictionary mainAll1 = result.getDictionary(0);
-                Dictionary mainAll2 = result.getDictionary("main");
-                Dictionary secondAll1 = result.getDictionary(1);
-                Dictionary secondAll2 = result.getDictionary("secondary");
-                assertEquals(42, mainAll1.getInt("number1"));
-                assertEquals(42, mainAll2.getInt("number1"));
-                assertEquals(58, mainAll1.getInt("number2"));
-                assertEquals(58, mainAll2.getInt("number2"));
-                assertEquals(42, secondAll1.getInt("theone"));
-                assertEquals(42, secondAll2.getInt("theone"));
-            }
+        Query query = QueryBuilder.select(MAIN_ALL, SECOND_ALL).from(mainDS).join(join);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            Dictionary mainAll1 = result.getDictionary(0);
+            Dictionary mainAll2 = result.getDictionary("main");
+            Dictionary secondAll1 = result.getDictionary(1);
+            Dictionary secondAll2 = result.getDictionary("secondary");
+            assertEquals(42, mainAll1.getInt("number1"));
+            assertEquals(42, mainAll2.getInt("number1"));
+            assertEquals(58, mainAll1.getInt("number2"));
+            assertEquals(58, mainAll2.getInt("number2"));
+            assertEquals(42, secondAll1.getInt("theone"));
+            assertEquals(42, secondAll2.getInt("theone"));
         });
         assertEquals(1, numRows);
     }
@@ -2117,20 +1792,18 @@ public class QueryTest extends BaseTest {
         SelectResult SECONDARY_DOC_ID = SelectResult.expression(Meta.id.from("secondary")).as("secondaryDocID");
         SelectResult SECONDARY_THEONE = SelectResult.expression(Expression.property("theone").from("secondary"));
 
-        query = QueryBuilder.select(MAIN_DOC_ID, SECONDARY_DOC_ID, SECONDARY_THEONE).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(1, n);
-                String docID = result.getString("mainDocID");
-                Document doc = db.getDocument(docID);
-                assertEquals(1, doc.getInt("number1"));
-                assertEquals(99, doc.getInt("number2"));
+        Query query = QueryBuilder.select(MAIN_DOC_ID, SECONDARY_DOC_ID, SECONDARY_THEONE).from(mainDS).join(join);
 
-                // data from secondary
-                assertEquals("joinme", result.getString("secondaryDocID"));
-                assertEquals(42, result.getInt("theone"));
-            }
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, n);
+            String docID = result.getString("mainDocID");
+            Document doc = db.getDocument(docID);
+            assertEquals(1, doc.getInt("number1"));
+            assertEquals(99, doc.getInt("number2"));
+
+            // data from secondary
+            assertEquals("joinme", result.getString("secondaryDocID"));
+            assertEquals(42, result.getInt("theone"));
         });
         assertEquals(1, numRows);
     }
@@ -2197,6 +1870,7 @@ public class QueryTest extends BaseTest {
         json8.put("CASE", false);
         json8.put("DIAC", false);
         expected.add(json8);
+
         for (int i = 0; i < collations.length; i++) { assertEquals(expected.get(i), collations[i].asJSON()); }
     }
 
@@ -2235,19 +1909,10 @@ public class QueryTest extends BaseTest {
             Query query = QueryBuilder.select(SelectResult.property("hey"))
                 .from(DataSource.database(db))
                 .orderBy(Ordering.expression(property.collate((Collation) data.get(1))));
-            try {
-                final List<String> list = new ArrayList<>();
-                verifyQuery(query, false, new QueryResult() {
-                    @Override
-                    public void check(int n, Result result) throws Exception {
-                        list.add(result.getString(0));
-                    }
-                });
-                assertEquals(data.get(2), list);
-            }
-            finally {
-                freeQuery(query);
-            }
+
+            final List<String> list = new ArrayList<>();
+            verifyQuery(query, false, (n, result) -> list.add(result.getString(0)));
+            assertEquals(data.get(2), list);
         }
     }
 
@@ -2257,14 +1922,7 @@ public class QueryTest extends BaseTest {
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db));
 
-        final List<ResultSet> resultSets = new ArrayList<>();
-        ListenerToken token = query.addChangeListener(executor, new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                resultSets.add(change.getResults());
-                latch1.countDown();
-            }
-        });
+        ListenerToken token = query.addChangeListener(executor, change -> latch1.countDown());
         assertTrue(latch1.await(2, TimeUnit.SECONDS));
 
         try {
@@ -2277,8 +1935,6 @@ public class QueryTest extends BaseTest {
         }
         finally {
             query.removeChangeListener(token);
-            for (ResultSet rs : resultSets) { freeResultSet(rs); }
-            freeQuery(query);
             closeDB();
         }
     }
@@ -2309,19 +1965,18 @@ public class QueryTest extends BaseTest {
         SelectResult rsCntDate = SelectResult.expression(cntDate);
         SelectResult rsCntNotExist = SelectResult.expression(cntNotExist);
 
-        query = QueryBuilder.select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist)
-            .from(ds);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(100L, (long) result.getValue(0));
-                assertEquals(101L, (long) result.getValue(1));
-                assertEquals(101L, (long) result.getValue(2));
-                assertEquals(101L, (long) result.getValue(3));
-                assertEquals(1L, (long) result.getValue(4));
-                assertEquals(1L, (long) result.getValue(5));
-                assertEquals(0L, (long) result.getValue(6));
-            }
+        Query query = QueryBuilder
+                .select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist)
+                .from(ds);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(100L, (long) result.getValue(0));
+            assertEquals(101L, (long) result.getValue(1));
+            assertEquals(101L, (long) result.getValue(2));
+            assertEquals(101L, (long) result.getValue(3));
+            assertEquals(1L, (long) result.getValue(4));
+            assertEquals(1L, (long) result.getValue(5));
+            assertEquals(0L, (long) result.getValue(6));
         });
         assertEquals(1, numRows);
     }
@@ -2339,185 +1994,135 @@ public class QueryTest extends BaseTest {
 
         // SELECT count(*)
         Query query = QueryBuilder.select(srCountAll).from(ds);
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    assertEquals(100L, (long) result.getValue(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            assertEquals(100L, (long) result.getValue(0));
+        });
+        assertEquals(1, numRows);
 
         // SELECT count(testdb.*)
         query = QueryBuilder.select(srCountAllFrom).from(ds.as("testdb"));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    assertEquals(100L, (long) result.getValue(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            assertEquals(100L, (long) result.getValue(0));
+        });
+        assertEquals(1, numRows);
     }
 
     @Test
     public void testResultSetEnumeration() throws Exception {
         loadNumbers(5);
 
-        query = QueryBuilder.select(SelectResult.expression(Meta.id))
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .orderBy(Ordering.property("number1"));
+
         // Type 1: Enumeration by ResultSet.next()
         int i = 0;
         Result result;
         ResultSet rs = query.execute();
-        try {
-            while ((result = rs.next()) != null) {
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), result.getString(0));
-                i++;
-            }
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        while ((result = rs.next()) != null) {
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), result.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 2: Enumeration by ResultSet.iterator()
         i = 0;
         rs = query.execute();
-        try {
-            for (Result r : rs) {
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        for (Result r : rs) {
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 3: Enumeration by ResultSet.allResults().get(int index)
         i = 0;
         rs = query.execute();
-        try {
-            List<Result> list = rs.allResults();
-            for (int j = 0; j < list.size(); j++) {
-                Result r = list.get(j);
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        List<Result> list = rs.allResults();
+        for (int j = 0; j < list.size(); j++) {
+            Result r = list.get(j);
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 4: Enumeration by ResultSet.allResults().iterator()
         i = 0;
         rs = query.execute();
-        try {
-            Iterator<Result> itr = rs.allResults().iterator();
-            while (itr.hasNext()) {
-                Result r = itr.next();
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        Iterator<Result> itr = rs.allResults().iterator();
+        while (itr.hasNext()) {
+            Result r = itr.next();
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
     }
 
     @Test
     public void testGetAllResults() throws Exception {
         loadNumbers(5);
 
-        query = QueryBuilder.select(SelectResult.expression(Meta.id))
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .orderBy(Ordering.property("number1"));
 
         // Get all results by get(int)
         int i = 0;
         ResultSet rs = query.execute();
-        try {
-            List<Result> results = rs.allResults();
-            for (int j = 0; j < results.size(); j++) {
-                Result r = results.get(j);
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(5, results.size());
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        List<Result> results = rs.allResults();
+        for (int j = 0; j < results.size(); j++) {
+            Result r = results.get(j);
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, results.size());
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Get all results by iterator
         i = 0;
         rs = query.execute();
-        try {
-            List<Result> results = rs.allResults();
-            for (Result r : results) {
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(5, results.size());
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        results = rs.allResults();
+        for (Result r : results) {
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(5, results.size());
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Partial enumerating then get all results:
         rs = query.execute();
-        try {
-            assertNotNull(rs.next());
-            assertNotNull(rs.next());
-            List<Result> results = rs.allResults();
-            i = 2;
-            for (Result r : results) {
-                assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
-                i++;
-            }
-            assertEquals(3, results.size());
-            assertEquals(5, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        assertNotNull(rs.next());
+        assertNotNull(rs.next());
+        results = rs.allResults();
+        i = 2;
+        for (Result r : results) {
+            assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(3, results.size());
+        assertEquals(5, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
     }
 
     @Test
     public void testResultSetEnumerationZeroResults() throws Exception {
         loadNumbers(5);
 
-        query = QueryBuilder.select(SelectResult.expression(Meta.id))
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .where(Expression.property("number1").is(Expression.intValue(100)))
             .orderBy(Ordering.property("number1"));
@@ -2526,66 +2131,46 @@ public class QueryTest extends BaseTest {
         int i = 0;
         Result result;
         ResultSet rs = query.execute();
-        try {
-            while ((result = rs.next()) != null) {
-                i++;
-            }
-            assertEquals(0, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        while ((result = rs.next()) != null) {
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(0, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 2: Enumeration by ResultSet.iterator()
         i = 0;
         rs = query.execute();
-        try {
-            for (Result r : rs) {
-                i++;
-            }
-            assertEquals(0, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        for (Result r : rs) {
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(0, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 3: Enumeration by ResultSet.allResults().get(int index)
         i = 0;
         rs = query.execute();
-        try {
-            List<Result> list = rs.allResults();
-            for (int j = 0; j < list.size(); j++) {
-                Result r = list.get(j);
-                i++;
-            }
-            assertEquals(0, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        List<Result> list = rs.allResults();
+        for (int j = 0; j < list.size(); j++) {
+            Result r = list.get(j);
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(0, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
 
         // Type 4: Enumeration by ResultSet.allResults().iterator()
         i = 0;
         rs = query.execute();
-        try {
-            Iterator<Result> itr = rs.allResults().iterator();
-            while (itr.hasNext()) {
-                Result r = itr.next();
-                i++;
-            }
-            assertEquals(0, i);
-            assertNull(rs.next());
-            assertEquals(0, rs.allResults().size());
+        Iterator<Result> itr = rs.allResults().iterator();
+        while (itr.hasNext()) {
+            Result r = itr.next();
+            i++;
         }
-        finally {
-            freeResultSet(rs);
-        }
+        assertEquals(0, i);
+        assertNull(rs.next());
+        assertEquals(0, rs.allResults().size());
     }
 
     @Test
@@ -2595,38 +2180,32 @@ public class QueryTest extends BaseTest {
         doc1.setValue("address", null);
         save(doc1);
 
-        query = QueryBuilder.select(
+        Query query = QueryBuilder.select(
             SelectResult.property("name"),
             SelectResult.property("address"),
             SelectResult.property("age"))
             .from(DataSource.database(db));
 
         // Array:
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(3, result.count());
-                assertEquals("Scott", result.getString(0));
-                assertNull(result.getValue(1));
-                assertNull(result.getValue(2));
-                assertEquals(Arrays.asList("Scott", null, null), result.toList());
-            }
+        verifyQuery(query, (n, result) -> {
+            assertEquals(3, result.count());
+            assertEquals("Scott", result.getString(0));
+            assertNull(result.getValue(1));
+            assertNull(result.getValue(2));
+            assertEquals(Arrays.asList("Scott", null, null), result.toList());
         });
 
         // Dictionary:
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals("Scott", result.getString("name"));
-                assertNull(result.getString("address"));
-                assertTrue(result.contains("address"));
-                assertNull(result.getString("age"));
-                assertFalse(result.contains("age"));
-                Map<String, Object> expected = new HashMap<>();
-                expected.put("name", "Scott");
-                expected.put("address", null);
-                assertEquals(expected, result.toMap());
-            }
+        verifyQuery(query, (n, result) -> {
+            assertEquals("Scott", result.getString("name"));
+            assertNull(result.getString("address"));
+            assertTrue(result.contains("address"));
+            assertNull(result.getString("age"));
+            assertFalse(result.contains("age"));
+            Map<String, Object> expected = new HashMap<>();
+            expected.put("name", "Scott");
+            expected.put("address", null);
+            assertEquals(expected, result.toMap());
         });
     }
 
@@ -2635,18 +2214,16 @@ public class QueryTest extends BaseTest {
     public void testExpressionNot() throws Exception {
         loadNumbers(10);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
             .from(DataSource.database(db))
             .where(Expression.not(Expression.property("number1")
                 .between(Expression.intValue(3), Expression.intValue(5))))
             .orderBy(Ordering.expression(Expression.property("number1")).ascending());
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (n < 3) { assertEquals(n, result.getInt("number1")); }
-                else { assertEquals(n + 3, result.getInt("number1")); }
-            }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            if (n < 3) { assertEquals(n, result.getInt("number1")); }
+            else { assertEquals(n + 3, result.getInt("number1")); }
         });
         assertEquals(7, numRows);
     }
@@ -2655,14 +2232,13 @@ public class QueryTest extends BaseTest {
     public void testLimitValueIsLargerThanResult() throws Exception {
         final int N = 4;
         loadNumbers(N);
-        query = QueryBuilder
+
+        Query query = QueryBuilder
             .select(SelectResult.all())
             .from(DataSource.database(db))
             .limit(Expression.intValue(10));
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception { }
-        });
+
+        int numRows = verifyQuery(query, (n, result) -> { });
         assertEquals(N, numRows);
     }
 
@@ -2694,17 +2270,16 @@ public class QueryTest extends BaseTest {
 
         String[] expectedIDs = {"doc1", "doc2", "doc3"};
         String[] expectedContents = {"beauty", "beautifully", "beautiful"};
-        query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
-            .where(FullTextExpression.index("ftsIndex").match("beautiful"))
-            .orderBy(Ordering.expression(Meta.id));
 
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(expectedIDs[n - 1], result.getString("id"));
-                assertEquals(expectedContents[n - 1], result.getString("content"));
-            }
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+                .from(DataSource.database(db))
+                .where(FullTextExpression.index("ftsIndex").match("beautiful"))
+                .orderBy(Ordering.expression(Meta.id));
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(expectedIDs[n - 1], result.getString("id"));
+            assertEquals(expectedContents[n - 1], result.getString("content"));
         });
         assertEquals(3, numRows);
     }
@@ -2730,36 +2305,22 @@ public class QueryTest extends BaseTest {
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("passageIndex").match("cat"));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    String id = String.format(Locale.ENGLISH, "doc%d", n);
-                    assertEquals(id, result.getString(0));
-                }
-            });
-            assertEquals(2, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            String id = String.format(Locale.ENGLISH, "doc%d", n);
+            assertEquals(id, result.getString(0));
+        });
+        assertEquals(2, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("passageIndexStemless").match("cat"));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    String id = String.format(Locale.ENGLISH, "doc%d", n);
-                    assertEquals(id, result.getString(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            String id = String.format(Locale.ENGLISH, "doc%d", n);
+            assertEquals(id, result.getString(0));
+        });
+        assertEquals(1, numRows);
     }
 
     // 3.1. Set Operations Using The Enhanced Query Syntax
@@ -2786,80 +2347,47 @@ public class QueryTest extends BaseTest {
         // https://www.sqlite.org/fts3.html#_set_operations_using_the_enhanced_query_syntax
 
         // AND binary set operator
-        Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
-            .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
-            .orderBy(Ordering.expression(Meta.id));
-        try {
-            final String[] expectedIDs = {"doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+                .from(DataSource.database(db))
+                .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
+                .orderBy(Ordering.expression(Meta.id));
+
+        final String[] expectedIDs = {"doc3"};
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs[n - 1], result.getString("id")));
+        assertEquals(expectedIDs.length, numRows);
 
         // implicit AND operator
-        query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
-            .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
-            .orderBy(Ordering.expression(Meta.id));
-        try {
-            final String[] expectedIDs2 = {"doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs2[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs2.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        query = QueryBuilder
+                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+                .from(DataSource.database(db))
+                .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
+                .orderBy(Ordering.expression(Meta.id));
+
+        final String[] expectedIDs2 = {"doc3"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs2[n - 1], result.getString("id")));
+        assertEquals(expectedIDs2.length, numRows);
 
         // OR operator
-        query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
-            .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
-            .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs3 = {"doc1", "doc2", "doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs3[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs3.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        query = QueryBuilder
+                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+                .from(DataSource.database(db))
+                .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
+                .orderBy(Ordering.expression(Meta.id));
+
+        String[] expectedIDs3 = {"doc1", "doc2", "doc3"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs3[n - 1], result.getString("id")));
+        assertEquals(expectedIDs3.length, numRows);
 
         // NOT operator
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("database NOT sqlite"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs4 = {"doc1"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs4[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs4.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs4 = {"doc1"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs4[n - 1], result.getString("id")));
+        assertEquals(expectedIDs4.length, numRows);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1621
@@ -2884,117 +2412,63 @@ public class QueryTest extends BaseTest {
         // https://www.sqlite.org/fts3.html#_set_operations_using_the_enhanced_query_syntax
 
         // A AND B AND C
-        Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
-            .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
-            .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs = {"doc2"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs.length, numRows);
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+                .from(DataSource.database(db))
+                .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
+                .orderBy(Ordering.expression(Meta.id));
 
-        }
-        finally {
-            freeQuery(query);
-        }
+        String[] expectedIDs = {"doc2"};
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs[n - 1], result.getString("id")));
+        assertEquals(expectedIDs.length, numRows);
 
         // (A AND B) OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR database"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs2 = {"doc1", "doc2", "doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs2[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs2.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs2 = {"doc1", "doc2", "doc3"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs2[n - 1], result.getString("id")));
+        assertEquals(expectedIDs2.length, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR system"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs3 = {"doc1", "doc2"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs3[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs3.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs3 = {"doc1", "doc2"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs3[n - 1], result.getString("id")));
+        assertEquals(expectedIDs3.length, numRows);
 
         // (A OR B) AND C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND database"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs4 = {"doc1", "doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs4[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs4.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs4 = {"doc1", "doc3"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs4[n - 1], result.getString("id")));
+        assertEquals(expectedIDs4.length, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND system"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs5 = {"doc1", "doc2"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs5[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs5.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs5 = {"doc1", "doc2"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs5[n - 1], result.getString("id")));
+        assertEquals(expectedIDs5.length, numRows);
 
         // A OR B OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
             .from(DataSource.database(db))
             .where(FullTextExpression.index("ftsIndex").match("database OR software OR system"))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            String[] expectedIDs6 = {"doc1", "doc2", "doc3"};
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(expectedIDs6[n - 1], result.getString("id"));
-                }
-            });
-            assertEquals(expectedIDs6.length, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        String[] expectedIDs6 = {"doc1", "doc2", "doc3"};
+        numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs6[n - 1], result.getString("id")));
+        assertEquals(expectedIDs6.length, numRows);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1628
@@ -3002,46 +2476,38 @@ public class QueryTest extends BaseTest {
     public void testLiveQueryResultsCount() throws Exception {
         loadNumbers(50);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select()
             .from(DataSource.database(db))
             .where(EXPR_NUMBER1.greaterThan(Expression.intValue(25)))
             .orderBy(Ordering.property("number1").ascending());
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
-        QueryChangeListener listener = new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                int count = 0;
-                ResultSet rs = change.getResults();
-                resultSets.add(rs);
-                while (rs.next() != null) { count++; }
-                if (count == 75) { latch.countDown(); } // 26-100
-            }
+        QueryChangeListener listener = change -> {
+            int count = 0;
+            ResultSet rs = change.getResults();
+            while (rs.next() != null) { count++; }
+            if (count == 75) { latch.countDown(); } // 26-100
         };
         ListenerToken token = query.addChangeListener(executor, listener);
+
         try {
             // create one doc
             final CountDownLatch latchAdd = new CountDownLatch(1);
-            executeAsync(500, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        loadNumbers(51, 100);
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    latchAdd.countDown();
+            executeAsync(500, () -> {
+                try {
+                    loadNumbers(51, 100);
                 }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+                latchAdd.countDown();
             });
             assertTrue(latchAdd.await(20, TimeUnit.SECONDS));
             assertTrue(latch.await(20, TimeUnit.SECONDS));
         }
         finally {
             query.removeChangeListener(token);
-            for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
@@ -3054,28 +2520,25 @@ public class QueryTest extends BaseTest {
         doc.setInt("number1", 5);
         db.save(doc);
 
-        query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
             .from(DataSource.database(db))
             .where(Expression.property("number1").lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1"));
+
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
-        final List<ResultSet> resultSets = new ArrayList<>();
-        ListenerToken token = query.addChangeListener(executor, new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                int matchs = 0;
-                ResultSet rs = change.getResults();
-                resultSets.add(rs);
-                for (Result r : rs) {
-                    matchs++;
-                }
-                // match doc1 with number1 -> 5 which is less than 10
-                if (matchs == 1) { latch1.countDown(); }
-                // Not match with doc1 because number1 -> 15 which does not quarify the query criteria
-                else { latch2.countDown(); }
+        ListenerToken token = query.addChangeListener(executor, change -> {
+            int matchs = 0;
+            ResultSet rs = change.getResults();
+            for (Result r : rs) {
+                matchs++;
             }
+            // match doc1 with number1 -> 5 which is less than 10
+            if (matchs == 1) { latch1.countDown(); }
+            // Not match with doc1 because number1 -> 15 which does not quarify the query criteria
+            else { latch2.countDown(); }
         });
+
         try {
             assertTrue(latch1.await(5, TimeUnit.SECONDS));
 
@@ -3087,7 +2550,6 @@ public class QueryTest extends BaseTest {
         }
         finally {
             query.removeChangeListener(token);
-            for (ResultSet rs : resultSets) { freeResultSet(rs); }
         }
     }
 
@@ -3119,42 +2581,28 @@ public class QueryTest extends BaseTest {
             .from(DataSource.database(db))
             .where(Expression.property("name").like(Expression.string("%foo%")))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    if (n == 1) { assertEquals("doc1", result.getString(0)); }
-                    else { assertEquals("doc2", result.getString(0)); }
 
-                }
-            });
-            assertEquals(2, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        int numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            if (n == 1) { assertEquals("doc1", result.getString(0)); }
+            else { assertEquals("doc2", result.getString(0)); }
+
+        });
+        assertEquals(2, numRows);
 
         // EQUAL operator only
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
             .where(Expression.property("description").equalTo(Expression.string("bar")))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    if (n == 1) { assertEquals("doc1", result.getString(0)); }
-                    else { assertEquals("doc4", result.getString(0)); }
 
-                }
-            });
-            assertEquals(2, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            if (n == 1) { assertEquals("doc1", result.getString(0)); }
+            else { assertEquals("doc4", result.getString(0)); }
+
+        });
+        assertEquals(2, numRows);
 
         // AND and LIKE operators
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
@@ -3162,19 +2610,12 @@ public class QueryTest extends BaseTest {
             .where(Expression.property("name").like(Expression.string("%foo%"))
                 .and(Expression.property("description").equalTo(Expression.string("bar"))))
             .orderBy(Ordering.expression(Meta.id));
-        try {
-            int numRows = verifyQuery(query, new QueryResult() {
-                @Override
-                public void check(int n, Result result) throws Exception {
-                    assertEquals(1, result.count());
-                    assertEquals("doc1", result.getString(0));
-                }
-            });
-            assertEquals(1, numRows);
-        }
-        finally {
-            freeQuery(query);
-        }
+
+        numRows = verifyQuery(query, (n, result) -> {
+            assertEquals(1, result.count());
+            assertEquals("doc1", result.getString(0));
+        });
+        assertEquals(1, numRows);
     }
 
     // https://forums.couchbase.com/t/
@@ -3199,18 +2640,16 @@ public class QueryTest extends BaseTest {
         SelectResult sr1 = SelectResult.all().from("main");
         SelectResult sr2 = SelectResult.all().from("secondary");
 
-        query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
-        int numRows = verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (n == 41) {
-                    assertEquals(59, result.getDictionary("main").getInt("number2"));
-                    assertNull(result.getDictionary("secondary"));
-                }
-                if (n == 42) {
-                    assertEquals(58, result.getDictionary("main").getInt("number2"));
-                    assertEquals(42, result.getDictionary("secondary").getInt("theone"));
-                }
+        Query query = QueryBuilder.select(sr1, sr2).from(mainDS).join(join);
+
+        int numRows = verifyQuery(query, (n, result) -> {
+            if (n == 41) {
+                assertEquals(59, result.getDictionary("main").getInt("number2"));
+                assertNull(result.getDictionary("secondary"));
+            }
+            if (n == 42) {
+                assertEquals(58, result.getDictionary("main").getInt("number2"));
+                assertEquals(42, result.getDictionary("secondary").getInt("theone"));
             }
         });
         assertEquals(101, numRows);
@@ -3223,21 +2662,16 @@ public class QueryTest extends BaseTest {
         doc1a.setString("a", "string");
         db.save(doc1a);
 
-        query = QueryBuilder.select(SR_DOCID, SR_DELETED)
+        Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
             .from(DataSource.database(db))
             .where(Meta.id.equalTo(Expression.string("doc1")));
 
         ResultSet rs = query.execute();
-        try {
-            List<Result> results = rs.allResults();
-            assertEquals(1, results.size());
+        List<Result> results = rs.allResults();
+        assertEquals(1, results.size());
 
-            results = rs.allResults();
-            assertEquals(0, results.size());
-        }
-        finally {
-            freeResultSet(rs);
-        }
+        results = rs.allResults();
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -3417,19 +2851,17 @@ public class QueryTest extends BaseTest {
             expectedLocal.add((long) entry - offset);
         }
 
-        query = QueryBuilder.select(selections)
+        Query query = QueryBuilder.select(selections)
             .from(DataSource.database(db))
             .orderBy(Ordering.property("local").ascending());
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(expectedLocal.get(n - 1), result.getNumber(0));
-                assertEquals(expectedJST.get(n - 1), result.getNumber(1));
-                assertEquals(expectedJST.get(n - 1), result.getNumber(2));
-                assertEquals(expectedPST.get(n - 1), result.getNumber(3));
-                assertEquals(expectedPST.get(n - 1), result.getNumber(4));
-                assertEquals(expectedUTC.get(n - 1), result.getNumber(5));
-            }
+
+        verifyQuery(query, (n, result) -> {
+            assertEquals(expectedLocal.get(n - 1), result.getNumber(0));
+            assertEquals(expectedJST.get(n - 1), result.getNumber(1));
+            assertEquals(expectedJST.get(n - 1), result.getNumber(2));
+            assertEquals(expectedPST.get(n - 1), result.getNumber(3));
+            assertEquals(expectedPST.get(n - 1), result.getNumber(4));
+            assertEquals(expectedUTC.get(n - 1), result.getNumber(5));
         });
     }
 
@@ -3477,19 +2909,17 @@ public class QueryTest extends BaseTest {
         expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.550"));
         expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.555"));
 
-        query = QueryBuilder.select(selections)
+        Query query = QueryBuilder.select(selections)
             .from(DataSource.database(db))
             .orderBy(Ordering.property("local").ascending());
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(expectedLocal.get(n - 1), result.getString(0));
-                assertEquals(expectedJST.get(n - 1), result.getString(1));
-                assertEquals(expectedJST.get(n - 1), result.getString(2));
-                assertEquals(expectedPST.get(n - 1), result.getString(3));
-                assertEquals(expectedPST.get(n - 1), result.getString(4));
-                assertEquals(expectedUTC.get(n - 1), result.getString(5));
-            }
+
+        verifyQuery(query, (n, result) -> {
+            assertEquals(expectedLocal.get(n - 1), result.getString(0));
+            assertEquals(expectedJST.get(n - 1), result.getString(1));
+            assertEquals(expectedJST.get(n - 1), result.getString(2));
+            assertEquals(expectedPST.get(n - 1), result.getString(3));
+            assertEquals(expectedPST.get(n - 1), result.getString(4));
+            assertEquals(expectedUTC.get(n - 1), result.getString(5));
         });
     }
 
@@ -3523,15 +2953,13 @@ public class QueryTest extends BaseTest {
         selections[0] = SelectResult.expression(Function.millisToString(Expression.property("timestamp")));
         selections[1] = SelectResult.expression(Function.millisToUTC(Expression.property("timestamp")));
 
-        query = QueryBuilder.select(selections)
+        Query query = QueryBuilder.select(selections)
             .from(DataSource.database(db))
             .orderBy(Ordering.property("timestamp").ascending());
-        verifyQuery(query, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(expectedLocal.get(n - 1), result.getString(0));
-                assertEquals(expectedUTC.get(n - 1), result.getString(1));
-            }
+
+        verifyQuery(query, (n, result) -> {
+            assertEquals(expectedLocal.get(n - 1), result.getString(0));
+            assertEquals(expectedUTC.get(n - 1), result.getString(1));
         });
     }
 }

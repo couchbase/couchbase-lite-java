@@ -465,14 +465,8 @@ public class LogTest extends BaseTest {
         save(doc);
 
         Query query = QueryBuilder.select(SelectResult.all()).from(DataSource.database(db));
-        ResultSet rs = null;
-        try {
-            rs = query.execute();
-            assertEquals(rs.allResults().size(), 1);
-        } finally {
-            freeResultSet(rs);
-            freeQuery(query);
-        }
+        ResultSet rs = query.execute();
+        assertEquals(rs.allResults().size(), 1);
 
         String expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
         boolean found = false;
