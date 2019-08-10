@@ -19,8 +19,6 @@ package com.couchbase.lite;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +35,6 @@ public class QueryChangeTest  extends BaseTest{
         assertNull(change.getError());
     }
 
-
     ListenerToken token;
     // https://github.com/couchbase/couchbase-lite-android/issues/1615
     @Test
@@ -49,25 +46,17 @@ public class QueryChangeTest  extends BaseTest{
                 .from(DataSource.database(db))
                 .where(Expression.property("number1").lessThan(Expression.intValue(5)));
 
-        final List<ResultSet> resultSets = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
-        QueryChangeListener listener = new QueryChangeListener() {
-            @Override
-            public void changed(QueryChange change) {
-                assertNotNull(change);
-                ResultSet rs = change.getResults();
-                resultSets.add(rs);
-                while ((rs != null) && (rs.next() != null)) { // here
-                    query.removeChangeListener(token);
-                    token = null;
-                }
-                latch.countDown();
+        QueryChangeListener listener = change -> {
+            assertNotNull(change);
+            ResultSet rs = change.getResults();
+            while ((rs != null) && (rs.next() != null)) { // here
+                query.removeChangeListener(token);
+                token = null;
             }
+            latch.countDown();
         };
         token = query.addChangeListener(executor, listener);
         assertTrue(latch.await(2, TimeUnit.SECONDS));
-
-        freeQuery(query);
-        for (ResultSet rs : resultSets) { freeResultSet(rs); }
     }
 }

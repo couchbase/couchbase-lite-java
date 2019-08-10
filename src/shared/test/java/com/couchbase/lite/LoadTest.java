@@ -322,17 +322,11 @@ public class LoadTest extends BaseTest {
         SelectResult DOCID = SelectResult.expression(Meta.id);
         DataSource ds = DataSource.database(db);
         Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = null;
-        try {
-            rs = query.execute();
-            Result row;
-            int n = 0;
-            while ((row = rs.next()) != null) {
-                block.verify(++n, row);
-            }
-        } finally {
-            freeResultSet(rs);
-            freeQuery(query);
+        ResultSet rs = query.execute();
+        Result row;
+        int n = 0;
+        while ((row = rs.next()) != null) {
+            block.verify(++n, row);
         }
     }
 

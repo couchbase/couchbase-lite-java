@@ -17,12 +17,6 @@
 //
 package com.couchbase.lite;
 
-import org.json.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +29,12 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.json.JSONObject;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.utils.JsonUtils;
@@ -255,16 +255,6 @@ public class BaseTest extends PlatformBaseTest {
         return numbers;
     }
 
-    /* CBL-214 : A workaround for tests to free the Query object. */
-    protected static void freeQuery(Query query) {
-        if (query != null) { ((AbstractQuery) query).free(); }
-    }
-
-    /* CBL-214 : A workaround for tests to free the ResultSet object. */
-    protected static void freeResultSet(ResultSet resultSet) {
-        if (resultSet != null) { resultSet.free(); }
-    }
-
     protected interface QueryResult {
         void check(int n, Result result) throws Exception;
     }
@@ -272,14 +262,10 @@ public class BaseTest extends PlatformBaseTest {
     protected static int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
         ResultSet rs = query.execute();
-        try {
-            Result result;
-            while ((result = rs.next()) != null) {
-                n += 1;
-                queryResult.check(n, result);
-            }
-        } finally {
-            freeResultSet(rs);
+        Result result;
+        while ((result = rs.next()) != null) {
+            n += 1;
+            queryResult.check(n, result);
         }
         return n;
     }
@@ -287,13 +273,9 @@ public class BaseTest extends PlatformBaseTest {
     protected static int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
         ResultSet rs = query.execute();
-        try {
-            for (Result result : rs) {
-                n += 1;
-                queryResult.check(n, result);
-            }
-        } finally {
-            freeResultSet(rs);
+        for (Result result : rs) {
+            n += 1;
+            queryResult.check(n, result);
         }
         return n;
     }
