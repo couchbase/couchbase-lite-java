@@ -337,7 +337,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_asData(JNIEnv *env, jclass clazz
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_asArray(JNIEnv *env, jclass clazz, jlong jvalue) {
-    return (long) FLValue_AsArray((FLValue) jvalue);
+    return (jlong) FLValue_AsArray((FLValue) jvalue);
 }
 
 /*
@@ -347,7 +347,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_asArray(JNIEnv *env, jclass claz
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_asDict(JNIEnv *env, jclass clazz, jlong jvalue) {
-    return (long) FLValue_AsDict((FLValue) jvalue);
+    return (jlong) FLValue_AsDict((FLValue) jvalue);
 }
 
 /*
