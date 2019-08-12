@@ -259,11 +259,11 @@ public class C4BaseTest extends PlatformBaseTest {
         boolean commit = false;
         db.beginTransaction();
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             try {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    FLSliceResult body = db.encodeJSON(line.getBytes());
+                    FLSliceResult body = db.encodeJSON(line.getBytes("UTF-8"));
                     try {
                         String docID = String.format(Locale.ENGLISH, "%s%07d", idPrefix, numDocs + 1);
 
