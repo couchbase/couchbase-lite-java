@@ -17,8 +17,6 @@
 //
 package com.couchbase.lite;
 
-// import android.support.test.filters.FlakyTest;
-
 import org.junit.Test;
 
 import java.net.URI;
@@ -109,7 +107,6 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
     }
 
     @Test
-    // @FlakyTest
     public void testNetworkRetry() throws URISyntaxException, InterruptedException {
         Endpoint target = getRemoteTargetEndpoint();
         ReplicatorConfiguration config = makeConfig(false, true, true, db, target);

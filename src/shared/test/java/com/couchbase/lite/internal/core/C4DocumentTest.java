@@ -23,10 +23,10 @@ import java.util.Locale;
 
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.StopWatch;
-import com.couchbase.lite.utils.Report;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogLevel;
+import com.couchbase.lite.internal.utils.StopWatch;
+import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -92,8 +92,6 @@ public class C4DocumentTest extends C4BaseTest {
     // - "Document PossibleAncestors"
     @Test
     public void testPossibleAncestors() throws LiteCoreException {
-        if (!isRevTrees()) { return; }
-
         createRev(kDocID, kRevID, kFleeceBody);
         createRev(kDocID, kRev2ID, kFleeceBody);
         createRev(kDocID, kRev3ID, kFleeceBody);
@@ -254,14 +252,12 @@ public class C4DocumentTest extends C4BaseTest {
     // - "Document maxRevTreeDepth"
     @Test
     public void testMaxRevTreeDepth() throws LiteCoreException {
-        if (isRevTrees()) {
-            // NOTE: c4db_getMaxRevTreeDepth and c4db_setMaxRevTreeDepth are not supported by JNI.
-            assertEquals(20, db.getMaxRevTreeDepth());
-            db.setMaxRevTreeDepth(30);
-            assertEquals(30, db.getMaxRevTreeDepth());
-            reopenDB();
-            assertEquals(30, db.getMaxRevTreeDepth());
-        }
+        // NOTE: c4db_getMaxRevTreeDepth and c4db_setMaxRevTreeDepth are not supported by JNI.
+        assertEquals(20, db.getMaxRevTreeDepth());
+        db.setMaxRevTreeDepth(30);
+        assertEquals(30, db.getMaxRevTreeDepth());
+        reopenDB();
+        assertEquals(30, db.getMaxRevTreeDepth());
 
         final int kNumRevs = 10000;
         StopWatch st = new StopWatch();

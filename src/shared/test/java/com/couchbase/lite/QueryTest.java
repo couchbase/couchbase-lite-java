@@ -121,7 +121,6 @@ public class QueryTest extends BaseTest {
         return df.format(new Date(timestamp)).replace(".000", "");
     }
 
-    // !!! Flakey
     @Test
     public void testQueryDocumentExpiration() throws Exception {
         long now = System.currentTimeMillis();
@@ -1926,7 +1925,7 @@ public class QueryTest extends BaseTest {
         assertTrue(latch1.await(2, TimeUnit.SECONDS));
 
         try {
-            closeDB();
+            db.close();
             fail();
         }
         catch (CouchbaseLiteException e) {

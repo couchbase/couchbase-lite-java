@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 
-import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.Report;
 

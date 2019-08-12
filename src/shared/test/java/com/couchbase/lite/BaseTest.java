@@ -37,7 +37,6 @@ import org.junit.rules.ExpectedException;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.utils.JsonUtils;
-import com.couchbase.lite.internal.utils.StringUtils;
 import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Report;
 
@@ -51,6 +50,9 @@ import static org.junit.Assert.fail;
 public class BaseTest extends PlatformBaseTest {
     public final static String TEST_DB = "testdb";
 
+    private static final int BUSY_WAIT_MS = 100;
+    private static final int BUSY_RETRIES = 20;
+
     interface Execution {
         void run() throws CouchbaseLiteException;
     }
@@ -61,49 +63,6 @@ public class BaseTest extends PlatformBaseTest {
 
     interface QueryResult {
         void check(int n, Result result) throws Exception;
-    }
-
-    /* CBL-214 : A workaround for tests to free the Query object. */
-    protected static void freeQuery(Query query) {
-        if (query != null) { ((AbstractQuery) query).free(); }
-    }
-
-    /* CBL-214 : A workaround for tests to free the ResultSet object. */
-    protected static void freeResultSet(ResultSet resultSet) {
-        if (resultSet != null) { resultSet.free(); }
-    }
-    static int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        Result result;
-        while ((result = rs.next()) != null) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
-    }
-
-    static int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        for (Result result : rs) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
-    }
-
-    static int verifyQuery(Query query, QueryResult result) throws Exception {
-        return verifyQuery(query, true, result);
-    }
-
-    static int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
-        int counter1 = verifyQueryWithEnumerator(query, result);
-        if (runBoth) {
-            int counter2 = verifyQueryWithIterable(query, result);
-            assertEquals(counter1, counter2);
-        }
-        return counter1;
     }
 
 
@@ -140,13 +99,11 @@ public class BaseTest extends PlatformBaseTest {
         try { closeDB(); }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "Failed closing DB: " + TEST_DB, e);
-            fail();
         }
 
         try { deleteDatabase(TEST_DB); }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "Failed deleting DB: " + TEST_DB, e);
-            fail();
         }
 
         // clean dir
@@ -195,21 +152,15 @@ public class BaseTest extends PlatformBaseTest {
         // database exist, delete it
         if (Database.exists(dbName, getDir())) {
             // sometimes, db is still in used, wait for a while. Maximum 3 sec
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < BUSY_RETRIES; i++) {
                 try {
                     Database.delete(dbName, getDir());
                     break;
                 }
                 catch (CouchbaseLiteException ex) {
-                    if (ex.getCode() == CBLError.Code.BUSY) {
-                        try {
-                            Thread.sleep(500);
-                        }
-                        catch (Exception e) { }
-                    }
-                    else {
-                        throw ex;
-                    }
+                    if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                    try { Thread.sleep(BUSY_WAIT_MS); }
+                    catch (InterruptedException ignore) { }
                 }
             }
         }
@@ -228,9 +179,19 @@ public class BaseTest extends PlatformBaseTest {
     }
 
     protected void closeDB() throws CouchbaseLiteException {
-        if (db != null) {
-            db.close();
-            db = null;
+        if (db == null) { return; }
+
+        for (int i = 0; i < BUSY_RETRIES; i++) {
+            try {
+                db.close();
+                db = null;
+                break;
+            }
+            catch (CouchbaseLiteException ex) {
+                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                try { Thread.sleep(BUSY_WAIT_MS); }
+                catch (InterruptedException ignore) { }
+            }
         }
     }
 
@@ -279,19 +240,12 @@ public class BaseTest extends PlatformBaseTest {
 
     protected List<Map<String, Object>> loadNumbers(final int from, final int to) throws Exception {
         final List<Map<String, Object>> numbers = new ArrayList<Map<String, Object>>();
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = from; i <= to; i++) {
-                    String docID;
-                    try {
-                        docID = createDocNumbered(i, to);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        throw new RuntimeException(e);
-                    }
-                    numbers.add(db.getDocument(docID).toMap());
-                }
+        db.inBatch(() -> {
+            for (int i = from; i <= to; i++) {
+                String docID;
+                try { docID = createDocNumbered(i, to); }
+                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+                numbers.add(db.getDocument(docID).toMap());
             }
         });
         return numbers;
@@ -330,5 +284,39 @@ public class BaseTest extends PlatformBaseTest {
             assertEquals(domain, e.getDomain());
             assertEquals(code, e.getCode());
         }
+    }
+
+    protected int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
+        int counter1 = verifyQueryWithEnumerator(query, result);
+        if (runBoth) {
+            int counter2 = verifyQueryWithIterable(query, result);
+            assertEquals(counter1, counter2);
+        }
+        return counter1;
+    }
+
+    protected int verifyQuery(Query query, QueryResult result) throws Exception {
+        return verifyQuery(query, true, result);
+    }
+
+    private int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
+        int n = 0;
+        ResultSet rs = query.execute();
+        Result result;
+        while ((result = rs.next()) != null) {
+            n += 1;
+            queryResult.check(n, result);
+        }
+        return n;
+    }
+
+    private int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
+        int n = 0;
+        ResultSet rs = query.execute();
+        for (Result result : rs) {
+            n += 1;
+            queryResult.check(n, result);
+        }
+        return n;
     }
 }

@@ -92,7 +92,7 @@ public class ResultTest extends BaseTest {
             Query query = generateQuery(db, docID);
 
             // run query
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getValue("null"));
@@ -127,7 +127,7 @@ public class ResultTest extends BaseTest {
             Query query = generateQuery(db, docID);
 
             // run query
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getValue(0));
@@ -165,7 +165,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getString("null"));
@@ -199,7 +199,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getString(0));
@@ -237,7 +237,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getNumber("null"));
@@ -272,7 +272,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getNumber(0));  // null
@@ -310,7 +310,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0, r.getInt("null"));
@@ -344,7 +344,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0, r.getInt(0));
@@ -382,7 +382,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0, r.getLong("null"));
@@ -416,7 +416,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0, r.getLong(0));
@@ -453,7 +453,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0.0f, r.getFloat("null"), 0.0f);
@@ -487,7 +487,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0.0f, r.getFloat(0), 0.0f);
@@ -524,7 +524,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0.0, r.getDouble("null"), 0.0);
@@ -558,7 +558,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(0.0, r.getDouble(0), 0.0);
@@ -595,7 +595,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(false, r.getBoolean("null"));
@@ -629,7 +629,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertEquals(false, r.getBoolean(0));
@@ -666,7 +666,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getDate("null"));
@@ -700,7 +700,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getDate(0));
@@ -737,7 +737,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getBlob("null"));
@@ -773,7 +773,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getBlob(0));
@@ -812,7 +812,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getDictionary("null"));
@@ -851,7 +851,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getDictionary(0));
@@ -893,7 +893,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getArray("null"));
@@ -929,7 +929,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
 
                 assertNull(r.getArray(0));
@@ -969,7 +969,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 List<String> keys = r.getKeys();
                 assertNotNull(keys);
                 assertEquals(13, keys.size());
@@ -998,7 +998,7 @@ public class ResultTest extends BaseTest {
             String docID = prepareData(i);
             Query query = generateQuery(db, docID);
 
-            int rows = QueryTest.verifyQuery(query, false, (n, r) -> {
+            int rows = verifyQuery(query, false, (n, r) -> {
                 // exists -> true
                 List<String> expected = Arrays.asList(
                         "null", "true", "false", "string", "zero", "one",

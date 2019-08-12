@@ -27,6 +27,7 @@ import java.io.PrintStream;
  */
 public abstract class PlatformBaseTest implements PlatformTest {
     public static final String PRODUCT = "Java";
+    public static final String LEGAL_FILE_NAME_CHARS = "`~@#$%&'()_+{}][=-.,;'ABCDEabcde";
 
 
     @Override

@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -225,13 +227,7 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testCreateWithSpecialCharacterDBNames() throws CouchbaseLiteException {
-        Database db;
-        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-            //  windows doesn't allow \ / : * ? " < > |
-            db = openDatabase("`~@#$%&'()_+{}][=-.,;'ABCDEabcde");
-        } else {
-            db = openDatabase("`~@#$%^&*()_+{}|\\][=-/.,<>?\":;'ABCDEabcde");
-        }
+        Database db = openDatabase(LEGAL_FILE_NAME_CHARS);
 
         try {
             assertNotNull(db);
@@ -553,13 +549,10 @@ public class DatabaseTest extends BaseTest {
         doc.setValue("key", 1);
         try {
             db.delete(doc);
-            fail();
+            fail("deleting unsaved doc should fail");
         }
         catch (CouchbaseLiteException e) {
-            if (e.getCode() == CBLError.Code.NOT_FOUND) {
-                ;// expected
-            }
-            else { fail(); }
+            assertEquals(CBLError.Code.NOT_FOUND, e.getCode());
         }
     }
 
@@ -700,13 +693,10 @@ public class DatabaseTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         try {
             db.purge(doc);
-            fail();
+            fail("purging unsaved doc should fail");
         }
         catch (CouchbaseLiteException e) {
-            if (e.getCode() == CBLError.Code.NOT_FOUND) {
-                ;// expected
-            }
-            else { fail(); }
+            assertEquals(CBLError.Code.NOT_FOUND, e.getCode());
         }
         assertEquals(0, db.getCount());
     }
@@ -930,20 +920,21 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testCloseThenCallInBatch() throws CouchbaseLiteException {
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                // delete db
-                try {
-                    db.close();
-                    fail();
-                }
-                catch (CouchbaseLiteException e) {
-                    assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-                    assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, e.getCode()); // 26
-                }
-            }
+        final CountDownLatch latch = new CountDownLatch(1);
+        final CouchbaseLiteException[] err = {null};
+        db.inBatch(() -> {
+            // delete db
+            try { db.close(); }
+            catch (CouchbaseLiteException e) { err[0] = e; }
+            latch.countDown();
         });
+
+        try { latch.await(2, TimeUnit.SECONDS); }
+        catch (InterruptedException ignore) { }
+
+        assertNotNull("close should fail", err[0]);
+        assertEquals(CBLError.Domain.CBLITE, err[0].getDomain());
+        assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, err[0].getCode()); // 26
     }
 
     @Test
