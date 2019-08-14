@@ -144,11 +144,21 @@ model {
             architecture "x86_64"
             operatingSystem "osx"
         }
+        linux {
+            architecture "x86_64"
+            operatingSystem "linux"
+        }
         windows {
             architecture "x86_64"
             operatingSystem "windows"
         }
     }
+    
+    toolChains {
+        visualCpp(VisualCpp)
+        clang(Clang)
+    }
+
     repositories {
         libs(PrebuiltLibraries) {
             liteCore {
@@ -159,6 +169,8 @@ model {
                     def os = targetPlatform.operatingSystem
                     if (os.macOsX) {
                         sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib")
+                    } else if (os.linux) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so")
                     } else if (os.windows) {
                         sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll")
                         sharedLibraryLinkFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.lib")
@@ -179,6 +191,7 @@ model {
     components {
         LiteCoreJNI(NativeLibrarySpec) {
             if (OperatingSystem.current().isMacOsX()) targetPlatform "osx"
+            if (OperatingSystem.current().isLinux()) targetPlatform "linux"
             if (OperatingSystem.current().isWindows()) targetPlatform "windows"
             sources {
                 cpp {
@@ -210,6 +223,11 @@ model {
                     cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
                     cppCompiler.args '-std=c++11'
                     linker.args '-stdlib=libc++'
+                } else if (targetPlatform.operatingSystem.linux) {
+                    cppCompiler.args '-I', "${JAVA_HOME}/include"
+                    cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
+                    cppCompiler.args '-std=c++11'
+                    linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
@@ -236,6 +254,8 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
     def os = targetPlatform.operatingSystem
     if (os.macOsX) {
         CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib"))
+    } else if (os.linux) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so"))
     } else if (os.windows) {
         CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll"))
     }

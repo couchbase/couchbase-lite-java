@@ -47,8 +47,9 @@ final class NativeLibrary {
             final File libFile = extractLibrary(libName);
             System.load(libFile.getAbsolutePath());
         }
-        catch (Exception e) {
-            throw new IllegalStateException("Cannot extract and load library: " + libName, e);
+        catch (Throwable th) {
+            final String platform = System.getProperty("os.name") + "/" + System.getProperty("os.arch");
+            throw new IllegalStateException("Cannot load native library : " + libName + " for " + platform, th);
         }
     }
 
@@ -104,13 +105,7 @@ final class NativeLibrary {
         else { path += "/" + osName; }
 
         // Arch:
-        String archName  = null;
-        if (osName.contains("Windows")) { archName = "x86_64"; }
-        else {
-            archName = System.getProperty("os.arch");
-            archName = archName.replaceAll("\\W", "");
-            archName = archName.replace("-", "_");
-        }
+        final String archName  = "x86_64";
         path += '/' + archName;
 
         // Platform specific name part of path.
