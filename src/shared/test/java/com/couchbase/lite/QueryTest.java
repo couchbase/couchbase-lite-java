@@ -1114,7 +1114,7 @@ public class QueryTest extends BaseTest {
 
             int numRows = verifyQuery(query, (n, result) -> {
                 double expected = expectedValues[index.intValue()];
-                assertEquals(expected, result.getDouble(0), 0.0);
+                assertEquals(expected, result.getDouble(0), 0.0001);
             });
             assertEquals(1, numRows);
 
