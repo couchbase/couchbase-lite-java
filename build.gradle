@@ -47,7 +47,7 @@ ext {
 
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
     CBL_CORE_BUILD_DIR = "${CBL_CORE_DIR}/build_cmake"
-    CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/build_native"
+    CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/build/native"
     CBL_NATIVE_LIBRARIES = []
 
     JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
@@ -345,6 +345,3 @@ task smoketest(dependsOn: ['checkstyle', 'pmd'])
 task unitTest(dependsOn: ['smoketest', 'test'])
 task buildCI(dependsOn: ['checkstyle', 'pmd', 'test'])
 
-clean.doLast {
-    file(CBL_NATIVE_BUILD_DIR).deleteDir()
-}
