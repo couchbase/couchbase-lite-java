@@ -155,10 +155,12 @@ public class BaseTest extends PlatformBaseTest {
             for (int i = 0; i < BUSY_RETRIES; i++) {
                 try {
                     Database.delete(dbName, getDir());
+                    Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
                     break;
                 }
                 catch (CouchbaseLiteException ex) {
                     if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                    Report.log(LogLevel.VERBOSE, dbName + " cannot be deleted as it is BUSY ...");
                     try { Thread.sleep(BUSY_WAIT_MS); }
                     catch (InterruptedException ignore) { }
                 }
@@ -179,16 +181,22 @@ public class BaseTest extends PlatformBaseTest {
     }
 
     protected void closeDB() throws CouchbaseLiteException {
-        if (db == null) { return; }
+        closeDatabase(db);
+        db = null;
+    }
+
+    protected void closeDatabase(Database database) throws CouchbaseLiteException {
+        if (database == null) { return; }
 
         for (int i = 0; i < BUSY_RETRIES; i++) {
             try {
-                db.close();
-                db = null;
+                database.close();
+                Report.log(LogLevel.VERBOSE, database.getName() + " was closed successfully.");
                 break;
             }
             catch (CouchbaseLiteException ex) {
                 if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                Report.log(LogLevel.VERBOSE, database.getName() + " cannot be closed as it is BUSY ...");
                 try { Thread.sleep(BUSY_WAIT_MS); }
                 catch (InterruptedException ignore) { }
             }
