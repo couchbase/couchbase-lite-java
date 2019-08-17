@@ -18,6 +18,7 @@ package com.couchbase.lite.utils;
 import com.couchbase.lite.LogLevel;
 
 import java.io.PrintStream;
+import java.util.Locale;
 
 /**
  * Platform console logging utility for tests
@@ -26,7 +27,11 @@ public final class Report {
     private Report() {}
 
     public static void log(LogLevel level, String message) {
-        Report.log(level, message, null);
+        Report.log(level, message, (Throwable) null);
+    }
+
+    public static void log(LogLevel level, String template, Object... args) {
+        Report.log(level, String.format(Locale.ENGLISH, template, args));
     }
 
     public static void log(LogLevel level, String message, Throwable err) {
