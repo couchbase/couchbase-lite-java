@@ -15,24 +15,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite;
+package com.couchbase.lite.internal;
 
+import com.couchbase.lite.CBLError;
+import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4Base;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Error;
 import com.couchbase.lite.internal.support.Log;
 
 
-class CBLStatus {
-    static CouchbaseLiteException convertError(C4Error c4err) {
+public class CBLStatus {
+    public static CouchbaseLiteException convertError(C4Error c4err) {
         return convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
     }
 
-    static CouchbaseLiteException convertException(LiteCoreException e) {
+    public static CouchbaseLiteException convertException(LiteCoreException e) {
         return convertException(e.domain, e.code, null, e);
     }
 
-    static CouchbaseLiteException convertException(int domainCode, int statusCode, int internalInfo) {
+    public static CouchbaseLiteException convertException(int domainCode, int statusCode, int internalInfo) {
         return ((domainCode == 0) || (statusCode == 0))
             ? convertException(domainCode, statusCode, null, null)
             : convertException(new LiteCoreException(
@@ -41,7 +45,11 @@ class CBLStatus {
                 C4Base.getMessage(domainCode, statusCode, internalInfo)));
     }
 
-    static CouchbaseLiteException convertException(int domainCode, int statusCode, String msg, LiteCoreException e) {
+    public static CouchbaseLiteException convertException(
+            int domainCode,
+            int statusCode,
+            String msg,
+            LiteCoreException e) {
         final String message = (msg != null) ? msg : ((e != null) ? e.getMessage() : null);
 
         int code = statusCode;
@@ -77,7 +85,6 @@ class CBLStatus {
                     domainCode,
                     statusCode);
         }
-
-        return new CouchbaseLiteException(message, e, domain, code, null);
+        return new CouchbaseLiteException(message, e, domain, code);
     }
 }

@@ -28,6 +28,7 @@ import java.util.concurrent.Executor;
 
 import org.json.JSONException;
 
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Query;
 import com.couchbase.lite.internal.core.C4QueryEnumerator;
 import com.couchbase.lite.internal.core.C4QueryOptions;

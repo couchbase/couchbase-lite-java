@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.ExecutionService.Cancellable;
 import com.couchbase.lite.internal.core.C4Constants;

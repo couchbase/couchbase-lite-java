@@ -37,6 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONException;
 
 import com.couchbase.lite.internal.CBLInternalException;
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.core.C4BlobStore;
 import com.couchbase.lite.internal.core.C4Constants;
