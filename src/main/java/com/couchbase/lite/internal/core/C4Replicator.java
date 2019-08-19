@@ -31,11 +31,11 @@ import com.couchbase.lite.internal.support.Log;
 
 
 /**
- * There are tow bits of state to protect in the class:
+ * There are two bits of state to protect in the class:
  * <ol>
  * <li/> Messages sent to it from native code:  This object proxies those messages out to
- * various listeners.  Until a replicator object is remove from the REVERSE_LOOKUP_TABLE
- * forwarding such a message should always work (there is no dependence on the other two states)
+ * various listeners.  Until a replicator object is removed from the REVERSE_LOOKUP_TABLE
+ * forwarding such a message should always work (there is no dependence on the other states)
  * <li/> Calls to the native object:  These should work as long as the `handle` is non-zero.
  * This object must be careful never to forward a call to a native object once it has been freed.
  * </ol>

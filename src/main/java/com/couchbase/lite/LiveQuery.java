@@ -82,7 +82,7 @@ final class LiveQuery implements DatabaseChangeListener {
     //---------------------------------------------
 
     @Override
-    public void changed(@NonNull DatabaseChange change) { update(); }
+    public void changed(@NonNull DatabaseChange change) { update(LIVE_QUERY_UPDATE_INTERVAL_MS); }
 
     //---------------------------------------------
     // protected methods
@@ -135,13 +135,13 @@ final class LiveQuery implements DatabaseChangeListener {
                 // Here if the live query was already running.  This can happen in two ways:
                 // 1) when adding another listener
                 // 2) when the query parameters have changed.
-                // In either case we may want to kick off a new query.
+                // In either case we probably want to kick off a new query.
                 // In the latter case the current query results are irrelevant and need to be cleared.
                 if (shouldClearResults) { releaseResultSetSynchronized(); }
             }
         }
 
-        update();
+        update(0);
     }
 
     //---------------------------------------------
@@ -164,9 +164,9 @@ final class LiveQuery implements DatabaseChangeListener {
         }
     }
 
-    private void update() {
+    private void update(long delay) {
         if (!state.compareAndSet(State.STARTED, State.SCHEDULED)) { return; }
-        query.getDatabase().scheduleOnQueryExecutor(this::refreshResults, LIVE_QUERY_UPDATE_INTERVAL_MS);
+        query.getDatabase().scheduleOnQueryExecutor(this::refreshResults, delay);
     }
 
     // Runs on the query.database.queryExecutor
