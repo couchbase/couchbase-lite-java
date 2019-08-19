@@ -17,20 +17,21 @@
 //
 package com.couchbase.lite.internal.core;
 
+import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.support.Log;
+
+
 abstract class RefCounted {
     private int refCount = 0;
 
     abstract void free();
 
-    public synchronized void retain() {
-        refCount++;
-    }
+    public synchronized void retain() { refCount++; }
 
     public synchronized void release() {
         if (--refCount <= 0) { free(); }
-
-        // For debug
-        //if (refCount < 0)
-        //    throw new IllegalStateException("release() Invalid refCount -> " + refCount);
+        if (refCount < 0) {
+            Log.w(LogDomain.ALL, "Ref count for " + getClass().getCanonicalName() + " is " + refCount);
+        }
     }
 }
