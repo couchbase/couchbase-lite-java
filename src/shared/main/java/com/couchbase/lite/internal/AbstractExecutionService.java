@@ -73,6 +73,18 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
             if (latch != null) { latch.countDown(); }
         }
+
+        /* For tests to restart the concurrent executor after stopping it. */
+        private void restart() {
+            synchronized (this) {
+                if (stopLatch == null || running > 0) {
+                    throw new IllegalStateException("Executor hasn't been stopped yet.");
+                }
+
+                stopLatch = null;
+                running = 0;
+            }
+        }
     }
 
     // Patterned after AsyncTask's executor
@@ -153,5 +165,10 @@ public abstract class AbstractExecutionService implements ExecutionService {
     @Override
     public CloseableExecutor getConcurrentExecutor() {
         return concurrentExecutor;
+    }
+
+    /* For tests to restart the concurrent executor after stopping it. */
+    void restartConcurrentExecutor() {
+        ((ConcurrentExecutor) concurrentExecutor).restart();
     }
 }
