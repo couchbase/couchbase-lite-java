@@ -19,12 +19,13 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.CouchbaseLite
 import com.couchbase.lite.LogDomain
 import com.couchbase.lite.internal.support.Log
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-import java.time.Instant
+
 import java.util.Stack
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.RejectedExecutionException
@@ -190,7 +191,13 @@ class ExecutionServicesTest {
     fun testStoppedConcurrentExecutorRejects() {
         val executor = executionService.concurrentExecutor
         assertTrue(executor.stop(0, TimeUnit.SECONDS)) // no tasks
-        executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+        try {
+            executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+        }
+        finally {
+            // Restart concurrent executor
+            (executionService as AbstractExecutionService).restartConcurrentExecutor()
+        }
     }
 
     // A stopped Executor finishes currently queued tasks.
@@ -231,6 +238,9 @@ class ExecutionServicesTest {
         catch (ignore: InterruptedException) { }
 
         assertTrue(executor.stop(5, TimeUnit.SECONDS)) // everything should be done shortly
+
+        // Restart concurrent executor
+        (executionService as AbstractExecutionService).restartConcurrentExecutor()
     }
 
     // The scheduler schedules on the passed queue, with the proper delay.

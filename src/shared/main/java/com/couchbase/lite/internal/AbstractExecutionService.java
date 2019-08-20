@@ -18,6 +18,7 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import java.util.ArrayDeque;
 import java.util.concurrent.CountDownLatch;
@@ -72,6 +73,18 @@ public abstract class AbstractExecutionService implements ExecutionService {
             }
 
             if (latch != null) { latch.countDown(); }
+        }
+
+        @VisibleForTesting
+        private void restart() {
+            synchronized (this) {
+                if (stopLatch == null || running > 0) {
+                    throw new IllegalStateException("Executor hasn't been stopped yet.");
+                }
+
+                stopLatch = null;
+                running = 0;
+            }
         }
     }
 
@@ -153,5 +166,10 @@ public abstract class AbstractExecutionService implements ExecutionService {
     @Override
     public CloseableExecutor getConcurrentExecutor() {
         return concurrentExecutor;
+    }
+
+    @VisibleForTesting
+    void restartConcurrentExecutor() {
+        ((ConcurrentExecutor) concurrentExecutor).restart();
     }
 }
