@@ -86,7 +86,6 @@ public class LiveQueryTest extends BaseTest {
         query.removeChangeListener(token2);
     }
 
-    // Multiple changes in a short time should cause only a single update
     @Test
     public void testLiveQueryDelay() throws CouchbaseLiteException, InterruptedException {
         query = QueryBuilder
@@ -103,13 +102,18 @@ public class LiveQueryTest extends BaseTest {
         createDocNumbered(12);
         createDocNumbered(13);
         createDocNumbered(14);
+        createDocNumbered(15);
+        createDocNumbered(16);
 
         // Ya, I know...
         Thread.sleep(1000);
 
-        assertEquals(1, value.get());
-
         query.removeChangeListener(token);
+
+        // There should be two callbacks:
+        //  - immediately on registration
+        //  - after LIVE_QUERY_UPDATE_INTERVAL_MS when the change gets noticed.
+        assertEquals(2, value.get());
     }
 
     // Changing query parameters should cause an update.
@@ -120,7 +124,8 @@ public class LiveQueryTest extends BaseTest {
         query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1").greaterThanOrEqualTo(Expression.parameter("VALUE")))
+            .where(Expression.property("number1")
+                .greaterThanOrEqualTo(Expression.parameter("VALUE")))
             .orderBy(Ordering.property("number1").ascending());
         Parameters params = new Parameters();
         params.setInt("VALUE", 2);
@@ -185,7 +190,8 @@ public class LiveQueryTest extends BaseTest {
         return QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(value.intValue())))
+            .where(Expression.property("number1")
+                .greaterThanOrEqualTo(Expression.intValue(value.intValue())))
             .orderBy(Ordering.property("number1").ascending());
     }
 
