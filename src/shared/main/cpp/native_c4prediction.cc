@@ -62,9 +62,9 @@ JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4Prediction_regist
     }
 
     C4PredictiveModel predModel = {
-            .context = gModel,
-            .prediction = &prediction,
-            .unregistered = &unregistered };
+            gModel,           // .context
+            &prediction,      // .prediction
+            &unregistered };  // .unregistered
 
     c4pred_registerModel(name.c_str(), predModel);
 #endif
