@@ -94,9 +94,12 @@ public class LiveQueryTest extends BaseTest {
             .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property("number1").ascending());
 
-        value = new AtomicInteger(0);
+        // There should be two callbacks:
+        //  - immediately on registration
+        //  - after LIVE_QUERY_UPDATE_INTERVAL_MS when the change gets noticed.
+        latch1 = new CountDownLatch(2);
         ListenerToken token = query.addChangeListener(executor, change -> {
-            value.incrementAndGet();
+            latch1.countDown();
         });
 
         createDocNumbered(12);
@@ -105,15 +108,8 @@ public class LiveQueryTest extends BaseTest {
         createDocNumbered(15);
         createDocNumbered(16);
 
-        // Ya, I know...
-        Thread.sleep(1000);
-
+        latch1.await(5, TimeUnit.SECONDS);
         query.removeChangeListener(token);
-
-        // There should be two callbacks:
-        //  - immediately on registration
-        //  - after LIVE_QUERY_UPDATE_INTERVAL_MS when the change gets noticed.
-        assertEquals(2, value.get());
     }
 
     // Changing query parameters should cause an update.
@@ -130,11 +126,11 @@ public class LiveQueryTest extends BaseTest {
         Parameters params = new Parameters();
         params.setInt("VALUE", 2);
 
+        latch1 = new CountDownLatch(1);
         ListenerToken token = query.addChangeListener(executor, change -> {
             latch1.countDown();
         });
 
-        latch1 = new CountDownLatch(1);
         createDocNumbered(2);
         assertTrue(latch1.await(10, TimeUnit.SECONDS));
 

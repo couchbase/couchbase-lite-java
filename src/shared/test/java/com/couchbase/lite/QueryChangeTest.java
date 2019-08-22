@@ -46,17 +46,25 @@ public class QueryChangeTest  extends BaseTest{
                 .from(DataSource.database(db))
                 .where(Expression.property("number1").lessThan(Expression.intValue(5)));
 
+        // Remove listener in the listener needs be careful as the change event might get call
+        // from the executor thread before query.addChangeListener() returns.
         final CountDownLatch latch = new CountDownLatch(1);
         QueryChangeListener listener = change -> {
             assertNotNull(change);
             ResultSet rs = change.getResults();
             while ((rs != null) && (rs.next() != null)) { // here
-                query.removeChangeListener(token);
-                token = null;
+                synchronized (this) {
+                    query.removeChangeListener(token);
+                    token = null;
+                    break;
+                }
             }
             latch.countDown();
         };
-        token = query.addChangeListener(executor, listener);
+
+        synchronized (this) {
+            token = query.addChangeListener(executor, listener);
+        }
         assertTrue(latch.await(2, TimeUnit.SECONDS));
     }
 }
