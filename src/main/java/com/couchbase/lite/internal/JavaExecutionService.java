@@ -49,9 +49,7 @@ public class JavaExecutionService extends AbstractExecutionService {
     }
 
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
-    private static final int CORE_POOL_SIZE = Math.max(2, Math.min(CPU_COUNT - 1, 4));
-    private static final int MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1;
-    private static final int KEEP_ALIVE_SECONDS = 30;
+    private static final int POOL_SIZE = CPU_COUNT * 2 + 1;
 
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
         private final AtomicInteger mCount = new AtomicInteger(1);
@@ -60,9 +58,7 @@ public class JavaExecutionService extends AbstractExecutionService {
 
     private static final Executor THREAD_POOL_EXECUTOR;
     static {
-        THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
-                CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(), THREAD_FACTORY);
+        THREAD_POOL_EXECUTOR = Executors.newFixedThreadPool(POOL_SIZE, THREAD_FACTORY);
     }
 
     private final Executor mainExecutor;
