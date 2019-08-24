@@ -127,6 +127,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     public String getRevisionID() {
         synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
     }
+
     /**
      * Return the sequence number of the document in the database.
      * This indicates how recently the document has been changed: every time any document is updated,
@@ -363,6 +364,21 @@ public class Document implements DictionaryInterface, Iterable<String> {
         result = 31 * result + id.hashCode();
         result = 31 * result + internalDict.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder buf = new StringBuilder("Document")
+            .append(isMutable() ? "+" : ".")
+            .append(isDeleted() ? "?" : ".")
+            .append("{").append(id).append("@").append(getRevisionID()).append(":");
+        boolean first = true;
+        for (String key : getKeys()) {
+            if (first) { first = false; }
+            else { buf.append(","); }
+            buf.append(key).append("=>").append(getValue(key));
+        }
+        return buf.append("}").toString();
     }
 
     @SuppressWarnings("NoFinalizer")

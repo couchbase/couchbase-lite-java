@@ -24,9 +24,11 @@ import android.support.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -680,17 +682,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         final URI remoteUri = config.getTargetURI();
         // replicate against remote endpoint
-        if (remoteUri != null) {
-            schema = remoteUri.getScheme();
-            host = remoteUri.getHost();
-            // NOTE: litecore use 0 for not set
-            port = remoteUri.getPort() <= 0 ? 0 : remoteUri.getPort();
-            path = StringUtils.stringByDeletingLastPathComponent(remoteUri.getPath());
-            dbName = StringUtils.lastPathComponent(remoteUri.getPath());
-            targetDb = null;
-        }
-        // replicate against other database
-        else {
+        if (remoteUri == null) {
             schema = null;
             host = null;
             port = 0;
@@ -699,6 +691,21 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             final Database otherDb = config.getTargetDatabase();
             targetDb = (otherDb == null) ? null : otherDb.getC4Database();
+        }
+        // replicate against other database
+        else {
+            schema = remoteUri.getScheme();
+            host = remoteUri.getHost();
+
+            // NOTE: litecore use 0 for not set
+            final int p = remoteUri.getPort();
+            port = (p <= 0) ? 0 : p;
+
+            final Deque<String> splitPath = splitPath(remoteUri.getPath());
+            dbName = (splitPath.size() <= 0) ? "" : splitPath.removeLast();
+            path = "/" + StringUtils.join("/", splitPath);
+
+            targetDb = null;
         }
 
         // Encode the options:
@@ -893,8 +900,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         this.status = new Status(
             level,
-            new Progress((int) c4Status.getProgressUnitsCompleted(), (int) c4Status.getProgressUnitsTotal()),
-            error);
+            new Progress((int) c4Status.getProgressUnitsCompleted(), (int) c4Status.getProgressUnitsTotal()), error);
 
         Log.i(DOMAIN, "%s is %s, progress %d/%d, error: %s",
             this,
@@ -928,6 +934,15 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             c4repl.free();
             c4repl = null;
         }
+    }
+
+    // Decompose a path into its elements.
+    private Deque<String> splitPath(String fullPath) {
+        final Deque<String> path = new ArrayDeque<>();
+        for (String element : fullPath.split("/")) {
+            if (element.length() > 0) { path.addLast(element); }
+        }
+        return path;
     }
 
     private String description() { return baseDesc() + "," + config.getDatabase() + "," + config.getTarget() + "]"; }

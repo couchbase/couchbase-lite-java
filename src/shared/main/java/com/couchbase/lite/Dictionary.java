@@ -274,13 +274,13 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @NonNull
     @Override
     public Map<String, Object> toMap() {
+        final Map<String, Object> result = new HashMap<>();
         synchronized (lock) {
-            final Map<String, Object> result = new HashMap<>();
             for (String key : internalDict) {
                 result.put(key, Fleece.toObject(getMValue(internalDict, key).asNative(internalDict)));
             }
-            return result;
         }
+        return result;
     }
 
     /**
@@ -315,9 +315,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * encodeTo(FlEncoder) is internal method. Please don't use this method.
      */
     @Override
-    public void encodeTo(FLEncoder enc) {
-        internalDict.encodeTo(enc);
-    }
+    public void encodeTo(FLEncoder enc) { internalDict.encodeTo(enc); }
 
     //---------------------------------------------
     // Iterable implementation
@@ -356,6 +354,21 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
         int h = 0;
         for (String key : this) { h += hashCode(key, getValue(key)); }
         return h;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder buf = new StringBuilder("Dictionary")
+            .append((internalDict.isMutable()) ? "+" : ".")
+            .append((internalDict.isMutated()) ? "!" : ".")
+            .append("{");
+        boolean first = true;
+        for (String key : getKeys()) {
+            if (first) { first = false; }
+            else { buf.append(","); }
+            buf.append(key).append("=>").append(getValue(key));
+        }
+        return buf.append("}").toString();
     }
 
     //---------------------------------------------

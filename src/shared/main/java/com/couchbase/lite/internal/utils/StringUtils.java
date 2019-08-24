@@ -17,32 +17,24 @@
 //
 package com.couchbase.lite.internal.utils;
 
+
+import android.support.annotation.NonNull;
+
+
 public final class StringUtils {
     private StringUtils() { }
 
     public static boolean isEmpty(String str) { return (str == null) || str.isEmpty(); }
 
-    // NSString - stringByDeletingLastPathComponent
-    // https://developer.apple.com/reference/foundation/nsstring/1411141-stringbydeletinglastpathcomponen
-    public static String stringByDeletingLastPathComponent(final String str) {
-        String path = str;
-        int start = str.length() - 1;
-        while (path.charAt(start) == '/') { start--; }
-
-        final int index = path.lastIndexOf('/', start);
-        path = (index < 0) ? "" : path.substring(0, index);
-
-
-        if (path.length() == 0 && str.charAt(0) == '/') { return "/"; }
-
-        return path;
-    }
-
-    // NSString - lastPathComponent
-    // https://developer.apple.com/reference/foundation/nsstring/1416528-lastpathcomponent
-    public static String lastPathComponent(final String str) {
-        final String[] segments = str.split("/");
-        if (segments != null && segments.length > 0) { return segments[segments.length - 1]; }
-        else { return str; }
+    @NonNull
+    public static String join(@NonNull CharSequence delimiter, @NonNull Iterable tokens) {
+        final StringBuilder sb = new StringBuilder();
+        boolean firstTime = true;
+        for (Object token: tokens) {
+            if (firstTime) { firstTime = false; }
+            else { sb.append(delimiter); }
+            sb.append(token);
+        }
+        return sb.toString();
     }
 }

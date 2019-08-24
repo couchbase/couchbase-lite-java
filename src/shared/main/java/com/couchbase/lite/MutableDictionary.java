@@ -74,9 +74,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
         synchronized (lock) {
             internalDict.clear();
             for (Map.Entry<String, Object> entry : data.entrySet()) {
-                internalDict.set(
-                    entry.getKey(),
-                    new MValue(Fleece.toCBLObject(entry.getValue())));
+                internalDict.set(entry.getKey(), new MValue(Fleece.toCBLObject(entry.getValue())));
             }
             return this;
         }

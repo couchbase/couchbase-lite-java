@@ -32,9 +32,7 @@ public abstract class MCollection implements Encodable {
 
     /* Constructors */
 
-    protected MCollection() {
-        this(MContext.NULL, true);
-    }
+    protected MCollection() { this(MContext.NULL, true); }
 
     protected MCollection(MContext context, boolean isMutable) {
         this.context = context;

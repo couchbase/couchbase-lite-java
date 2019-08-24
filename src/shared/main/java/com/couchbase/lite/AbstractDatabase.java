@@ -1327,7 +1327,7 @@ abstract class AbstractDatabase {
             }
 
             // Merged body:
-            final byte[] mergedBodyBytes = mergedBody != null ? mergedBody.getBuf() : null;
+            final byte[] mergedBodyBytes = mergedBody == null ? null : mergedBody.getBuf();
 
             // Ask LiteCore to do the resolution:
             final C4Document rawDoc = localDoc.getC4doc();
