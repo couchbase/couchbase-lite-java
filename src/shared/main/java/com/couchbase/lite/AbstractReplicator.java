@@ -773,6 +773,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 this,
                 this,
                 framing);
+            c4repl.start();
             status = c4repl.getStatus();
         }
         catch (LiteCoreException e) {
