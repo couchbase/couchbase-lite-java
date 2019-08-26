@@ -289,3 +289,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_internal_core_C4Key_pbkdf2
     env->SetByteArrayRegion(result, 0, keyLen, (jbyte *) key);
     return result;
 }
+
+/*
+ * Class:     Java_com_couchbase_lite_internal_core_C4Key
+ * Method:    deriveKeyFromPassword
+ * Signature: (Ljava/lang/String;I)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_couchbase_lite_internal_core_C4Key_deriveKeyFromPassword
+        (JNIEnv *env, jclass clazz, jstring password, jint algorithm) {
+    jstringSlice pwd(env, password);
+
+    C4EncryptionKey key;
+    if (!c4key_setPassword(&key, pwd, (C4EncryptionAlgorithm) algorithm))
+        return NULL;
+
+    int keyLen = sizeof(key.bytes);
+    jbyteArray result = env->NewByteArray(keyLen);
+    env->SetByteArrayRegion(result, 0, keyLen, (jbyte *) &key.bytes);
+
+    return result;
+}

@@ -25,7 +25,6 @@ import com.couchbase.lite.internal.fleece.FLValue;
 
 
 public class C4Database {
-
     public static native void copy(
         String sourcePath, String destinationPath,
         int flags,
@@ -40,6 +39,7 @@ public class C4Database {
         String storageEngine, int versioning,
         int algorithm, byte[] encryptionKey)
         throws LiteCoreException;
+
 
     //-------------------------------------------------------------------------
     // Member Variables
