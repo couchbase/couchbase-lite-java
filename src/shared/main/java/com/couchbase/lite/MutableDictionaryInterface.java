@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Note: MutableDictionaryInterface is an internal interface. This should not be public.
  */
-interface MutableDictionaryInterface extends DictionaryInterface {
+public interface MutableDictionaryInterface extends DictionaryInterface {
     // Set JSON or platform dictionary as a content.
 
     @NonNull
