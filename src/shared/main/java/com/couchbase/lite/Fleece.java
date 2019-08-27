@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import com.couchbase.lite.internal.fleece.FLConstants;
 import com.couchbase.lite.internal.fleece.MCollection;
@@ -48,7 +49,7 @@ final class Fleece {
         if (newValue instanceof Array || newValue instanceof Dictionary) { return true; }
         else {
             final Object oldVal = oldValue.asNative(container);
-            return newValue != null ? !newValue.equals(oldVal) : oldVal != null;
+            return !Objects.equals(newValue, oldVal);
         }
     }
 

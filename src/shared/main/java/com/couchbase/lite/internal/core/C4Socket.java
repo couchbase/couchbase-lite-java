@@ -77,7 +77,7 @@ public abstract class C4Socket {
 
     // WebSocket protocol options (WebSocketInterface.hh)
     public static final String SOCKET_OPTION_WS_PROTOCOLS = "WS-Protocols"; // litecore::websocket::Provider
-    public static final String SOCKET_OPTION_HEATBEAT = "heartbeat"; // litecore::websocket::Provider
+    public static final String SOCKET_OPTION_HEARTBEAT = "heartbeat"; // litecore::websocket::Provider
 
     /** @deprecated No longer used in core */
     @Deprecated

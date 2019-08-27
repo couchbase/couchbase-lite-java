@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import com.couchbase.lite.internal.fleece.FLEncodable;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -340,7 +341,7 @@ public class Array implements ArrayInterface, FLEncodable, Iterable<Object> {
         while (itr1.hasNext() && itr2.hasNext()) {
             final Object o1 = itr1.next();
             final Object o2 = itr2.next();
-            if (!(o1 == null ? o2 == null : o1.equals(o2))) { return false; }
+            if (!(Objects.equals(o1, o2))) { return false; }
         }
         return !(itr1.hasNext() || itr2.hasNext());
     }

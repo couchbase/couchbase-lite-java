@@ -79,7 +79,7 @@ abstract class AbstractReplicatorConfiguration {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    private Database database;
+    private final Database database;
     private ReplicatorType replicatorType;
     private boolean continuous;
     private Authenticator authenticator;
@@ -93,7 +93,7 @@ abstract class AbstractReplicatorConfiguration {
     private ConflictResolver conflictResolver;
 
     protected boolean readonly;
-    protected Endpoint target;
+    protected final Endpoint target;
 
     //---------------------------------------------
     // Constructors

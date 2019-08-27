@@ -168,7 +168,7 @@ public final class C4Constants {
         public static final int ASSERTION_FAILED = 1;        // Internal assertion failure
         public static final int UNIMPLEMENTED = 2;           // Oops, an unimplemented API call
         public static final int UNSUPPORTED_ENCRYPTION = 3;  // Unsupported encryption algorithm
-        public static final int BAD_REVISIONID = 4;          // Invalid revision ID syntax
+        public static final int BAD_REVISION_ID = 4;         // Invalid revision ID syntax
         public static final int CORRUPT_REVISION_DATA = 5;   // Revision contains corrupted/unreadable data
         public static final int NOT_OPEN = 6;                // Database/KeyStore/index is not open
         public static final int NOT_FOUND = 7;               // Document not found
@@ -179,13 +179,13 @@ public final class C4Constants {
         public static final int CANT_OPEN_FILE = 11;         // Database file can't be opened; may not exist
         public static final int IO_ERROR = 12;               // File I/O error
         public static final int MEMORY_ERROR = 13;           // Memory allocation failed (out of memory?)
-        public static final int NOT_WRITEABLE = 14;          // File is not writable
+        public static final int NOT_WRITABLE = 14;           // File is not writable
         public static final int CORRUPT_DATA = 15;           // Data is corrupted
         public static final int BUSY = 16;                   // Database is busy/locked
         public static final int NOT_IN_TRANSACTION = 17;     // Function must be called while in a transaction
         public static final int TRANSACTION_NOT_CLOSED = 18; // Database can't be closed while a transaction is open
         public static final int UNSUPPORTED = 19;            // Operation not supported in this database
-        public static final int NOT_A_DATABSE_FILE = 20;     // File is not a database, or encryption key is wrong
+        public static final int NOT_A_DATABASE_FILE = 20;    // File is not a database, or encryption key is wrong
 
         public static final int WRONG_FORMAT = 21;           // Database exists but not in the format/storage requested
         public static final int CRYPTO = 22;                 // Encryption/decryption error
@@ -211,7 +211,7 @@ public final class C4Constants {
         public static final int DNS_FAILURE = 1;                // DNS lookup failed
         public static final int UNKNOWN_HOST = 2;               // DNS server doesn't know the hostname
         public static final int TIMEOUT = 3;
-        public static final int INVALIDURL = 4;
+        public static final int INVALID_URL = 4;
         public static final int TOO_MANY_REDIRECTS = 5;
         public static final int TLS_HANDSHAKE_FAILED = 6;
         public static final int TLS_CERT_EXPIRED = 7;

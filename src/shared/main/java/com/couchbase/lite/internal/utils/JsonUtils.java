@@ -33,8 +33,7 @@ public final class JsonUtils {
     public static JSONObject toJson(Map<String, Object> map) throws JSONException {
         if (map == null) { return null; }
         final JSONObject json = new JSONObject();
-        final Map<String, Object> m = (Map<String, Object>) map;
-        for (Map.Entry<String, Object> entry : m.entrySet()) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() == null) { json.put(entry.getKey(), JSONObject.NULL); }
             else if (entry.getValue() instanceof Map) { json.put(entry.getKey(), toJson((Map) entry.getValue())); }
             else if (entry.getValue() instanceof List) { json.put(entry.getKey(), toJson((List) entry.getValue())); }

@@ -114,7 +114,8 @@ public final class CouchbaseLiteException extends Exception {
             (null == cause.getMessage()) ? "Internal error" : cause.getMessage(),
             cause,
             CBLError.Domain.CBLITE,
-            CBLError.Code.UNEXPECTED_ERROR, null);
+            CBLError.Code.UNEXPECTED_ERROR,
+            null);
         setStackTrace(cause.getStackTrace());
     }
 
