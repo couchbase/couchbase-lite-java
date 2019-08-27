@@ -198,12 +198,8 @@ public class C4Replicator {
         }
     }
 
-    // ??? There was a bug here.  It may have been fixed: 7-MAY-2019.
+    // There was a bug here: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
     // https://github.com/couchbase/couchbase-lite-android/issues/1912
-    // hbase.lite.tes: JNI ERROR (app bug): attempt to use stale Global 0x25e6 (should be 0x25ea)
-    // hbase.lite.tes: java_vm_ext.cc:542] JNI DETECTED ERROR IN APPLICATION: use of deleted global reference 0x25e6
-    // hbase.lite.tes: java_vm_ext.cc:542]     from void com.couchbase.lite.internal.core.C4Replicator.free(
-    //                                             long, java.lang.Object, java.lang.Object)
     public void free() {
         final boolean live = isAlive.getAndSet(false);
 
@@ -234,7 +230,7 @@ public class C4Replicator {
     }
 
     public void stop() {
-        if (isAlive.getAndSet(false)) { stop(handle); }
+        if (isAlive.get()) { stop(handle); }
     }
 
     public C4ReplicatorStatus getStatus() {
