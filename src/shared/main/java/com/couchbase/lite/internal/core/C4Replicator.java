@@ -234,7 +234,7 @@ public class C4Replicator {
     }
 
     public void stop() {
-        if (isAlive.get()) { stop(handle); }
+        if (isAlive.getAndSet(false)) { stop(handle); }
     }
 
     public C4ReplicatorStatus getStatus() {
