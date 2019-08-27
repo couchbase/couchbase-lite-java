@@ -422,6 +422,7 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
     params.pull = (C4ReplicatorMode) jpull;
+    params.dontStart = true;
     params.optionsDictFleece = options;
     params.onStatusChanged = &statusChangedCallback;
     params.onDocumentsEnded = &documentEndedCallback;
@@ -465,6 +466,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
     params.pull = (C4ReplicatorMode) jpull;
+    params.dontStart = true;
     params.optionsDictFleece = options;
     params.onStatusChanged = &statusChangedCallback;
     params.callbackContext = storeContext(env, jReplicatorContext);
@@ -494,6 +496,16 @@ Java_com_couchbase_lite_internal_core_C4Replicator_free(JNIEnv *env,
     releaseContext(env, replicatorContext);
     releaseContext(env, socketFactoryContext);
     c4repl_free((C4Replicator *) repl);
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Replicator
+ * Method:    start
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL
+Java_com_couchbase_lite_internal_core_C4Replicator_start(JNIEnv *env, jclass clazz, jlong repl) {
+    c4repl_start((C4Replicator *) repl);
 }
 
 /*

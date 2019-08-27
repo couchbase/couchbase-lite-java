@@ -118,7 +118,7 @@ public class C4Replicator {
     //-------------------------------------------------------------------------
 
     // is this replicator alive?
-    private final AtomicBoolean isAlive = new AtomicBoolean(true);
+    private final AtomicBoolean isAlive = new AtomicBoolean(false);
 
     private final long handle; // hold pointer to C4Replicator
 
@@ -229,8 +229,12 @@ public class C4Replicator {
         }
     }
 
+    public void start() {
+        if (!isAlive.getAndSet(true)) { start(handle); }
+    }
+
     public void stop() {
-        if (isAlive.get()) { stop(handle); }
+        if (isAlive.getAndSet(false)) { stop(handle); }
     }
 
     public C4ReplicatorStatus getStatus() {
@@ -297,6 +301,11 @@ public class C4Replicator {
      * Frees a replicator reference. If the replicator is running it will stop.
      */
     static native void free(long replicator, Object replicatorContext, Object socketFactoryContext);
+
+    /**
+     * Tells a replicator to start.
+     */
+    static native void start(long replicator);
 
     /**
      * Tells a replicator to stop.
