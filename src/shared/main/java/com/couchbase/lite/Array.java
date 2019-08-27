@@ -232,7 +232,7 @@ public class Array implements ArrayInterface, FLEncodable, Iterable<Object> {
      * Gets value at the given index as a Date.
      * JSON does not directly support dates, so the actual property value must be a string, which is
      * then parsed according to the ISO-8601 date format (the default used in JSON.)
-     * Returns null if the value doesn't exist, is not a string, or is not parseable as a date.
+     * Returns null if the value doesn't exist, is not a string, or is not parsable as a date.
      * NOTE: This is not a generic date parser! It only recognizes the ISO-8601 format, with or
      * without milliseconds.
      *

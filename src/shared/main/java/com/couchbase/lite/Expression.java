@@ -280,7 +280,7 @@ public abstract class Expression {
                     return Arrays.asList("IS NOT", opd, null);
 
                 default:
-                    return Arrays.asList(); // should't happend
+                    return Arrays.asList(); // should't happen
             }
         }
     }
@@ -595,7 +595,7 @@ public abstract class Expression {
      * Create a subtract expression to subtract the given expression from the current expression.
      *
      * @param expression an expression to subtract from the current expression.
-     * @return a substract expression.
+     * @return a subtract expression.
      */
     @NonNull
     public Expression subtract(@NonNull Expression expression) {
@@ -687,7 +687,7 @@ public abstract class Expression {
      * is not equal to the given expression.
      *
      * @param expression the expression to compare with the current expression.
-     * @return a NOT equal to exprssion.
+     * @return a NOT equal to expression.
      */
     @NonNull
     public Expression notEqualTo(@NonNull Expression expression) {
@@ -719,7 +719,7 @@ public abstract class Expression {
      * the current expression.
      *
      * @param expression the expression to OR with the current expression.
-     * @return a logical OR exprssion.
+     * @return a logical OR expression.
      */
     @NonNull
     public Expression or(@NonNull Expression expression) {

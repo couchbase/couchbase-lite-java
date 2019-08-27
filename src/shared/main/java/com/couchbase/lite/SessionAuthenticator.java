@@ -79,7 +79,7 @@ public final class SessionAuthenticator extends Authenticator {
 
     /**
      * Return session cookie name that the session ID value will be set to when communicating
-     * the Sync Gateaway.
+     * the Sync Gateway.
      */
     public String getCookieName() {
         return cookieName;

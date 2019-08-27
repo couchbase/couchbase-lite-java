@@ -220,7 +220,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * Gets a property's value as a Date.
      * JSON does not directly support dates, so the actual property value must be a string, which is
      * then parsed according to the ISO-8601 date format (the default used in JSON.)
-     * Returns null if the value doesn't exist, is not a string, or is not parseable as a date.
+     * Returns null if the value doesn't exist, is not a string, or is not parsable as a date.
      * NOTE: This is not a generic date parser! It only recognizes the ISO-8601 format, with or
      * without milliseconds.
      *

@@ -330,7 +330,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     /**
      * Starts the replicator. This method returns immediately; the replicator runs asynchronously
-     * and will report its progress throuh the replicator change notification.
+     * and will report its progress through the replicator change notification.
      */
     public void start() {
         synchronized (lock) {
@@ -914,7 +914,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private void startReachabilityObserver() {
         final URI remoteUri = config.getTargetURI();
 
-        // target is databaes
+        // target is database
         if (remoteUri == null) { return; }
 
         try {

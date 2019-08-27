@@ -35,19 +35,19 @@ public class Meta {
     // API - public static variables
     //---------------------------------------------
     /**
-     * A metadata expression refering to the sequence number of the document.
+     * A metadata expression referring to the sequence number of the document.
      * The sequence number indicates how recently the document has been changed. If one document's
      * `sequence` is greater than another's, that means it was changed more recently.
      */
     @NonNull
     public static final MetaExpression sequence = new MetaExpression("_sequence", "sequence", null);
     /**
-     * A metadata expression refering to the deleted boolean flag of the document.
+     * A metadata expression referring to the deleted boolean flag of the document.
      */
     @NonNull
     public static final MetaExpression deleted = new MetaExpression("_deleted", "deleted", null);
     /**
-     * A metadata expression refering to the expiration date of the document.
+     * A metadata expression referring to the expiration date of the document.
      */
     @NonNull
     public static final MetaExpression expiration = new MetaExpression("_expiration", "expiration", null);

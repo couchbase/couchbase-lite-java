@@ -19,7 +19,7 @@ package com.couchbase.lite;
 
 /**
  * Classes that want to register to the AbstractNetworkReachabilityManager to be notified of
- * network reachability events should implment this interface.
+ * network reachability events should implement this interface.
  */
 abstract class NetworkReachabilityListener {
     abstract void networkReachable();

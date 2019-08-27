@@ -27,14 +27,14 @@ public interface C4WebSocketCloseCode {
     int kWebSocketCloseDataError = 1003; // Message payload cannot be handled
     int kWebSocketCloseNoCode = 1005; // Never sent, only received
     int kWebSocketCloseAbnormal = 1006; // Never sent, only received
-    int kWebSocketCloseBadMessageFormat = 1007; // Unparseable message
+    int kWebSocketCloseBadMessageFormat = 1007; // Unparsable message
     int kWebSocketClosePolicyError = 1008;
     int kWebSocketCloseMessageTooBig = 1009;
     int kWebSocketCloseMissingExtension = 1010; // Peer doesn't provide a necessary extension
     int kWebSocketCloseCantFulfill = 1011; // Can't fulfill request due to "unexpected condition"
     int kWebSocketCloseTLSFailure = 1015; // Never sent, only received
 
-    int kWebSocketCloseFirstAvailable = 4000;   // First unregistered code for freeform use
+    int kWebSocketCloseFirstAvailable = 4000;   // First unregistered code for free-form use
     int kWebSocketCloseUserTransient = 4001;    // For user-defined transient error
     int kWebSocketCloseUserPermanent = 4002;    // For user-defined permanent error
 }

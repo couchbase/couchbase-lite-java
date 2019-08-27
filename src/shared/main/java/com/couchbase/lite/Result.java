@@ -64,7 +64,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     //---------------------------------------------
 
     //---------------------------------------------
-    // implementation of common betwen ReadOnlyArrayInterface and ReadOnlyDictionaryInterface
+    // implementation of common between ReadOnlyArrayInterface and ReadOnlyDictionaryInterface
     //--------------------------------------------
 
     /**

@@ -231,7 +231,7 @@ abstract class AbstractFunction {
     }
 
     /**
-     * Creates a E() function that return the value of the mathemetical constant 'e'.
+     * Creates a E() function that return the value of the mathematical constant 'e'.
      *
      * @return The E() constant function.
      */
@@ -299,7 +299,7 @@ abstract class AbstractFunction {
     }
 
     /**
-     * Creates a PI() function that returns the mathemetical constant Pi.
+     * Creates a PI() function that returns the mathematical constant Pi.
      *
      * @return The PI() constant function.
      */

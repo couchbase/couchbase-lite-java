@@ -179,7 +179,7 @@ public final class C4Constants {
         public static final int CANT_OPEN_FILE = 11;         // Database file can't be opened; may not exist
         public static final int IO_ERROR = 12;               // File I/O error
         public static final int MEMORY_ERROR = 13;           // Memory allocation failed (out of memory?)
-        public static final int NOT_WRITEABLE = 14;          // File is not writeable
+        public static final int NOT_WRITEABLE = 14;          // File is not writable
         public static final int CORRUPT_DATA = 15;           // Data is corrupted
         public static final int BUSY = 16;                   // Database is busy/locked
         public static final int NOT_IN_TRANSACTION = 17;     // Function must be called while in a transaction

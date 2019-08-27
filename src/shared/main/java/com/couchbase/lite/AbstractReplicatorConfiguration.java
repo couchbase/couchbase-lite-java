@@ -34,7 +34,6 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * Replicator configuration.
  */
-@SuppressWarnings("LineLength")
 abstract class AbstractReplicatorConfiguration {
 
     // Replicator option dictionary keys:
@@ -57,7 +56,7 @@ abstract class AbstractReplicatorConfiguration {
     // every attachment (int)
 
     // Auth dictionary keys:
-    static final String REPLICATOR_AUTH_TYPE = "type"; // Auth propert: string
+    static final String REPLICATOR_AUTH_TYPE = "type"; // Auth property: string
     static final String REPLICATOR_AUTH_USER_NAME = "username"; // Auth property: string
     static final String REPLICATOR_AUTH_PASSWORD = "password"; // Auth property: string
     static final String REPLICATOR_AUTH_CLIENT_CERT = "clientCert"; // Auth property: value platform-dependent
@@ -263,7 +262,7 @@ abstract class AbstractReplicatorConfiguration {
 
     /**
      * Sets the replicator type indicating the direction of the replicator.
-     * The default value is .pushAndPull which is bidrectional.
+     * The default value is .pushAndPull which is bi-drectional.
      *
      * @param replicatorType The replicator type.
      * @return The self object.
@@ -324,7 +323,7 @@ abstract class AbstractReplicatorConfiguration {
     /**
      * Return the remote target's SSL certificate.
      */
-    // !!! FIXME: This method returns a writeable copy of its private data
+    // !!! FIXME: This method returns a writable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getPinnedServerCertificate() { return pinnedServerCertificate; }
 

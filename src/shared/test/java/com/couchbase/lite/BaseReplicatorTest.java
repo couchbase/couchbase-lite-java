@@ -172,6 +172,7 @@ public class BaseReplicatorTest extends BaseTest {
                     latch.countDown();
                 }
             });
+
         try {
             repl.stop();
             assertTrue(latch.await(timeout, TimeUnit.SECONDS));

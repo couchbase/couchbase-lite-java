@@ -44,7 +44,7 @@ public final class FLConstants {
         public static final int INVALID_DATA = 3;   // Bad input data (NaN, non-string key, etc.)
         public static final int ENCODE_ERROR = 4;   // Structural error encoding (missing value, too many ends, etc.)
         public static final int JSON_ERROR = 5;     // Error parsing JSON
-        public static final int UNKNOWN_VALUE = 6;  // Unparseable data in a Value (corrupt or from a distant future?)
+        public static final int UNKNOWN_VALUE = 6;  // Unparsable data in a Value (corrupt or from a distant future?)
         public static final int INTERNAL_ERROR = 7; // Something that shouldn't happen
         public static final int NOT_FOUND = 8;
     }

@@ -88,7 +88,7 @@ abstract class AbstractConsoleLogger implements Logger {
     }
 
     @Override
-    public void log(LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
+    public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
         if (level.compareTo(logLevel) < 0
                 || (!logDomains.contains(domain)
                 && !logDomains.contains(LogDomain.ALL))) {

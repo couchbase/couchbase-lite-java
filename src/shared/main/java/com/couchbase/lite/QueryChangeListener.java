@@ -27,7 +27,7 @@ public interface QueryChangeListener extends ChangeListener<QueryChange> {
     /**
      * The callback function from live query
      *
-     * @param change the query change informaiton
+     * @param change the query change information
      */
     @Override
     void changed(@NonNull QueryChange change);

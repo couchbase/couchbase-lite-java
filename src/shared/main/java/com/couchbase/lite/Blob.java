@@ -106,7 +106,7 @@ public final class Blob implements FLEncodable {
         }
 
         @Override
-        public int read(byte[] b) throws IOException {
+        public int read(@NonNull byte[] b) throws IOException {
             return read(b, 0, b.length);
         }
 
@@ -289,7 +289,7 @@ public final class Blob implements FLEncodable {
      *
      * @return the contents of a Blob as a block of memory
      */
-     // !!! FIXME: This method returns a writeable copy of its private data
+     // !!! FIXME: This method returns a writable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getContent() {
         if (content != null) {
@@ -336,7 +336,7 @@ public final class Blob implements FLEncodable {
     }
 
     /**
-     * The cryptograhic digest of this Blob's contents, which uniquely identifies it.
+     * The cryptographic digest of this Blob's contents, which uniquely identifies it.
      *
      * @return The cryptograhic digest of this Blob's contents
      */

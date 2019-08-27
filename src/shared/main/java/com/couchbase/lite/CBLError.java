@@ -48,7 +48,7 @@ public final class CBLError {
         public static final int CANT_OPEN_FILE = 11;                     // Database file can't be opened; may not exist
         public static final int IO_ERROR = 12;                           // File I/O error
         public static final int MEMORY_ERROR = 13;                       // Memory allocation failed (out of memory?)
-        public static final int NOT_WRITEABLE = 14;                      // File is not writeable
+        public static final int NOT_WRITEABLE = 14;                      // File is not writable
         public static final int CORRUPT_DATA = 15;                       // Data is corrupted
         public static final int BUSY = 16;                               // Database is busy/locked
         public static final int NOT_IN_TRANSACTION = 17;                 // Function cannot be called while in a transaction
@@ -102,7 +102,7 @@ public final class CBLError {
         public static final int WEB_SOCKET_PROTOCOL_ERROR = 11002;       // Protocol violation: invalid framing data
         public static final int WEB_SOCKET_DATA_ERROR = 11003;           // Message payload cannot be handled
         public static final int WEB_SOCKET_ABNORMAL_CLOSE = 11006;       // TCP socket closed unexpectedly
-        public static final int WEB_SOCKET_BAD_MESSAGE_FORMAT = 11007;   // Unparseable WebSocket message
+        public static final int WEB_SOCKET_BAD_MESSAGE_FORMAT = 11007;   // Unparsable WebSocket message
         public static final int WEB_SOCKET_POLICY_ERROR = 11008;         // Message violated unspecified policy
         public static final int WEB_SOCKET_MESSAGE_TOO_BIG = 11009;      // Message is too large for peer to handle
         public static final int WEB_SOCKET_MISSING_EXTENSION = 11010;    // Peer doesn't provide a necessary extension

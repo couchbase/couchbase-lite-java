@@ -85,7 +85,7 @@ public class C4BlobKey {
         return handle;
     }
     /**
-     * Decode a string of the form "shar1-"+base64 into a raw key
+     * Decode a string of the form "sha1-"+base64 into a raw key
      */
     static native long fromString(String str) throws LiteCoreException;
 

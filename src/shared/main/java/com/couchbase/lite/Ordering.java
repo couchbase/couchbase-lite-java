@@ -32,7 +32,7 @@ public abstract class Ordering {
     //---------------------------------------------
 
     /**
-     * SorderOrder represents a single ORDER BY entity. You can specify either ascending or
+     * SortOrder represents a single ORDER BY entity. You can specify either ascending or
      * descending order. The default order is ascending.
      */
     public static class SortOrder extends Ordering {

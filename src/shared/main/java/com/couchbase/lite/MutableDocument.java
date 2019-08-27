@@ -98,7 +98,7 @@ public final class MutableDocument extends Document implements MutableDictionary
 
     // !!! Expressing this constructor in terms of the previous one
     // fails because the previous constructor does not copy
-    // the source documents mutated state.  It *does* copy its mutatable
+    // the source documents mutated state.  It *does* copy its mutable
     // state, but if the source has been changed since it was created
     // the previous constructor will lose those changes when it is
     // encoded.

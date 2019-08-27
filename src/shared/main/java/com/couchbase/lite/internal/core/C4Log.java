@@ -74,7 +74,7 @@ public class C4Log {
         // This cannot be done synchronously because it will deadlock
         // on the same mutex that is being held for this callback
         CouchbaseLite.getExecutionService().getMainExecutor()
-            .execute(() -> { setCallbackLevel(finalLevel.getValue()); });
+            .execute(() -> setCallbackLevel(finalLevel.getValue()));
     }
 
     //-------------------------------------------------------------------------

@@ -39,7 +39,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
         private ConcurrentExecutor(Executor executor) { this.executor = executor; }
 
         @Override
-        public synchronized void execute(Runnable task) {
+        public synchronized void execute(@NonNull Runnable task) {
             if (stopLatch != null) { throw new RejectedExecutionException("Executor has been stopped"); }
 
             running++;
@@ -98,7 +98,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
         private SerialExecutor(Executor executor) { this.executor = executor; }
 
-        public synchronized void execute(Runnable task) {
+        public synchronized void execute(@NonNull Runnable task) {
             if (stopLatch != null) { throw new RejectedExecutionException("Executor has been stopped"); }
 
             tasks.offer(() -> {

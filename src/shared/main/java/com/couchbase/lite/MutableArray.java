@@ -72,7 +72,7 @@ public final class MutableArray extends Array implements MutableArrayInterface {
     /**
      * Set an array as a content. Allowed value types are List, Date,
      * Map, Number, null, String, Array, Blob, and Dictionary. The List and Map must contain
-     * only the above types. Setting the new array content will replcace the current data
+     * only the above types. Setting the new array content will replace the current data
      * including the existing Array and Dictionary objects.
      *
      * @param data the array
@@ -388,7 +388,7 @@ public final class MutableArray extends Array implements MutableArrayInterface {
     /**
      * Adds a Dictionary object to the end of the array.
      *
-     * @param value the Dictonary object
+     * @param value the Dictionary object
      * @return The self object
      */
     @NonNull

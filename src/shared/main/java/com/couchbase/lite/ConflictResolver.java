@@ -19,7 +19,7 @@ import android.support.annotation.NonNull;
 
 
 /**
- * Custom conflict resolution stratagies implement this interface.
+ * Custom conflict resolution strategies implement this interface.
  */
 public interface ConflictResolver {
     /**

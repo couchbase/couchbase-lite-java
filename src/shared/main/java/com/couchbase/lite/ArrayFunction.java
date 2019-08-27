@@ -23,7 +23,7 @@ import java.util.Arrays;
 
 
 /**
- * Function provies array functions.
+ * Function provides array functions.
  */
 public final class ArrayFunction {
     /**
@@ -46,7 +46,7 @@ public final class ArrayFunction {
      * Creates an ARRAY_LENGTH(expr) function that returns the length of the given array
      * expression.
      *
-     * @param expression The expression that evluates to an array.
+     * @param expression The expression that evaluates to an array.
      * @return The ARRAY_LENGTH(expr) function.
      */
     @NonNull

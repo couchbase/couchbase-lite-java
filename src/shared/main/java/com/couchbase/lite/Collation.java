@@ -44,7 +44,7 @@ public class Collation {
          * Specifies whether the collation is case-sensitive or not. Case-insensitive
          * collation will treat ASCII uppercase and lowercase letters as equivalent.
          *
-         * @param ignoreCase True for case-insenstivie; false for case-senstive.
+         * @param ignoreCase True for case-insensitive; false for case-sensitive.
          * @return The ASCII Collation object.
          */
         @NonNull
@@ -68,10 +68,10 @@ public class Collation {
         }
 
         /**
-         * Specifies whether the collation is case-insenstive or not. Case-insensitive
+         * Specifies whether the collation is case-insensitive or not. Case-insensitive
          * collation will treat ASCII uppercase and lowercase letters as equivalent.
          *
-         * @param ignoreCase True for case-insenstivie; false for case-senstive.
+         * @param ignoreCase True for case-insensitive; false for case-sensitive.
          * @return The Unicode Collation object.
          */
         @NonNull
@@ -84,7 +84,7 @@ public class Collation {
          * Specifies whether the collation ignore the accents or diacritics when
          * comparing the strings or not.
          *
-         * @param ignoreAccents True for accent-insenstivie; false for accent-senstive.
+         * @param ignoreAccents True for accent-insensitive; false for accent-sensitive.
          * @return The Unicode Collation object.
          */
         @NonNull
@@ -101,7 +101,7 @@ public class Collation {
          *               language code plus, optionally, an underscore and an
          *               [ISO-3166](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
          *               country code: "en", "en_US", "fr_CA", etc.
-         *               Specifing the locale will allow the collation to compare strings
+         *               Specifying the locale will allow the collation to compare strings
          *               appropriately base on the locale.
          * @return
          */
