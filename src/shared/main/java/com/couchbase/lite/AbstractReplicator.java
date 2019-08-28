@@ -793,7 +793,17 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 e.code,
                 0);
         }
-        updateStateProperties(status);
+
+        updateStateProperties((status != null)
+            ? status
+            : new C4ReplicatorStatus(
+                C4ReplicatorStatus.ActivityLevel.STOPPED,
+                0,
+                0,
+                0,
+                C4Constants.ErrorDomain.LITE_CORE,
+                C4Constants.LiteCoreError.UNEXPECTED_ERROR,
+                0));
 
         // Post an initial notification:
         c4ReplListener.statusChanged(c4repl, c4ReplStatus, this);
@@ -884,7 +894,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 && (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
     }
 
-    private void updateStateProperties(C4ReplicatorStatus c4Status) {
+    private void updateStateProperties(@Nullable C4ReplicatorStatus c4Status) {
         CouchbaseLiteException error = null;
         if (c4Status.getErrorCode() != 0) {
             error = CBLStatus.convertException(

@@ -25,16 +25,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * This class and its members are referenced by name, from native code.
  */
 public class C4DocumentEnded {
-    private String docID;
-    private String revID;
-    private int flags;
+    private String docID;               // Referenced from native code
+    private String revID;               // Referenced from native code
+    private int flags;                  // Referenced from native code
     @SuppressFBWarnings("UUF_UNUSED_FIELD")
-    private long sequence;
-    private int errorDomain;         // C4Error.domain
-    private int errorCode;           // C4Error.code
-    private int errorInternalInfo;   // C4Error.internal_info
+    private long sequence;              // Referenced from native code
+    private int errorDomain;            // Referenced from native code: C4Error.domain
+    private int errorCode;              // Referenced from native code: C4Error.code
+    private int errorInternalInfo;      // Referenced from native code: C4Error.internal_info
     @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
-    private boolean errorIsTransient;
+    private boolean errorIsTransient;   // Referenced from native code:
+
+    // Called from native code
+    public C4DocumentEnded() { }
 
     public String getDocID() { return docID; }
 

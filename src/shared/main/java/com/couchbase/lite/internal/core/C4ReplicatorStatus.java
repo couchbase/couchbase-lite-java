@@ -34,14 +34,15 @@ public class C4ReplicatorStatus {
         public static final int BUSY = 4;
     }
 
-    private int activityLevel = -1;      // C4ReplicatorStatus.ActivityLevel
-    private long progressUnitsCompleted = 0L; // C4Progress.unitsCompleted
-    private long progressUnitsTotal = 0L;     // C4Progress.unitsTotal
-    private long progressDocumentCount = 0L;     // C4Progress.documentCount
-    private int errorDomain = 0;         // C4Error.domain
-    private int errorCode = 0;           // C4Error.code
-    private int errorInternalInfo = 0;   // C4Error.internal_info
+    private int activityLevel = -1;       // Referenced from native code: C4ReplicatorStatus.ActivityLevel
+    private long progressUnitsCompleted;  // Referenced from native code: C4Progress.unitsCompleted
+    private long progressUnitsTotal;      // Referenced from native code: C4Progress.unitsTotal
+    private long progressDocumentCount;   // Referenced from native code: C4Progress.documentCount
+    private int errorDomain;              // Referenced from native code: C4Error.domain
+    private int errorCode;                // Referenced from native code: C4Error.code
+    private int errorInternalInfo;        // Referenced from native code: C4Error.internal_info
 
+    // Called from native code
     public C4ReplicatorStatus() { }
 
     public C4ReplicatorStatus(int activityLevel) {
