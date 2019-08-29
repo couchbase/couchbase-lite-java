@@ -218,6 +218,7 @@ static jobjectArray toJavaDocumentEndedArray(JNIEnv *env, int arraySize, const C
 
 static std::vector<jobject> contexts;
 
+// This method accesses global state: not thread safe
 static jobject storeContext(JNIEnv *env, jobject jcontext) {
     if (jcontext == NULL)
         return NULL;
@@ -227,7 +228,7 @@ static jobject storeContext(JNIEnv *env, jobject jcontext) {
     return gContext;
 }
 
-// This is *totally* not thread safe
+// This method accesses global state: not thread safe
 static void releaseContext(JNIEnv *env, jobject jcontext) {
     if (jcontext == NULL)
         return;
@@ -383,6 +384,8 @@ static bool pushFilterFunction(C4String docID, C4RevisionFlags flags, FLDict dic
  * Class:     com_couchbase_lite_internal_core_C4Replicator
  * Method:    create
  * Signature: (JLjava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;JIILjava/lang/Object;ILjava/lang/Object;Lcom/couchbase/lite/internal/core/C4ReplicationFilter;Lcom/couchbase/lite/internal/core/C4ReplicationFilter;[B)J
+ *
+ * This method accesses global state: not thread safe
  */
 JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_create(
         JNIEnv *env,
@@ -449,6 +452,8 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
  * Class:     com_couchbase_lite_internal_core_C4Replicator
  * Method:    createWithSocket
  * Signature: (JJIILjava/lang/Object;[B)J
+ *
+ * This method accesses global state: not thread safe
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
@@ -485,7 +490,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
  * Method:    free
  * Signature: (JLjava/lang/Object;Ljava/lang/Object;)V
  *
- * This method is not thread safe!
+ * This method accesses global state: not thread safe
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Replicator_free(JNIEnv *env,

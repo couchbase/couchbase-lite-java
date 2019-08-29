@@ -1306,7 +1306,6 @@ public class QueryTest extends BaseTest {
         assertEquals(expected2.length, numRows);
     }
 
-
     @Test
     public void testCompareWithUnicodeCollation() throws Exception {
         Collation bothSensitive = Collation.unicode().locale(null).ignoreCase(false).ignoreAccents(false);

@@ -181,23 +181,23 @@ public class C4Replicator {
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
 
-        handle = create(
-            db,
-            schema,
-            host,
-            port,
-            path,
-            remoteDatabaseName,
-            otherLocalDB,
-            push, pull,
-            socketFactoryContext,
-            framing,
-            replicatorContext,
-            pushFilter,
-            pullFilter,
-            options);
-
         synchronized (CLASS_LOCK) {
+            handle = create(
+                db,
+                schema,
+                host,
+                port,
+                path,
+                remoteDatabaseName,
+                otherLocalDB,
+                push, pull,
+                socketFactoryContext,
+                framing,
+                replicatorContext,
+                pushFilter,
+                pullFilter,
+                options);
+
             REVERSE_LOOKUP_TABLE.put(handle, this);
             CONTEXT_TO_C4_REPLICATOR_MAP.put(replicatorContext, this);
         }
@@ -219,9 +219,11 @@ public class C4Replicator {
         this.pushFilter = null;
         this.pullFilter = null;
 
-        handle = createWithSocket(db, openSocket, push, pull, replicatorContext, options);
+        synchronized (CLASS_LOCK) {
+            handle = createWithSocket(db, openSocket, push, pull, replicatorContext, options);
 
-        synchronized (CLASS_LOCK) { REVERSE_LOOKUP_TABLE.put(handle, this); }
+            REVERSE_LOOKUP_TABLE.put(handle, this);
+        }
     }
 
     public void start() {
