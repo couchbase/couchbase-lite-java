@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -1251,7 +1252,7 @@ public class QueryTest extends BaseTest {
     }
 
     @Test
-    public void testUnicodeCollationWithLocale() throws Exception {
+    public void testUnicodeCollationWithLocaleNone() throws Exception {
         String[] letters = {"B", "A", "Z", "Å"};
         for (String letter : letters) {
             MutableDocument doc = new MutableDocument();
@@ -1259,51 +1260,65 @@ public class QueryTest extends BaseTest {
             save(doc);
         }
 
-        Expression STRING = Expression.property("string");
-        SelectResult S_STRING = SelectResult.property("string");
-
-        // Without locale:
-        Collation NO_LOCALE = Collation.unicode()
+        Collation noLocale = Collation.unicode()
             .locale(null)
             .ignoreCase(false)
             .ignoreAccents(false);
 
-        Query query = QueryBuilder.select(S_STRING)
+        Query query = QueryBuilder.select(SelectResult.property("string"))
             .from(DataSource.database(db))
-            .orderBy(Ordering.expression(STRING.collate(NO_LOCALE)));
+            .orderBy(Ordering.expression(Expression.property("string").collate(noLocale)));
 
         final String[] expected = {"A", "Å", "B", "Z"};
         int numRows = verifyQuery(query, (n, result) -> assertEquals(expected[n - 1], result.getString(0)));
         assertEquals(expected.length, numRows);
+    }
 
-        // Spanish
-        // With locale:
-        Collation WITH_LOCALE = Collation.unicode()
+    @Test
+    public void testUnicodeCollationWithLocaleSpanish() throws Exception {
+        String[] letters = {"B", "A", "Z", "Å"};
+        for (String letter : letters) {
+            MutableDocument doc = new MutableDocument();
+            doc.setValue("string", letter);
+            save(doc);
+        }
+
+        Collation localeEspanol = Collation.unicode()
             .locale("es")
             .ignoreCase(false)
             .ignoreAccents(false);
 
-        query = QueryBuilder.select(S_STRING)
+        Query query = QueryBuilder.select(SelectResult.property("string"))
             .from(DataSource.database(db))
-            .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
+            .orderBy(Ordering.expression(Expression.property("string").collate(localeEspanol)));
 
-        final String[] expected2 = {"A", "Å", "B", "Z"};
-        numRows = verifyQuery(query, (n, result) -> assertEquals(expected2[n - 1], result.getString(0)));
-        assertEquals(expected2.length, numRows);
+        final String[] expected = {"A", "Å", "B", "Z"};
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(expected[n - 1], result.getString(0)));
+        assertEquals(expected.length, numRows);
+    }
 
-        // With locale:
-        WITH_LOCALE = Collation.unicode()
+    @Ignore("Pending fix of: https://issues.couchbase.com/browse/CBL-355")
+    @Test
+    public void testUnicodeCollationWithLocaleSwedish() throws Exception {
+        String[] letters = {"B", "A", "Z", "Å"};
+        for (String letter : letters) {
+            MutableDocument doc = new MutableDocument();
+            doc.setValue("string", letter);
+            save(doc);
+        }
+
+        Collation localeSvenska = Collation.unicode()
             .locale("se")
             .ignoreCase(false)
             .ignoreAccents(false);
 
-        query = QueryBuilder.select(S_STRING)
+        Query query = QueryBuilder.select(SelectResult.property("string"))
             .from(DataSource.database(db))
-            .orderBy(Ordering.expression(STRING.collate(WITH_LOCALE)));
+            .orderBy(Ordering.expression(Expression.property("string").collate(localeSvenska)));
 
-        final String[] expected3 = {"A", "B", "Z", "Å"};
-        numRows = verifyQuery(query, (n, result) -> assertEquals(expected3[n - 1], result.getString(0)));
-        assertEquals(expected2.length, numRows);
+        final String[] expected = {"A", "B", "Z", "Å"};
+        int numRows = verifyQuery(query, (n, result) -> assertEquals(expected[n - 1], result.getString(0)));
+        assertEquals(expected.length, numRows);
     }
 
     @Test
