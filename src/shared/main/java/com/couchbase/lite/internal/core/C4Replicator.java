@@ -254,11 +254,13 @@ public class C4Replicator {
         }
     }
 
-    // There was a bug here: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
-    // https://github.com/couchbase/couchbase-lite-android/issues/1912
+    // Several bugs have been reported, near here:
+    // Usually: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
+    // https://issues.couchbase.com/browse/CBL-34
     public void free() {
         final long handle;
         synchronized (lock) {
+            if (this.handle == 0) { return; }
             handle = this.handle;
             this.handle = 0;
         }
