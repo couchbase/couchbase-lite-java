@@ -335,7 +335,7 @@ public class AbstractCBLWebSocket extends C4Socket {
     }
 
     private Authenticator setupAuthenticator() {
-        if (options != null && options.containsKey(REPLICATOR_AUTH_USER_NAME)) {
+        if (options != null && options.containsKey(REPLICATOR_OPTION_AUTHENTICATION)) {
             @SuppressWarnings("unchecked") final Map<String, Object> auth
                 = (Map<String, Object>) options.get(REPLICATOR_OPTION_AUTHENTICATION);
             if (auth != null) {
