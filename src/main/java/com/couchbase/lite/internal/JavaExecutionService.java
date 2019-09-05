@@ -24,13 +24,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * ExecutionService for Java.
@@ -53,10 +52,12 @@ public class JavaExecutionService extends AbstractExecutionService {
 
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
         private final AtomicInteger mCount = new AtomicInteger(1);
+
         public Thread newThread(@NonNull Runnable r) { return new Thread(r, "CBL#" + mCount.getAndIncrement()); }
     };
 
     private static final Executor THREAD_POOL_EXECUTOR;
+
     static {
         THREAD_POOL_EXECUTOR = Executors.newFixedThreadPool(POOL_SIZE, THREAD_FACTORY);
     }

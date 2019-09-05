@@ -15,68 +15,80 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
-import org.gradle.internal.os.OperatingSystem;
 import org.apache.tools.ant.filters.ReplaceTokens
+import org.gradle.internal.os.OperatingSystem
 
-// The Module-level Build File
+
+// ----------------------------------------------------------------
+// Build Script
+// ----------------------------------------------------------------
+
 buildscript {
-    ext.kotlin_version = '1.3.50'
+    ext {
+        KOTLIN_VERSION = '1.3.50'
+        JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
+
+        PROJECT_DIR = "${projectDir}"
+        ROOT_DIR = "${PROJECT_DIR}/.."
+    }
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${KOTLIN_VERSION}"
         classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
-apply plugin: 'com.jfrog.bintray'
-apply plugin: 'cpp'
-apply plugin: 'java-library'
-apply plugin: 'java-library-distribution'
-apply plugin: 'kotlin'
-apply plugin: 'maven-publish'
+
+// ----------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------
 
 ext {
-    PROJECT_DIR = "${projectDir}"
-    ROOT_DIR = "${PROJECT_DIR}/.."
-    ETC_DIR = "${PROJECT_DIR}/etc"
-    REPORTS_DIR = "${buildDir}/reports"
+    CBL_GROUP = 'com.couchbase.lite'
+    CBL_ARTIFACT_ID = 'couchbase-lite-java'
 
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
     CBL_CORE_BUILD_DIR = "${CBL_CORE_DIR}/build_cmake"
     CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/build/native"
+
+    BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
+    BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
+    BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
+    BUILD_COMMIT = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim() +
+        (('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) ? "" : "+")
+
+    ETC_DIR = "${PROJECT_DIR}/etc"
+    REPORTS_DIR = "${buildDir}/reports"
+
     CBL_NATIVE_LIBRARIES = []
-
-    JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
 }
 
-def cblVersion = file("${ROOT_DIR}/version.txt").text.trim()
+// comma separated list of annotations for tests that should not be run.
+def TEST_FILTER = (!project.hasProperty("testFilter")) ? null : testFilter
 
-// -PbuildNumber=123
-def buildNum = (!hasProperty("buildNumber")) ? "0" : buildNumber
+// Target repo for maven publish
+def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 
-def buildCommit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim() +
-    (('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) ? "" : "+")
+// local.properties
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
-group = 'com.couchbase.lite'
 
-// Copy the version template into the source, inserting build info
-task generateCBLVersion(type: Copy) {
-    from("${projectDir}/templates/CBLVersion.java") {
-        filter(
-            ReplaceTokens,
-            tokens: [VERSION: cblVersion, VARIANT: 'CE', TYPE: 'debug', BUILD: buildNum, COMMIT: buildCommit])
-    }
-    into "${projectDir}/src/main/java/com/couchbase/lite/internal/core"
-}
-generateCBLVersion.outputs.upToDateWhen { false }
-compileJava.dependsOn generateCBLVersion
+// ----------------------------------------------------------------
+// Build Java
+// ----------------------------------------------------------------
+
+apply plugin: 'cpp'
+apply plugin: 'java-library'
+apply plugin: 'java-library-distribution'
+apply plugin: 'kotlin'
+
+group = CBL_GROUP
 
 java {
-    version = cblVersion
+    version = BUILD_VERSION
 
     targetCompatibility JavaVersion.VERSION_1_8
     sourceCompatibility JavaVersion.VERSION_1_8
@@ -103,10 +115,6 @@ java {
     }
 }
 
-test {
-    exclude '**/ReplicatorWithSyncGateway*'
-}
-
 repositories {
     google()
     jcenter()
@@ -120,17 +128,35 @@ dependencies {
 
     implementation 'org.json:json:20180813'
 
-    testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
 
     testImplementation 'junit:junit:4.12'
 }
 
+// Copy the version template into the source, inserting build info
+task generateCBLVersion(type: Copy) {
+    outputs.upToDateWhen { false }
+    from("${CBL_JAVA_DIR}/templates/CBLVersion.java") {
+        filter(
+            ReplaceTokens,
+            tokens: [
+                VERSION: BUILD_VERSION.toString(),
+                VARIANT: 'CE',
+                TYPE   : 'release',
+                BUILD  : BUILD_NUMBER.toString(),
+                COMMIT : BUILD_COMMIT.toString()])
+    }
+    into "${CBL_JAVA_DIR}/src/main/java/com/couchbase/lite/internal/core"
+}
+compileJava.dependsOn generateCBLVersion
+
+
 // ----------------------------------------------------------------
-// Native Build
+// Build Native
 // ----------------------------------------------------------------
 
 // For generating JNI headers:
-compileJava.options.compilerArgs += ["-h", "${projectDir}/src/shared/main/cpp"]
+compileJava.options.compilerArgs += ["-h", "${PROJECT_DIR}/src/shared/main/cpp"]
 
 // UTF-8
 compileJava.options.encoding = "UTF-8"
@@ -153,7 +179,7 @@ model {
             operatingSystem "windows"
         }
     }
-    
+
     toolChains {
         visualCpp(VisualCpp)
         clang(Clang)
@@ -188,6 +214,7 @@ model {
             }
         }
     }
+
     components {
         LiteCoreJNI(NativeLibrarySpec) {
             if (OperatingSystem.current().isMacOsX()) targetPlatform "osx"
@@ -237,6 +264,190 @@ model {
     }
 }
 
+
+// ----------------------------------------------------------------
+// Static analysis
+// ----------------------------------------------------------------
+
+def fileFilter = ['**/gen/**', "okhttp3/**"]
+
+/////// Checkstyle
+apply plugin: 'checkstyle'
+checkstyle {
+    toolVersion = "8.18"
+
+    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
+    configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
+
+    showViolations true
+}
+
+task checkstyle(type: Checkstyle) {
+    description 'Checkstyle'
+    group 'verification'
+
+    source sourceSets.main.java.srcDirs
+    include '**/*.java'
+    exclude fileFilter
+
+    classpath = files()
+
+    checkstyleTest.enabled = false
+
+    reports {
+        xml {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/checkstyle.xml"))
+        }
+        html {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/checkstyle.html"))
+        }
+    }
+}
+
+/////// PMD
+apply plugin: 'pmd'
+pmd { toolVersion "5.8.1" }
+task pmd(type: Pmd) {
+    description 'PMD'
+    group 'verification'
+
+    ruleSetFiles = files("${ETC_DIR}/pmd/pmd.xml")
+
+    source = sourceSets.main.java.srcDirs
+    include '**/*.java'
+    exclude fileFilter
+
+    pmdTest.enabled = false
+
+    reports {
+        xml {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/pmd.xml"))
+        }
+        html {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/pmd.html"))
+        }
+    }
+}
+
+/////// Findbugs
+// !!! FIXME: Update to SpotBugs
+apply plugin: 'findbugs'
+def findbugsAll = task('findbugs') {
+    description 'Findbugs with all reports'
+    group 'verification'
+}
+
+project.afterEvaluate {
+    ['Html', 'Xml'].each { reportType ->
+        findbugsAll.dependsOn task("findbugs${reportType}", type: FindBugs) {
+            description "Findbugs with $reportType report"
+            group 'verification'
+
+            dependsOn 'compileJava'
+
+            findbugs.toolVersion = "3.0.1"
+
+            effort = "max"
+            reportLevel = "medium"
+            ignoreFailures = false
+
+            source = sourceSets.main.java.srcDirs
+
+            classes = fileTree(dir: "${buildDir}/classes/java/main", excludes: fileFilter)
+            classpath = files()
+
+            excludeFilter = file("${ETC_DIR}/findbugs/findbugs.xml")
+
+            reports {
+                xml {
+                    enabled = (reportType == "Xml")
+                    setDestination(file("${REPORTS_DIR}/findbugs.xml"))
+                }
+                html {
+                    enabled = (reportType == "Html")
+                    setDestination(file("${REPORTS_DIR}/findbugs.html"))
+                }
+            }
+        }
+    }
+}
+
+
+// ----------------------------------------------------------------
+// Testing
+// ----------------------------------------------------------------
+
+if (TEST_FILTER != null) {
+    test { exclude "${TEST_FILTER}" }
+}
+
+
+// ----------------------------------------------------------------
+// Publication
+// ----------------------------------------------------------------
+
+apply plugin: 'maven-publish'
+
+def mavenRepoUser = properties.getProperty('maven.repo.user')
+def mavenRepoPass = properties.getProperty('maven.repo.pass')
+
+publishing {
+    publications {
+        couchbaseJava(MavenPublication) {
+            groupId group
+            artifactId CBL_ARTIFACT_ID
+            version BUILD_VERSION
+
+            from components.java
+            //artifact sourcesJar
+            //artifact javadocJar
+        }
+    }
+
+    repositories {
+        maven {
+            url = MAVEN_URL
+            credentials {
+                username mavenRepoUser
+                password mavenRepoPass
+            }
+        }
+    }
+}
+
+
+// ----------------------------------------------------------------
+// Tasks
+// ----------------------------------------------------------------
+
+task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
+task unitTest(dependsOn: ['smokeTest', 'test'])
+
+task buildCI(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+
+// ordering (roughly last to first)
+project.afterEvaluate {
+    tasks.withType(FindBugs) { shouldRunAfter tasks.withType(Pmd) }
+
+    tasks.whenTaskAdded {
+        if (it.name.startsWith("findbugs")) {
+            test.shouldRunAfter(it)
+        }
+        if (it.name.startsWith("checkstyle")) {
+            pmd.shouldRunAfter(it)
+        }
+    }
+}
+
+
+// ----------------------------------------------------------------
+// Extensions
+// ----------------------------------------------------------------
+
 def setupJNILibraryBuildTasks(library, platform) {
     tasks.whenTaskAdded { task ->
         if (task.name == "LiteCoreJNISharedLibrary") {
@@ -272,76 +483,13 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
 
 def getNativeLibraryResourcePath(platform) {
     def os = ""
-    if (platform.operatingSystem.isMacOsX()) 
+    if (platform.operatingSystem.isMacOsX())
         os = "osx";
-    else if (platform.operatingSystem.isWindows()) 
+    else if (platform.operatingSystem.isWindows())
         os = "windows"
-    else if (platform.operatingSystem.isLinux()) 
+    else if (platform.operatingSystem.isLinux())
         os = "linux"
     else
         os = platform.operatingSystem.name
     return "${os}/x86_64"
 }
-
-// ----------------------------------------------------------------
-// Static analysis
-// ----------------------------------------------------------------
-
-apply plugin: 'checkstyle'
-checkstyle {
-    toolVersion = "8.18"
-    showViolations true
-    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
-    configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
-}
-
-task checkstyle(type: Checkstyle) {
-    description 'Checkstyle'
-    group 'verification'
-
-    source sourceSets.main.java.srcDirs
-    include '**/*.java'
-    classpath = files()
-
-    checkstyleTest.enabled = false
-    reports {
-        xml {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/checkstyle.xml"))
-        }
-        html {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/checkstyle.html"))
-        }
-    }
-}
-
-apply plugin: 'pmd'
-pmd { toolVersion "5.8.1" }
-task pmd(type: Pmd) {
-    description 'PMD'
-    group 'verification'
-
-    ruleSetFiles = files("${ETC_DIR}/pmd/pmd.xml")
-
-    source = sourceSets.main.java.srcDirs
-    include '**/*.java'
-
-    pmdTest.enabled = false
-
-    reports {
-        xml {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/pmd.xml"))
-        }
-        html {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/pmd.html"))
-        }
-    }
-}
-
-task smoketest(dependsOn: ['checkstyle', 'pmd'])
-task unitTest(dependsOn: ['smoketest', 'test'])
-task buildCI(dependsOn: ['checkstyle', 'pmd', 'test'])
-
