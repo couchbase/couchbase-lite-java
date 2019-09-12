@@ -17,8 +17,14 @@
 //
 package com.couchbase.lite;
 
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+
 @SuppressWarnings("LineLength")
 public final class CBLError {
+    private static final AtomicReference<Map<String, String>> ERROR_MESSAGES = new AtomicReference<>();
+
     private CBLError() {}
 
     // Error Domain
@@ -109,5 +115,14 @@ public final class CBLError {
         public static final int WEB_SOCKET_CANT_FULFILL = 11011;         // Can't fulfill request due to "unexpected condition"
         public static final int WEB_SOCKET_CLOSE_USER_TRANSIENT = 14001; // Recoverable messaging error
         public static final int WEB_SOCKET_CLOSE_USER_PERMANENT = 14002; // Non-recoverable messaging error
+    }
+
+    static final void setErrorMessages(Map<String, String> errorMessages) {
+        ERROR_MESSAGES.set(errorMessages);
+    }
+
+    static final String lookupErrorMessage(String error) {
+        final String message = ERROR_MESSAGES.get().get(error);
+        return (message != null) ? message : "Unknown error";
     }
 }

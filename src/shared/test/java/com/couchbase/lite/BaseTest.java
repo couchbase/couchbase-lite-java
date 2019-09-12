@@ -80,6 +80,8 @@ public class BaseTest extends PlatformBaseTest {
     public void setUp() throws Exception {
         initCouchbaseLite();
 
+        Database.log.getConsole().setLevel(LogLevel.DEBUG);
+
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
