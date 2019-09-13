@@ -124,7 +124,7 @@ public final class CBLError {
     }
 
     static String lookupErrorMessage(String error, String... args) {
-        String message = ERROR_MESSAGES.get().get(error);
+        final String message = ERROR_MESSAGES.get().get(error);
         if (message == null) { return error; }
 
         try { return String.format(message, (Object[]) args); }
