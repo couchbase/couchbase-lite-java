@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite;
 
+import java.util.FormatterClosedException;
+import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -117,12 +119,17 @@ public final class CBLError {
         public static final int WEB_SOCKET_CLOSE_USER_PERMANENT = 14002; // Non-recoverable messaging error
     }
 
-    static final void setErrorMessages(Map<String, String> errorMessages) {
+    static void setErrorMessages(Map<String, String> errorMessages) {
         ERROR_MESSAGES.set(errorMessages);
     }
 
-    static final String lookupErrorMessage(String error) {
-        final String message = ERROR_MESSAGES.get().get(error);
-        return (message != null) ? message : "Unknown error";
+    static String lookupErrorMessage(String error, String... args) {
+        String message = ERROR_MESSAGES.get().get(error);
+        if (message == null) { return error; }
+
+        try { return String.format(message, (Object[]) args); }
+        catch (IllegalFormatException | FormatterClosedException ignore) { }
+
+        return error;
     }
 }
