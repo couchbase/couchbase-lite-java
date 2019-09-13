@@ -189,6 +189,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: %s, status: %s", context, status);
 
+            if (context == null) {
+                Log.w(DOMAIN, "C4ReplicatorListener.statusChanged, context is null!");
+                return;
+            }
+
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
 
@@ -199,6 +204,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         @Override
         public void documentEnded(C4Replicator repl, boolean pushing, C4DocumentEnded[] documents, Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.documentEnded, context: %s, pushing: %s", context, pushing);
+
+            if (context == null) {
+                Log.w(DOMAIN, "C4ReplicatorListener.documentEnded, context is null!");
+                return;
+            }
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
