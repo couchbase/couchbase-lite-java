@@ -17,17 +17,11 @@ public final class Replicator extends AbstractReplicator {
     }
 
     @Override
-    void initSocketFactory(Object socketFactoryContext) {
-        C4Socket.SOCKET_FACTORY.put(socketFactoryContext, CBLWebSocket.class);
-    }
+    protected Class<?> getSocketFactory() { return CBLWebSocket.class; }
 
     @Override
-    int framing() {
-        return C4Socket.NO_FRAMING;
-    }
+    protected int framing() { return C4Socket.NO_FRAMING; }
 
     @Override
-    String schema() {
-        return null;
-    }
+    protected String schema() { return null; }
 }

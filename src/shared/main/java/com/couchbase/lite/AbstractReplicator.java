@@ -497,6 +497,16 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     //---------------------------------------------
+    // Abstract methods
+    //---------------------------------------------
+
+    protected abstract Class<?> getSocketFactory();
+
+    protected abstract int framing();
+
+    protected abstract String schema();
+
+    //---------------------------------------------
     // Protected methods
     //---------------------------------------------
 
@@ -507,16 +517,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
         super.finalize();
     }
-
-    //---------------------------------------------
-    // Package protected methods
-    //---------------------------------------------
-
-    abstract void initSocketFactory(Object socketFactoryContext);
-
-    abstract int framing();
-
-    abstract String schema();
 
     //---------------------------------------------
     // Implementation of NetworkReachabilityListener
@@ -732,8 +732,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         }
 
         // Figure out C4Socket Factory class based on target type:
-        // Note: We should call this method something else:
-        initSocketFactory(this);
+        C4Socket.SOCKET_FACTORY.put(this, getSocketFactory());
 
         final int framing = framing();
         final String newSchema = schema();

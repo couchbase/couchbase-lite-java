@@ -17,12 +17,12 @@
 //
 package com.couchbase.lite;
 
-import org.junit.Test;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -106,28 +106,40 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         repl.addChangeListener(executor, null);
     }
 
+    // ??? Flakey
     @Test
     public void testNetworkRetry() throws URISyntaxException, InterruptedException {
-        Endpoint target = getRemoteTargetEndpoint();
-        ReplicatorConfiguration config = makeConfig(false, true, true, db, target);
-        Replicator repl = new Replicator(config);
         final CountDownLatch offline = new CountDownLatch(2);
         final CountDownLatch stopped = new CountDownLatch(1);
+
+        Replicator repl = new Replicator(makeConfig(false, true, true, db, getRemoteTargetEndpoint()));
         ListenerToken token = repl.addChangeListener(
             executor,
             change -> {
-                Replicator.Status status = change.getStatus();
-                if (status.getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
-                    offline.countDown();
-                    if (offline.getCount() == 0) { change.getReplicator().stop(); }
-                    else { change.getReplicator().networkReachable(); }
+                switch (change.getStatus().getActivityLevel()) {
+                    case OFFLINE:
+                        Replicator r = change.getReplicator();
+                        offline.countDown();
+                        if (offline.getCount() <= 0) { r.stop(); }
+                        else { r.networkReachable(); }
+                        return;
+                    case STOPPED:
+                        stopped.countDown();
+                        return;
+                    default:
+                        ;
                 }
-                if (status.getActivityLevel() == Replicator.ActivityLevel.STOPPED) { stopped.countDown(); }
             });
-        repl.start();
-        assertTrue(offline.await(10, TimeUnit.SECONDS));
-        assertTrue(stopped.await(10, TimeUnit.SECONDS));
-        repl.removeChangeListener(token);
+
+        try {
+            repl.start();
+
+            assertTrue(offline.await(10, TimeUnit.SECONDS));
+            assertTrue(stopped.await(10, TimeUnit.SECONDS));
+        }
+        finally {
+            repl.removeChangeListener(token);
+        }
     }
 
     private URLEndpoint getRemoteTargetEndpoint() throws URISyntaxException {

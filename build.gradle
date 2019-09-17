@@ -136,7 +136,7 @@ dependencies {
 // Copy the version template into the source, inserting build info
 task generateCBLVersion(type: Copy) {
     outputs.upToDateWhen { false }
-    from("${CBL_JAVA_DIR}/templates/CBLVersion.java") {
+    from("templates/CBLVersion.java") {
         filter(
             ReplaceTokens,
             tokens: [
@@ -146,7 +146,7 @@ task generateCBLVersion(type: Copy) {
                 BUILD  : BUILD_NUMBER.toString(),
                 COMMIT : BUILD_COMMIT.toString()])
     }
-    into "${CBL_JAVA_DIR}/src/main/java/com/couchbase/lite/internal/core"
+    into "src/main/java/com/couchbase/lite/internal/core"
 }
 compileJava.dependsOn generateCBLVersion
 

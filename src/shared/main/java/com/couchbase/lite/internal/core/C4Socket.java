@@ -88,9 +88,12 @@ public abstract class C4Socket {
     public static final int NO_FRAMING = 1;                ///< No framing; use messages as-is
     public static final int WEB_SOCKET_SERVER_FRAMING = 2; ///< Frame as WebSocket server messages (not masked)
 
+
     //-------------------------------------------------------------------------
     // Static Variables
     //-------------------------------------------------------------------------
+
+    // !!! MAJOR MEMORY LEAKAGE.
 
     //protected static String IMPLEMENTATION_CLASS_NAME;
     // Long: handle of C4Socket native address
@@ -99,13 +102,19 @@ public abstract class C4Socket {
         = Collections.synchronizedMap(new HashMap<>());
 
     // Map between SocketFactory Context and SocketFactory Class
-    public static final Map<Object, Class> SOCKET_FACTORY
+    public static final Map<Object, Class<?>> SOCKET_FACTORY
         = Collections.synchronizedMap(new HashMap<>());
 
     // Map between SocketFactory Context and Replicator
     public static final Map<Object, Replicator> SOCKET_FACTORY_CONTEXT
         = Collections.synchronizedMap(new HashMap<>());
 
+
+    //-------------------------------------------------------------------------
+    // callback methods from JNI
+    //-------------------------------------------------------------------------
+
+    // This method is called by reflection.  Don't change its name.
     @SuppressWarnings("unchecked")
     private static void open(
         long socket,
@@ -150,6 +159,7 @@ public abstract class C4Socket {
         }
     }
 
+    // This method is called by reflection.  Don't change its name.
     private static void write(long handle, byte[] allocatedData) {
         if (handle == 0 || allocatedData == null) {
             Log.e(LogDomain.NETWORK, "C4Socket.callback.write() parameter error");
@@ -163,11 +173,13 @@ public abstract class C4Socket {
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
 
+    // This method is called by reflection.  Don't change its name.
     private static void completedReceive(long handle, long byteCount) {
         // NOTE: No further action is not required?
         Log.w(LogDomain.NETWORK, "C4Socket.completedReceive() handle -> " + handle);
     }
 
+    // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void close(long handle) {
         // NOTE: close(long) method should not be called.
@@ -177,10 +189,7 @@ public abstract class C4Socket {
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
 
-    //-------------------------------------------------------------------------
-    // Abstract methods
-    //-------------------------------------------------------------------------
-
+    // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void requestClose(long handle, int status, String message) {
         Log.w(LogDomain.NETWORK, "C4Socket.requestClose() handle -> " + handle);
@@ -189,6 +198,7 @@ public abstract class C4Socket {
         else { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
 
+    // This method is called by reflection.  Don't change its name.
     private static void dispose(long handle) {
         Log.w(LogDomain.NETWORK, "C4Socket.dispose() handle -> " + handle);
         // NOTE: close(long) method should not be called.
@@ -196,48 +206,26 @@ public abstract class C4Socket {
         if (socket == null) { Log.w(LogDomain.NETWORK, "socket is null"); }
     }
 
-    protected static native void gotHTTPResponse(long socket, int httpStatus, byte[] responseHeadersFleece);
-
-    protected static native void opened(long socket);
-
-    //-------------------------------------------------------------------------
-    // callback methods from JNI
-    //-------------------------------------------------------------------------
-
-    protected static native void closed(long socket, int errorDomain, int errorCode, String message);
-
-    protected static native void closeRequested(long socket, int status, String message);
-
-    protected static native void completedWrite(long socket, long byteCount);
-
-    protected static native void received(long socket, byte[] data);
-
-    protected static native long fromNative(
-        Object nativeHandle,
-        String schema,
-        String host,
-        int port,
-        String path,
-        int framing);
-
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
     protected long handle; // hold pointer to C4Socket
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
     protected Object nativeHandle;
 
     //-------------------------------------------------------------------------
-    // constructor
+    // constructors
     //-------------------------------------------------------------------------
     protected C4Socket() { this(0L); }
 
     protected C4Socket(long handle) { this.handle = handle; }
 
+    //-------------------------------------------------------------------------
+    // Abstract methods
+    //-------------------------------------------------------------------------
+
     protected abstract void send(byte[] allocatedData);
+
+    protected abstract void requestClose(int status, String message);
 
     // NOTE: Not used
     @SuppressWarnings("EmptyMethod")
@@ -246,8 +234,6 @@ public abstract class C4Socket {
     // NOTE: Not used
     @SuppressWarnings("EmptyMethod")
     protected abstract void close();
-
-    protected abstract void requestClose(int status, String message);
 
     //-------------------------------------------------------------------------
     // Protected methods
@@ -272,7 +258,29 @@ public abstract class C4Socket {
     // package access
     //-------------------------------------------------------------------------
 
-    long getHandle() {
-        return handle;
-    }
+    long getHandle() { return handle; }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    protected static native void gotHTTPResponse(long socket, int httpStatus, byte[] responseHeadersFleece);
+
+    protected static native void opened(long socket);
+
+    protected static native void closed(long socket, int errorDomain, int errorCode, String message);
+
+    protected static native void closeRequested(long socket, int status, String message);
+
+    protected static native void completedWrite(long socket, long byteCount);
+
+    protected static native void received(long socket, byte[] data);
+
+    protected static native long fromNative(
+        Object nativeHandle,
+        String schema,
+        String host,
+        int port,
+        String path,
+        int framing);
 }

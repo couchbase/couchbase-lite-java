@@ -215,6 +215,7 @@ public class AbstractCBLWebSocket extends C4Socket {
     // ---------------------------------------------------------------------------------------------
     // Socket Factory Callbacks
     // ---------------------------------------------------------------------------------------------
+
     // !! Called by reflection!  Don't change the name.
     @SuppressWarnings({"MethodName", "PMD.MethodNamingConventions"})
     public static void socket_open(
@@ -251,22 +252,20 @@ public class AbstractCBLWebSocket extends C4Socket {
         c4sock.start();
     }
 
-    private OkHttpClient httpClient;
-    private CBLWebSocketListener wsListener;
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
+    private OkHttpClient httpClient;
+    private CBLWebSocketListener wsListener;
     private URI uri;
     private Map<String, Object> options;
-
-    //-------------------------------------------------------------------------
-    // Abstract method implementation
-    //-------------------------------------------------------------------------
     private WebSocket webSocket;
 
     //-------------------------------------------------------------------------
     // constructor
     //-------------------------------------------------------------------------
+
     protected AbstractCBLWebSocket(
         long handle,
         String scheme,
@@ -281,6 +280,10 @@ public class AbstractCBLWebSocket extends C4Socket {
         this.httpClient = setupOkHttpClient();
         this.wsListener = new CBLWebSocketListener();
     }
+
+    //-------------------------------------------------------------------------
+    // Abstract method implementation
+    //-------------------------------------------------------------------------
 
     @Override
     protected void send(byte[] allocatedData) {
