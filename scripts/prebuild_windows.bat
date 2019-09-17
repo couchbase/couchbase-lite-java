@@ -15,6 +15,7 @@ if %VS_GEN% == "" (
 )
 
 pushd ..\couchbase-lite-core\build_cmake
+rmdir /Q /S x64
 mkdir x64
 pushd x64
 
