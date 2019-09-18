@@ -17,8 +17,6 @@
 //
 package com.couchbase.lite.internal.replicator;
 
-import android.support.annotation.NonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -56,7 +54,6 @@ import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.Route;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okhttp3.internal.tls.CustomHostnameVerifier;
@@ -212,44 +209,35 @@ public class AbstractCBLWebSocket extends C4Socket {
         }
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Socket Factory Callbacks
-    // ---------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
+    // Factory method
+    //-------------------------------------------------------------------------
 
-    // !! Called by reflection!  Don't change the name.
-    @SuppressWarnings({"MethodName", "PMD.MethodNamingConventions"})
-    public static void socket_open(
+    // Creates an instance of the subclass CBLWebSocket
+    public static CBLWebSocket createCBLWebSocket(
         long socket,
-        Object socketFactoryContext,
         String scheme,
         String hostname,
         int port,
         String path,
-        byte[] optionsFleece) {
+        byte[] options) {
         Log.e(TAG, "CBLWebSocket.socket_open()");
 
-        Map<String, Object> options = null;
-        if (optionsFleece != null) { options = FLValue.fromData(optionsFleece).asDict(); }
+        Map<String, Object> fleeceOptions = null;
+        if (options != null) { fleeceOptions = FLValue.fromData(options).asDict(); }
 
         // NOTE: OkHttp can not understand blip/blips
-        if (scheme.equalsIgnoreCase(C4Replicator.C4_REPLICATOR_SCHEME_2)) { scheme = WEBSOCKET_SCHEME; }
+        if (scheme.equalsIgnoreCase(C4Replicator.C4_REPLICATOR_SCHEME_2)) {
+            scheme = WEBSOCKET_SCHEME;
+        }
         else if (scheme.equalsIgnoreCase(C4Replicator.C4_REPLICATOR_TLS_SCHEME_2)) {
             scheme = WEBSOCKET_SECURE_CONNECTION_SCHEME;
         }
 
-        final AbstractCBLWebSocket c4sock;
-        try {
-            c4sock = new CBLWebSocket(socket, scheme, hostname, port, path, options);
-        }
-        catch (Exception e) {
-            Log.e(TAG, "Failed to instantiate C4Socket: " + e);
-            e.printStackTrace();
-            return;
-        }
+        try { return new CBLWebSocket(socket, scheme, hostname, port, path, fleeceOptions); }
+        catch (Exception e) { Log.e(TAG, "Failed to instantiate C4Socket: ", e); }
 
-        REVERSE_LOOKUP_TABLE.put(socket, c4sock);
-
-        c4sock.start();
+        return null;
     }
 
     //-------------------------------------------------------------------------
@@ -286,6 +274,12 @@ public class AbstractCBLWebSocket extends C4Socket {
     //-------------------------------------------------------------------------
 
     @Override
+    protected void openSocket() {
+        Log.v(TAG, String.format(Locale.ENGLISH, "CBLWebSocket connecting to %s...", uri));
+        httpClient.newWebSocket(newRequest(), wsListener);
+    }
+
+    @Override
     protected void send(byte[] allocatedData) {
         if (this.webSocket.send(ByteString.of(allocatedData, 0, allocatedData.length))) {
             completedWrite(allocatedData.length);
@@ -319,11 +313,6 @@ public class AbstractCBLWebSocket extends C4Socket {
     // private methods
     //-------------------------------------------------------------------------
 
-    private void start() {
-        Log.v(TAG, String.format(Locale.ENGLISH, "CBLWebSocket connecting to %s...", uri));
-        httpClient.newWebSocket(newRequest(), wsListener);
-    }
-
     private OkHttpClient setupOkHttpClient() throws GeneralSecurityException {
         final OkHttpClient.Builder builder = BASE_HTTP_CLIENT.newBuilder();
 
@@ -345,35 +334,32 @@ public class AbstractCBLWebSocket extends C4Socket {
                 final String username = (String) auth.get(REPLICATOR_AUTH_USER_NAME);
                 final String password = (String) auth.get(REPLICATOR_AUTH_PASSWORD);
                 if (username != null && password != null) {
-                    return new Authenticator() {
-                        @Override
-                        public Request authenticate(@NonNull Route route, @NonNull Response response) {
-                            // http://www.ietf.org/rfc/rfc2617.txt
-                            Log.v(TAG, "Authenticating for response: " + response);
+                    return (route, response) -> {
+                        // http://www.ietf.org/rfc/rfc2617.txt
+                        Log.v(TAG, "Authenticating for response: " + response);
 
-                            // If failed 3 times, give up.
-                            if (responseCount(response) >= 3) { return null; }
+                        // If failed 3 times, give up.
+                        if (responseCount(response) >= 3) { return null; }
 
-                            final List<Challenge> challenges = response.challenges();
-                            Log.v(TAG, "Challenges: " + challenges);
-                            if (challenges != null) {
-                                for (Challenge challenge : challenges) {
-                                    if (challenge.scheme().equals("Basic")) {
-                                        return response.request()
-                                            .newBuilder()
-                                            .header("Authorization", Credentials.basic(username, password))
-                                            .build();
-                                    }
-
-                                    // NOTE: Not implemented Digest authentication
-                                    //       https://github.com/rburgst/okhttp-digest
-                                    //else if(challenge.scheme().equals("Digest")){
-                                    //}
+                        final List<Challenge> challenges = response.challenges();
+                        Log.v(TAG, "Challenges: " + challenges);
+                        if (challenges != null) {
+                            for (Challenge challenge : challenges) {
+                                if (challenge.scheme().equals("Basic")) {
+                                    return response.request()
+                                        .newBuilder()
+                                        .header("Authorization", Credentials.basic(username, password))
+                                        .build();
                                 }
-                            }
 
-                            return null;
+                                // NOTE: Not implemented Digest authentication
+                                //       https://github.com/rburgst/okhttp-digest
+                                //else if(challenge.scheme().equals("Digest")){
+                                //}
+                            }
                         }
+
+                        return null;
                     };
                 }
             }

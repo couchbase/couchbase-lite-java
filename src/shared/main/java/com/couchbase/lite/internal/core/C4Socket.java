@@ -17,17 +17,14 @@
 //
 package com.couchbase.lite.internal.core;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.Replicator;
+import com.couchbase.lite.internal.replicator.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 
 
@@ -38,8 +35,9 @@ public abstract class C4Socket {
     // Constants
     //
     // Most of these are defined in c4Replicator.h and must agree with those definitions.
+    //
+    //@formatter:off
     //-------------------------------------------------------------------------
-
     public static final String WEBSOCKET_SCHEME = "ws";
     public static final String WEBSOCKET_SECURE_CONNECTION_SCHEME = "wss";
 
@@ -79,7 +77,9 @@ public abstract class C4Socket {
     public static final String SOCKET_OPTION_WS_PROTOCOLS = "WS-Protocols"; // litecore::websocket::Provider
     public static final String SOCKET_OPTION_HEARTBEAT = "heartbeat"; // litecore::websocket::Provider
 
-    /** @deprecated No longer used in core */
+    /**
+     * @deprecated No longer used in core
+     */
     @Deprecated
     public static final String REPLICATOR_OPTION_NO_CONFLICTS = "noConflicts"; // Puller rejects conflicts: bool
 
@@ -88,140 +88,128 @@ public abstract class C4Socket {
     public static final int NO_FRAMING = 1;                ///< No framing; use messages as-is
     public static final int WEB_SOCKET_SERVER_FRAMING = 2; ///< Frame as WebSocket server messages (not masked)
 
+    //@formatter:on
+
 
     //-------------------------------------------------------------------------
     // Static Variables
     //-------------------------------------------------------------------------
 
-    // !!! MAJOR MEMORY LEAKAGE.
-
-    //protected static String IMPLEMENTATION_CLASS_NAME;
-    // Long: handle of C4Socket native address
-    // C4Socket: Java class holds handle
-    protected static final Map<Long, C4Socket> REVERSE_LOOKUP_TABLE
-        = Collections.synchronizedMap(new HashMap<>());
-
-    // Map between SocketFactory Context and SocketFactory Class
-    public static final Map<Object, Class<?>> SOCKET_FACTORY
-        = Collections.synchronizedMap(new HashMap<>());
-
-    // Map between SocketFactory Context and Replicator
-    public static final Map<Object, Replicator> SOCKET_FACTORY_CONTEXT
-        = Collections.synchronizedMap(new HashMap<>());
+    // Lookup table: the handle to a native socket object maps to its Java companion
+    private static final Map<Long, C4Socket> HANDLES_TO_SOCKETS = Collections.synchronizedMap(new HashMap<>());
 
 
     //-------------------------------------------------------------------------
-    // callback methods from JNI
+    // JNI callback methods
     //-------------------------------------------------------------------------
 
     // This method is called by reflection.  Don't change its name.
-    @SuppressWarnings("unchecked")
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void open(
-        long socket,
-        Object socketFactoryContext,
+        long handle,
+        Object context,
         String scheme,
         String hostname,
         int port,
         String path,
-        byte[] optionsFleece) {
-        Log.w(LogDomain.NETWORK, "C4Socket.open() socket -> " + socket);
-        final Class clazz = C4Socket.SOCKET_FACTORY.get(socketFactoryContext);
-        if (clazz == null) {
-            throw new IllegalArgumentException(String
-                .format(Locale.ENGLISH, "Unknown SocketFactory UID -> %s", socketFactoryContext.toString()));
+        byte[] options) {
+        C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
+        Log.w(LogDomain.NETWORK, "C4Socket.open(): " + handle + ", " + socket + ", " + context);
+
+        if (socket == null) {
+            if (!(context instanceof SocketFactory)) {
+                throw new IllegalArgumentException("Context is not a socket factory: " + context);
+            }
+            socket = ((SocketFactory) context).createSocket(handle, scheme, hostname, port, path, options);
+
+            HANDLES_TO_SOCKETS.put(handle, socket);
         }
 
-        Log.w(LogDomain.NETWORK, "C4Socket.open() clazz -> " + clazz.getName());
-
-        final Method method;
-        try {
-            method = clazz.getMethod(
-                "socket_open",
-                Long.TYPE,
-                Object.class,
-                String.class,
-                String.class,
-                Integer.TYPE,
-                String.class,
-                byte[].class);
-        }
-        catch (NoSuchMethodException e) {
-            throw new RuntimeException("socket_open() method is not found in " + clazz, e);
-        }
-        try {
-            method.invoke(null, socket, socketFactoryContext, scheme, hostname, port, path, optionsFleece);
-        }
-        catch (IllegalAccessException e) {
-            throw new RuntimeException("socket_open() method is not accessible", e);
-        }
-        catch (InvocationTargetException e) {
-            throw new RuntimeException("socket_open() method throws Exception", e);
-        }
-    }
-
-    // This method is called by reflection.  Don't change its name.
-    private static void write(long handle, byte[] allocatedData) {
-        if (handle == 0 || allocatedData == null) {
-            Log.e(LogDomain.NETWORK, "C4Socket.callback.write() parameter error");
-            return;
-        }
-
-        Log.w(LogDomain.NETWORK, "C4Socket.write() handle -> " + handle);
-
-        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
-        if (socket != null) { socket.send(allocatedData); }
-        else { Log.w(LogDomain.NETWORK, "socket is null"); }
-    }
-
-    // This method is called by reflection.  Don't change its name.
-    private static void completedReceive(long handle, long byteCount) {
-        // NOTE: No further action is not required?
-        Log.w(LogDomain.NETWORK, "C4Socket.completedReceive() handle -> " + handle);
+        socket.openSocket();
     }
 
     // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    private static void write(long handle, byte[] allocatedData) {
+        Log.w(LogDomain.NETWORK, "C4Socket.write(): " + handle);
+
+        if ((handle == 0) || (allocatedData == null)) {
+            Log.e(LogDomain.NETWORK, "C4Socket.callback.write() with bad parameters");
+            return;
+        }
+
+        final C4Socket socket = getAndCheckSocket(handle);
+        if (socket == null) { return; }
+
+        socket.send(allocatedData);
+    }
+
+    // This method is called by reflection.  Don't change its name.
+    // NOTE: No further action is not required?
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    private static void completedReceive(long handle, long byteCount) {
+        Log.w(LogDomain.NETWORK, "C4Socket.completedReceive(): " + handle);
+
+        getAndCheckSocket(handle);
+    }
+
+    // This method is called by reflection.  Don't change its name.
+    // NOTE: close(long) method should not be called.
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void close(long handle) {
-        // NOTE: close(long) method should not be called.
-        Log.w(LogDomain.NETWORK, "C4Socket.close() handle -> " + handle);
-        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
-        if (socket != null) { socket.close(); }
-        else { Log.w(LogDomain.NETWORK, "socket is null"); }
+        Log.w(LogDomain.NETWORK, "C4Socket.close(): " + handle);
+
+        final C4Socket socket = getAndCheckSocket(handle);
+        if (socket == null) { return; }
+
+        socket.close();
     }
 
     // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void requestClose(long handle, int status, String message) {
-        Log.w(LogDomain.NETWORK, "C4Socket.requestClose() handle -> " + handle);
-        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
-        if (socket != null) { socket.requestClose(status, message); }
-        else { Log.w(LogDomain.NETWORK, "socket is null"); }
+        Log.w(LogDomain.NETWORK, "C4Socket.requestClose(): " + handle);
+
+        final C4Socket socket = getAndCheckSocket(handle);
+        if (socket == null) { return; }
+
+        socket.requestClose(status, message);
     }
 
     // This method is called by reflection.  Don't change its name.
+    // NOTE: close(long) method should not be called.
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void dispose(long handle) {
-        Log.w(LogDomain.NETWORK, "C4Socket.dispose() handle -> " + handle);
-        // NOTE: close(long) method should not be called.
-        final C4Socket socket = REVERSE_LOOKUP_TABLE.get(handle);
+        final C4Socket socket = getAndCheckSocket(handle);
+        Log.w(LogDomain.NETWORK, "C4Socket.dispose(): " + handle + " @" + socket);
+
+        if (socket == null) { return; }
+
+        HANDLES_TO_SOCKETS.remove(handle);
+    }
+
+    private static C4Socket getAndCheckSocket(long handle) {
+        final C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
         if (socket == null) { Log.w(LogDomain.NETWORK, "socket is null"); }
+        return socket;
     }
 
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
     protected long handle; // hold pointer to C4Socket
-    protected Object nativeHandle;
 
     //-------------------------------------------------------------------------
-    // constructors
+    // constructor
     //-------------------------------------------------------------------------
-    protected C4Socket() { this(0L); }
 
     protected C4Socket(long handle) { this.handle = handle; }
 
     //-------------------------------------------------------------------------
     // Abstract methods
     //-------------------------------------------------------------------------
+
+    protected abstract void openSocket();
 
     protected abstract void send(byte[] allocatedData);
 
@@ -240,9 +228,8 @@ public abstract class C4Socket {
     //-------------------------------------------------------------------------
 
     protected void setHandle(long handle) {
-        this.nativeHandle = this;
         this.handle = handle;
-        C4Socket.REVERSE_LOOKUP_TABLE.put(handle, this);
+        HANDLES_TO_SOCKETS.put(handle, this);
     }
 
     protected void gotHTTPResponse(int httpStatus, byte[] responseHeadersFleece) {
@@ -253,12 +240,6 @@ public abstract class C4Socket {
         Log.w(LogDomain.NETWORK, "completedWrite(long) handle -> " + handle + ", byteCount -> " + byteCount);
         completedWrite(handle, byteCount);
     }
-
-    //-------------------------------------------------------------------------
-    // package access
-    //-------------------------------------------------------------------------
-
-    long getHandle() { return handle; }
 
     //-------------------------------------------------------------------------
     // native methods

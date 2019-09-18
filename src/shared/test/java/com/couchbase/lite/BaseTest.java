@@ -98,21 +98,19 @@ public class BaseTest extends PlatformBaseTest {
 
     @After
     public void tearDown() {
-        try { closeDB(); }
-        catch (CouchbaseLiteException e) {
-            Report.log(LogLevel.ERROR, "Failed closing DB: " + TEST_DB, e);
+        try {
+            closeDB();
+            deleteDatabase(TEST_DB);
         }
-
-        try { deleteDatabase(TEST_DB); }
         catch (CouchbaseLiteException e) {
-            Report.log(LogLevel.ERROR, "Failed deleting DB: " + TEST_DB, e);
+            throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
+        finally {
+            FileUtils.cleanDirectory(getDir());
 
-        // clean dir
-        FileUtils.cleanDirectory(getDir());
-
-        executor.stop(60, TimeUnit.SECONDS);
-        executor = null;
+            executor.stop(60, TimeUnit.SECONDS);
+            executor = null;
+        }
     }
 
     protected Document save(MutableDocument doc) throws CouchbaseLiteException {
@@ -249,7 +247,7 @@ public class BaseTest extends PlatformBaseTest {
     }
 
     protected List<Map<String, Object>> loadNumbers(final int from, final int to) throws Exception {
-        final List<Map<String, Object>> numbers = new ArrayList<Map<String, Object>>();
+        final List<Map<String, Object>> numbers = new ArrayList<>();
         db.inBatch(() -> {
             for (int i = from; i <= to; i++) {
                 String docID;

@@ -55,6 +55,8 @@ import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLValue;
+import com.couchbase.lite.internal.replicator.AbstractCBLWebSocket;
+import com.couchbase.lite.internal.replicator.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
@@ -67,7 +69,7 @@ import com.couchbase.lite.utils.Fn;
  * or continuous. The replicator runs asynchronously, so observe the status property to
  * be notified of progress.
  */
-public abstract class AbstractReplicator extends NetworkReachabilityListener {
+public abstract class AbstractReplicator extends NetworkReachabilityListener implements SocketFactory {
     private static final LogDomain DOMAIN = LogDomain.REPLICATOR;
 
     private static final int MAX_ONE_SHOT_RETRY_COUNT = 2;
@@ -500,11 +502,17 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Abstract methods
     //---------------------------------------------
 
-    protected abstract Class<?> getSocketFactory();
-
     protected abstract int framing();
 
     protected abstract String schema();
+
+    protected abstract C4Socket createCustomSocket(
+        long handle,
+        String scheme,
+        String hostname,
+        int port,
+        String path,
+        byte[] options);
 
     //---------------------------------------------
     // Protected methods
@@ -516,6 +524,19 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         clearRepl();
         if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
         super.finalize();
+    }
+
+    //---------------------------------------------
+    // Implementation of SocketFactory
+    //---------------------------------------------
+
+    // DO NOT USE THIS METHOD!  IT IS *NOT* PART OF THE PUBLIC API!
+    @Override
+    public C4Socket createSocket(long handle, String scheme, String hostname, int port, String path, byte[] options) {
+        final C4Socket customSocket = createCustomSocket(handle, scheme, hostname, port, path, options);
+        return (customSocket != null)
+            ? customSocket
+            : AbstractCBLWebSocket.createCBLWebSocket(handle, scheme, hostname, port, path, options);
     }
 
     //---------------------------------------------
@@ -731,16 +752,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             finally { enc.free(); }
         }
 
-        // Figure out C4Socket Factory class based on target type:
-        C4Socket.SOCKET_FACTORY.put(this, getSocketFactory());
-
         final int framing = framing();
         final String newSchema = schema();
         if (newSchema != null) { schema = newSchema; }
-
-        // This allow the socket callback to map from the socket factory context
-        // and the replicator:
-        C4Socket.SOCKET_FACTORY_CONTEXT.put(this, (Replicator) this);
 
         // Push / Pull / Continuous:
         final boolean push = isPush(config.getReplicatorType());
@@ -893,7 +907,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 && (c4err.getCode() == C4WebSocketCloseCode.kWebSocketCloseUserTransient));
     }
 
-    private void updateStateProperties(@Nullable C4ReplicatorStatus c4Status) {
+    private void updateStateProperties(@NonNull C4ReplicatorStatus c4Status) {
         CouchbaseLiteException error = null;
         if (c4Status.getErrorCode() != 0) {
             error = CBLStatus.convertException(
