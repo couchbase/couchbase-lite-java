@@ -31,6 +31,9 @@ import com.couchbase.lite.internal.core.C4Log;
  * Couchbase Lite Internal Log Utility.
  */
 public final class Log {
+    /** Utility class constructor. */
+    private Log() { }
+
     public static final int C4LOG_DEBUG = C4Constants.LogLevel.DEBUG;
     public static final int C4LOG_VERBOSE = C4Constants.LogLevel.VERBOSE;
     public static final int C4LOG_INFO = C4Constants.LogLevel.INFO;
@@ -48,9 +51,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void v(LogDomain domain, String msg) {
-        sendToLoggers(LogLevel.VERBOSE, domain, msg);
-    }
+    public static void v(LogDomain domain, String msg) { sendToLoggers(LogLevel.VERBOSE, domain, msg); }
 
     /**
      * Send a VERBOSE message and log the exception.
@@ -59,9 +60,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void v(LogDomain domain, String msg, Throwable tr) {
-        v(domain, "Exception: %s", tr.toString());
-    }
+    public static void v(LogDomain domain, String msg, Throwable tr) { v(domain, "Exception: %s", tr.toString()); }
 
     /**
      * Send a VERBOSE message.
@@ -72,9 +71,7 @@ public final class Log {
      */
     public static void v(LogDomain domain, String formatString, Object... args) {
         String msg;
-        try {
-            msg = String.format(Locale.ENGLISH, formatString, args);
-        }
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
@@ -107,9 +104,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void i(LogDomain domain, String msg) {
-        sendToLoggers(LogLevel.INFO, domain, msg);
-    }
+    public static void i(LogDomain domain, String msg) { sendToLoggers(LogLevel.INFO, domain, msg); }
 
     /**
      * Send a INFO message and log the exception.
@@ -118,17 +113,11 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void i(LogDomain domain, String msg, Throwable tr) {
-        i(domain, "Exception: %s", tr.toString());
-    }
+    public static void i(LogDomain domain, String msg, Throwable tr) { i(domain, "Exception: %s", tr.toString()); }
 
-    public static void info(LogDomain domain, String msg) {
-        i(domain, msg);
-    }
+    public static void info(LogDomain domain, String msg) { i(domain, msg); }
 
-    public static void info(LogDomain domain, String msg, Throwable tr) {
-        i(domain, msg, tr);
-    }
+    public static void info(LogDomain domain, String msg, Throwable tr) { i(domain, msg, tr); }
 
     /**
      * Send an INFO message.
@@ -139,9 +128,7 @@ public final class Log {
      */
     public static void i(LogDomain domain, String formatString, Object... args) {
         String msg;
-        try {
-            msg = String.format(Locale.ENGLISH, formatString, args);
-        }
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
@@ -174,9 +161,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void w(LogDomain domain, String msg) {
-        sendToLoggers(LogLevel.WARNING, domain, msg);
-    }
+    public static void w(LogDomain domain, String msg) { sendToLoggers(LogLevel.WARNING, domain, msg); }
 
     /**
      * Send a WARN message and log the exception.
@@ -184,9 +169,7 @@ public final class Log {
      * @param domain The log domain.
      * @param tr     An exception to log
      */
-    public static void w(LogDomain domain, Throwable tr) {
-        w(domain, "Exception: %s", tr.toString());
-    }
+    public static void w(LogDomain domain, Throwable tr) { w(domain, "Exception: %s", tr.toString()); }
 
     /**
      * Send a WARN message and log the exception.
@@ -195,9 +178,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void w(LogDomain domain, String msg, Throwable tr) {
-        w(domain, "%s: %s", msg, tr.toString());
-    }
+    public static void w(LogDomain domain, String msg, Throwable tr) { w(domain, "%s: %s", msg, tr.toString()); }
 
     /**
      * Send a WARN message.
@@ -208,9 +189,7 @@ public final class Log {
      */
     public static void w(LogDomain domain, String formatString, Object... args) {
         String msg;
-        try {
-            msg = String.format(Locale.ENGLISH, formatString, args);
-        }
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
@@ -243,9 +222,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void e(LogDomain domain, String msg) {
-        sendToLoggers(LogLevel.ERROR, domain, msg);
-    }
+    public static void e(LogDomain domain, String msg) { sendToLoggers(LogLevel.ERROR, domain, msg); }
 
     /**
      * Send a ERROR message and log the exception.
@@ -254,9 +231,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void e(LogDomain domain, String msg, Throwable tr) {
-        e(domain, "%s: %s", msg, tr.toString());
-    }
+    public static void e(LogDomain domain, String msg, Throwable tr) { e(domain, "%s: %s", msg, tr.toString()); }
 
     /**
      * Send a ERROR message and log the exception.
@@ -287,9 +262,7 @@ public final class Log {
      */
     public static void e(LogDomain domain, String formatString, Object... args) {
         String msg;
-        try {
-            msg = String.format(Locale.ENGLISH, formatString, args);
-        }
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
@@ -302,9 +275,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void d(LogDomain domain, String msg) {
-        sendToLoggers(LogLevel.DEBUG, domain, msg);
-    }
+    public static void d(LogDomain domain, String msg) { sendToLoggers(LogLevel.DEBUG, domain, msg); }
 
     /**
      * Send a DEBUG message and log the exception.
@@ -313,9 +284,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void d(LogDomain domain, String msg, Throwable tr) {
-        d(domain, "Exception: %s", tr.toString());
-    }
+    public static void d(LogDomain domain, String msg, Throwable tr) { d(domain, "Exception: %s", tr.toString()); }
 
     /**
      * Send a DEBUG message.
@@ -326,9 +295,7 @@ public final class Log {
      */
     public static void d(LogDomain domain, String formatString, Object... args) {
         String msg;
-        try {
-            msg = String.format(Locale.ENGLISH, formatString, args);
-        }
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
         catch (Exception e) {
             msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
         }
@@ -386,10 +353,8 @@ public final class Log {
         }
     }
 
-    public static void enableLogging(String tag, int logLevel) {
-        // LiteCore logging
-        C4Log.setLevel(tag, logLevel);
-    }
+    // LiteCore logging
+    public static void enableLogging(String tag, int logLevel) { C4Log.setLevel(tag, logLevel); }
 
     private static void sendToLoggers(
         LogLevel level,
@@ -416,9 +381,4 @@ public final class Log {
             if (consoleSucceeded) { Database.log.getConsole().log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
         }
     }
-
-    /**
-     * private constructor.
-     */
-    private Log() { }
 }

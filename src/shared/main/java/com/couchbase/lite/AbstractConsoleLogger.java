@@ -40,9 +40,7 @@ abstract class AbstractConsoleLogger implements Logger {
      * @return The currently active domains
      */
     @NonNull
-    public EnumSet<LogDomain> getDomains() {
-        return logDomains;
-    }
+    public EnumSet<LogDomain> getDomains() { return logDomains; }
 
     /**
      * Sets the domains that will be considered for writing to the console log.
@@ -51,7 +49,6 @@ abstract class AbstractConsoleLogger implements Logger {
      */
     public void setDomains(@NonNull EnumSet<LogDomain> domains) {
         Preconditions.checkArgNotNull(domains, "domains");
-
         logDomains = domains;
     }
 
@@ -69,9 +66,7 @@ abstract class AbstractConsoleLogger implements Logger {
 
     @NonNull
     @Override
-    public LogLevel getLevel() {
-        return logLevel;
-    }
+    public LogLevel getLevel() { return logLevel; }
 
     /**
      * Sets the overall logging level that will be written to the console log.

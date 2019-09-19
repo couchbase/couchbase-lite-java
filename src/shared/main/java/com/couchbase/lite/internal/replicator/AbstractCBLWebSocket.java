@@ -153,25 +153,25 @@ public class AbstractCBLWebSocket extends C4Socket {
             AbstractCBLWebSocket.this.webSocket = webSocket;
             receivedHTTPResponse(response);
             Log.i(TAG, "CBLWebSocket CONNECTED!");
-            opened(handle);
+            opened();
         }
 
         @Override
         public void onMessage(WebSocket webSocket, String text) {
             Log.v(TAG, "WebSocketListener.onMessage() text -> " + text);
-            received(handle, text.getBytes(StandardCharsets.UTF_8));
+            received(text.getBytes(StandardCharsets.UTF_8));
         }
 
         @Override
         public void onMessage(WebSocket webSocket, ByteString bytes) {
             Log.v(TAG, "WebSocketListener.onMessage() bytes -> " + bytes.hex());
-            received(handle, bytes.toByteArray());
+            received(bytes.toByteArray());
         }
 
         @Override
         public void onClosing(WebSocket webSocket, int code, String reason) {
             Log.v(TAG, "WebSocketListener.onClosing() code -> " + code + ", reason -> " + reason);
-            closeRequested(handle, code, reason);
+            closeRequested(code, reason);
         }
 
         @Override
@@ -215,7 +215,7 @@ public class AbstractCBLWebSocket extends C4Socket {
 
     // Creates an instance of the subclass CBLWebSocket
     public static CBLWebSocket createCBLWebSocket(
-        long socket,
+        long handle,
         String scheme,
         String hostname,
         int port,
@@ -234,7 +234,7 @@ public class AbstractCBLWebSocket extends C4Socket {
             scheme = WEBSOCKET_SECURE_CONNECTION_SCHEME;
         }
 
-        try { return new CBLWebSocket(socket, scheme, hostname, port, path, fleeceOptions); }
+        try { return new CBLWebSocket(handle, scheme, hostname, port, path, fleeceOptions); }
         catch (Exception e) { Log.e(TAG, "Failed to instantiate C4Socket: ", e); }
 
         return null;
@@ -450,12 +450,12 @@ public class AbstractCBLWebSocket extends C4Socket {
         }
 
         Log.i(TAG, "CBLWebSocket CLOSED WITH STATUS " + code + " \"" + reason + "\"");
-        closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, code, reason);
+        closed(C4Constants.ErrorDomain.WEB_SOCKET, code, reason);
     }
 
     private void didClose(Throwable error) {
         if (error == null) {
-            closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
+            closed(C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
             return;
         }
 
@@ -464,7 +464,6 @@ public class AbstractCBLWebSocket extends C4Socket {
         // TLS Certificate error
         if (error.getCause() instanceof java.security.cert.CertificateException) {
             closed(
-                handle,
                 C4Constants.ErrorDomain.NETWORK,
                 C4Constants.NetworkError.TLS_CERT_UNTRUSTED,
                 null);
@@ -474,7 +473,6 @@ public class AbstractCBLWebSocket extends C4Socket {
         // SSLPeerUnverifiedException
         if (error instanceof javax.net.ssl.SSLPeerUnverifiedException) {
             closed(
-                handle,
                 C4Constants.ErrorDomain.NETWORK,
                 C4Constants.NetworkError.TLS_CERT_UNTRUSTED,
                 null);
@@ -484,14 +482,13 @@ public class AbstractCBLWebSocket extends C4Socket {
         // UnknownHostException - this is thrown if Airplane mode, offline
         if (error instanceof UnknownHostException) {
             closed(
-                handle,
                 C4Constants.ErrorDomain.NETWORK,
                 C4Constants.NetworkError.UNKNOWN_HOST,
                 null);
             return;
         }
 
-        closed(handle, C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
+        closed(C4Constants.ErrorDomain.WEB_SOCKET, 0, null);
     }
 
     //-------------------------------------------------------------------------

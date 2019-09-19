@@ -288,7 +288,7 @@ public class C4Database {
         C4ReplicatorListener listener,
         Object replicatorContext)
         throws LiteCoreException {
-        return new C4Replicator(handle, openSocket.handle, push, pull,
+        return new C4Replicator(handle, openSocket.getHandle(), push, pull,
             options, listener, replicatorContext);
     }
 

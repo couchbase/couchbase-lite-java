@@ -37,9 +37,7 @@ public final class Log {
     private Logger customLogger;
 
     // Singleton instance accessible from Database.log
-    Log() {
-        C4Log.setCallbackLevel(LogLevel.WARNING.getValue());
-    }
+    Log() { C4Log.setCallbackLevel(LogLevel.WARNING.getValue()); }
 
     /**
      * Gets the logger that writes to the Android system log
@@ -47,9 +45,7 @@ public final class Log {
      * @return The logger that writes to the Android system log
      */
     @NonNull
-    public ConsoleLogger getConsole() {
-        return consoleLogger;
-    }
+    public ConsoleLogger getConsole() { return consoleLogger; }
 
     /**
      * Gets the logger that writes to log files
@@ -66,17 +62,12 @@ public final class Log {
      * @return The custom logger that was registered by
      * the application, or null.
      */
-    public Logger getCustom() {
-        return customLogger;
-    }
+    public Logger getCustom() { return customLogger; }
 
     /**
      * Sets an application specific logging method
      *
-     * @param customLogger A Logger implementation that will
-     *                     receive logging messages
+     * @param customLogger A Logger implementation that will receive logging messages
      */
-    public void setCustom(Logger customLogger) {
-        this.customLogger = customLogger;
-    }
+    public void setCustom(Logger customLogger) { this.customLogger = customLogger; }
 }
