@@ -60,7 +60,7 @@ public class C4RawDocument {
 
     public void free() throws LiteCoreException {
         if (handle != 0L) {
-            C4Database.rawFree(handle);
+            C4Database.rawFreeDocument(handle);
             handle = 0L;
         }
     }

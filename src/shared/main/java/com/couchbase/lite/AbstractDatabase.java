@@ -39,6 +39,7 @@ import org.json.JSONException;
 import com.couchbase.lite.internal.CBLInternalException;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.ExecutionService;
+import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.core.C4BlobStore;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
@@ -124,7 +125,7 @@ abstract class AbstractDatabase {
         final File path = getDatabasePath(directory, name);
         try {
             Log.i(DOMAIN, "delete(): path=%s", path.toString());
-            C4Database.deleteAtPath(path.getPath());
+            C4Database.deleteDbAtPath(path.getPath());
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -161,7 +162,7 @@ abstract class AbstractDatabase {
         config.setTempDir();
 
         try {
-            C4Database.copy(
+            C4Database.copyDb(
                 fromPath,
                 toPath,
                 DEFAULT_DATABASE_FLAGS,
@@ -903,8 +904,8 @@ abstract class AbstractDatabase {
         C4ReplicatorListener listener,
         C4ReplicationFilter pushFilter,
         C4ReplicationFilter pullFilter,
-        Object replicatorContext,
-        Object socketFactoryContext,
+        AbstractReplicator replicatorContext,
+        SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
         final C4Replicator c4Repl;

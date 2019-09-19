@@ -18,7 +18,4 @@ public final class Replicator extends AbstractReplicator {
 
     @Override
     protected String schema() { return null; }
-
-    @Override
-    protected C4Socket createCustomSocket(long h, String s, String n, int p, String f, byte[] o) { return null; }
 }

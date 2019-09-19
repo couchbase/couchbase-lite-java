@@ -41,6 +41,7 @@ import java.util.concurrent.RejectedExecutionException;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.ExecutionService.Cancellable;
+import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
@@ -50,13 +51,10 @@ import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.C4ReplicatorMode;
 import com.couchbase.lite.internal.core.C4ReplicatorStatus;
-import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLValue;
-import com.couchbase.lite.internal.replicator.AbstractCBLWebSocket;
-import com.couchbase.lite.internal.replicator.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
@@ -69,7 +67,7 @@ import com.couchbase.lite.utils.Fn;
  * or continuous. The replicator runs asynchronously, so observe the status property to
  * be notified of progress.
  */
-public abstract class AbstractReplicator extends NetworkReachabilityListener implements SocketFactory {
+public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private static final LogDomain DOMAIN = LogDomain.REPLICATOR;
 
     private static final int MAX_ONE_SHOT_RETRY_COUNT = 2;
@@ -302,6 +300,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener imp
 
     private final Set<Fn.Consumer> pendingResolutions = new HashSet<>();
     private final List<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
+    private final SocketFactory socketFactory;
 
     private Status status = new Status(ActivityLevel.IDLE, new Progress(0, 0), null);
     private C4Replicator c4repl;
@@ -328,6 +327,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener imp
     public AbstractReplicator(@NonNull ReplicatorConfiguration config) {
         Preconditions.checkArgNotNull(config, "config");
         this.config = config.readonlyCopy();
+        socketFactory = new SocketFactory(config);
     }
 
     /**
@@ -506,14 +506,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener imp
 
     protected abstract String schema();
 
-    protected abstract C4Socket createCustomSocket(
-        long handle,
-        String scheme,
-        String hostname,
-        int port,
-        String path,
-        byte[] options);
-
     //---------------------------------------------
     // Protected methods
     //---------------------------------------------
@@ -524,19 +516,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener imp
         clearRepl();
         if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
         super.finalize();
-    }
-
-    //---------------------------------------------
-    // Implementation of SocketFactory
-    //---------------------------------------------
-
-    // DO NOT USE THIS METHOD!  IT IS *NOT* PART OF THE PUBLIC API!
-    @Override
-    public C4Socket createSocket(long handle, String scheme, String hostname, int port, String path, byte[] options) {
-        final C4Socket customSocket = createCustomSocket(handle, scheme, hostname, port, path, options);
-        return (customSocket != null)
-            ? customSocket
-            : AbstractCBLWebSocket.createCBLWebSocket(handle, scheme, hostname, port, path, options);
     }
 
     //---------------------------------------------
@@ -791,7 +770,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener imp
                 c4ReplPushFilter,
                 c4ReplPullFilter,
                 this,
-                this,
+                socketFactory,
                 framing);
             c4repl.start();
             status = c4repl.getStatus();

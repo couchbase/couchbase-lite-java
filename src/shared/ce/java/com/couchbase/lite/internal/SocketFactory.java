@@ -13,17 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite.internal.replicator;
+package com.couchbase.lite.internal;
 
+import android.support.annotation.NonNull;
+
+import com.couchbase.lite.ReplicatorConfiguration;
 import com.couchbase.lite.internal.core.C4Socket;
+import com.couchbase.lite.internal.replicator.AbstractCBLWebSocket;
 
 
-public interface SocketFactory {
-    C4Socket createSocket(
-        long socket,
-        String scheme,
-        String hostname,
-        int port,
-        String path,
-        byte[] options);
+public class SocketFactory {
+    public SocketFactory(@NonNull ReplicatorConfiguration ignore) { }
+
+    public C4Socket createSocket(long handle, String scheme, String hostname, int port, String path, byte[] options) {
+        return AbstractCBLWebSocket.createCBLWebSocket(handle, scheme, hostname, port, path, options);
+    }
 }

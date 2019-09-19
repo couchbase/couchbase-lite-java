@@ -24,7 +24,7 @@ import java.util.Map;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.replicator.SocketFactory;
+import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 
 
