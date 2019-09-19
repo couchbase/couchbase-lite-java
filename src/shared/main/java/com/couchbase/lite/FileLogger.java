@@ -53,9 +53,7 @@ public final class FileLogger implements Logger {
      *
      * @return The configuration currently in use
      */
-    public LogFileConfiguration getConfig() {
-        return config;
-    }
+    public LogFileConfiguration getConfig() { return config; }
 
     /**
      * Sets the configuration currently to use on the file logger.
@@ -111,9 +109,7 @@ public final class FileLogger implements Logger {
 
     @NonNull
     @Override
-    public LogLevel getLevel() {
-        return com.couchbase.lite.LogLevel.values()[C4Log.getBinaryFileLevel()];
-    }
+    public LogLevel getLevel() { return com.couchbase.lite.LogLevel.values()[C4Log.getBinaryFileLevel()]; }
 
     /**
      * Sets the overall logging level that will be written to
@@ -122,13 +118,9 @@ public final class FileLogger implements Logger {
      * @param level The maximum level to include in the logs
      */
     public void setLevel(@NonNull LogLevel level) {
-        if (config == null) {
-            throw new IllegalStateException("Cannot set logging level without a configuration");
-        }
+        if (config == null) { throw new IllegalStateException("Cannot set logging level without a configuration"); }
 
-        if (logLevel.equals(level)) {
-            return;
-        }
+        if (logLevel.equals(level)) { return; }
 
         logLevel = level;
         C4Log.setBinaryFileLevel(level.getValue());
@@ -136,10 +128,7 @@ public final class FileLogger implements Logger {
 
     @Override
     public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
-        if (level.compareTo(logLevel) < 0 || !domainObjects.containsKey(domain)) {
-            return;
-        }
-
+        if (level.compareTo(logLevel) < 0 || !domainObjects.containsKey(domain)) { return; }
         C4Log.log(domainObjects.get(domain), level.getValue(), message);
     }
 }

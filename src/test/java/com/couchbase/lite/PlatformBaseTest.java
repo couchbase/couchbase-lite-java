@@ -35,6 +35,9 @@ public abstract class PlatformBaseTest implements PlatformTest {
         CouchbaseLite.init();
     }
 
+    // set up the file logger...
+    public void setupFileLogging() { }
+
     @Override
     public String getDatabaseDirectory() {
         return CouchbaseLite.getDbDirectoryPath();

@@ -81,6 +81,7 @@ public class BaseTest extends PlatformBaseTest {
         initCouchbaseLite();
 
         Database.log.getConsole().setLevel(LogLevel.DEBUG);
+        setupFileLogging();
 
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
