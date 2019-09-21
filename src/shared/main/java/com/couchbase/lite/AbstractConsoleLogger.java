@@ -24,15 +24,40 @@ import java.util.EnumSet;
 import com.couchbase.lite.internal.core.C4Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
+
 /**
  * The base console logger class.
  */
 abstract class AbstractConsoleLogger implements Logger {
+    private EnumSet<LogDomain> logDomains = LogDomain.ALL_DOMAINS;
     private LogLevel logLevel = LogLevel.WARNING;
-    private EnumSet<LogDomain> logDomains = EnumSet.of(LogDomain.ALL);
 
     // Singleton instance accessible from Log.getConsole()
     AbstractConsoleLogger() { }
+
+    @Override
+    public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
+        if ((level.compareTo(logLevel) < 0) || (!logDomains.contains(domain))) { return; }
+        doLog(level, domain, message);
+    }
+
+    @NonNull
+    @Override
+    public LogLevel getLevel() { return logLevel; }
+
+    /**
+     * Sets the overall logging level that will be written to the console log.
+     *
+     * @param level The lowest (most verbose) level to include in the logs
+     */
+    public void setLevel(@NonNull LogLevel level) {
+        Preconditions.checkArgNotNull(level, "level");
+
+        if (logLevel == level) { return; }
+
+        logLevel = level;
+        C4Log.setCallbackLevel(logLevel);
+    }
 
     /**
      * Gets the domains that will be considered for writing to the console log.
@@ -49,47 +74,9 @@ abstract class AbstractConsoleLogger implements Logger {
      */
     public void setDomains(@NonNull EnumSet<LogDomain> domains) {
         Preconditions.checkArgNotNull(domains, "domains");
-        logDomains = domains;
-    }
-
-    private void setCallbackLevel(@NonNull LogLevel level) {
-        Preconditions.checkArgNotNull(level, "level");
-
-        LogLevel callbackLevel = level;
-        final Logger custom = Database.log.getCustom();
-        if ((custom != null) && (custom.getLevel().compareTo(callbackLevel) < 0)) {
-            callbackLevel = custom.getLevel();
-        }
-
-        C4Log.setCallbackLevel(callbackLevel.getValue());
-    }
-
-    @NonNull
-    @Override
-    public LogLevel getLevel() { return logLevel; }
-
-    /**
-     * Sets the overall logging level that will be written to the console log.
-     *
-     * @param level The maximum level to include in the logs
-     */
-    public void setLevel(@NonNull LogLevel level) {
-        Preconditions.checkArgNotNull(level, "level");
-
-        if (logLevel == level) { return; }
-
-        logLevel = level;
-        setCallbackLevel(level);
-    }
-
-    @Override
-    public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
-        if (level.compareTo(logLevel) < 0
-                || (!logDomains.contains(domain)
-                && !logDomains.contains(LogDomain.ALL))) {
-            return;
-        }
-        doLog(level, domain, message);
+        logDomains = (!domains.contains(LogDomain.ALL))
+            ? domains
+            : LogDomain.ALL_DOMAINS;
     }
 
     protected abstract void doLog(LogLevel level, @NonNull LogDomain domain, @NonNull String message);

@@ -140,9 +140,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
     private final CloseableExecutor concurrentExecutor;
 
-    public AbstractExecutionService() {
-        concurrentExecutor = new ConcurrentExecutor(getThreadPoolExecutor());
-    }
+    public AbstractExecutionService() { concurrentExecutor = new ConcurrentExecutor(getThreadPoolExecutor()); }
 
     @NonNull
     public abstract Executor getThreadPoolExecutor();

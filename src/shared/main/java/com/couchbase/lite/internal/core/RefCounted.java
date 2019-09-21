@@ -31,7 +31,7 @@ abstract class RefCounted {
     public synchronized void release() {
         if (--refCount <= 0) { free(); }
         if (refCount < 0) {
-            Log.w(LogDomain.ALL, "Ref count for " + getClass().getCanonicalName() + " is " + refCount);
+            Log.w(LogDomain.DATABASE, "Ref count for " + getClass().getCanonicalName() + " is " + refCount);
         }
     }
 }

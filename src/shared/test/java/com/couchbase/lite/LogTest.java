@@ -456,7 +456,7 @@ public class LogTest extends BaseTest {
         LogTestLogger customLogger = new LogTestLogger();
         customLogger.setLevel(LogLevel.VERBOSE);
         Database.log.setCustom(customLogger);
-        Database.log.getConsole().setDomains(EnumSet.of(LogDomain.ALL));
+        Database.log.getConsole().setDomains(LogDomain.ALL_DOMAINS);
         Database.log.getConsole().setLevel(LogLevel.VERBOSE);
 
         String hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
@@ -481,18 +481,23 @@ public class LogTest extends BaseTest {
 
     //region Helper methods
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Runnable r) {
-        LogFileConfiguration old = Database.log.getFile().getConfig();
-        EnumSet<LogDomain> domains = Database.log.getConsole().getDomains();
-        Database.log.getFile().setConfig(config);
-        Database.log.getFile().setLevel(level);
-        try {
-            r.run();
-        }
+        final ConsoleLogger consoleLogger = Database.log.getConsole();
+        final EnumSet<LogDomain> consoleDomains = consoleLogger.getDomains();
+        final LogLevel consoleLevel = consoleLogger.getLevel();
+        consoleLogger.setLevel(level);
+
+        final FileLogger fileLogger = Database.log.getFile();
+        final LogFileConfiguration fileConfig = fileLogger.getConfig();
+        final LogLevel fileLevel = fileLogger.getLevel();
+        fileLogger.setConfig(config);
+        fileLogger.setLevel(level);
+
+        try { r.run(); }
         finally {
-            Database.log.getFile().setLevel(LogLevel.INFO);
-            Database.log.getFile().setConfig(old);
-            Database.log.getConsole().setDomains(domains);
-            Database.log.getConsole().setLevel(LogLevel.WARNING);
+            consoleLogger.setDomains(consoleDomains);
+            consoleLogger.setLevel(consoleLevel);
+            fileLogger.setLevel(fileLevel);
+            fileLogger.setConfig(fileConfig);
         }
     }
 

@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,7 +77,6 @@ abstract class AbstractDatabase {
     @SuppressWarnings("ConstantName")
     @NonNull
     public static final com.couchbase.lite.Log log = new com.couchbase.lite.Log();
-    static { Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING); }
 
     //---------------------------------------------
     // Constants
@@ -183,16 +183,20 @@ abstract class AbstractDatabase {
      * @param domain The log domain
      * @param level  The log level
      * @deprecated As of 2.5 because it is being replaced with the
-     * {@link com.couchbase.lite.Log#getConsole() getConsole} method
-     * from the {@link #log log} property.  This method has
-     * been replaced with a no-op to preserve API compatibility.
+     * {@link com.couchbase.lite.Log#getConsole() getConsole} method from the {@link #log log} property.
+     * This method will eventually be replaced with a no-op to preserve API compatibility.
+     * Until it is, its interactions with other logging maybe be fairly unpredictable.
      */
     @Deprecated
     public static void setLogLevel(@NonNull LogDomain domain, @NonNull LogLevel level) {
         Preconditions.checkArgNotNull(domain, "domain");
         Preconditions.checkArgNotNull(level, "level");
 
-        Log.setLogLevel(domain, level);
+        final EnumSet<LogDomain> domains = (domain == LogDomain.ALL)
+            ? LogDomain.ALL_DOMAINS
+            : EnumSet.of(domain);
+
+        Log.setC4LogLevel(domains, level);
     }
 
     private static File getDatabasePath(File dir, String name) {

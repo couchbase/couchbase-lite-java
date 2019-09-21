@@ -104,7 +104,7 @@ class ExecutionServicesTest {
     fun testStoppedSerialExecutorRejects() {
         val executor = executionService.serialExecutor
         assertTrue(executor.stop(0, TimeUnit.SECONDS)) // no tasks
-        executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+        executor.execute { Log.d(LogDomain.DATABASE, "This test is about to fail!") }
     }
 
     // A stopped executor can finish currently queued tasks.
@@ -132,7 +132,7 @@ class ExecutionServicesTest {
         assertFalse(executor.stop(0, TimeUnit.SECONDS))
 
         try {
-            executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+            executor.execute { Log.d(LogDomain.DATABASE, "This test is about to fail!") }
             fail("Stopped executor should not accept new tasks")
         }
         catch (expected: RejectedExecutionException) { }
@@ -192,7 +192,7 @@ class ExecutionServicesTest {
         val executor = executionService.concurrentExecutor
         assertTrue(executor.stop(0, TimeUnit.SECONDS)) // no tasks
         try {
-            executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+            executor.execute { Log.d(LogDomain.DATABASE, "This test is about to fail!") }
         }
         finally {
             // Restart concurrent executor
@@ -226,7 +226,7 @@ class ExecutionServicesTest {
         assertFalse(executor.stop(0, TimeUnit.SECONDS))
 
         try {
-            executor.execute { Log.d(LogDomain.ALL, "This test is about to fail!") }
+            executor.execute { Log.d(LogDomain.DATABASE, "This test is about to fail!") }
             fail("Stopped executor should not accept new tasks")
         }
         catch (expected: RejectedExecutionException) { }

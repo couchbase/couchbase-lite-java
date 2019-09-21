@@ -17,9 +17,17 @@
 //
 package com.couchbase.lite.internal.support;
 
-import java.util.Locale;
+import android.support.annotation.NonNull;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import com.couchbase.lite.ConsoleLogger;
 import com.couchbase.lite.Database;
+import com.couchbase.lite.FileLogger;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
@@ -31,19 +39,103 @@ import com.couchbase.lite.internal.core.C4Log;
  * Couchbase Lite Internal Log Utility.
  */
 public final class Log {
-    /** Utility class constructor. */
+    /**
+     * Utility class constructor.
+     */
     private Log() { }
 
-    public static final int C4LOG_DEBUG = C4Constants.LogLevel.DEBUG;
-    public static final int C4LOG_VERBOSE = C4Constants.LogLevel.VERBOSE;
-    public static final int C4LOG_INFO = C4Constants.LogLevel.INFO;
-    public static final int C4LOG_WARN = C4Constants.LogLevel.WARNING;
-    public static final int C4LOG_ERROR = C4Constants.LogLevel.ERROR;
-    public static final int C4LOG_NONE = C4Constants.LogLevel.NONE;
-    private static final String DATABASE = C4Constants.LogDomain.DATABASE;
-    private static final String QUERY = C4Constants.LogDomain.QUERY;
-    private static final String SYNC = C4Constants.LogDomain.SYNC;
-    private static final String WEB_SOCKET = C4Constants.LogDomain.WEB_SOCKET;
+    public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
+    static {
+        final Map<String, LogDomain> m = new HashMap<>();
+        m.put(C4Constants.LogDomain.DATABASE, LogDomain.DATABASE);
+        m.put(C4Constants.LogDomain.QUERY, LogDomain.QUERY);
+        m.put(C4Constants.LogDomain.SYNC, LogDomain.REPLICATOR);
+        m.put(C4Constants.LogDomain.SYNC_BUSY, LogDomain.REPLICATOR);
+        m.put(C4Constants.LogDomain.BLIP, LogDomain.NETWORK);
+        m.put(C4Constants.LogDomain.WEB_SOCKET, LogDomain.NETWORK);
+        LOGGING_DOMAINS_FROM_C4 = Collections.unmodifiableMap(m);
+    }
+
+    public static final Map<LogDomain, String> LOGGING_DOMAINS_TO_C4;
+    static {
+        final Map<LogDomain, String> m = new HashMap<>();
+        m.put(LogDomain.DATABASE, C4Constants.LogDomain.DATABASE);
+        m.put(LogDomain.QUERY, C4Constants.LogDomain.QUERY);
+        m.put(LogDomain.REPLICATOR, C4Constants.LogDomain.SYNC);
+        m.put(LogDomain.NETWORK, C4Constants.LogDomain.WEB_SOCKET);
+        LOGGING_DOMAINS_TO_C4 = Collections.unmodifiableMap(m);
+    }
+
+    public static final Map<Integer, LogLevel> LOG_LEVEL_FROM_C4;
+    static {
+        final Map<Integer, LogLevel> m = new HashMap<>();
+        for (LogLevel level : LogLevel.values()) { m.put(level.getValue(), level); }
+        LOG_LEVEL_FROM_C4 = Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * Setup logging.
+     *
+     * @param debugging true iff debugging.
+     */
+    public static void initLogging(boolean debugging) {
+        setC4LogLevel(LogDomain.ALL_DOMAINS, (debugging) ? LogLevel.DEBUG : LogLevel.INFO);
+    }
+
+    /**
+     * Send a DEBUG message.
+     *
+     * @param domain The log domain.
+     * @param msg    The message you would like logged.
+     */
+    public static void d(LogDomain domain, String msg) { sendToLoggers(LogLevel.DEBUG, domain, msg); }
+
+    /**
+     * Send a DEBUG message and log the exception.
+     *
+     * @param domain The log domain.
+     * @param msg    The message you would like logged.
+     * @param tr     An exception to log
+     */
+    public static void d(LogDomain domain, String msg, Throwable tr) {
+        d(domain, msg + ".  Exception: %s", tr.toString());
+    }
+
+    /**
+     * Send a DEBUG message.
+     *
+     * @param domain       The log domain.
+     * @param formatString The string you would like logged plus format specifiers.
+     * @param args         Variable number of Object args to be used as params to formatString.
+     */
+    public static void d(LogDomain domain, String formatString, Object... args) {
+        String msg;
+        try { msg = String.format(Locale.ENGLISH, formatString, args); }
+        catch (Exception e) {
+            msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
+        }
+        sendToLoggers(LogLevel.DEBUG, domain, msg);
+    }
+
+    /**
+     * Send a DEBUG message and log the exception.
+     *
+     * @param domain       The log domain.
+     * @param formatString The string you would like logged plus format specifiers.
+     * @param tr           An exception to log
+     * @param args         Variable number of Object args to be used as params to formatString.
+     */
+    public static void d(LogDomain domain, String formatString, Throwable tr, Object... args) {
+        String msg;
+        try {
+            msg = String.format(formatString, args);
+            msg = String.format("%s (%s)", msg, tr.toString());
+        }
+        catch (Exception e) {
+            msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
+        }
+        sendToLoggers(LogLevel.DEBUG, domain, msg);
+    }
 
     /**
      * Send a VERBOSE message.
@@ -60,7 +152,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void v(LogDomain domain, String msg, Throwable tr) { v(domain, "Exception: %s", tr.toString()); }
+    public static void v(LogDomain domain, String msg, Throwable tr) {
+        v(domain, msg + ".  Exception: %s", tr.toString());
+    }
 
     /**
      * Send a VERBOSE message.
@@ -113,7 +207,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param tr     An exception to log
      */
-    public static void i(LogDomain domain, String msg, Throwable tr) { i(domain, "Exception: %s", tr.toString()); }
+    public static void i(LogDomain domain, String msg, Throwable tr) {
+        i(domain, msg + ".  Exception: %s", tr.toString());
+    }
 
     public static void info(LogDomain domain, String msg) { i(domain, msg); }
 
@@ -269,116 +365,71 @@ public final class Log {
         sendToLoggers(LogLevel.ERROR, domain, msg);
     }
 
-    /**
-     * Send a DEBUG message.
-     *
-     * @param domain The log domain.
-     * @param msg    The message you would like logged.
-     */
-    public static void d(LogDomain domain, String msg) { sendToLoggers(LogLevel.DEBUG, domain, msg); }
-
-    /**
-     * Send a DEBUG message and log the exception.
-     *
-     * @param domain The log domain.
-     * @param msg    The message you would like logged.
-     * @param tr     An exception to log
-     */
-    public static void d(LogDomain domain, String msg, Throwable tr) { d(domain, "Exception: %s", tr.toString()); }
-
-    /**
-     * Send a DEBUG message.
-     *
-     * @param domain       The log domain.
-     * @param formatString The string you would like logged plus format specifiers.
-     * @param args         Variable number of Object args to be used as params to formatString.
-     */
-    public static void d(LogDomain domain, String formatString, Object... args) {
-        String msg;
-        try { msg = String.format(Locale.ENGLISH, formatString, args); }
-        catch (Exception e) {
-            msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
-        }
-        sendToLoggers(LogLevel.DEBUG, domain, msg);
+    @NonNull
+    public static LogLevel getLogLevelForC4Level(int c4Level) {
+        final LogLevel level = LOG_LEVEL_FROM_C4.get(c4Level);
+        return (level != null) ? level : LogLevel.INFO;
     }
 
-    /**
-     * Send a DEBUG message and log the exception.
-     *
-     * @param domain       The log domain.
-     * @param formatString The string you would like logged plus format specifiers.
-     * @param tr           An exception to log
-     * @param args         Variable number of Object args to be used as params to formatString.
-     */
-    public static void d(LogDomain domain, String formatString, Throwable tr, Object... args) {
-        String msg;
-        try {
-            msg = String.format(formatString, args);
-            msg = String.format("%s (%s)", msg, tr.toString());
-        }
-        catch (Exception e) {
-            msg = String.format(Locale.ENGLISH, "Unable to format log: %s (%s)", formatString, e.toString());
-        }
-        sendToLoggers(LogLevel.DEBUG, domain, msg);
+    @NonNull
+    public static String getC4DomainForLoggingDomain(LogDomain domain) {
+        final String c4Domain = LOGGING_DOMAINS_TO_C4.get(domain);
+        return (c4Domain != null) ? c4Domain : C4Constants.LogDomain.DATABASE;
     }
 
-    public static void setLogLevel(LogDomain domain, LogLevel level) {
-        final int actualLevel = level.equals(LogLevel.NONE) ? C4LOG_NONE : C4LOG_DEBUG;
-        switch (domain) {
-            case ALL:
-                enableLogging(DATABASE, actualLevel);
-                enableLogging(QUERY, actualLevel);
-                enableLogging(SYNC, actualLevel);
-                enableLogging(WEB_SOCKET, actualLevel);
-                enableLogging(C4Constants.LogDomain.BLIP, actualLevel);
-                enableLogging(C4Constants.LogDomain.SYNC_BUSY, actualLevel);
-                break;
-            case DATABASE:
-                enableLogging(DATABASE, actualLevel);
-                break;
+    @NonNull
+    public static LogDomain getLoggingDomainForC4Domain(@NonNull String c4Domain) {
+        final LogDomain domain = LOGGING_DOMAINS_FROM_C4.get(c4Domain);
+        return (domain != null) ? domain : LogDomain.DATABASE;
+    }
 
-            case QUERY:
-                enableLogging(QUERY, actualLevel);
-                break;
+    public static void setC4LogLevel(EnumSet<LogDomain> domains, LogLevel level) {
+        final int c4Level = level.getValue();
+        for (LogDomain domain : domains) {
+            switch (domain) {
+                case DATABASE:
+                    C4Log.setLevel(C4Constants.LogDomain.DATABASE, c4Level);
+                    break;
 
-            case REPLICATOR:
-                enableLogging(SYNC, actualLevel);
-                enableLogging(C4Constants.LogDomain.SYNC_BUSY, actualLevel);
-                break;
+                case QUERY:
+                    C4Log.setLevel(C4Constants.LogDomain.QUERY, c4Level);
+                    break;
 
-            case NETWORK:
-                enableLogging(C4Constants.LogDomain.BLIP, actualLevel);
-                enableLogging(WEB_SOCKET, actualLevel);
-                break;
+                case REPLICATOR:
+                    C4Log.setLevel(C4Constants.LogDomain.SYNC, c4Level);
+                    C4Log.setLevel(C4Constants.LogDomain.SYNC_BUSY, c4Level);
+                    break;
+
+                case NETWORK:
+                    C4Log.setLevel(C4Constants.LogDomain.BLIP, c4Level);
+                    C4Log.setLevel(C4Constants.LogDomain.WEB_SOCKET, c4Level);
+                    break;
+            }
         }
     }
 
-    // LiteCore logging
-    public static void enableLogging(String tag, int logLevel) { C4Log.setLevel(tag, logLevel); }
-
-    private static void sendToLoggers(
-        LogLevel level,
-        LogDomain domain, String msg) {
+    private static void sendToLoggers(LogLevel level, LogDomain domain, String msg) {
+        final FileLogger fileLogger = Database.log.getFile();
         boolean fileSucceeded = false;
+
+        final ConsoleLogger consoleLogger = Database.log.getConsole();
         boolean consoleSucceeded = false;
         try {
             // File logging:
-            Database.log.getFile().log(level, domain, msg);
+            fileLogger.log(level, domain, msg);
             fileSucceeded = true;
 
             // Console logging:
-            Database.log.getConsole().log(level, domain, msg);
+            consoleLogger.log(level, domain, msg);
             consoleSucceeded = true;
 
             // Custom logging:
             final Logger custom = Database.log.getCustom();
-            if (custom != null) {
-                custom.log(level, domain, msg);
-            }
+            if (custom != null) { custom.log(level, domain, msg); }
         }
         catch (Exception e) {
-            if (fileSucceeded) { Database.log.getFile().log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
-            if (consoleSucceeded) { Database.log.getConsole().log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
+            if (fileSucceeded) { fileLogger.log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
+            if (consoleSucceeded) { consoleLogger.log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
         }
     }
 }

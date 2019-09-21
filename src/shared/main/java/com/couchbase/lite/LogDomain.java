@@ -17,9 +17,18 @@
 //
 package com.couchbase.lite;
 
+import java.util.EnumSet;
+
+
 /**
  * Log domain
  */
 public enum LogDomain {
-    ALL, DATABASE, QUERY, REPLICATOR, NETWORK
+    /**
+     * @deprecated redundant and confusing
+     */
+    @Deprecated ALL,
+    DATABASE, QUERY, REPLICATOR, NETWORK;
+
+    public static final EnumSet<LogDomain> ALL_DOMAINS = EnumSet.of(DATABASE, QUERY, REPLICATOR, NETWORK);
 }

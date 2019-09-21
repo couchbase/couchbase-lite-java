@@ -19,8 +19,6 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import com.couchbase.lite.internal.core.C4Log;
-
 
 /**
  * Gets the log controller for Couchbase Lite, which stores the
@@ -36,8 +34,8 @@ public final class Log {
 
     private Logger customLogger;
 
-    // Singleton instance accessible from Database.log
-    Log() { C4Log.setCallbackLevel(LogLevel.WARNING.getValue()); }
+    // The singleton instance is available from Database.log
+    Log() { com.couchbase.lite.internal.support.Log.initLogging(BuildConfig.DEBUG); }
 
     /**
      * Gets the logger that writes to the Android system log
