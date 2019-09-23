@@ -59,6 +59,13 @@ public enum LogLevel {
 
     LogLevel(int value) { this.value = value; }
 
+    /**
+     * This should not be part if the Public API.  The number that it returns
+     * is never useful to client software and begs confusion with the integer
+     * log level used by Android, to which it is completely unrelated.
+     *
+     * @return the CBL internal representation of the log level
+     */
     public int getValue() { return value; }
 
     @Override

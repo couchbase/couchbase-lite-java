@@ -103,7 +103,7 @@ public class Collation {
          *               country code: "en", "en_US", "fr_CA", etc.
          *               Specifying the locale will allow the collation to compare strings
          *               appropriately base on the locale.
-         * @return
+         * @return this
          */
         @NonNull
         public Unicode locale(String locale) {

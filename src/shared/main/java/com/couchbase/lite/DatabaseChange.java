@@ -39,25 +39,18 @@ public final class DatabaseChange {
      * Returns the database instance
      */
     @NonNull
-    public Database getDatabase() {
-        return database;
-    }
+    public Database getDatabase() { return database; }
 
     /**
      * Returns the list of the changed document IDs
      *
-     * @return
+     * @return a list of IDs for changed documents
      */
     @NonNull
-    public List<String> getDocumentIDs() {
-        return documentIDs;
-    }
+    public List<String> getDocumentIDs() { return documentIDs; }
 
     @Override
     public String toString() {
-        return "DatabaseChange{" +
-            "database=" + database +
-            ", documentIDs=" + documentIDs +
-            '}';
+        return "DatabaseChange{" + "database=" + database + ", documentIDs=" + documentIDs + '}';
     }
 }

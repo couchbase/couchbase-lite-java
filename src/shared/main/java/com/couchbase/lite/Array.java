@@ -93,7 +93,7 @@ public class Array implements ArrayInterface, FLEncodable, Iterable<Object> {
     /**
      * Gets a number of the items in the array.
      *
-     * @return
+     * @return the size of the array
      */
     @Override
     public final int count() {
