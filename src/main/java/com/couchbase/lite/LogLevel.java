@@ -17,7 +17,8 @@
 //
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.core.C4Constants;
+
 
 /**
  * Log level.
@@ -26,40 +27,57 @@ public enum LogLevel {
     /**
      * Debug log messages. Only present in debug builds of CouchbaseLite.
      */
-    DEBUG(Log.C4LOG_DEBUG),
+    DEBUG(C4Constants.LogLevel.DEBUG),
 
     /**
      * Verbose log messages.
      */
-    VERBOSE(Log.C4LOG_VERBOSE),
+    VERBOSE(C4Constants.LogLevel.VERBOSE),
 
     /**
      * Informational log messages.
      */
-    INFO(Log.C4LOG_INFO),
+    INFO(C4Constants.LogLevel.INFO),
 
     /**
      * Warning log messages.
      */
-    WARNING(Log.C4LOG_WARN),
+    WARNING(C4Constants.LogLevel.WARNING),
 
     /**
      * Error log messages. These indicate immediate errors that need to be addressed.
      */
-    ERROR(Log.C4LOG_ERROR),
+    ERROR(C4Constants.LogLevel.ERROR),
 
     /**
      * Disabling log messages of a given log domain.
      */
-    NONE(Log.C4LOG_NONE);
+    NONE(C4Constants.LogLevel.NONE);
+
 
     private final int value;
 
-    LogLevel(int value) {
-        this.value = value;
-    }
+    LogLevel(int value) { this.value = value; }
 
-    public int getValue() {
-        return value;
+    public int getValue() { return value; }
+
+    @Override
+    public String toString() {
+        switch (this) {
+            case DEBUG:
+                return "D";
+            case VERBOSE:
+                return "V";
+            case INFO:
+                return "I";
+            case WARNING:
+                return "W";
+            case ERROR:
+                return "E";
+            case NONE:
+                return "";
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 }

@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,7 +79,6 @@ abstract class AbstractDatabase {
     static {
         NativeLibraryLoader.load();
         log = new com.couchbase.lite.Log(); // Don't move this, the native library is needed
-        Log.setLogLevel(LogDomain.ALL, LogLevel.WARNING);
     }
 
     //---------------------------------------------
@@ -195,7 +195,11 @@ abstract class AbstractDatabase {
         Preconditions.checkArgNotNull(domain, "domain");
         Preconditions.checkArgNotNull(level, "level");
 
-        Log.setLogLevel(domain, level);
+        final EnumSet<LogDomain> domains = (domain == LogDomain.ALL)
+            ? LogDomain.ALL_DOMAINS
+            : EnumSet.of(domain);
+
+        Log.setC4LogLevel(domains, level);
     }
 
     private static File getDatabasePath(File dir, String name) {

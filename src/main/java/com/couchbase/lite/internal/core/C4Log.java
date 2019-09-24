@@ -17,64 +17,59 @@
 //
 package com.couchbase.lite.internal.core;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import com.couchbase.lite.ConsoleLogger;
 import com.couchbase.lite.CouchbaseLite;
 import com.couchbase.lite.Database;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
+import com.couchbase.lite.internal.support.Log;
 
 
-public class C4Log {
-    private static final Map<String, com.couchbase.lite.LogDomain> DOMAIN_OBJECTS;
+public final class C4Log {
+    private C4Log() {} // Utility class
 
-    static {
-        final Map<String, com.couchbase.lite.LogDomain> m = new HashMap<>();
-        m.put(C4Constants.LogDomain.DATABASE, com.couchbase.lite.LogDomain.DATABASE);
-        m.put(C4Constants.LogDomain.QUERY, com.couchbase.lite.LogDomain.QUERY);
-        m.put(C4Constants.LogDomain.SYNC, com.couchbase.lite.LogDomain.REPLICATOR);
-        m.put(C4Constants.LogDomain.SYNC_BUSY, com.couchbase.lite.LogDomain.REPLICATOR);
-        m.put(C4Constants.LogDomain.BLIP, com.couchbase.lite.LogDomain.NETWORK);
-        m.put(C4Constants.LogDomain.WEB_SOCKET, com.couchbase.lite.LogDomain.NETWORK);
-        DOMAIN_OBJECTS = Collections.unmodifiableMap(m);
+    private static LogLevel callbackLevel;
+
+    public static void setCallbackLevel(@NonNull LogLevel level) {
+        setCallbackLevel(level, Database.log.getCustom());
     }
 
-    private static LogLevel currentLevel = LogLevel.WARNING;
+    // This method is called by reflection.  Don't change its name.
+    private static void logCallback(String c4Domain, int c4Level, String message) {
+        final ConsoleLogger console = Database.log.getConsole();
+        final Logger custom = Database.log.getCustom();
 
-    static void logCallback(String domainName, int level, String message) {
-        recalculateLevels();
+        final LogLevel level = Log.getLogLevelForC4Level(c4Level);
+        final LogDomain domain = Log.getLoggingDomainForC4Domain(c4Domain);
 
-        com.couchbase.lite.LogDomain domain = com.couchbase.lite.LogDomain.DATABASE;
-        if (DOMAIN_OBJECTS.containsKey(domainName)) {
-            domain = DOMAIN_OBJECTS.get(domainName);
-        }
+        console.log(level, domain, message);
+        if (custom != null) { custom.log(level, domain, message); }
 
-        Database.log.getConsole().log(LogLevel.values()[level], domain, message);
-        final Logger customLogger = Database.log.getCustom();
+        // This is necessary because there is no way to tell when the log level is set on a custom logger.
+        // The only way to find out is to ask it.  As each new message comes in from Core,
+        // we find the min level for the console and custom loggers and, if necessary, reset the callback level.
+        setCallbackLevel(console.getLevel(), custom);
+    }
+
+    private static void setCallbackLevel(@NonNull LogLevel consoleLevel, @Nullable Logger customLogger) {
+        LogLevel callbackLevel = consoleLevel;
+
         if (customLogger != null) {
-            customLogger.log(LogLevel.values()[level], domain, message);
-        }
-    }
-
-    private static void recalculateLevels() {
-        final Logger customLogger = Database.log.getCustom();
-
-        LogLevel callbackLevel = Database.log.getConsole().getLevel();
-        if ((customLogger != null) && (customLogger.getLevel().compareTo(callbackLevel) < 0)) {
-            callbackLevel = customLogger.getLevel();
+            final LogLevel customLogLevel = customLogger.getLevel();
+            if (customLogLevel.compareTo(callbackLevel) < 0) { callbackLevel = customLogLevel; }
         }
 
-        if (currentLevel == callbackLevel) { return; }
-        currentLevel = callbackLevel;
-
-        final LogLevel finalLevel = callbackLevel;
+        if (C4Log.callbackLevel == callbackLevel) { return; }
+        C4Log.callbackLevel = callbackLevel;
 
         // This cannot be done synchronously because it will deadlock
         // on the same mutex that is being held for this callback
-        CouchbaseLite.getExecutionService().getMainExecutor()
-            .execute(() -> { setCallbackLevel(finalLevel.getValue()); });
+        final int level = C4Log.callbackLevel.getValue();
+        CouchbaseLite.getExecutionService().getMainExecutor().execute(() -> setCallbackLevel(level));
     }
 
     //-------------------------------------------------------------------------
@@ -83,11 +78,11 @@ public class C4Log {
 
     public static native void setLevel(String domain, int level);
 
-    public static native void log(String domain, int level, String message);
-
     public static native int getBinaryFileLevel();
 
     public static native void setBinaryFileLevel(int level);
+
+    public static native void log(String domain, int level, String message);
 
     public static native void writeToBinaryFile(
         String path,

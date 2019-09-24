@@ -21,7 +21,6 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.internal.fleece.MValue;
-import com.couchbase.lite.internal.support.Log;
 
 
 final class NativeLibraryLoader {
@@ -33,12 +32,7 @@ final class NativeLibraryLoader {
 
     static void load() {
         if (!LOADED.getAndSet(true)) {
-            if (load(LITECORE_JNI_LIBRARY)) {
-                Log.v(
-                    DOMAIN,
-                    "Successfully load native library: 'LiteCoreJNI' and 'sqlite3'");
-            }
-            else { Log.e(DOMAIN, "Cannot load native library"); }
+            load(LITECORE_JNI_LIBRARY);
             initMValue();
         }
     }
