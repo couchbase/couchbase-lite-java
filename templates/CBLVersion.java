@@ -52,6 +52,10 @@ public class CBLVersion {
         return agent;
     }
 
+    public static String gerVersionName() {
+        return "@VERSION@";
+    }
+
     // This is the full library build and environment information.
     public static String getVersionInfo() {
         String info = versionInfo.get();

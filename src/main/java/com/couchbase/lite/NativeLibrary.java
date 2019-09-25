@@ -23,9 +23,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import com.couchbase.lite.internal.core.CBLVersion;
 
 final class NativeLibrary {
     private static final String[] LIBRARIES = { "LiteCore", "LiteCoreJNI" };
@@ -34,17 +35,22 @@ final class NativeLibrary {
 
     private static final String TMP_DIR_NAME = "com.couchbase.lite.java";
 
-    private static final AtomicBoolean LOADED = new AtomicBoolean(false);
+    private static boolean loaded = false;
 
-    static void load() {
-        if (LOADED.getAndSet(true)) { return; }
+    static synchronized void load() {
+        if (loaded) { return; }
 
-        for (String lib : LIBRARIES) { load(lib); }
+        for (String lib : LIBRARIES) {
+            load(lib);
+        }
+
+        loaded = true;
     }
 
     private static void load(String libName) {
         try {
-            final File libFile = extractLibrary(libName);
+            final String extractDir = getExtractDirectory();
+            final File libFile = extractLibrary(libName, extractDir);
             System.load(libFile.getAbsolutePath());
         }
         catch (Throwable th) {
@@ -54,12 +60,11 @@ final class NativeLibrary {
     }
 
     @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
-    private static File extractLibrary(@NonNull String libName) throws IOException, InterruptedException {
+    private static File extractLibrary(@NonNull String libName, String extractDir)
+            throws IOException, InterruptedException {
         final String libResPath = getLibraryResourcePath(libName);
-        final String tmpDir = CouchbaseLite.getTmpDirectory(TMP_DIR_NAME);
-        final String targetDir = new File(tmpDir).getAbsolutePath();
-        final File targetFile = new File(targetDir, System.mapLibraryName(libName));
-
+        final String fileName = System.mapLibraryName(libName);
+        final File targetFile = new File(extractDir, fileName);
         if (targetFile.exists() && !targetFile.delete()) {
             throw new IllegalStateException("Failed to delete the existing native library at " +
                         targetFile.getAbsolutePath());
@@ -109,8 +114,13 @@ final class NativeLibrary {
         path += '/' + archName;
 
         // Platform specific name part of path.
-        path += '/' + System.mapLibraryName(libraryName);
+        final String fileName = System.mapLibraryName(libraryName);
+        path += '/' + fileName;
         return path;
+    }
+
+    private static String getExtractDirectory() {
+        return CouchbaseLite.getTmpDirectory(TMP_DIR_NAME + "/" + CBLVersion.gerVersionName());
     }
 
     NativeLibrary() { }
