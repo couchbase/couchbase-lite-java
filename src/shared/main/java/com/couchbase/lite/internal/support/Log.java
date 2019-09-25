@@ -402,6 +402,8 @@ public final class Log {
                     C4Log.setLevel(C4Constants.LogDomain.BLIP, c4Level);
                     C4Log.setLevel(C4Constants.LogDomain.WEB_SOCKET, c4Level);
                     break;
+                default:
+                    break;
             }
         }
     }
