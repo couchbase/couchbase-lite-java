@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import java.util.EnumSet;
 
@@ -32,7 +33,7 @@ abstract class AbstractConsoleLogger implements Logger {
     private EnumSet<LogDomain> logDomains = LogDomain.ALL_DOMAINS;
     private LogLevel logLevel = LogLevel.WARNING;
 
-    // Singleton instance accessible from Log.getConsole()
+    // Singleton instance accessible from Database.log.getConsole()
     AbstractConsoleLogger() { }
 
     @Override
@@ -80,4 +81,10 @@ abstract class AbstractConsoleLogger implements Logger {
     }
 
     protected abstract void doLog(LogLevel level, @NonNull LogDomain domain, @NonNull String message);
+
+    @VisibleForTesting
+    void reset() {
+        logDomains = LogDomain.ALL_DOMAINS;
+        logLevel = LogLevel.WARNING;
+    }
 }

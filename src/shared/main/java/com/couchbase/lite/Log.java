@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 
 /**
@@ -32,10 +33,11 @@ public final class Log {
     // Singleton instance.
     private final FileLogger fileLogger = new FileLogger();
 
+    // Singleton instance.
     private Logger customLogger;
 
     // The singleton instance is available from Database.log
-    Log() { com.couchbase.lite.internal.support.Log.initLogging(BuildConfig.DEBUG); }
+    Log() { }
 
     /**
      * Gets the logger that writes to the Android system log
@@ -43,7 +45,10 @@ public final class Log {
      * @return The logger that writes to the Android system log
      */
     @NonNull
-    public ConsoleLogger getConsole() { return consoleLogger; }
+    public ConsoleLogger getConsole() {
+        CouchbaseLite.requireInit("Console logging not initialized");
+        return consoleLogger;
+    }
 
     /**
      * Gets the logger that writes to log files
@@ -51,7 +56,10 @@ public final class Log {
      * @return The logger that writes to log files
      */
     @NonNull
-    public FileLogger getFile() { return fileLogger; }
+    public FileLogger getFile() {
+        CouchbaseLite.requireInit("File logging not initialized");
+        return fileLogger;
+    }
 
     /**
      * Gets the custom logger that was registered by the
@@ -68,4 +76,11 @@ public final class Log {
      * @param customLogger A Logger implementation that will receive logging messages
      */
     public void setCustom(Logger customLogger) { this.customLogger = customLogger; }
+
+    // Damn singletons...
+    @VisibleForTesting
+    void reset() {
+        consoleLogger.reset();
+        fileLogger.reset();
+    }
 }

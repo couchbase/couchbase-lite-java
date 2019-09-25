@@ -50,12 +50,10 @@ import com.couchbase.lite.internal.core.C4Document;
 import com.couchbase.lite.internal.core.C4ReplicationFilter;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
-import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.core.SharedKeys;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
-import com.couchbase.lite.internal.support.Run;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
@@ -72,8 +70,8 @@ abstract class AbstractDatabase {
      * Gets the logging controller for the Couchbase Lite library to configure the
      * logging settings and add custom logging.
      * <p>
-     * This is part of the Public API.
      */
+    // Public API.  Do not fix the name.
     @SuppressWarnings("ConstantName")
     @NonNull
     public static final com.couchbase.lite.Log log = new com.couchbase.lite.Log();
@@ -252,25 +250,6 @@ abstract class AbstractDatabase {
      */
     protected AbstractDatabase(@NonNull String name, @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        // Logging:
-        Run.once(
-            "DATABASE_INIT_LOGGING",
-            new Runnable() {
-                @Override
-                public void run() {
-                    // Log CBL version and build information
-                    Log.info(DOMAIN, CBLVersion.getVersionInfo());
-
-                    // Check file logging
-                    if (Database.log.getFile().getConfig() == null) {
-                        Log.w(
-                            DOMAIN,
-                            "Database.log.getFile().getConfig() is null, meaning file logging is disabled.  "
-                                + "Log files required for product support are not being generated.");
-                    }
-                }
-            });
-
         if (StringUtils.isEmpty(name)) { throw new IllegalArgumentException("db name may not be empty"); }
         Preconditions.checkArgNotNull(config, "config");
 

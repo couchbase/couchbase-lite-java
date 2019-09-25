@@ -19,6 +19,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import java.io.File;
 
@@ -42,7 +43,7 @@ public final class FileLogger implements Logger {
 
     @Override
     public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
-        if (level.compareTo(logLevel) < 0) { return; }
+        if ((config == null) || (level.compareTo(logLevel) < 0)) { return; }
         C4Log.log(Log.getC4DomainForLoggingDomain(domain), level.getValue(), message);
     }
 
@@ -60,7 +61,7 @@ public final class FileLogger implements Logger {
      */
     public void setLevel(@NonNull LogLevel level) {
         if (config == null) {
-            throw new IllegalStateException("Cannot set logging level before setting the configuration");
+            throw new IllegalStateException("Cannot set the file logger's level before setting its configuration");
         }
 
         if (logLevel == level) { return; }
@@ -86,19 +87,30 @@ public final class FileLogger implements Logger {
      * @param config The configuration to use
      */
     public void setConfig(@Nullable LogFileConfiguration config) {
-        if (config == null) {
-            setNullConfig();
+        if (this.config != null) { throw new IllegalStateException("Attempt to reset the file logger config"); }
+
+        if (config == null) { return; }
+
+        final String logDirPath = config.getDirectory();
+
+        final File logDir = new File(logDirPath);
+        String errMsg = null;
+        if (!logDir.exists()) {
+            if (!logDir.mkdirs()) { errMsg = "Cannot create log directory: " + logDir.getAbsolutePath(); }
+        }
+        else {
+            if (!logDir.isDirectory()) { errMsg = logDir.getAbsolutePath() + " is not a directory"; }
+            else if (!logDir.canWrite()) { errMsg = logDir.getAbsolutePath() + " is not writable"; }
+        }
+        if (errMsg != null) {
+            Log.w(LogDomain.DATABASE, errMsg);
             return;
         }
 
         this.config = config.readOnlyCopy();
 
-        if (!new File(config.getDirectory()).mkdir()) {
-            Log.w(LogDomain.DATABASE, "Cannot create log file!");
-        }
-
         C4Log.writeToBinaryFile(
-            config.getDirectory(),
+            logDirPath,
             LogLevel.INFO.getValue(),
             config.getMaxRotateCount(),
             config.getMaxSize(),
@@ -106,21 +118,10 @@ public final class FileLogger implements Logger {
             CBLVersion.getVersionInfo());
     }
 
-    private void setNullConfig() {
-        Log.w(
-            LogDomain.DATABASE,
-            "Database.log.getFile().getConfig() is now null and file logging is disabled.  "
-                + "The log files *required* for product support are not being generated.");
-
-        this.config = null;
-
-        C4Log.writeToBinaryFile(
-            null,
-            LogLevel.INFO.getValue(),
-            1,
-            1024 * 500,
-            false,
-            CBLVersion.getVersionInfo());
+    @VisibleForTesting
+    void reset() {
+        logLevel = LogLevel.WARNING;
+        config = null;
     }
 }
 

@@ -40,13 +40,15 @@ public final class C4Log {
 
     // This method is called by reflection.  Don't change its name.
     private static void logCallback(String c4Domain, int c4Level, String message) {
-        final ConsoleLogger console = Database.log.getConsole();
-        final Logger custom = Database.log.getCustom();
-
         final LogLevel level = Log.getLogLevelForC4Level(c4Level);
         final LogDomain domain = Log.getLoggingDomainForC4Domain(c4Domain);
 
+        final com.couchbase.lite.Log logger = Database.log;
+
+        final ConsoleLogger console = logger.getConsole();
         console.log(level, domain, message);
+
+        final Logger custom = logger.getCustom();
         if (custom != null) { custom.log(level, domain, message); }
 
         // This is necessary because there is no way to tell when the log level is set on a custom logger.
@@ -56,19 +58,19 @@ public final class C4Log {
     }
 
     private static void setCallbackLevel(@NonNull LogLevel consoleLevel, @Nullable Logger customLogger) {
-        LogLevel callbackLevel = consoleLevel;
+        LogLevel logLevel = consoleLevel;
 
         if (customLogger != null) {
             final LogLevel customLogLevel = customLogger.getLevel();
-            if (customLogLevel.compareTo(callbackLevel) < 0) { callbackLevel = customLogLevel; }
+            if (customLogLevel.compareTo(logLevel) < 0) { logLevel = customLogLevel; }
         }
 
-        if (C4Log.callbackLevel == callbackLevel) { return; }
-        C4Log.callbackLevel = callbackLevel;
+        if (C4Log.callbackLevel == logLevel) { return; }
+        C4Log.callbackLevel = logLevel;
 
         // This cannot be done synchronously because it will deadlock
         // on the same mutex that is being held for this callback
-        final int level = C4Log.callbackLevel.getValue();
+        final int level = logLevel.getValue();
         CouchbaseLite.getExecutionService().getMainExecutor().execute(() -> setCallbackLevel(level));
     }
 
@@ -92,5 +94,5 @@ public final class C4Log {
         boolean usePlaintext,
         String header);
 
-    public static native void setCallbackLevel(int level);
+    private static native void setCallbackLevel(int level);
 }

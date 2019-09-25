@@ -39,9 +39,7 @@ import com.couchbase.lite.internal.core.C4Log;
  * Couchbase Lite Internal Log Utility.
  */
 public final class Log {
-    /**
-     * Utility class constructor.
-     */
+    // Utility class.
     private Log() { }
 
     public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
@@ -409,10 +407,12 @@ public final class Log {
     }
 
     private static void sendToLoggers(LogLevel level, LogDomain domain, String msg) {
-        final FileLogger fileLogger = Database.log.getFile();
+        final com.couchbase.lite.Log logger = Database.log;
+
+        final FileLogger fileLogger = logger.getFile();
         boolean fileSucceeded = false;
 
-        final ConsoleLogger consoleLogger = Database.log.getConsole();
+        final ConsoleLogger consoleLogger = logger.getConsole();
         boolean consoleSucceeded = false;
         try {
             // File logging:
@@ -424,7 +424,7 @@ public final class Log {
             consoleSucceeded = true;
 
             // Custom logging:
-            final Logger custom = Database.log.getCustom();
+            final Logger custom = logger.getCustom();
             if (custom != null) { custom.log(level, domain, msg); }
         }
         catch (Exception e) {

@@ -21,13 +21,25 @@ import android.support.annotation.NonNull;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.JavaExecutionService;
+import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.fleece.MValue;
+import com.couchbase.lite.internal.support.Log;
+
 
 public final class CouchbaseLite {
+    // Utility class
+    private CouchbaseLite() {}
+
+    private static final String LITECORE_JNI_LIBRARY = "LiteCoreJNI";
+    private static final String MVALUE_DELEGATE_CLASS = "com.couchbase.lite.MValueDelegate";
+
+    private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
+
     private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
 
     /**
@@ -35,8 +47,16 @@ public final class CouchbaseLite {
      * using CouchbaseLite.
      */
     public static void init() {
+        if (INITIALIZED.getAndSet(true)) { return; }
+
         NativeLibrary.load();
+
         MValue.registerDelegate(new MValueDelegate());
+
+        // !!!TODO: load error messages
+
+        Log.initLogging(true);
+        Log.i(LogDomain.DATABASE, "Couchbase Lite initialized: " + CBLVersion.getVersionInfo());
     }
 
     /**
@@ -49,6 +69,12 @@ public final class CouchbaseLite {
             executionService = EXECUTION_SERVICE.get();
         }
         return executionService;
+    }
+
+    static void requireInit(String message) {
+        if (!INITIALIZED.get()) {
+            throw new IllegalStateException(message + ".  Did you forget to call CouchbaseLite.init()?");
+        }
     }
 
     static String getDbDirectoryPath() {
