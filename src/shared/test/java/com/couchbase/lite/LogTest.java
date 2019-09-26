@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.jetbrains.annotations.NotNull;
@@ -31,22 +33,35 @@ public class LogTest extends BaseTest {
     }
 
     static class LogTestLogger implements Logger {
-        private final List<String> lines = new ArrayList<>();
+        private final Map<LogLevel, Integer> lineCounts = new HashMap<>();
+        private final StringBuilder content = new StringBuilder();
         private LogLevel level;
 
         @Override
         public void log(@NotNull LogLevel level, @NotNull LogDomain domain, @NotNull String message) {
             if (level.compareTo(this.level) < 0) { return; }
-            lines.add(message);
+            lineCounts.put(level, getLineCount(level) + 1);
+            content.append(message);
         }
 
         @NotNull
         @Override
         public LogLevel getLevel() { return level; }
 
-        List<String> getLines() { return lines; }
-
         void setLevel(LogLevel level) { this.level = level; }
+
+        int getLineCount() {
+            int total = 0;
+            for (LogLevel level : LogLevel.values()) { total += getLineCount(level); }
+            return total;
+        }
+
+        int getLineCount(LogLevel level) {
+            Integer levelCount = lineCounts.get(level);
+            return (levelCount == null) ? 0 : levelCount;
+        }
+
+        String getContent() { return content.toString(); }
     }
 
 
@@ -72,15 +87,19 @@ public class LogTest extends BaseTest {
         LogTestLogger customLogger = new LogTestLogger();
         Database.log.setCustom(customLogger);
 
-        for (int i = 5; i >= 1; i--) {
-            customLogger.getLines().clear();
-            customLogger.setLevel(LogLevel.values()[i]);
+        for (LogLevel level : LogLevel.values()) {
+            customLogger.setLevel(level);
+            Log.d(LogDomain.DATABASE, "TEST DEBUG");
             Log.v(LogDomain.DATABASE, "TEST VERBOSE");
             Log.i(LogDomain.DATABASE, "TEST INFO");
             Log.w(LogDomain.DATABASE, "TEST WARNING");
             Log.e(LogDomain.DATABASE, "TEST ERROR");
-            assertEquals(5 - i, customLogger.getLines().size());
         }
+
+        assertEquals(2, customLogger.getLineCount(LogLevel.VERBOSE));
+        assertEquals(3, customLogger.getLineCount(LogLevel.INFO));
+        assertEquals(4, customLogger.getLineCount(LogLevel.WARNING));
+        assertEquals(5, customLogger.getLineCount(LogLevel.ERROR));
     }
 
     @Test
@@ -89,18 +108,20 @@ public class LogTest extends BaseTest {
         Database.log.setCustom(customLogger);
 
         customLogger.setLevel(LogLevel.NONE);
+        Log.d(LogDomain.DATABASE, "TEST DEBUG");
         Log.v(LogDomain.DATABASE, "TEST VERBOSE");
         Log.i(LogDomain.DATABASE, "TEST INFO");
         Log.w(LogDomain.DATABASE, "TEST WARNING");
         Log.e(LogDomain.DATABASE, "TEST ERROR");
-        assertEquals(0, customLogger.getLines().size());
+        assertEquals(0, customLogger.getLineCount());
 
         customLogger.setLevel(LogLevel.VERBOSE);
+        Log.d(LogDomain.DATABASE, "TEST DEBUG");
         Log.v(LogDomain.DATABASE, "TEST VERBOSE");
         Log.i(LogDomain.DATABASE, "TEST INFO");
         Log.w(LogDomain.DATABASE, "TEST WARNING");
         Log.e(LogDomain.DATABASE, "TEST ERROR");
-        assertEquals(4, customLogger.getLines().size());
+        assertEquals(4, customLogger.getLineCount());
     }
 
     @Test
@@ -110,12 +131,12 @@ public class LogTest extends BaseTest {
             .setMaxRotateCount(0);
 
         testWithConfiguration(
-            LogLevel.INFO,
+            LogLevel.DEBUG,
             config,
             () -> {
                 for (LogLevel level : LogLevel.values()) {
-                    if (level == LogLevel.DEBUG) { continue; }
                     Database.log.getFile().setLevel(level);
+                    Log.d(LogDomain.DATABASE, "TEST DEBUG");
                     Log.v(LogDomain.DATABASE, "TEST VERBOSE");
                     Log.i(LogDomain.DATABASE, "TEST INFO");
                     Log.w(LogDomain.DATABASE, "TEST WARNING");
@@ -128,11 +149,11 @@ public class LogTest extends BaseTest {
                     while ((fin.readLine()) != null) { lineCount++; }
 
                     String logPath = log.getAbsolutePath();
-                    // One meta line per log, so the actual logging lines is X - 1
-                    if (logPath.contains("verbose")) { assertEquals(2, lineCount); }
-                    else if (logPath.contains("info")) { assertEquals(3, lineCount); }
-                    else if (logPath.contains("warning")) { assertEquals(4, lineCount); }
-                    else if (logPath.contains("error")) { assertEquals(5, lineCount); }
+                    // One meta line per log, so the actual logging lines is X + 1
+                    if (logPath.contains("verbose")) { assertEquals(3, lineCount); }
+                    else if (logPath.contains("info")) { assertEquals(4, lineCount); }
+                    else if (logPath.contains("warning")) { assertEquals(5, lineCount); }
+                    else if (logPath.contains("error")) { assertEquals(6, lineCount); }
                 }
             });
     }
@@ -190,10 +211,10 @@ public class LogTest extends BaseTest {
             LogLevel.DEBUG,
             config,
             () -> {
-                Log.i(LogDomain.DATABASE, "TEST MESSAGE");
+                Log.e(LogDomain.DATABASE, "TEST MESSAGE");
 
                 File[] files = getLogFiles();
-                assertTrue(files.length > 0);
+                assertTrue(files.length >= 4);
 
                 String filenameRegex = "cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog";
                 for (File file : files) { assertTrue(file.getName().matches(filenameRegex)); }
@@ -289,11 +310,11 @@ public class LogTest extends BaseTest {
             LogLevel.DEBUG,
             config,
             () -> {
+                Log.d(LogDomain.DATABASE, message, error);
                 Log.v(LogDomain.DATABASE, message, error);
                 Log.i(LogDomain.DATABASE, message, error);
                 Log.w(LogDomain.DATABASE, message, error);
                 Log.e(LogDomain.DATABASE, message, error);
-                Log.d(LogDomain.DATABASE, message, error);
                 for (File log : getLogFiles()) { assertTrue(getLogContents(log).contains(uuid)); }
             });
     }
@@ -311,11 +332,11 @@ public class LogTest extends BaseTest {
             LogLevel.DEBUG,
             config,
             () -> {
+                Log.d(LogDomain.DATABASE, message, error, uuid2);
                 Log.v(LogDomain.DATABASE, message, error, uuid2);
                 Log.i(LogDomain.DATABASE, message, error, uuid2);
                 Log.w(LogDomain.DATABASE, message, error, uuid2);
                 Log.e(LogDomain.DATABASE, message, error, uuid2);
-                Log.d(LogDomain.DATABASE, message, error, uuid2);
 
                 for (File log : getLogFiles()) {
                     String contents = getLogContents(log);
@@ -379,13 +400,12 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testNonASCII() throws CouchbaseLiteException {
+        String hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
+
         LogTestLogger customLogger = new LogTestLogger();
         customLogger.setLevel(LogLevel.VERBOSE);
         Database.log.setCustom(customLogger);
-        Database.log.getConsole().setDomains(LogDomain.ALL_DOMAINS);
-        Database.log.getConsole().setLevel(LogLevel.VERBOSE);
 
-        String hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
         MutableDocument doc = new MutableDocument();
         doc.setString("hebrew", hebrew);
         save(doc);
@@ -394,15 +414,7 @@ public class LogTest extends BaseTest {
         ResultSet rs = query.execute();
         assertEquals(rs.allResults().size(), 1);
 
-        String expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
-        boolean found = false;
-        for (String line : customLogger.getLines()) {
-            if (line.contains(expectedHebrew)) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found);
+        assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Task task) throws Exception {
@@ -425,11 +437,11 @@ public class LogTest extends BaseTest {
     }
 
     private void writeAllLogs(String message) {
+        Log.d(LogDomain.DATABASE, message);
         Log.v(LogDomain.DATABASE, message);
         Log.i(LogDomain.DATABASE, message);
         Log.w(LogDomain.DATABASE, message);
         Log.e(LogDomain.DATABASE, message);
-        Log.d(LogDomain.DATABASE, message);
     }
 
     @NotNull
