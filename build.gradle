@@ -249,12 +249,15 @@ model {
                     cppCompiler.args '-I', "${JAVA_HOME}/include"
                     cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
                     cppCompiler.args '-std=c++11'
-                    linker.args '-stdlib=libc++'
+                    cppCompiler.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.linux) {
+                    if (project.hasProperty("cxxIncludeDir")) {
+                        cppCompiler.args '-isystem', project.property('cxxIncludeDir')
+                    }
                     cppCompiler.args '-I', "${JAVA_HOME}/include"
                     cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
                     cppCompiler.args '-std=c++11'
-                    linker.args '-stdlib=libc++'
+                    cppCompiler.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
