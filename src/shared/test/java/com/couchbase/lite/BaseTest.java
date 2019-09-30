@@ -86,7 +86,7 @@ public class BaseTest extends PlatformBaseTest {
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
-        setDir(new File(getDatabaseDirectory(), "CouchbaseLiteTest"));
+        setDir(new File(getDatabaseDirectory(), "CouchbaseLiteTest-" + System.currentTimeMillis()));
 
         // database exist, delete it
         deleteDatabase(TEST_DB);

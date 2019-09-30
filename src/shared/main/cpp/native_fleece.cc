@@ -178,6 +178,8 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_begin(JNIEnv *env, jclass
  */
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLDictIterator_getKeyString(JNIEnv *env, jclass clazz, jlong jitr) {
+    // This is necessary because, when the iterator is exhausted, calling GetKeyString
+    // will fail with a pointer exception.  GetValue returns null instead.
     if (!FLDictIterator_GetValue((FLDictIterator *) jitr))
         return NULL;
     FLString s = FLDictIterator_GetKeyString((FLDictIterator *) jitr);
