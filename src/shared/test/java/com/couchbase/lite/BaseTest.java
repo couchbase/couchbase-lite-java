@@ -107,7 +107,7 @@ public class BaseTest extends PlatformBaseTest {
             throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
         finally {
-            FileUtils.cleanDirectory(getDir());
+            // FileUtils.cleanDirectory(getDir());
 
             executor.stop(60, TimeUnit.SECONDS);
             executor = null;

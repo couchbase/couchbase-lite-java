@@ -7,9 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -71,7 +69,7 @@ public class LogTest extends BaseTest {
     public void setUp() throws Exception {
         super.setUp();
 
-        tempDirPath = createTmpDirectory("logtest");
+        tempDirPath = getTempDirectory("logtest");
 
         Database.log.reset();
     }
@@ -146,7 +144,11 @@ public class LogTest extends BaseTest {
                 for (File log : getLogFiles()) {
                     BufferedReader fin = new BufferedReader(new FileReader(log));
                     int lineCount = 0;
-                    while ((fin.readLine()) != null) { lineCount++; }
+                    String content;
+                    while ((content = fin.readLine()) != null) {
+                        lineCount++;
+                        android.util.Log.d("###W/config", "@" + log + ": " + content);
+                    }
 
                     String logPath = log.getAbsolutePath();
                     // One meta line per log, so the actual logging lines is X + 1
@@ -199,7 +201,6 @@ public class LogTest extends BaseTest {
                 assertEquals(1, files.length);
 
                 assertTrue(getLogContents(getMostRecent(files)).contains(uuidString));
-
             });
     }
 
@@ -273,7 +274,11 @@ public class LogTest extends BaseTest {
                     = getTempDir().listFiles((ign, name) -> !name.toLowerCase().startsWith("cbl_debug_"));
                 assertNotNull(filesExceptDebug);
 
-                for (File log : filesExceptDebug) { assertTrue(getLogContents(log).contains(uuidString)); }
+                for (File log : filesExceptDebug) {
+                    String content = getLogContents(log);
+                    android.util.Log.d("###W/ReEnable", "@" + log + ": " + content);
+                    assertTrue(content.contains(uuidString));
+                }
             });
     }
 
@@ -315,7 +320,11 @@ public class LogTest extends BaseTest {
                 Log.i(LogDomain.DATABASE, message, error);
                 Log.w(LogDomain.DATABASE, message, error);
                 Log.e(LogDomain.DATABASE, message, error);
-                for (File log : getLogFiles()) { assertTrue(getLogContents(log).contains(uuid)); }
+                for (File log : getLogFiles()) {
+                    String content = getLogContents(log);
+                    android.util.Log.d("###WriteW/Err", "@" + log + ": " + content);
+                    assertTrue(content.contains(uuid));
+                }
             });
     }
 
@@ -339,9 +348,10 @@ public class LogTest extends BaseTest {
                 Log.e(LogDomain.DATABASE, message, error, uuid2);
 
                 for (File log : getLogFiles()) {
-                    String contents = getLogContents(log);
-                    assertTrue(contents.contains(uuid1));
-                    assertTrue(contents.contains(uuid2));
+                    String content = getLogContents(log);
+                    android.util.Log.d("###WriteW/Err&Args", "@" + log + ": " + content);
+                    assertTrue(content.contains(uuid1));
+                    assertTrue(content.contains(uuid2));
                 }
             });
     }
@@ -368,7 +378,7 @@ public class LogTest extends BaseTest {
         assertEquals(config.usesPlaintext(), usePlainText);
         assertEquals(config.getDirectory(), tempDirPath);
 
-        final String tempDir2 = createTmpDirectory("logtest2");
+        final String tempDir2 = getTempDirectory("logtest2");
         LogFileConfiguration newConfig = new LogFileConfiguration(tempDir2, config);
         assertEquals(newConfig.getMaxRotateCount(), rotateCount);
         assertEquals(newConfig.getMaxSize(), maxSize);
@@ -414,7 +424,8 @@ public class LogTest extends BaseTest {
         ResultSet rs = query.execute();
         assertEquals(rs.allResults().size(), 1);
 
-        assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
+        String content = customLogger.getContent();
+        assertTrue(content.contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Task task) throws Exception {
@@ -470,10 +481,6 @@ public class LogTest extends BaseTest {
 
     @NotNull
     private File getTempDir() { return new File(tempDirPath); }
-
-    private String createTmpDirectory(String nameRoot) {
-        return getTempDirectory(nameRoot + "-" + System.currentTimeMillis());
-    }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void recursiveDelete(File root) {
