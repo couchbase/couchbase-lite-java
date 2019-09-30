@@ -54,14 +54,12 @@ public class FLEncoder {
     }
 
     public void free() {
-        if (isMemoryManaged) {
-            throw new IllegalStateException("FLEncoder was marked as native memory managed.");
-        }
+        if (isMemoryManaged) { throw new IllegalStateException("FLEncoder was marked as native memory managed."); }
 
-        if (handle != 0) {
-            free(handle);
-            handle = 0L;
-        }
+        final long hdl = handle;
+        handle = 0;
+
+        if (hdl != 0) { free(handle); }
     }
 
     public boolean writeString(String value) { return writeString(handle, value); }
@@ -84,49 +82,49 @@ public class FLEncoder {
         if (value == null) { return writeNull(handle); }
 
         // boolean
-        else if (value instanceof Boolean) { return writeBool(handle, (Boolean) value); }
+        if (value instanceof Boolean) { return writeBool(handle, (Boolean) value); }
 
         // Number
-        else if (value instanceof Number) {
+        if (value instanceof Number) {
             // Integer
             if (value instanceof Integer) { return writeInt(handle, ((Integer) value).longValue()); }
 
             // Long
-            else if (value instanceof Long) { return writeInt(handle, (Long) value); }
+            if (value instanceof Long) { return writeInt(handle, (Long) value); }
 
             // Short
-            else if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
+            if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
 
             // Double
-            else if (value instanceof Double) { return writeDouble(handle,  (Double) value); }
+            if (value instanceof Double) { return writeDouble(handle,  (Double) value); }
 
             // Float
-            else { return writeFloat(handle, (Float) value); }
+            return writeFloat(handle, (Float) value);
         }
 
         // String
-        else if (value instanceof String) { return writeString(handle, (String) value); }
+        if (value instanceof String) { return writeString(handle, (String) value); }
 
         // byte[]
-        else if (value instanceof byte[]) { return writeData(handle, (byte[]) value); }
+        if (value instanceof byte[]) { return writeData(handle, (byte[]) value); }
 
         // List
-        else if (value instanceof List) { return write((List) value); }
+        if (value instanceof List) { return write((List) value); }
 
         // Map
-        else if (value instanceof Map) { return write((Map<String, Object>) value); }
+        if (value instanceof Map) { return write((Map<String, Object>) value); }
 
         // FLValue
-        else if (value instanceof FLValue) { return writeValue(handle, ((FLValue) value).getHandle()); }
+        if (value instanceof FLValue) { return writeValue(handle, ((FLValue) value).getHandle()); }
 
         // FLDict
-        else if (value instanceof FLDict) { return writeValue(handle, ((FLDict) value).getHandle()); }
+        if (value instanceof FLDict) { return writeValue(handle, ((FLDict) value).getHandle()); }
 
         // FLArray
-        else if (value instanceof FLArray) { return writeValue(handle, ((FLArray) value).getHandle()); }
+        if (value instanceof FLArray) { return writeValue(handle, ((FLArray) value).getHandle()); }
 
         // FLEncodable
-        else if (value instanceof FLEncodable) {
+        if (value instanceof FLEncodable) {
             ((FLEncodable) value).encodeTo(this);
             return true;
         }

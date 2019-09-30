@@ -89,7 +89,7 @@ public class MDict extends MCollection implements Iterable<String> {
                             enc.writeKey(key);
                             enc.writeValue(itr.getValue());
                         }
-                        if (!itr.next()) { break; }
+                        itr.next();
                     }
                 }
                 finally {
@@ -115,7 +115,7 @@ public class MDict extends MCollection implements Iterable<String> {
                 String key;
                 while ((key = itr.getKeyString()) != null) {
                     valueMap.put(key, MValue.EMPTY);
-                    if (!itr.next()) { break; }
+                    itr.next();
                 }
             }
             finally {
@@ -143,12 +143,12 @@ public class MDict extends MCollection implements Iterable<String> {
             final FLDictIterator itr = new FLDictIterator();
             try {
                 itr.begin(flDict);
-                    String key;
-                    while ((key = itr.getKeyString()) != null) {
-                        if (!valueMap.containsKey(key)) { keys.add(key); }
-                        if (!itr.next()) { break; }
-                    }
+                String key;
+                while ((key = itr.getKeyString()) != null) {
+                    if (!valueMap.containsKey(key)) { keys.add(key); }
+                    itr.next();
                 }
+            }
             finally {
                 itr.free();
             }

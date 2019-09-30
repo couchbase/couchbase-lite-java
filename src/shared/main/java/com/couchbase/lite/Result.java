@@ -242,9 +242,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Override
     public List<Object> toList() {
         final List<Object> array = new ArrayList<>();
-        for (int i = 0; i < count(); i++) {
-            array.add(values.get(i).asObject());
-        }
+        for (int i = 0; i < count(); i++) { array.add(values.get(i).asObject()); }
         return array;
     }
 

@@ -18,103 +18,54 @@
 package com.couchbase.lite.internal.fleece;
 
 
+import android.support.annotation.Nullable;
+
+
 public class FLDictIterator {
-    /**
-     * Create FLDictIterator instance
-     *
-     * @return long (FLDictIterator *)
-     */
-    static native long init();
-
-    /**
-     * Initializes a FLDictIterator struct to iterate over a dictionary.
-     *
-     * @param dict (FLDict)
-     * @param itr  (FLDictIterator *)
-     */
-    static native void begin(long dict, long itr);
-
-    /**
-     * Returns the key's string value.
-     *
-     * @param itr (FLDictIterator *)
-     * @return key string
-     */
-    static native String getKeyString(long itr);
-
-    /**
-     * Returns the current value being iterated over.
-     *
-     * @param itr (FLDictIterator *)
-     * @return long (FLValue)
-     */
-    static native long getValue(long itr);
-
-    /**
-     * Advances the iterator to the next value, or returns false if at the end.
-     *
-     * @param itr (FLDictIterator *)
-     */
-    static native boolean next(long itr);
-
-    /**
-     * Returns the number of items remaining to be iterated, including the current one.
-     *
-     * @param itr (FLDictIterator *)
-     */
-    static native long getCount(long itr);
-
-    /**
-     * Free FLDictIterator instance
-     *
-     * @param itr (FLDictIterator *)
-     */
-    static native void free(long itr);
-
     private long handle; // hold pointer to FLDictIterator
 
     //-------------------------------------------------------------------------
-    // protected methods
+    // Constructor
     //-------------------------------------------------------------------------
+
+    public FLDictIterator() { handle = init(); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public FLDictIterator() {
-        handle = init();
-    }
 
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
+    public long getCount() { return getCount(handle); }
 
-    public void begin(FLDict dict) {
-        begin(dict.getHandle(), handle);
-    }
+    public void begin(FLDict dict) { begin(dict.getHandle(), handle); }
 
-    public String getKeyString() {
-        return getKeyString(handle);
-    }
+    /**
+     * The annoying check on the value is necessary because, when the iterator is exhausted,
+     * the handle points beyond the end of the dict and attempting to get the key will
+     * cause a pointer exception.
+     *
+     * @return the key
+     */
+    @Nullable
+    public String getKeyString() { return getKeyString(handle); }
 
+    @Nullable
     public FLValue getValue() {
         final long hValue = getValue(handle);
-        return hValue != 0L ? new FLValue(hValue) : null;
+        return (hValue == 0L) ? null : new FLValue(hValue);
     }
 
-    public boolean next() {
-        return next(handle);
-    }
-
-    public long getCount() {
-        return getCount(handle);
-    }
+    public boolean next() { return next(handle); }
 
     public void free() {
-        if (handle != 0L) {
-            free(handle);
-            handle = 0L;
-        }
+        final long hdl = handle;
+        handle = 0;
+
+        if (hdl != 0L) { free(hdl); }
     }
+
+    //-------------------------------------------------------------------------
+    // protected methods
+    //-------------------------------------------------------------------------
 
     @SuppressWarnings("NoFinalizer")
     @Override
@@ -122,4 +73,60 @@ public class FLDictIterator {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * Create FLDictIterator instance
+     *
+     * @return long (FLDictIterator *)
+     */
+    private static native long init();
+
+    /**
+     * Returns the number of items remaining to be iterated, including the current one.
+     *
+     * @param itr (FLDictIterator *)
+     */
+    private static native long getCount(long itr);
+
+    /**
+     * Initializes a FLDictIterator struct to iterate over a dictionary.
+     *
+     * @param dict (FLDict)
+     * @param itr  (FLDictIterator *)
+     */
+    private static native void begin(long dict, long itr);
+
+    /**
+     * Returns the key's string value.
+     *
+     * @param itr (FLDictIterator *)
+     * @return key string
+     */
+    private static native String getKeyString(long itr);
+
+    /**
+     * Returns the current value being iterated over.
+     *
+     * @param itr (FLDictIterator *)
+     * @return long (FLValue)
+     */
+    private static native long getValue(long itr);
+
+    /**
+     * Advances the iterator to the next value, or returns false if at the end.
+     *
+     * @param itr (FLDictIterator *)
+     */
+    private static native boolean next(long itr);
+
+    /**
+     * Free FLDictIterator instance
+     *
+     * @param itr (FLDictIterator *)
+     */
+    private static native void free(long itr);
 }

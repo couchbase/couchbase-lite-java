@@ -36,6 +36,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+
 public class ResultTest extends BaseTest {
     final static String kDocumentTestDate = "2017-01-01T00:00:00.000Z";
     final static String kDocumentTestBlob = "i'm blob";
@@ -57,30 +58,28 @@ public class ResultTest extends BaseTest {
     private static Query generateQuery(Database db, String docID) {
         Expression exDocID = Expression.string(docID);
         return QueryBuilder.select(
-                SR_NULL,
-                SR_TRUE,
-                SR_FALSE,
-                SR_STRING,
-                SR_ZERO,
-                SR_ONE,
-                SR_MINUS_ONE,
-                SR_ONE_DOT_ONE,
-                SR_DATE,
-                SR_DICT,
-                SR_ARRAY,
-                SR_BLOB,
-                SR_NO_KEY)
-                .from(DataSource.database(db))
-                .where(Meta.id.equalTo(exDocID));
+            SR_NULL,
+            SR_TRUE,
+            SR_FALSE,
+            SR_STRING,
+            SR_ZERO,
+            SR_ONE,
+            SR_MINUS_ONE,
+            SR_ONE_DOT_ONE,
+            SR_DATE,
+            SR_DICT,
+            SR_ARRAY,
+            SR_BLOB,
+            SR_NO_KEY)
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(exDocID));
     }
 
     private String prepareData(int i) throws CouchbaseLiteException {
         String docID = String.format(Locale.ENGLISH, "doc%d", i);
         MutableDocument mDoc = new MutableDocument(docID);
-        if (i % 2 == 1)
-            DocumentTest.populateData(mDoc);
-        else
-            DocumentTest.populateDataByTypedSetter(mDoc);
+        if (i % 2 == 1) { DocumentTest.populateData(mDoc); }
+        else { DocumentTest.populateDataByTypedSetter(mDoc); }
         save(mDoc);
         return docID;
     }
@@ -112,7 +111,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getValue(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getValue("not_in_query_select"));
             });
@@ -147,12 +147,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getValue(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
                 }
                 try {
                     r.getValue(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
                 }
             });
             assertEquals(1, rows);
@@ -185,7 +187,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getString(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getString("not_in_query_select"));
             });
@@ -219,12 +222,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getString(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getString(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -257,7 +262,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getNumber(null);
                     fail();
-                } catch (IllegalArgumentException e) {
+                }
+                catch (IllegalArgumentException e) {
                 }
 
                 assertNull(r.getNumber("not_in_query_select"));
@@ -292,12 +298,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getNumber(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getNumber(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -330,7 +338,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getInt(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertEquals(0, r.getInt("not_in_query_select"));
             });
@@ -364,12 +373,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getInt(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getInt(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -402,7 +413,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getLong(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertEquals(0, r.getLong("not_in_query_select"));
             });
@@ -436,12 +448,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getLong(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getLong(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -473,7 +487,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getFloat(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertEquals(0.0f, r.getFloat("not_in_query_select"), 0.0f);
             });
@@ -507,12 +522,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getFloat(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getFloat(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -544,7 +561,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDouble(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertEquals(0.0, r.getDouble("not_in_query_select"), 0.0);
             });
@@ -578,12 +596,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDouble(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getDouble(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -615,7 +635,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getBoolean(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertEquals(false, r.getBoolean("not_in_query_select"));
             });
@@ -649,12 +670,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getBoolean(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getBoolean(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -686,7 +709,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDate(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getDate("not_in_query_select"));
             });
@@ -720,12 +744,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDate(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getDate(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -752,14 +778,16 @@ public class ResultTest extends BaseTest {
                 assertNull(r.getBlob("dict"));
                 assertNull(r.getBlob("array"));
                 assertEquals(kDocumentTestBlob, new String(r.getBlob("blob").getContent()));
-                assertTrue(Arrays.equals(kDocumentTestBlob.getBytes(),
-                        r.getBlob("blob").getContent()));
+                assertTrue(Arrays.equals(
+                    kDocumentTestBlob.getBytes(),
+                    r.getBlob("blob").getContent()));
                 assertNull(r.getBlob("non_existing_key"));
 
                 try {
                     r.getBlob(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getBlob("not_in_query_select"));
             });
@@ -788,19 +816,22 @@ public class ResultTest extends BaseTest {
                 assertNull(r.getBlob(9));
                 assertNull(r.getBlob(10));
                 assertEquals(kDocumentTestBlob, new String(r.getBlob(11).getContent()));
-                assertTrue(Arrays.equals(kDocumentTestBlob.getBytes(),
-                        r.getBlob(11).getContent()));
+                assertTrue(Arrays.equals(
+                    kDocumentTestBlob.getBytes(),
+                    r.getBlob(11).getContent()));
                 assertNull(r.getBlob(12));
 
                 try {
                     r.getBlob(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getBlob(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -837,7 +868,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDictionary(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getDictionary("not_in_query_select"));
             });
@@ -876,12 +908,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getDictionary(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
 
                 try {
                     r.getDictionary(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) { }
+                }
+                catch (ArrayIndexOutOfBoundsException e) { }
             });
             assertEquals(1, rows);
         }
@@ -915,7 +949,8 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getArray(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertNull(r.getArray("not_in_query_select"));
             });
@@ -951,12 +986,14 @@ public class ResultTest extends BaseTest {
                 try {
                     r.getArray(-1);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
                 }
                 try {
                     r.getArray(100);
                     fail();
-                } catch (ArrayIndexOutOfBoundsException e) {
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
                 }
             });
             assertEquals(1, rows);
@@ -974,7 +1011,20 @@ public class ResultTest extends BaseTest {
                 assertNotNull(keys);
                 assertEquals(13, keys.size());
                 Collections.sort(keys);
-                List<String> expected = Arrays.asList("null", "true", "false", "string", "zero", "one", "minus_one", "one_dot_one", "date", "dict", "array", "blob", "non_existing_key");
+                List<String> expected = Arrays.asList(
+                    "null",
+                    "true",
+                    "false",
+                    "string",
+                    "zero",
+                    "one",
+                    "minus_one",
+                    "one_dot_one",
+                    "date",
+                    "dict",
+                    "array",
+                    "blob",
+                    "non_existing_key");
                 Collections.sort(expected);
                 assertEquals(expected, keys);
 
@@ -1001,9 +1051,9 @@ public class ResultTest extends BaseTest {
             int rows = verifyQuery(query, false, (n, r) -> {
                 // exists -> true
                 List<String> expected = Arrays.asList(
-                        "null", "true", "false", "string", "zero", "one",
-                        "minus_one", "one_dot_one", "date", "dict", "array",
-                        "blob");
+                    "null", "true", "false", "string", "zero", "one",
+                    "minus_one", "one_dot_one", "date", "dict", "array",
+                    "blob");
                 for (String key : expected) {
                     assertTrue(r.contains(key));
                 }
@@ -1014,11 +1064,31 @@ public class ResultTest extends BaseTest {
                 try {
                     r.contains(null);
                     fail();
-                } catch (IllegalArgumentException e) { }
+                }
+                catch (IllegalArgumentException e) { }
 
                 assertFalse(r.contains("not_in_query_select"));
             });
             assertEquals(1, rows);
         }
+    }
+
+    // Contributed by Bryan Welter:
+    // https://github.com/couchbase/couchbase-lite-android-ce/issues/27
+    @Test
+    public void testResultToMap() throws Exception {
+        String doc1 = "doc1";
+        String key1 = "emptyDict";
+
+        MutableDocument mDoc = new MutableDocument(doc1);
+        mDoc.setDictionary(key1, new MutableDictionary());
+        save(mDoc);
+
+        final Query query = QueryBuilder.select(SelectResult.property(key1))
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(Expression.string(doc1)));
+
+        ResultSet results = query.execute();
+        for (Result result : results.allResults()) { result.toMap(); }
     }
 }
