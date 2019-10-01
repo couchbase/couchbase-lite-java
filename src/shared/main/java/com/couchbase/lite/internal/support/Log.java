@@ -43,6 +43,7 @@ public final class Log {
     private Log() { }
 
     public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
+
     static {
         final Map<String, LogDomain> m = new HashMap<>();
         m.put(C4Constants.LogDomain.DATABASE, LogDomain.DATABASE);
@@ -55,6 +56,7 @@ public final class Log {
     }
 
     public static final Map<LogDomain, String> LOGGING_DOMAINS_TO_C4;
+
     static {
         final Map<LogDomain, String> m = new HashMap<>();
         m.put(LogDomain.DATABASE, C4Constants.LogDomain.DATABASE);
@@ -65,6 +67,7 @@ public final class Log {
     }
 
     public static final Map<Integer, LogLevel> LOG_LEVEL_FROM_C4;
+
     static {
         final Map<Integer, LogLevel> m = new HashMap<>();
         for (LogLevel level : LogLevel.values()) { m.put(level.getValue(), level); }
@@ -411,27 +414,27 @@ public final class Log {
     private static void sendToLoggers(LogLevel level, LogDomain domain, String msg) {
         final com.couchbase.lite.Log logger = Database.log;
 
-        final FileLogger fileLogger = logger.getFile();
-        boolean fileSucceeded = false;
-
+        // Console logging:
         final ConsoleLogger consoleLogger = logger.getConsole();
-        boolean consoleSucceeded = false;
+        Exception consoleErr = null;
+        try { consoleLogger.log(level, domain, msg); }
+        catch (Exception e) { consoleErr = e; }
+
+        // File logging:
+        final FileLogger fileLogger = logger.getFile();
         try {
-            // File logging:
             fileLogger.log(level, domain, msg);
-            fileSucceeded = true;
-
-            // Console logging:
-            consoleLogger.log(level, domain, msg);
-            consoleSucceeded = true;
-
-            // Custom logging:
-            final Logger custom = logger.getCustom();
-            if (custom != null) { custom.log(level, domain, msg); }
+            if (consoleErr != null) { consoleLogger.log(LogLevel.ERROR, LogDomain.DATABASE, consoleErr.toString()); }
         }
         catch (Exception e) {
-            if (fileSucceeded) { fileLogger.log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
-            if (consoleSucceeded) { consoleLogger.log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
+            if (consoleErr == null) { fileLogger.log(LogLevel.ERROR, LogDomain.DATABASE, e.toString()); }
+        }
+
+        // Custom logging:
+        final Logger custom = logger.getCustom();
+        if (custom != null) {
+            try { custom.log(level, domain, msg); }
+            catch (Exception ignore) { }
         }
     }
 }

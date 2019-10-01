@@ -71,7 +71,7 @@ public class BaseTest extends PlatformBaseTest {
 
     private AtomicReference<AssertionError> testFailure;
 
-    private File dir;
+    private File dbDir;
 
     @Rule
     public final ExpectedException thrown = ExpectedException.none();
@@ -86,13 +86,14 @@ public class BaseTest extends PlatformBaseTest {
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
-        setDir(new File(getDatabaseDirectory(), "CouchbaseLiteTest-" + System.currentTimeMillis()));
+        dbDir = new File(getDatabaseDirectory(), "CBLTestDb");
+        assertNotNull(dbDir);
 
-        // database exist, delete it
+        // if database exist, delete it
         deleteDatabase(TEST_DB);
 
-        // clean dir
-        FileUtils.cleanDirectory(dir);
+        // clean dbDir
+        FileUtils.cleanDirectory(dbDir);
 
         openDB();
     }
@@ -107,10 +108,11 @@ public class BaseTest extends PlatformBaseTest {
             throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
         finally {
-            // FileUtils.cleanDirectory(getDir());
+            // !!! Reinstate: FileUtils.cleanDirectory(getDbDir());
 
-            executor.stop(60, TimeUnit.SECONDS);
+            ExecutionService.CloseableExecutor exec = executor;
             executor = null;
+            if (exec != null) { exec.stop(60, TimeUnit.SECONDS); }
         }
     }
 
@@ -142,20 +144,15 @@ public class BaseTest extends PlatformBaseTest {
         return savedDoc;
     }
 
-    protected File getDir() { return dir; }
-
-    protected void setDir(File dir) {
-        assertNotNull(dir);
-        this.dir = dir;
-    }
+    protected File getDbDir() { return dbDir; }
 
     protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
         // database exist, delete it
-        if (Database.exists(dbName, getDir())) {
+        if (Database.exists(dbName, getDbDir())) {
             // sometimes, db is still in used, wait for a while. Maximum 3 sec
             for (int i = 0; i < BUSY_RETRIES; i++) {
                 try {
-                    Database.delete(dbName, getDir());
+                    Database.delete(dbName, getDbDir());
                     Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
                     break;
                 }
@@ -171,7 +168,7 @@ public class BaseTest extends PlatformBaseTest {
 
     protected Database openDB(String name) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(dir.getAbsolutePath());
+        config.setDirectory(dbDir.getAbsolutePath());
         return new Database(name, config);
     }
 

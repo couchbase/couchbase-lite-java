@@ -69,7 +69,7 @@ public class LogTest extends BaseTest {
     public void setUp() throws Exception {
         super.setUp();
 
-        tempDirPath = getTempDirectory("logtest");
+        tempDirPath = getTempDirectory("logtest-" + System.currentTimeMillis());
 
         Database.log.reset();
     }
@@ -178,6 +178,9 @@ public class LogTest extends BaseTest {
                 byte[] bytes = new byte[4];
                 InputStream is = new FileInputStream(lastModifiedFile);
                 assertEquals(4, is.read(bytes));
+
+                for (int i = 0; i < bytes.length; i++) { android.util.Log.d("###Bin", "@" + i + ": " + Integer.toHexString(bytes[i])); }
+
                 assertEquals(bytes[0], (byte) 0xCF);
                 assertEquals(bytes[1], (byte) 0xB2);
                 assertEquals(bytes[2], (byte) 0xAB);
@@ -425,6 +428,7 @@ public class LogTest extends BaseTest {
         assertEquals(rs.allResults().size(), 1);
 
         String content = customLogger.getContent();
+        android.util.Log.d("###NonASCII", "content: " + content);
         assertTrue(content.contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
     }
 

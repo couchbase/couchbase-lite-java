@@ -56,8 +56,6 @@ public final class CouchbaseLite {
         // !!!TODO: load error messages
 
         Log.initLogging(true);
-        com.couchbase.lite.Database.log.getFile().setLevel(LogLevel.VERBOSE);
-        com.couchbase.lite.Database.log.getConsole().setLevel(LogLevel.WARNING);
         Log.i(LogDomain.DATABASE, "Couchbase Lite initialized: " + CBLVersion.getVersionInfo());
     }
 
