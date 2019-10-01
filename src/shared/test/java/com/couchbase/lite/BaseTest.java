@@ -108,7 +108,7 @@ public class BaseTest extends PlatformBaseTest {
             throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
         finally {
-            // !!! Reinstate: FileUtils.cleanDirectory(getDbDir());
+            FileUtils.cleanDirectory(getDbDir());
 
             ExecutionService.CloseableExecutor exec = executor;
             executor = null;

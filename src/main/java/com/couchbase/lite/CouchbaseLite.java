@@ -55,8 +55,7 @@ public final class CouchbaseLite {
 
         // !!!TODO: load error messages
 
-        Log.initLogging(true);
-        Log.i(LogDomain.DATABASE, "Couchbase Lite initialized: " + CBLVersion.getVersionInfo());
+        Log.initLogging();
     }
 
     /**

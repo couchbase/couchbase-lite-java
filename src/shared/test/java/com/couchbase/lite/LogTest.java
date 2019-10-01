@@ -144,11 +144,7 @@ public class LogTest extends BaseTest {
                 for (File log : getLogFiles()) {
                     BufferedReader fin = new BufferedReader(new FileReader(log));
                     int lineCount = 0;
-                    String content;
-                    while ((content = fin.readLine()) != null) {
-                        lineCount++;
-                        android.util.Log.d("###W/config", "@" + log + ": " + content);
-                    }
+                    while ((fin.readLine()) != null) { lineCount++; }
 
                     String logPath = log.getAbsolutePath();
                     // One meta line per log, so the actual logging lines is X + 1
@@ -178,8 +174,6 @@ public class LogTest extends BaseTest {
                 byte[] bytes = new byte[4];
                 InputStream is = new FileInputStream(lastModifiedFile);
                 assertEquals(4, is.read(bytes));
-
-                for (int i = 0; i < bytes.length; i++) { android.util.Log.d("###Bin", "@" + i + ": " + Integer.toHexString(bytes[i])); }
 
                 assertEquals(bytes[0], (byte) 0xCF);
                 assertEquals(bytes[1], (byte) 0xB2);
@@ -277,11 +271,7 @@ public class LogTest extends BaseTest {
                     = getTempDir().listFiles((ign, name) -> !name.toLowerCase().startsWith("cbl_debug_"));
                 assertNotNull(filesExceptDebug);
 
-                for (File log : filesExceptDebug) {
-                    String content = getLogContents(log);
-                    android.util.Log.d("###W/ReEnable", "@" + log + ": " + content);
-                    assertTrue(content.contains(uuidString));
-                }
+                for (File log : filesExceptDebug) { assertTrue(getLogContents(log).contains(uuidString)); }
             });
     }
 
@@ -323,11 +313,8 @@ public class LogTest extends BaseTest {
                 Log.i(LogDomain.DATABASE, message, error);
                 Log.w(LogDomain.DATABASE, message, error);
                 Log.e(LogDomain.DATABASE, message, error);
-                for (File log : getLogFiles()) {
-                    String content = getLogContents(log);
-                    android.util.Log.d("###WriteW/Err", "@" + log + ": " + content);
-                    assertTrue(content.contains(uuid));
-                }
+
+                for (File log : getLogFiles()) { assertTrue(getLogContents(log).contains(uuid)); }
             });
     }
 
@@ -352,7 +339,6 @@ public class LogTest extends BaseTest {
 
                 for (File log : getLogFiles()) {
                     String content = getLogContents(log);
-                    android.util.Log.d("###WriteW/Err&Args", "@" + log + ": " + content);
                     assertTrue(content.contains(uuid1));
                     assertTrue(content.contains(uuid2));
                 }
@@ -427,9 +413,7 @@ public class LogTest extends BaseTest {
         ResultSet rs = query.execute();
         assertEquals(rs.allResults().size(), 1);
 
-        String content = customLogger.getContent();
-        android.util.Log.d("###NonASCII", "content: " + content);
-        assertTrue(content.contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
+        assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Task task) throws Exception {

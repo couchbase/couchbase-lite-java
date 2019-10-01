@@ -33,6 +33,7 @@ import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Log;
+import com.couchbase.lite.internal.core.CBLVersion;
 
 
 /**
@@ -76,11 +77,10 @@ public final class Log {
 
     /**
      * Setup logging.
-     *
-     * @param debugging true iff debugging.
      */
-    public static void initLogging(boolean debugging) {
-        setC4LogLevel(LogDomain.ALL_DOMAINS, (debugging) ? LogLevel.DEBUG : LogLevel.INFO);
+    public static void initLogging() {
+        setC4LogLevel(LogDomain.ALL_DOMAINS, LogLevel.DEBUG);
+        Log.i(LogDomain.DATABASE, "Couchbase Lite initialized: " + CBLVersion.getVersionInfo());
     }
 
     /**
