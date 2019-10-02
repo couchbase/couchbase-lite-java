@@ -44,7 +44,6 @@ public final class Log {
     private Log() { }
 
     public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
-
     static {
         final Map<String, LogDomain> m = new HashMap<>();
         m.put(C4Constants.LogDomain.DATABASE, LogDomain.DATABASE);
@@ -57,7 +56,6 @@ public final class Log {
     }
 
     public static final Map<LogDomain, String> LOGGING_DOMAINS_TO_C4;
-
     static {
         final Map<LogDomain, String> m = new HashMap<>();
         m.put(LogDomain.DATABASE, C4Constants.LogDomain.DATABASE);
@@ -68,7 +66,6 @@ public final class Log {
     }
 
     public static final Map<Integer, LogLevel> LOG_LEVEL_FROM_C4;
-
     static {
         final Map<Integer, LogLevel> m = new HashMap<>();
         for (LogLevel level : LogLevel.values()) { m.put(level.getValue(), level); }

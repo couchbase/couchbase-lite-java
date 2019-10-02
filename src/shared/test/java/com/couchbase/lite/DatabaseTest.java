@@ -95,7 +95,6 @@ public class DatabaseTest extends BaseTest {
         assertNotNull(doc);
         assertEquals(docID, doc.getId());
         assertEquals(value, ((Number) doc.getValue("key")).intValue());
-        doc = null;
     }
 
     // helper method to purge doc and verify doc.
@@ -124,16 +123,6 @@ public class DatabaseTest extends BaseTest {
             verifyGetDocument(String.format(Locale.US, "doc_%03d", i), i);
         }
     }
-
-    //---------------------------------------------
-    //  setUp/tearDown
-    //---------------------------------------------
-
-    @Before
-    public void setUp() throws Exception { super.setUp(); }
-
-    @After
-    public void tearDown() { super.tearDown(); }
 
     //---------------------------------------------
     //  DatabaseConfiguration
@@ -174,7 +163,7 @@ public class DatabaseTest extends BaseTest {
         Database db = new Database("db", config);
         try {
             assertNotNull(db.getConfig());
-            assertTrue(db.getConfig() != config);
+            assertNotSame(db.getConfig(), config);
         }
         finally {
             db.delete();
@@ -218,6 +207,8 @@ public class DatabaseTest extends BaseTest {
 
         Database db = new Database("db", new DatabaseConfiguration());
         try {
+            assertNotNull(db);
+            assertEquals(0, db.getCount());
         }
         finally {
             // delete database
@@ -258,7 +249,7 @@ public class DatabaseTest extends BaseTest {
         final String dbName = "db";
 
         File dir = new File(getDatabaseDirectory(), "CouchbaseLite");
-        try { Database.delete(dbName, dir); } catch (CouchbaseLiteException e) { }
+        try { Database.delete(dbName, dir); } catch (CouchbaseLiteException ignored) { }
         assertFalse(Database.exists(dbName, dir));
 
         // create db with custom directory
@@ -269,7 +260,7 @@ public class DatabaseTest extends BaseTest {
             assertNotNull(db);
             assertEquals(dbName, db.getName());
             assertTrue(new File(db.getPath()).getAbsolutePath().endsWith(".cblite2"));
-            assertTrue(new File(db.getPath()).getAbsolutePath().indexOf(dir.getPath()) != -1);
+            assertTrue(new File(db.getPath()).getAbsolutePath().contains(dir.getPath()));
             assertTrue(Database.exists(dbName, dir));
             assertEquals(0, db.getCount());
         }
@@ -284,7 +275,7 @@ public class DatabaseTest extends BaseTest {
     //---------------------------------------------
     @Test
     public void testGetNonExistingDocWithID() {
-        assertTrue(db.getDocument("non-exist") == null);
+        assertNull(db.getDocument("non-exist"));
     }
 
     @Test
@@ -306,7 +297,7 @@ public class DatabaseTest extends BaseTest {
         // open db with same db name and default option
         Database otherDB = openDatabase(db.getName(), false);
         assertNotNull(otherDB);
-        assertTrue(db != otherDB);
+        assertNotSame(db, otherDB);
 
         // get doc from other DB.
         assertEquals(1, otherDB.getCount());
@@ -323,12 +314,7 @@ public class DatabaseTest extends BaseTest {
         // Save 10 docs:
         createDocs(NUM_DOCS);
 
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                validateDocs(NUM_DOCS);
-            }
-        });
+        db.inBatch(() -> validateDocs(NUM_DOCS));
     }
 
     @Test
@@ -429,7 +415,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default
         Database otherDB = openDatabase(db.getName(), false);
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
 
         // Update doc & store it into different instance
@@ -458,7 +444,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default
         Database otherDB = openDatabase("otherDB");
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(0, otherDB.getCount());
 
         // Update doc & store it into different instance
@@ -492,16 +478,9 @@ public class DatabaseTest extends BaseTest {
     public void testSaveInBatch() throws CouchbaseLiteException {
         final int NUM_DOCS = 10;
 
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    createDocs(NUM_DOCS);
-                }
-                catch (CouchbaseLiteException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        db.inBatch(() -> {
+            try { createDocs(NUM_DOCS); }
+            catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
         });
         assertEquals(NUM_DOCS, db.getCount());
         validateDocs(NUM_DOCS);
@@ -575,7 +554,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default
         Database otherDB = openDatabase(db.getName(), false);
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
 
         // Delete from the different db instance:
@@ -602,7 +581,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default
         Database otherDB = openDatabase("otherDB");
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(0, otherDB.getCount());
 
         // Delete from the different db:
@@ -628,21 +607,14 @@ public class DatabaseTest extends BaseTest {
         // Save 10 docs:
         createDocs(NUM_DOCS);
 
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < NUM_DOCS; i++) {
-                    String docID = String.format(Locale.US, "doc_%03d", i);
-                    Document doc = db.getDocument(docID);
-                    try {
-                        db.delete(doc);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        throw new RuntimeException(e);
-                    }
-                    assertNull(db.getDocument(docID));
-                    assertEquals((9 - i), db.getCount());
-                }
+        db.inBatch(() -> {
+            for (int i = 0; i < NUM_DOCS; i++) {
+                String docID = String.format(Locale.US, "doc_%03d", i);
+                Document doc = db.getDocument(docID);
+                try { db.delete(doc); }
+                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+                assertNull(db.getDocument(docID));
+                assertEquals((9 - i), db.getCount());
             }
         });
 
@@ -720,7 +692,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default:
         Database otherDB = openDatabase(db.getName(), false);
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
 
         // purge document against other db instance:
@@ -747,7 +719,7 @@ public class DatabaseTest extends BaseTest {
         // Create db with default:
         Database otherDB = openDatabase("otherDB");
         assertNotNull(otherDB);
-        assertTrue(otherDB != db);
+        assertNotSame(otherDB, db);
         assertEquals(0, otherDB.getCount());
 
         // Purge document against other db:
@@ -790,20 +762,13 @@ public class DatabaseTest extends BaseTest {
         // Save 10 docs:
         createDocs(NUM_DOCS);
 
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < NUM_DOCS; i++) {
-                    String docID = String.format(Locale.US, "doc_%03d", i);
-                    Document doc = db.getDocument(docID);
-                    try {
-                        purgeDocAndVerify(doc);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        throw new RuntimeException(e);
-                    }
-                    assertEquals((9 - i), db.getCount());
-                }
+        db.inBatch(() -> {
+            for (int i = 0; i < NUM_DOCS; i++) {
+                String docID = String.format(Locale.US, "doc_%03d", i);
+                Document doc = db.getDocument(docID);
+                try { purgeDocAndVerify(doc); }
+                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+                assertEquals((9 - i), db.getCount());
             }
         });
 
@@ -915,7 +880,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testCloseThenGetDatabasePath() throws CouchbaseLiteException {
         db.close();
-        assertTrue(db.getPath() == null);
+        assertNull(db.getPath());
     }
 
     @Test
@@ -1023,23 +988,20 @@ public class DatabaseTest extends BaseTest {
         // delete db
         deleteDatabase(db);
 
-        assertTrue(db.getPath() == null);
+        assertNull(db.getPath());
     }
 
     @Test
     public void testDeleteThenCallInBatch() throws CouchbaseLiteException {
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                // delete db
-                try {
-                    db.delete();
-                    fail();
-                }
-                catch (CouchbaseLiteException e) {
-                    assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-                    assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, e.getCode()); // 26
-                }
+        db.inBatch(() -> {
+            // delete db
+            try {
+                db.delete();
+                fail();
+            }
+            catch (CouchbaseLiteException e) {
+                assertEquals(CBLError.Domain.CBLITE, e.getDomain());
+                assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, e.getCode()); // 26
             }
         });
     }
@@ -1048,7 +1010,7 @@ public class DatabaseTest extends BaseTest {
     public void testDeleteDBOpenedByOtherInstance() throws CouchbaseLiteException {
         Database otherDB = openDatabase(db.getName());
         try {
-            assertTrue(db != otherDB);
+            assertNotSame(db, otherDB);
 
             // delete db
             try {
@@ -1149,7 +1111,7 @@ public class DatabaseTest extends BaseTest {
     @Test(expected = IllegalArgumentException.class)
     public void testDeleteNonExistingDBWithDefaultDir() {
         try { Database.delete("notexistdb", null); }
-        catch (CouchbaseLiteException e) { }
+        catch (CouchbaseLiteException ignored) { }
         fail();
     }
 
@@ -1215,31 +1177,23 @@ public class DatabaseTest extends BaseTest {
         final List<String> docIDs = createDocs(NUM_DOCS);
 
         // Update each doc 25 times:
-        db.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                for (String docID : docIDs) {
-                    Document savedDoc = db.getDocument(docID);
-                    for (int i = 0; i < NUM_UPDATES; i++) {
-                        MutableDocument doc = savedDoc.toMutable();
-                        doc.setValue("number", i);
-                        try {
-                            savedDoc = save(doc);
-                        }
-                        catch (CouchbaseLiteException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
+        db.inBatch(() -> {
+            for (String docID : docIDs) {
+                Document savedDoc = db.getDocument(docID);
+                for (int i = 0; i < NUM_UPDATES; i++) {
+                    MutableDocument doc = savedDoc.toMutable();
+                    doc.setValue("number", i);
+                    try { savedDoc = save(doc); }
+                    catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
                 }
             }
         });
 
         // Add each doc with a blob object:
         for (String docID : docIDs) {
-            Document savedDoc = db.getDocument(docID);
-            MutableDocument doc = savedDoc.toMutable();
+            MutableDocument doc = db.getDocument(docID).toMutable();
             doc.setValue("blob", new Blob("text/plain", doc.getId().getBytes()));
-            savedDoc = save(doc);
+            save(doc);
         }
 
         assertEquals(NUM_DOCS, db.getCount());
@@ -1267,10 +1221,9 @@ public class DatabaseTest extends BaseTest {
         assertEquals(0, atts.length);
     }
 
+    // REF: https://github.com/couchbase/couchbase-lite-android/issues/1231
     @Test
     public void testOverwriteDocWithNewDocInstgance() throws CouchbaseLiteException {
-        // REF: https://github.com/couchbase/couchbase-lite-android/issues/1231
-
         MutableDocument mDoc1 = new MutableDocument("abc");
         mDoc1.setValue("someKey", "someVar");
         Document doc1 = save(mDoc1);
@@ -1479,24 +1432,17 @@ public class DatabaseTest extends BaseTest {
         final Database database2 = new Database("application", config);
 
         // inserting documents
-        database2.inBatch(new Runnable() {
-            @Override
-            public void run() {
-                // just create 100 documents
-                for (int i = 0; i < 100; i++) {
-                    MutableDocument doc = new MutableDocument();
+        database2.inBatch(() -> {
+            // just create 100 documents
+            for (int i = 0; i < 100; i++) {
+                MutableDocument doc = new MutableDocument();
 
-                    // each doc has 10 items
-                    doc.setInt("index", i);
-                    for (int j = 0; j < 10; j++) { doc.setInt("item_" + j, j); }
+                // each doc has 10 items
+                doc.setInt("index", i);
+                for (int j = 0; j < 10; j++) { doc.setInt("item_" + j, j); }
 
-                    try {
-                        database2.save(doc);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        fail();
-                    }
-                }
+                try { database2.save(doc); }
+                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
             }
         });
 
