@@ -194,7 +194,7 @@ abstract class AbstractDatabase {
             ? LogDomain.ALL_DOMAINS
             : EnumSet.of(domain);
 
-        ConsoleLogger logger = log.getConsole();
+        final ConsoleLogger logger = log.getConsole();
         logger.setDomains(domains);
         logger.setLevel(level);
     }
@@ -212,7 +212,6 @@ abstract class AbstractDatabase {
     protected C4Database c4db;
 
     final DatabaseConfiguration config;
-
 
     private final Object lock = new Object();     // Main database lock object for thread-safety
 
