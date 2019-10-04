@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite.internal
 
-
 import com.couchbase.lite.CouchbaseLite
 import com.couchbase.lite.LogDomain
 import com.couchbase.lite.internal.support.Log
@@ -33,9 +32,9 @@ import java.util.concurrent.TimeUnit
 
 
 // This currently tests the AndroidExecutionService, on a device.
-// It should test the current implementatin of ExecutionService, on a VM
+// It should test the current implementation of ExecutionService, on a VM
 class ExecutionServicesTest {
-    private val executionService = CouchbaseLite.getExecutionService();
+    private val executionService = CouchbaseLite.getExecutionService()
 
     // The main executor always uses the same thread.
     @Test
@@ -257,7 +256,7 @@ class ExecutionServicesTest {
         executor.execute { threads[0] = Thread.currentThread() }
 
         var t = System.currentTimeMillis()
-        val delay: Long = 777;
+        val delay: Long = 777
         executionService.postDelayedOnExecutor(
                 delay,
                 executor,

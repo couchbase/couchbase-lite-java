@@ -253,6 +253,8 @@ abstract class AbstractDatabase {
         if (StringUtils.isEmpty(name)) { throw new IllegalArgumentException("db name may not be empty"); }
         Preconditions.checkArgNotNull(config, "config");
 
+        CouchbaseLite.requireInit("Cannot create database");
+
         // Name:
         this.name = name;
 
