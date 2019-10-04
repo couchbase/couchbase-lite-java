@@ -194,7 +194,9 @@ abstract class AbstractDatabase {
             ? LogDomain.ALL_DOMAINS
             : EnumSet.of(domain);
 
-        Log.setC4LogLevel(domains, level);
+        ConsoleLogger logger = log.getConsole();
+        logger.setDomains(domains);
+        logger.setLevel(level);
     }
 
     private static File getDatabasePath(File dir, String name) {
