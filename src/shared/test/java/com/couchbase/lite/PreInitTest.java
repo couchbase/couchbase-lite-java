@@ -15,10 +15,14 @@
 //
 package com.couchbase.lite;
 
+import org.junit.Before;
 import org.junit.Test;
 
 
-public class PreInitTests {
+public class PreInitTest {
+    @Before
+    public void setup() { CouchbaseLite.reset(); }
+
     @Test(expected = IllegalStateException.class)
     public void testCreateDatabaseBeforeInit() throws CouchbaseLiteException {
         new Database("fail", new DatabaseConfiguration());
