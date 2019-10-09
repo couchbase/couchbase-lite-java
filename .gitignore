@@ -7,8 +7,8 @@ bin/
 gen/
 out/
 
-# Native build files
-build_native/
+# LiteCore library files
+lite-core/
 
 # Gradle files
 .gradle/

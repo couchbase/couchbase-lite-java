@@ -50,8 +50,10 @@ ext {
     CBL_ARTIFACT_ID = 'couchbase-lite-java'
 
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
-    CBL_CORE_BUILD_DIR = "${CBL_CORE_DIR}/build_cmake"
-    CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/build/native"
+    CBL_CORE_NATIVE_DIR = "${PROJECT_DIR}/lite-core"
+
+    // Contains all native libraries copied into Jar file
+    CBL_NATIVE_DIR = "${PROJECT_DIR}/build/native"
 
     BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
     BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
@@ -100,7 +102,7 @@ java {
                 "src/shared/ce/java",               // Shared code between Java and Android (CE Only)
                 "src/shared/main/java",             // Shared code between Java and Android
             ]
-            resources.srcDirs = [CBL_NATIVE_BUILD_DIR]    // Native Libraries
+            resources.srcDirs = [CBL_NATIVE_DIR]    // Native Libraries
         }
         test {
             java.srcDirs = [
@@ -194,12 +196,12 @@ model {
                 binaries.withType(SharedLibraryBinary) {
                     def os = targetPlatform.operatingSystem
                     if (os.macOsX) {
-                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib")
+                        sharedLibraryFile = file("${CBL_CORE_NATIVE_DIR}/macos/x86_64/libLiteCore.dylib")
                     } else if (os.linux) {
-                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so")
+                        sharedLibraryFile = file("${CBL_CORE_NATIVE_DIR}/linux/x86_64/libLiteCore.so")
                     } else if (os.windows) {
-                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll")
-                        sharedLibraryLinkFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.lib")
+                        sharedLibraryFile = file("${CBL_CORE_NATIVE_DIR}/windows/x86_64/LiteCore.dll")
+                        sharedLibraryLinkFile = file("${CBL_CORE_NATIVE_DIR}/windows/x86_64/LiteCore.lib")
                     }
                 }
             }
@@ -208,7 +210,11 @@ model {
                 binaries.withType(StaticLibraryBinary) {
                     def os = targetPlatform.operatingSystem
                     if (os.macOsX) {
-                        staticLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/vendor/mbedtls/library/libmbedcrypto.a")
+                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/macos/x86_64/libmbedcrypto.a")
+                    } else if (os.linux) {
+                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/linux/x86_64/libmbedcrypto.a")
+                    } else if (os.windows) {
+                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/windows/x86_64/mbedcrypto.lib")
                     }
                 }
             }
@@ -250,6 +256,7 @@ model {
                     cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
+                    linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.linux) {
                     if (project.hasProperty("cxxIncludeDir")) {
                         cppCompiler.args '-isystem', project.property('cxxIncludeDir')
@@ -258,6 +265,7 @@ model {
                     cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
+                    linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
@@ -466,20 +474,21 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
     if (CBL_NATIVE_LIBRARIES.contains(library)) return
 
     CBL_NATIVE_LIBRARIES.add(library)
-
-    def os = targetPlatform.operatingSystem
-    if (os.macOsX) {
-        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib"))
-    } else if (os.linux) {
-        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so"))
-    } else if (os.windows) {
-        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll"))
+    
+    def libs = ["macos/x86_64/libLiteCore.dylib", 
+                "linux/x86_64/libLiteCore.so", 
+                "windows/x86_64/LiteCore.dll"]
+    for (lib in libs) {
+        def libFile = file("${CBL_CORE_NATIVE_DIR}/${lib}")
+        if (libFile.exists()) {
+            CBL_NATIVE_LIBRARIES.add(libFile)
+        }
     }
 
     def libPath = getNativeLibraryResourcePath(targetPlatform)
     def task = tasks.create("copyNativeLibraries", Copy) {
         from CBL_NATIVE_LIBRARIES
-        into "${CBL_NATIVE_BUILD_DIR}/libs/${libPath}"
+        into "${CBL_NATIVE_DIR}/libs/${libPath}"
     }
 
     processResources.dependsOn(task)
@@ -489,7 +498,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
 def getNativeLibraryResourcePath(platform) {
     def os = ""
     if (platform.operatingSystem.isMacOsX())
-        os = "osx";
+        os = "macos";
     else if (platform.operatingSystem.isWindows())
         os = "windows"
     else if (platform.operatingSystem.isLinux())

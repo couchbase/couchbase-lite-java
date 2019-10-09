@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.JavaExecutionService;
-import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.fleece.MValue;
 import com.couchbase.lite.internal.support.Log;
 
@@ -34,9 +33,6 @@ import com.couchbase.lite.internal.support.Log;
 public final class CouchbaseLite {
     // Utility class
     private CouchbaseLite() {}
-
-    private static final String LITECORE_JNI_LIBRARY = "LiteCoreJNI";
-    private static final String MVALUE_DELEGATE_CLASS = "com.couchbase.lite.MValueDelegate";
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
