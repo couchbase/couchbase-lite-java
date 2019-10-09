@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage() {
-    echo "usage: build_litecore -n <VAL> -v <VAL> [-d]"
+    echo "usage: build_litecore -e <VAL> [-l <VAL>]"
     echo "  -e|--edition <VAL>   LiteCore edition, CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
     echo "  -l|--libs <VAL>      The comma separated list of libraries to build. The libraries are LiteCore and mbedcrypto. The default is both."
     echo
@@ -11,10 +11,6 @@ shopt -s nocasematch
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-EDITION=CE
-if [[ -d "$SCRIPT_DIR/../../couchbase-lite-core-EE" ]]; then
-    EDITION=EE
-fi
 LIBS=(LiteCore mbedcrypto)
 
 while [[ $# -gt 0 ]]; do
@@ -37,6 +33,12 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+if [ -z "$EDITION" ]; then
+  echo >&2 "Missing --edition option, aborting..."
+  usage
+  exit 1
+fi
 
 echo "LiteCore Edition: $EDITION"
 echo "Libraries: ${LIBS[*]}"
