@@ -50,6 +50,8 @@ ext {
     CBL_ARTIFACT_ID = 'couchbase-lite-java'
 
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
+
+    // Contains Lite Core native libraries for building JNI
     CBL_CORE_NATIVE_DIR = "${PROJECT_DIR}/lite-core"
 
     // Contains all native libraries copied into Jar file
@@ -233,12 +235,7 @@ model {
                         include "**/*.cc"
                     }
                     lib library: 'liteCore', linkage: 'shared'
-
-                    if (OperatingSystem.current().isMacOsX()) {
-                        lib library: 'mbedCrypto', linkage: 'static'
-                    } else {
-                        lib library: 'mbedCrypto', linkage: 'api'
-                    }
+                    lib library: 'mbedCrypto', linkage: 'static'
                 }
             }
 
