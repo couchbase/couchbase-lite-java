@@ -397,6 +397,28 @@ if (TEST_FILTER != null) {
 
 
 // ----------------------------------------------------------------
+// java-library-distribution
+// ----------------------------------------------------------------
+
+distributions {
+    main {
+        contents {
+            into("support") {
+                from "${CBL_CORE_NATIVE_DIR}/support"
+            }
+            eachFile {
+                // Move the main jar file into lib folder
+                if (it.name.startsWith("${CBL_ARTIFACT_ID}") && 
+                    it.name.endsWith(".jar") && 
+                    !it.path.contains("/lib/")) {
+                    it.path = it.path.replace("/${CBL_ARTIFACT_ID}", "/lib/${CBL_ARTIFACT_ID}")
+                }
+            }
+        }
+    }
+}
+
+// ----------------------------------------------------------------
 // Publication
 // ----------------------------------------------------------------
 

@@ -102,23 +102,32 @@ for VARIANT in "${VARIANTS[@]}"; do
 done
 
 if [ -f "litecore-macosx$SUFFIX.zip" ]; then
-  mkdir -p macos/x86_64
   unzip litecore-macosx$SUFFIX.zip
-  mv -f lib/libLiteCore.dylib macos/x86_64
+
+  LIBLITECORE_DIR=macos/x86_64
+  mkdir -p $LIBLITECORE_DIR && rm -rf $LIBLITECORE_DIR/*
+  mv -f lib/libLiteCore.dylib $LIBLITECORE_DIR
+
   rm -rf lib
   rm -f litecore-macosx$SUFFIX.zip
 fi
 
 if [ -f "litecore-linux$SUFFIX.tar.gz" ]; then
-  mkdir -p linux/x86_64
   tar xf litecore-linux$SUFFIX.tar.gz
-  mv -f lib/libLiteCore.so linux/x86_64
 
-  # mv -f lib/libc++.so.1.0 libc++.so.1
-  # mv -f lib/libc++abi.so.1.0 libc++abi.so.1
-  # mv -f lib/libicudata.so.54.1 libicudata.so.54
-  # mv -f lib/libicui18n.so.54.1 libicui18n.so.54
-  # mv -f lib/libicuuc.so.54.1 libicuuc.so.54
+  LIBLITECORE_DIR=linux/x86_64
+  mkdir -p $LIBLITECORE_DIR && rm -rf $LIBLITECORE_DIR/*
+  mv -f lib/libLiteCore.so $LIBLITECORE_DIR
+
+  LIBCXX_DIR=support/linux/x86_64/libc++
+  mkdir -p $LIBCXX_DIR && rm -rf $LIBCXX_DIR/*
+  mv -f lib/libc++*.* $LIBCXX_DIR
+
+  LIBICU_DIR=support/linux/x86_64/libicu
+  mkdir -p $LIBICU_DIR && rm -rf $LIBICU_DIR/*
+  mv -f lib/libicu*.* $LIBICU_DIR
+  rm -f $LIBICU_DIR/libicutest*.*
+
   rm -rf lib
   rm -f litecore-linux$SUFFIX.tar.gz
 fi
