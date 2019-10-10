@@ -179,6 +179,9 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_begin(JNIEnv *env, jclass
  */
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLDictIterator_getKeyString(JNIEnv *env, jclass clazz, jlong jitr) {
+    if (!FLDictIterator_GetValue((FLDictIterator *) jitr))
+        return NULL;
+
     FLString s = FLDictIterator_GetKeyString((FLDictIterator *) jitr);
     return toJString(env, s);
 }

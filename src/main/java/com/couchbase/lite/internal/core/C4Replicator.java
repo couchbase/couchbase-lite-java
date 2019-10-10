@@ -18,9 +18,12 @@
 
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.GuardedBy;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
@@ -28,6 +31,15 @@ import com.couchbase.lite.internal.support.Log;
 
 
 /**
+ * There are two bits of state to protect in the class:
+ * <ol>
+ * <li/> Messages sent to it from native code:  This object proxies those messages out to
+ * various listeners.  Until a replicator object is removed from the REVERSE_LOOKUP_TABLE
+ * forwarding such a message should always work (there is no dependence on the other states)
+ * <li/> Calls to the native object:  These should work as long as the `handle` is non-zero.
+ * This object must be careful never to forward a call to a native object once it has been freed.
+ * </ol>
+ * <p>
  * WARNING!
  * This class and its members are referenced by name, from native code.
  */
@@ -47,68 +59,67 @@ public class C4Replicator {
 
     // Long: handle of C4Replicator native address
     // C4Replicator: Java class holds handle
+    @NonNull
+    @GuardedBy("CLASS_LOCK")
     private static final Map<Long, C4Replicator> REVERSE_LOOKUP_TABLE = new HashMap<>();
-
+    @NonNull
+    @GuardedBy("CLASS_LOCK")
     private static final Map<Object, C4Replicator> CONTEXT_TO_C4_REPLICATOR_MAP = new HashMap<>();
 
     //-------------------------------------------------------------------------
     // Public static methods
     //-------------------------------------------------------------------------
 
-    public static boolean mayBeTransient(C4Error err) {
+    public static boolean mayBeTransient(@NonNull C4Error err) {
         return mayBeTransient(err.getDomain(), err.getCode(), err.getInternalInfo());
     }
 
-    public static boolean mayBeNetworkDependent(C4Error err) {
+    public static boolean mayBeNetworkDependent(@NonNull C4Error err) {
         return mayBeNetworkDependent(err.getDomain(), err.getCode(), err.getInternalInfo());
+    }
+
+    //-------------------------------------------------------------------------
+    // Native callback methods
+    //-------------------------------------------------------------------------
+
+    static void statusChangedCallback(long handle, @Nullable C4ReplicatorStatus status) {
+        final C4Replicator repl = getReplicatorForHandle(handle);
+        Log.d(LogDomain.REPLICATOR, "statusChangedCallback() handle: " + handle + ", status: " + status);
+        if (repl == null) { return; }
+
+        final C4ReplicatorListener listener = repl.listener;
+        if (listener != null) { listener.statusChanged(repl, status, repl.replicatorContext); }
+    }
+
+    static void documentEndedCallback(long handle, boolean pushing, @Nullable C4DocumentEnded[] documentsEnded) {
+        final C4Replicator repl = getReplicatorForHandle(handle);
+        Log.d(LogDomain.REPLICATOR, "documentEndedCallback() handle: " + handle + ", pushing: " + pushing);
+        if (repl == null) { return; }
+
+        final C4ReplicatorListener listener = repl.listener;
+        if (listener != null) { listener.documentEnded(repl, pushing, documentsEnded, repl.replicatorContext); }
+    }
+
+    static boolean validationFunction(String docID, int flags, long dict, boolean isPush, @Nullable Object context) {
+        final C4Replicator repl = getReplicatorForContext(context);
+        if (repl == null) { return true; }
+
+        final C4ReplicationFilter filter = (isPush) ? repl.pushFilter : repl.pullFilter;
+
+        return (filter == null) || filter.validationFunction(docID, flags, dict, isPush, repl.replicatorContext);
     }
 
     //-------------------------------------------------------------------------
     // Private static methods
     //-------------------------------------------------------------------------
 
-    private static void statusChangedCallback(long handle, C4ReplicatorStatus status) {
-        final C4Replicator repl = getReplicatorForHandle(handle);
-        Log.d(LogDomain.REPLICATOR, "statusChangedCallback() handle: " + handle + ", status: " + status);
-
-        if ((repl == null) || !repl.isAlive.get()) { return; }
-        // there is a race here (the repl may no longer be alive) but I hope that it is not important
-
-        final C4ReplicatorListener listener = repl.listener;
-        if (listener != null) { listener.statusChanged(repl, status, repl.replicatorContext); }
-    }
-
-    private static void documentEndedCallback(long handle, boolean pushing, C4DocumentEnded[] documentsEnded) {
-        final C4Replicator repl = getReplicatorForHandle(handle);
-        Log.d(LogDomain.REPLICATOR, "documentEndedCallback() handle: " + handle + ", pushing: " + pushing);
-
-        if ((repl == null) || !repl.isAlive.get()) { return; }
-        // there is a race here (the repl may no longer be alive) but I hope that it is not important
-
-        final C4ReplicatorListener listener = repl.listener;
-        if (listener != null) { listener.documentEnded(repl, pushing, documentsEnded, repl.replicatorContext); }
-    }
-
-    private static boolean validationFunction(String docID, int flags, long dict, boolean isPush, Object context) {
-        final C4Replicator repl = getReplicatorForContext(context);
-
-        if ((repl == null) || !repl.isAlive.get()) { return true; }
-        // there is a race here (the repl may no longer be alive) but I hope that it is not important
-
-        if (isPush) {
-            return (repl.pushFilter == null)
-                || repl.pushFilter.validationFunction(docID, flags, dict, isPush, repl.replicatorContext);
-        }
-
-        return (repl.pullFilter == null)
-            || repl.pullFilter.validationFunction(docID, flags, dict, isPush, repl.replicatorContext);
-    }
-
+    @Nullable
     private static C4Replicator getReplicatorForHandle(long handle) {
         synchronized (CLASS_LOCK) { return REVERSE_LOOKUP_TABLE.get(handle); }
     }
 
-    private static C4Replicator getReplicatorForContext(Object context) {
+    @Nullable
+    private static C4Replicator getReplicatorForContext(@Nullable Object context) {
         synchronized (CLASS_LOCK) { return CONTEXT_TO_C4_REPLICATOR_MAP.get(context); }
     }
 
@@ -116,19 +127,23 @@ public class C4Replicator {
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
-
-    // is this replicator alive?
-    private final AtomicBoolean isAlive = new AtomicBoolean(true);
-
-    private final long handle; // hold pointer to C4Replicator
-
+    @NonNull
     private final Object replicatorContext;
+    @Nullable
     private final Object socketFactoryContext;
 
-    private C4ReplicatorListener listener;
+    @Nullable
+    private final C4ReplicatorListener listener;
 
-    private C4ReplicationFilter pushFilter;
-    private C4ReplicationFilter pullFilter;
+    @Nullable
+    private final C4ReplicationFilter pushFilter;
+    @Nullable
+    private final C4ReplicationFilter pullFilter;
+
+    @NonNull
+    private final Object lock = new Object();
+    @GuardedBy("lock")
+    private long handle; // pointer to native C4Replicator
 
     //-------------------------------------------------------------------------
     // Constructors
@@ -144,36 +159,38 @@ public class C4Replicator {
         long otherLocalDB,
         int push,
         int pull,
-        byte[] options,
-        C4ReplicatorListener listener,
-        C4ReplicationFilter pushFilter,
-        C4ReplicationFilter pullFilter,
-        Object replicatorContext,
-        Object socketFactoryContext,
-        int framing) throws LiteCoreException {
+        @NonNull byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @Nullable C4ReplicationFilter pushFilter,
+        @Nullable C4ReplicationFilter pullFilter,
+        @NonNull Object replicatorContext,
+        @Nullable Object socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+
         this.listener = listener;
         this.replicatorContext = replicatorContext;
         this.socketFactoryContext = socketFactoryContext;
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
 
-        handle = create(
-            db,
-            schema,
-            host,
-            port,
-            path,
-            remoteDatabaseName,
-            otherLocalDB,
-            push, pull,
-            socketFactoryContext,
-            framing,
-            replicatorContext,
-            pushFilter,
-            pullFilter,
-            options);
-
         synchronized (CLASS_LOCK) {
+            handle = create(
+                db,
+                schema,
+                host,
+                port,
+                path,
+                remoteDatabaseName,
+                otherLocalDB,
+                push, pull,
+                socketFactoryContext,
+                framing,
+                replicatorContext,
+                pushFilter,
+                pullFilter,
+                options);
+
             REVERSE_LOOKUP_TABLE.put(handle, this);
             CONTEXT_TO_C4_REPLICATOR_MAP.put(replicatorContext, this);
         }
@@ -184,59 +201,61 @@ public class C4Replicator {
         long openSocket,
         int push,
         int pull,
-        byte[] options,
-        C4ReplicatorListener listener,
-        Object replicatorContext) throws LiteCoreException {
+        @NonNull byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @NonNull Object replicatorContext)
+        throws LiteCoreException {
+
         this.listener = listener;
         this.replicatorContext = replicatorContext;
         this.socketFactoryContext = null;
-
-        handle = createWithSocket(db, openSocket, push, pull, replicatorContext, options);
+        this.pushFilter = null;
+        this.pullFilter = null;
 
         synchronized (CLASS_LOCK) {
+            handle = createWithSocket(db, openSocket, push, pull, replicatorContext, options);
+
             REVERSE_LOOKUP_TABLE.put(handle, this);
         }
     }
 
-    // ??? There was a bug here.  It may have been fixed: 7-MAY-2019.
-    // https://github.com/couchbase/couchbase-lite-android/issues/1912
-    // hbase.lite.tes: JNI ERROR (app bug): attempt to use stale Global 0x25e6 (should be 0x25ea)
-    // hbase.lite.tes: java_vm_ext.cc:542] JNI DETECTED ERROR IN APPLICATION: use of deleted global reference 0x25e6
-    // hbase.lite.tes: java_vm_ext.cc:542]     from void com.couchbase.lite.internal.core.C4Replicator.free(
-    //                                             long, java.lang.Object, java.lang.Object)
-    public void free() {
-        final boolean live = isAlive.getAndSet(false);
-
-        if (!live) { return; }
-
-        Log.d(LogDomain.REPLICATOR, "Handle: %s", handle);
-        Log.d(LogDomain.REPLICATOR,
-            "Replicator ctxt: %s $%s",
-            replicatorContext,
-            (replicatorContext == null) ? null : replicatorContext.getClass());
-        Log.d(LogDomain.REPLICATOR,
-            "Factory ctxt: %s $%s",
-            socketFactoryContext,
-            (socketFactoryContext == null) ? null : socketFactoryContext.getClass());
-
-        synchronized (CLASS_LOCK) {
-            REVERSE_LOOKUP_TABLE.remove(handle);
-            CONTEXT_TO_C4_REPLICATOR_MAP.remove(this.replicatorContext);
-
-            free(handle, replicatorContext, socketFactoryContext);
+    public void stop() {
+        synchronized (lock) {
+            if (handle != 0) { stop(handle); }
         }
     }
 
-    public void stop() {
-        if (isAlive.get()) { stop(handle); }
-    }
-
+    @Nullable
     public C4ReplicatorStatus getStatus() {
-        return (!isAlive.get()) ? null : getStatus(handle);
+        synchronized (lock) {
+            return (handle == 0) ? null : getStatus(handle);
+        }
     }
 
+    @Nullable
     public byte[] getResponseHeaders() {
-        return (!isAlive.get()) ? null : getResponseHeaders(handle);
+        synchronized (lock) {
+            return (handle == 0) ? null : getResponseHeaders(handle);
+        }
+    }
+
+    // Several bugs have been reported, near here:
+    // Usually: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
+    // https://issues.couchbase.com/browse/CBL-34
+    public void free() {
+        final long handle;
+        synchronized (lock) {
+            if (this.handle == 0) { return; }
+            handle = this.handle;
+            this.handle = 0;
+        }
+
+        synchronized (CLASS_LOCK) {
+            free(handle, replicatorContext, socketFactoryContext);
+
+            REVERSE_LOOKUP_TABLE.remove(handle);
+            CONTEXT_TO_C4_REPLICATOR_MAP.remove(this.replicatorContext);
+        }
     }
 
     @SuppressWarnings("NoFinalizer")
@@ -272,15 +291,15 @@ public class C4Replicator {
 
     /**
      * Creates a new replicator from an already-open C4Socket. This is for use by listeners
-     * that accept incoming connections, wrap them by calling `c4socket_fromNative()`, then
+     * that accept incoming connections.  Wrap them by calling `c4socket_fromNative()`, then
      * start a passive replication to service them.
      *
      * @param db                The local database.
      * @param openSocket        An already-created C4Socket.
-     * @param push
-     * @param pull
-     * @param replicatorContext
-     * @param options
+     * @param push              boolean: push replication
+     * @param pull              boolean: pull replication
+     * @param replicatorContext context object
+     * @param options           flags
      * @return The pointer of the newly created replicator
      */
     static native long createWithSocket(
@@ -289,7 +308,8 @@ public class C4Replicator {
         int push,
         int pull,
         Object replicatorContext,
-        byte[] options) throws LiteCoreException;
+        byte[] options)
+        throws LiteCoreException;
 
     /**
      * Frees a replicator reference. If the replicator is running it will stop.
