@@ -35,10 +35,10 @@ import com.couchbase.lite.internal.support.Log;
  * There are three bits of state to protect in the class:
  * <ol>
  * <li/> Messages sent to it from native code:  This object proxies those messages out to
- * various listeners.  Until a replicator object is remove from the REVERSE_LOOKUP_TABLE
+ * various listeners.  Until a replicator object is removed from the REVERSE_LOOKUP_TABLE
  * forwarding such a message should always work (there is no dependence on the other two states)
  * <li/> Calls to the native object:  These should work as long as the `handle` is non-zero.
- * This object must be careful never to forward a call to a native object once it has been freed.
+ * This object must be careful never to forward a call to a native object once that object has been freed.
  * <li/> Running state: if the underlying native replicator is running there is no need to start it again.
  * Likewise, if it is stopped, there is no need to start it again.  Running state affects only
  * these two calls: it has no direct affect on either of the other two states.
@@ -158,11 +158,11 @@ public class C4Replicator {
 
     C4Replicator(
         long db,
-        String schema,
-        String host,
+        @Nullable String schema,
+        @Nullable String host,
         int port,
-        String path,
-        String remoteDatabaseName,
+        @Nullable String path,
+        @Nullable String remoteDatabaseName,
         long otherLocalDB,
         int push,
         int pull,
@@ -287,7 +287,7 @@ public class C4Replicator {
     /**
      * Creates a new replicator.
      */
-    static native long create(
+    private static native long create(
         long db,
         String schema,
         String host,
@@ -317,7 +317,7 @@ public class C4Replicator {
      * @param options           flags
      * @return The pointer of the newly created replicator
      */
-    static native long createWithSocket(
+    private static native long createWithSocket(
         long db,
         long openSocket,
         int push,
@@ -329,37 +329,37 @@ public class C4Replicator {
     /**
      * Frees a replicator reference. If the replicator is running it will stop.
      */
-    static native void free(long replicator, Object replicatorContext, Object socketFactoryContext);
+    private static native void free(long replicator, Object replicatorContext, Object socketFactoryContext);
 
     /**
      * Tells a replicator to start.
      */
-    static native void start(long replicator);
+    private static native void start(long replicator);
 
     /**
      * Tells a replicator to stop.
      */
-    static native void stop(long replicator);
+    private static native void stop(long replicator);
 
     /**
      * Returns the current state of a replicator.
      */
-    static native C4ReplicatorStatus getStatus(long replicator);
+    private static native C4ReplicatorStatus getStatus(long replicator);
 
     /**
      * Returns the HTTP response headers as a Fleece-encoded dictionary.
      */
-    static native byte[] getResponseHeaders(long replicator);
+    private static native byte[] getResponseHeaders(long replicator);
 
     /**
      * Returns true if this is a network error that may be transient,
      * i.e. the client should retry after a delay.
      */
-    static native boolean mayBeTransient(int domain, int code, int info);
+    private static native boolean mayBeTransient(int domain, int code, int info);
 
     /**
      * Returns true if this error might go away when the network environment changes,
      * i.e. the client should retry after notification of a network status change.
      */
-    static native boolean mayBeNetworkDependent(int domain, int code, int info);
+    private static native boolean mayBeNetworkDependent(int domain, int code, int info);
 }
