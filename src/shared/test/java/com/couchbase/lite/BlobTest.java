@@ -31,11 +31,13 @@ import org.junit.rules.TemporaryFolder;
 
 import com.couchbase.lite.utils.IOUtils;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 
 // There are other blob tests over in DocumentTest
 public class BlobTest extends BaseTest {
@@ -227,14 +229,11 @@ public class BlobTest extends BaseTest {
         byte[] content = blob.getContent();
         assertTrue(Arrays.equals(content, bytes));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(null, url);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(null, url));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(contentType, (URL) null);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(contentType, (URL) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(contentType, new URL("http://java.sun.com"));
+        assertThrows(IllegalArgumentException.class, () -> new Blob(contentType, new URL("http://java.sun.com")));
     }
 
     @Test
@@ -304,9 +303,10 @@ public class BlobTest extends BaseTest {
             }
             byte[] readBytes = out.toByteArray();
             assertTrue(Arrays.equals(bytes, readBytes));
-        } finally {
-            if (out != null) try { out.close(); } catch (Exception e) { }
-            if (in != null) try { in.close(); } catch (Exception e) { }
+        }
+        finally {
+            if (out != null) { try { out.close(); } catch (Exception e) { } }
+            if (in != null) { try { in.close(); } catch (Exception e) { } }
         }
     }
 
@@ -316,26 +316,17 @@ public class BlobTest extends BaseTest {
         String contentType = "image/png";
 
         InputStream is = getAsset("attachment.png");
-        try {
-            bytes = IOUtils.toByteArray(is);
-        }
-        finally {
-            is.close();
-        }
+        try { bytes = IOUtils.toByteArray(is); }
+        finally { is.close(); }
 
-        thrown.expect(IllegalArgumentException.class);
-        Blob blob = new Blob(null, bytes);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(null, bytes));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(contentType, (byte[]) null);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(contentType, (byte[]) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(null, is);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(null, is));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(contentType, (InputStream) null);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(contentType, (InputStream) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        blob = new Blob(contentType, (InputStream) null);
+        assertThrows(IllegalArgumentException.class, () -> new Blob(contentType, (InputStream) null));
     }
 }

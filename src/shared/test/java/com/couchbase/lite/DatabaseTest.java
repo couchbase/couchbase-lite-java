@@ -27,12 +27,11 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.FileUtils;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1336,11 +1335,9 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testIndexBuilderEmptyArgs() {
-        thrown.expect(IllegalArgumentException.class);
-        IndexBuilder.fullTextIndex((FullTextIndexItem[]) null);
+        assertThrows(IllegalArgumentException.class, () -> IndexBuilder.fullTextIndex((FullTextIndexItem[]) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        IndexBuilder.valueIndex((ValueIndexItem[]) null);
+        assertThrows(IllegalArgumentException.class, () -> IndexBuilder.valueIndex((ValueIndexItem[]) null));
     }
 
     @Test

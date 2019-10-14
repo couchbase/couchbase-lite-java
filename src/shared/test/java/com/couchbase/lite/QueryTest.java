@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1036,17 +1037,13 @@ public class QueryTest extends BaseTest {
     public void testArrayFunctionsEmptyArgs() throws Exception {
         Expression exprArray = Expression.property("array");
 
-        thrown.expect(IllegalArgumentException.class);
-        Expression expression1 = ArrayFunction.contains(
-            null,
-            Expression.string("650-123-0001")
-        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> ArrayFunction.contains(null, Expression.string("650-123-0001")));
 
-        thrown.expect(IllegalArgumentException.class);
-        Expression expression2 = ArrayFunction.contains(exprArray, null);
+        assertThrows(IllegalArgumentException.class, () -> ArrayFunction.contains(exprArray, null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Expression expression3 = ArrayFunction.length(null);
+        assertThrows(IllegalArgumentException.class, () -> ArrayFunction.length(null));
     }
 
     @Test
@@ -1600,23 +1597,29 @@ public class QueryTest extends BaseTest {
     public void testJoinWithEmptyArgs() {
         DataSource mainDS = DataSource.database(this.db).as("main");
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).join((Join[]) null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).join((Join[]) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).where(null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).where(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).groupBy((Expression[]) null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).groupBy((Expression[]) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).orderBy((Ordering[]) null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).orderBy((Ordering[]) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).limit(null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).limit(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        QueryBuilder.select(SelectResult.all()).from(mainDS).limit(null, null);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> QueryBuilder.select(SelectResult.all()).from(mainDS).limit(null, null));
     }
 
     //https://github.com/couchbase/couchbase-lite-android/issues/1785
@@ -2689,128 +2692,89 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testAggregateFunctionEmptyArgs() {
-        thrown.expect(IllegalArgumentException.class);
-        Function.avg(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.avg(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.count(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.count(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.min(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.min(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.max(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.max(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.sum(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.sum(null));
     }
 
     @Test
     public void testMathFunctionEmptyArgs() {
-        thrown.expect(IllegalArgumentException.class);
-        Function.abs(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.abs(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.acos(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.acos(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.asin(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.asin(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.atan(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.atan(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.atan2(null, Expression.doubleValue(0.7));
+        assertThrows(IllegalArgumentException.class, () -> Function.atan2(null, Expression.doubleValue(0.7)));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.atan2(Expression.doubleValue(0.7), null);
+        assertThrows(IllegalArgumentException.class, () -> Function.atan2(Expression.doubleValue(0.7), null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.ceil(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.ceil(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.cos(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.cos(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.degrees(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.degrees(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.exp(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.exp(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.floor(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.floor(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.ln(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.ln(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.log(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.log(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.power(null, Expression.intValue(2));
+        assertThrows(IllegalArgumentException.class, () -> Function.power(null, Expression.intValue(2)));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.power(Expression.intValue(2), null);
+        assertThrows(IllegalArgumentException.class, () -> Function.power(Expression.intValue(2), null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.radians(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.radians(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.round(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.round(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.round(null, Expression.intValue(2));
+        assertThrows(IllegalArgumentException.class, () -> Function.round(null, Expression.intValue(2)));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.round(Expression.doubleValue(0.567), null);
+        assertThrows(IllegalArgumentException.class, () -> Function.round(Expression.doubleValue(0.567), null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.sign(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.sign(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.sin(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.sin(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.sqrt(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.sqrt(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.tan(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.tan(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.trunc(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.trunc(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.trunc(null, Expression.intValue(1));
+        assertThrows(IllegalArgumentException.class, () -> Function.trunc(null, Expression.intValue(1)));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.trunc(Expression.doubleValue(79.15), null);
+        assertThrows(IllegalArgumentException.class, () -> Function.trunc(Expression.doubleValue(79.15), null));
     }
 
     @Test
     public void testStringFunctionEmptyArgs() {
-        thrown.expect(IllegalArgumentException.class);
-        Function.contains(null, Expression.string("someSubString"));
+        assertThrows(IllegalArgumentException.class, () -> Function.contains(null, Expression.string("someSubString")));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.contains(Expression.string("somestring"), null);
+        assertThrows(IllegalArgumentException.class, () -> Function.contains(Expression.string("somestring"), null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.length(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.length(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.lower(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.lower(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.ltrim(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.ltrim(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.rtrim(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.rtrim(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.trim(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.trim(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        Function.upper(null);
+        assertThrows(IllegalArgumentException.class, () -> Function.upper(null));
     }
 
     @Test
