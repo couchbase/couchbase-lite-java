@@ -35,11 +35,12 @@ import com.couchbase.lite.internal.support.Log;
  * a separate file.
  */
 public final class FileLogger implements Logger {
+    @Nullable
     private LogFileConfiguration config;
-    private LogLevel logLevel = LogLevel.WARNING;
+    private LogLevel logLevel;
 
     // The singleton instance is available from Database.log.getFile()
-    FileLogger() { }
+    FileLogger() { reset(); }
 
     @Override
     public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
@@ -61,7 +62,7 @@ public final class FileLogger implements Logger {
      */
     public void setLevel(@NonNull LogLevel level) {
         if (config == null) {
-            throw new IllegalStateException("Cannot set the file logger's level before setting its configuration");
+            throw new IllegalStateException("Cannot set the FileLogger's level while it has no configuration");
         }
 
         if (logLevel == level) { return; }
@@ -71,25 +72,31 @@ public final class FileLogger implements Logger {
     }
 
     /**
-     * Gets the configuration currently in use on the file logger.
-     * Note that once it is set, it can no longer be modified and doing so
-     * will throw an exception
+     * Gets the configuration currently in use by the file logger.
+     * Note that once a configuration has been installed in the logger,
+     * that configuration can no longer be modified.
+     * An attempt to modify the configuration returned by this method will cause an exception.
      *
      * @return The configuration currently in use
      */
     public LogFileConfiguration getConfig() { return config; }
 
     /**
-     * Sets the configuration currently to use on the file logger.
-     * Note that once it is set, it can no longer be modified and doing so
-     * will throw an exception
+     * Sets the configuration for use by the file logger.
      *
-     * @param config The configuration to use
+     * @param newConfig The configuration to use
      */
-    public void setConfig(@Nullable LogFileConfiguration config) {
-        if (this.config != null) { throw new IllegalStateException("Attempt to reset the file logger config"); }
+    public void setConfig(@Nullable LogFileConfiguration newConfig) {
+        if (newConfig == null) {
+            Log.w(
+                LogDomain.DATABASE,
+                "Database.log.getFile().getConfig() is now null: logging is disabled.  "
+                    + "Log files required for product support are not being generated.");
+            config = null;
+            return;
+        }
 
-        if (config == null) { return; }
+        config = newConfig.readOnlyCopy();
 
         final String logDirPath = config.getDirectory();
 
@@ -102,12 +109,11 @@ public final class FileLogger implements Logger {
             if (!logDir.isDirectory()) { errMsg = logDir.getAbsolutePath() + " is not a directory"; }
             else if (!logDir.canWrite()) { errMsg = logDir.getAbsolutePath() + " is not writable"; }
         }
+
         if (errMsg != null) {
             Log.w(LogDomain.DATABASE, errMsg);
             return;
         }
-
-        this.config = config.readOnlyCopy();
 
         C4Log.writeToBinaryFile(
             logDirPath,
@@ -120,8 +126,8 @@ public final class FileLogger implements Logger {
 
     @VisibleForTesting
     void reset() {
-        logLevel = LogLevel.WARNING;
         config = null;
+        logLevel = LogLevel.WARNING;
     }
 }
 
