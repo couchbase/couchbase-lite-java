@@ -18,6 +18,7 @@ package com.couchbase.lite.internal;
 import android.support.annotation.NonNull;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 
@@ -28,13 +29,20 @@ public interface ExecutionService {
      * They simply get to say that they are done with it
      */
     interface CloseableExecutor extends Executor {
+        class ExecutorClosedExeception extends RejectedExecutionException {
+            public ExecutorClosedExeception() {}
+            public ExecutorClosedExeception(String msg) { super(msg); }
+            public ExecutorClosedExeception(String msg, Throwable err) { super(msg, err); }
+            public ExecutorClosedExeception(Throwable err) { super(err); }
+        }
+
         /**
          * The executor will accept no more tasks.
          * It will complete executing all currently enqueued tasks, if possible.
          * This method will return when all tasks have run or when the timeout elapses, whichever comes first.
          *
          * @param timeout time to wait for shutdown
-         * @param unit time unit for shutdown wait
+         * @param unit    time unit for shutdown wait
          * @return true if all scheduled tasks have been completed
          */
         boolean stop(long timeout, @NonNull TimeUnit unit);
