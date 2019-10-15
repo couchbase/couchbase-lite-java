@@ -18,10 +18,8 @@
 package com.couchbase.lite;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -30,13 +28,11 @@ import static org.junit.Assert.assertTrue;
 
 
 public class LiveQueryTest extends BaseTest {
-    private Query query;
-    private ListenerToken token;
-    private QueryChangeListener listener;
-    private CountDownLatch latch1;
-    private CountDownLatch latch2;
-    private CountDownLatch latch3;
-    private AtomicInteger value;
+    private static final String KEY = "number";
+
+    private volatile Query globalQuery;
+    private volatile CountDownLatch globalLatch;
+    private volatile ListenerToken globalToken;
 
     // Null query is illegal
     @Test(expected = IllegalArgumentException.class)
@@ -45,62 +41,67 @@ public class LiveQueryTest extends BaseTest {
     // Creating a document that a query can see should cause an update
     @Test
     public void testBasicLiveQuery() throws CouchbaseLiteException, InterruptedException {
-        query = QueryBuilder
+        final Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
-            .orderBy(Ordering.property("number1").ascending());
+            .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
+            .orderBy(Ordering.property(KEY).ascending());
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = query.addChangeListener(executor, change -> {
-            latch.countDown();
-        });
+
+        ListenerToken token = query.addChangeListener(executor, change -> latch.countDown());
 
         createDocNumbered(10);
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
 
-        query.removeChangeListener(token);
+        try { assertTrue(latch.await(10, TimeUnit.SECONDS)); }
+        finally { query.removeChangeListener(token); }
     }
 
     // All listeners should hear an update
     @Test
     public void testLiveQueryWith2Listeners() throws CouchbaseLiteException, InterruptedException {
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
-            .orderBy(Ordering.property("number1").ascending());
+            .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
+            .orderBy(Ordering.property(KEY).ascending());
 
         final CountDownLatch latch = new CountDownLatch(2);
-        ListenerToken token1 = query.addChangeListener(executor, change -> {
-            latch.countDown();
-        });
-        ListenerToken token2 = query.addChangeListener(executor, change -> {
-            latch.countDown();
-        });
+
+        ListenerToken token1 = query.addChangeListener(executor, change -> latch.countDown());
+        ListenerToken token2 = query.addChangeListener(executor, change -> latch.countDown());
 
         createDocNumbered(11);
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
 
-        query.removeChangeListener(token1);
-        query.removeChangeListener(token2);
+        try { assertTrue(latch.await(10, TimeUnit.SECONDS)); }
+        finally {
+            query.removeChangeListener(token1);
+            query.removeChangeListener(token2);
+        }
     }
 
     @Test
     public void testLiveQueryDelay() throws CouchbaseLiteException, InterruptedException {
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1").greaterThanOrEqualTo(Expression.intValue(0)))
-            .orderBy(Ordering.property("number1").ascending());
+            .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
+            .orderBy(Ordering.property(KEY).ascending());
 
         // There should be two callbacks:
         //  - immediately on registration
         //  - after LIVE_QUERY_UPDATE_INTERVAL_MS when the change gets noticed.
-        latch1 = new CountDownLatch(2);
-        ListenerToken token = query.addChangeListener(executor, change -> {
-            latch1.countDown();
-        });
+        final long[] times = new long[] {1, System.currentTimeMillis(), 0, 0};
+        ListenerToken token = query.addChangeListener(
+            executor,
+            change -> {
+                int n = (int) ++times[0];
+                if (n >= times.length) { return; }
+                times[n] = System.currentTimeMillis();
+            });
+
+        // give it a few ms to deliver the first notification
+        Thread.sleep(50);
 
         createDocNumbered(12);
         createDocNumbered(13);
@@ -108,117 +109,107 @@ public class LiveQueryTest extends BaseTest {
         createDocNumbered(15);
         createDocNumbered(16);
 
-        latch1.await(5, TimeUnit.SECONDS);
-        query.removeChangeListener(token);
+        try {
+            Thread.sleep(4 * LiveQuery.LIVE_QUERY_UPDATE_INTERVAL_MS);
+
+            assertEquals(3, times[0]);
+            assertTrue(times[2] - times[1] < 200);
+            assertTrue(times[3] - times[1] > 200);
+        }
+        finally {
+            query.removeChangeListener(token);
+        }
     }
 
     // Changing query parameters should cause an update.
     @Test
     public void testChangeParameters() throws CouchbaseLiteException, InterruptedException {
         createDocNumbered(1);
+        createDocNumbered(2);
 
-        query = QueryBuilder
+        Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
-            .where(Expression.property("number1")
-                .greaterThanOrEqualTo(Expression.parameter("VALUE")))
-            .orderBy(Ordering.property("number1").ascending());
+            .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.parameter("VALUE")))
+            .orderBy(Ordering.property(KEY).ascending());
+
+        globalLatch = new CountDownLatch(1);
+
         Parameters params = new Parameters();
         params.setInt("VALUE", 2);
-
-        latch1 = new CountDownLatch(1);
-        ListenerToken token = query.addChangeListener(executor, change -> {
-            latch1.countDown();
-        });
-
-        createDocNumbered(2);
-        assertTrue(latch1.await(10, TimeUnit.SECONDS));
-
-        params = new Parameters();
-        params.setInt("VALUE", 1);
-
-        latch1 = new CountDownLatch(1);
         query.setParameters(params);
-        assertTrue(latch1.await(10, TimeUnit.SECONDS));
 
-        query.removeChangeListener(token);
+        ListenerToken token = query.addChangeListener(executor, change -> globalLatch.countDown());
+        try {
+            assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
+
+            globalLatch = new CountDownLatch(1);
+
+            params = new Parameters();
+            params.setInt("VALUE", 1);
+            query.setParameters(params);
+
+            assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
+        }
+        finally {
+            query.removeChangeListener(token);
+        }
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1606
     @Test
     public void testRemovingLiveQuery() throws CouchbaseLiteException, InterruptedException {
-        latch1 = new CountDownLatch(1);
-        latch2 = new CountDownLatch(1);
-        latch3 = new CountDownLatch(1);
-        value = new AtomicInteger(1);
+        int n = 1;
+        newQuery(n);
+        try {
+            // creates doc1 -> first query match
+            createDocNumbered(n++);
+            assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
 
-        // setup initial
-        query = generateQuery();
-        listener = generateQueryChangeListener();
-        token = query.addChangeListener(executor, listener);
+            // create doc2 -> update query match
+            createDocNumbered(n++);
+            assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
 
-        // creates doc1 -> first query match
-        createDocNumbered(1);
-        assertTrue(latch1.await(10, TimeUnit.SECONDS));
-
-        // create doc2 -> update query match
-        createDocNumbered(2);
-        assertTrue(latch2.await(10, TimeUnit.SECONDS));
-
-        // create doc3 -> update query match
-        createDocNumbered(3);
-        assertTrue(latch3.await(10, TimeUnit.SECONDS));
-
-        query.removeChangeListener(token);
+            // create doc3 -> update query match
+            createDocNumbered(n);
+            assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
+        }
+        finally {
+            globalQuery.removeChangeListener(globalToken);
+        }
     }
 
     // create test docs
     private void createDocNumbered(int i) throws CouchbaseLiteException {
-        String docID = String.format(Locale.ENGLISH, "doc%d", i);
+        String docID = "doc-" + i;
         MutableDocument doc = new MutableDocument(docID);
-        doc.setValue("number1", i);
+        doc.setValue(KEY, i);
         save(doc);
     }
 
-    // generate query
-    // NOTE: value variable is updated in QueryChangeListener.
-    private Query generateQuery() {
-        return QueryBuilder
-            .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
-            .where(Expression.property("number1")
-                .greaterThanOrEqualTo(Expression.intValue(value.intValue())))
-            .orderBy(Ordering.property("number1").ascending());
+    private void nextQuery(int n, QueryChange change) {
+        ResultSet rs = change.getResults();
+        List<Result> results = rs.allResults();
+        if (results.size() <= 0) { return; }
+
+        globalQuery.removeChangeListener(globalToken);
+
+        CountDownLatch latch = globalLatch;
+
+        if (n < 3) { newQuery(n); }
+
+        latch.countDown();
     }
 
-    private QueryChangeListener generateQueryChangeListener() {
-        return change -> {
-            ResultSet rs = change.getResults();
-            List<Result> list = rs.allResults();
-            if (list.size() <= 0) { return; }
+    private void newQuery(int n) {
+        globalQuery = QueryBuilder
+            .select(SelectResult.expression(Meta.id))
+            .from(DataSource.database(db))
+            .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(n)))
+            .orderBy(Ordering.property(KEY).ascending());
 
-            query.removeChangeListener(token);
+        globalLatch = new CountDownLatch(1);
 
-            int val = value.getAndIncrement();
-            if (val >= 3) {
-                latch3.countDown();
-                return;
-            }
-
-            // update query and listener.
-            query = generateQuery();
-            listener = generateQueryChangeListener();
-            token = query.addChangeListener(executor, listener);
-
-            // notify to main thread to continue
-            switch (val) {
-                case 1:
-                    latch1.countDown();
-                    break;
-                case 2:
-                    latch2.countDown();
-                    break;
-            }
-        };
+        globalToken = globalQuery.addChangeListener(executor, ch -> nextQuery(n + 1, ch));
     }
 }

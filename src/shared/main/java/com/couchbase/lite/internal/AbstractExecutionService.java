@@ -23,8 +23,8 @@ import android.support.annotation.VisibleForTesting;
 import java.util.ArrayDeque;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+
 
 /**
  * Base ExecutionService that provides the default implementation of serial and concurrent
@@ -40,7 +40,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
         @Override
         public synchronized void execute(@NonNull Runnable task) {
-            if (stopLatch != null) { throw new RejectedExecutionException("Executor has been stopped"); }
+            if (stopLatch != null) { throw new ExecutorClosedExeception("Executor has been stopped"); }
 
             running++;
 
@@ -98,8 +98,9 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
         private SerialExecutor(Executor executor) { this.executor = executor; }
 
+        @Override
         public synchronized void execute(@NonNull Runnable task) {
-            if (stopLatch != null) { throw new RejectedExecutionException("Executor has been stopped"); }
+            if (stopLatch != null) { throw new ExecutorClosedExeception("Executor has been stopped"); }
 
             tasks.offer(() -> {
                 try { task.run(); }

@@ -49,7 +49,7 @@ Java_com_couchbase_lite_internal_fleece_FLArray_count(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLArray_get(JNIEnv *env, jclass clazz, jlong jarray,
-                                               jlong jindex) {
+                                                    jlong jindex) {
     return (jlong) FLArray_Get((FLArray) jarray, (uint32_t) jindex);
 }
 
@@ -73,7 +73,7 @@ Java_com_couchbase_lite_internal_fleece_FLArrayIterator_init(JNIEnv *env, jclass
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_fleece_FLArrayIterator_begin(JNIEnv *env, jclass clazz, jlong jarray,
-                                                         jlong jitr) {
+                                                              jlong jitr) {
     FLArrayIterator_Begin((FLArray) jarray, (FLArrayIterator *) jitr);
 }
 
@@ -94,7 +94,7 @@ Java_com_couchbase_lite_internal_fleece_FLArrayIterator_getValue(JNIEnv *env, jc
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLArrayIterator_getValueAt(JNIEnv *env, jclass clazz, jlong jitr,
-                                                              jint offset) {
+                                                                   jint offset) {
     return (jlong) FLArrayIterator_GetValueAt((FLArrayIterator *) jitr, (uint32_t) offset);
 }
 
@@ -139,9 +139,9 @@ Java_com_couchbase_lite_internal_fleece_FLDict_count(JNIEnv *env, jclass clazz, 
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_fleece_FLDict_get(JNIEnv *env,
-                                              jclass clazz,
-                                              jlong jdict,
-                                              jbyteArray jkeystring) {
+                                                   jclass clazz,
+                                                   jlong jdict,
+                                                   jbyteArray jkeystring) {
     jbyteArraySlice key(env, jkeystring, true);
     return (jlong) FLDict_Get((FLDict) jdict, (C4Slice) key);
 }
@@ -167,7 +167,7 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_init(JNIEnv *env, jclass 
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_fleece_FLDictIterator_begin(JNIEnv *env, jclass clazz, jlong jdict,
-                                                        jlong jitr) {
+                                                             jlong jitr) {
     FLDictIterator_Begin((FLDict) jdict, (FLDictIterator *) jitr);
 }
 
@@ -182,6 +182,7 @@ Java_com_couchbase_lite_internal_fleece_FLDictIterator_getKeyString(JNIEnv *env,
     // will fail with a pointer exception.  GetValue returns null instead.
     if (!FLDictIterator_GetValue((FLDictIterator *) jitr))
         return NULL;
+
     FLString s = FLDictIterator_GetKeyString((FLDictIterator *) jitr);
     return toJString(env, s);
 }
@@ -420,7 +421,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_toString(JNIEnv *env, jclass cla
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_toJSON(JNIEnv *env, jclass clazz, jlong jvalue) {
     FLStringResult str = FLValue_ToJSON((FLValue) jvalue);
-    jstring res = toJString(env,str);
+    jstring res = toJString(env, str);
     FLSliceResult_Free(str);
     return res;
 }
@@ -488,7 +489,7 @@ Java_com_couchbase_lite_internal_fleece_FLSliceResult_free(JNIEnv *env, jclass c
 JNIEXPORT jbyteArray JNICALL
 Java_com_couchbase_lite_internal_fleece_FLSliceResult_getBuf(JNIEnv *env, jclass clazz, jlong jslice) {
     FLSliceResult *res = (FLSliceResult *) jslice;
-    C4Slice s = { res->buf, res->size };
+    C4Slice s = {res->buf, res->size};
     return toJByteArray(env, s);
 }
 

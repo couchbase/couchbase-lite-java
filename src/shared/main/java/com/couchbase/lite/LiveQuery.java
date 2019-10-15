@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +39,9 @@ final class LiveQuery implements DatabaseChangeListener {
     // static variables
     //---------------------------------------------
     private static final LogDomain DOMAIN = LogDomain.QUERY;
-    private static final long LIVE_QUERY_UPDATE_INTERVAL_MS = 200; // 0.2sec (200ms)
+
+    @VisibleForTesting
+    static final long LIVE_QUERY_UPDATE_INTERVAL_MS = 200; // 0.2sec (200ms)
 
     private enum State {STOPPED, STARTED, SCHEDULED}
 

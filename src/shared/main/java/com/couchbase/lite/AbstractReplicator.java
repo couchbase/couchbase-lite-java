@@ -192,7 +192,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             if (repl != replicator.c4repl) { return; }
 
             try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
-            catch (RejectedExecutionException ignored) { }
+            catch (RejectedExecutionException e) {
+                throw new IllegalStateException("Execution rejected in status change notification: " + dispatcher, e);
+            }
         }
 
         @Override
@@ -208,7 +210,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             if (repl != replicator.c4repl) { return; }
 
             try { dispatcher.execute(() -> replicator.documentEnded(pushing, documents)); }
-            catch (RejectedExecutionException ignored) { }
+            catch (RejectedExecutionException e) {
+                throw new IllegalStateException("Execution rejected document end notification: " + dispatcher, e);
+            }
         }
     }
 
@@ -649,7 +653,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         if ((pendingNotifications != null) && (pendingNotifications.size() > 0)) {
             for (C4ReplicatorStatus status : pendingNotifications) {
                 try { dispatcher.execute(() -> c4StatusChanged(status)); }
-                catch (RejectedExecutionException ignored) { }
+                catch (RejectedExecutionException e) {
+                    throw new IllegalStateException(
+                        "Execution rejected delivering pending notifacations: " + dispatcher,
+                        e);
+                }
             }
         }
     }
