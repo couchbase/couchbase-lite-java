@@ -23,6 +23,7 @@ import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -400,10 +401,17 @@ public class LogTest extends BaseTest {
 
         final FileLogger fileLogger = Database.log.getFile();
         fileLogger.setConfig(config);
-        fileLogger.setConfig(null);
-        fileLogger.setConfig(null);
+        assertEquals(fileLogger.getConfig(), config);
         fileLogger.setConfig(config);
+        assertEquals(fileLogger.getConfig(), config);
+        fileLogger.setConfig(null);
+        assertNull(fileLogger.getConfig());
+        fileLogger.setConfig(null);
+        assertNull(fileLogger.getConfig());
+        fileLogger.setConfig(config);
+        assertEquals(fileLogger.getConfig(), config);
         fileLogger.setConfig(new LogFileConfiguration(tempDirPath + "/foo"));
+        assertEquals(fileLogger.getConfig(), new LogFileConfiguration(tempDirPath + "/foo"));
     }
 
     @Test

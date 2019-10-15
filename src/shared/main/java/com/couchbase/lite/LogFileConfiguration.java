@@ -2,6 +2,10 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.util.Objects;
+
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * A class that describes the file configuration for the {@link FileLogger} class.
@@ -16,11 +20,9 @@ public final class LogFileConfiguration {
     private final boolean readonly;
 
     private final String directory;
+    private boolean usePlaintext;
     private int maxRotateCount = 1;
     private long maxSize = 1024 * 500;
-
-
-    private boolean usePlaintext;
 
     //---------------------------------------------
     // Constructors
@@ -30,9 +32,9 @@ public final class LogFileConfiguration {
      * Constructs a file configuration object based on another one so
      * that it may be modified
      *
-     * @param other The other configuration to copy settings from
+     * @param config The other configuration to copy settings from
      */
-    public LogFileConfiguration(@NonNull LogFileConfiguration other) { this(other, false); }
+    public LogFileConfiguration(@NonNull LogFileConfiguration config) { this(config, false); }
 
     /**
      * Constructs a file configuration object based on another one but changing
@@ -56,7 +58,7 @@ public final class LogFileConfiguration {
      * @param directory The directory that the logs will be written to
      */
     public LogFileConfiguration(@NonNull String directory) {
-        if (directory == null) { throw new IllegalArgumentException("directory cannot be null"); }
+        Preconditions.checkArgNotNull(directory, "directory");
 
         this.directory = directory;
         readonly = false;
@@ -66,15 +68,15 @@ public final class LogFileConfiguration {
      * Constructs a file configuration object based on another one so
      * that it may be modified
      *
-     * @param other The other configuration to copy settings from
+     * @param config The other configuration to copy settings from
      */
-    private LogFileConfiguration(@NonNull LogFileConfiguration other, boolean readonly) {
-        if (other == null) { throw new IllegalArgumentException("other cannot be null"); }
+    private LogFileConfiguration(@NonNull LogFileConfiguration config, boolean readonly) {
+        Preconditions.checkArgNotNull(config, "config");
 
-        directory = other.directory;
-        maxRotateCount = other.maxRotateCount;
-        maxSize = other.maxSize;
-        usePlaintext = other.usePlaintext;
+        directory = config.directory;
+        maxRotateCount = config.maxRotateCount;
+        maxSize = config.maxSize;
+        usePlaintext = config.usePlaintext;
 
         this.readonly = readonly;
     }
@@ -176,4 +178,18 @@ public final class LogFileConfiguration {
     //---------------------------------------------
 
     LogFileConfiguration readOnlyCopy() { return new LogFileConfiguration(this, true); }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (!(o instanceof LogFileConfiguration)) { return false; }
+        LogFileConfiguration that = (LogFileConfiguration) o;
+        return (maxRotateCount == that.maxRotateCount)
+            && directory.equals(that.directory)
+            && (maxSize == that.maxSize)
+            && (usePlaintext == that.usePlaintext);
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(directory); }
 }
