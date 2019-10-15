@@ -29,11 +29,6 @@ public class PreInitTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetContectBeforeInit() {
-        CouchbaseLite.getContext();
-    }
-
-    @Test(expected = IllegalStateException.class)
     public void testGetTmpDirectoryBeforeInit() {
         CouchbaseLite.getTmpDirectory("fail");
     }

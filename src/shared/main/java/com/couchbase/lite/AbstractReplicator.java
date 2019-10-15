@@ -655,7 +655,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 try { dispatcher.execute(() -> c4StatusChanged(status)); }
                 catch (RejectedExecutionException e) {
                     throw new IllegalStateException(
-                        "Execution rejected delivering pending notifacations: " + dispatcher,
+                        "Execution rejected delivering pending notifications: " + dispatcher,
                         e);
                 }
             }
