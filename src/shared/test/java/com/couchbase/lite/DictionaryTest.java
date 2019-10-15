@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -707,8 +708,7 @@ public class DictionaryTest extends BaseTest {
         assertNull(array.getArray(2));
         assertNotNull(array.getArray(3));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        assertNull(array.getArray(4));
+        assertThrows(IndexOutOfBoundsException.class, () -> assertNull(array.getArray(4)));
 
         Array nestedArray = array.getArray(3);
         assertTrue(nestedArray.equals(mNestedArray));

@@ -2,6 +2,10 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.util.Objects;
+
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * A class that describes the file configuration for the {@link FileLogger} class.
@@ -13,47 +17,24 @@ public final class LogFileConfiguration {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    private final boolean readonly;
+
     private final String directory;
+    private boolean usePlaintext;
     private int maxRotateCount = 1;
     private long maxSize = 1024 * 500;
-
-
-    private boolean readonly;
-    private boolean usePlaintext;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
     /**
-     * Constructs a file configuration object with the given directory
-     *
-     * @param directory The directory that the logs will be written to
-     */
-    public LogFileConfiguration(@NonNull String directory) {
-        if (directory == null) {
-            throw new IllegalArgumentException("directory cannot be null");
-        }
-
-        this.directory = directory;
-    }
-
-    /**
      * Constructs a file configuration object based on another one so
      * that it may be modified
      *
-     * @param other The other configuration to copy settings from
+     * @param config The other configuration to copy settings from
      */
-    public LogFileConfiguration(@NonNull LogFileConfiguration other) {
-        if (other == null) {
-            throw new IllegalArgumentException("other cannot be null");
-        }
-
-        directory = other.directory;
-        maxRotateCount = other.maxRotateCount;
-        maxSize = other.maxSize;
-        usePlaintext = other.usePlaintext;
-    }
+    public LogFileConfiguration(@NonNull LogFileConfiguration config) { this(config, false); }
 
     /**
      * Constructs a file configuration object based on another one but changing
@@ -64,12 +45,42 @@ public final class LogFileConfiguration {
      */
     public LogFileConfiguration(@NonNull String directory, LogFileConfiguration other) {
         this(directory);
-        if (other != null) {
-            maxRotateCount = other.maxRotateCount;
-            maxSize = other.maxSize;
-            usePlaintext = other.usePlaintext;
-        }
+
+        if (other == null) { return; }
+        maxRotateCount = other.maxRotateCount;
+        maxSize = other.maxSize;
+        usePlaintext = other.usePlaintext;
     }
+
+    /**
+     * Constructs a file configuration object with the given directory
+     *
+     * @param directory The directory that the logs will be written to
+     */
+    public LogFileConfiguration(@NonNull String directory) {
+        Preconditions.checkArgNotNull(directory, "directory");
+
+        this.directory = directory;
+        readonly = false;
+    }
+
+    /**
+     * Constructs a file configuration object based on another one so
+     * that it may be modified
+     *
+     * @param config The other configuration to copy settings from
+     */
+    private LogFileConfiguration(@NonNull LogFileConfiguration config, boolean readonly) {
+        Preconditions.checkArgNotNull(config, "config");
+
+        directory = config.directory;
+        maxRotateCount = config.maxRotateCount;
+        maxSize = config.maxSize;
+        usePlaintext = config.usePlaintext;
+
+        this.readonly = readonly;
+    }
+
 
     //---------------------------------------------
     // Setters
@@ -98,9 +109,7 @@ public final class LogFileConfiguration {
      *
      * @return The number of rotated logs that are saved
      */
-    public int getMaxRotateCount() {
-        return maxRotateCount;
-    }
+    public int getMaxRotateCount() { return maxRotateCount; }
 
     /**
      * Sets the number of rotated logs that are saved (i.e.
@@ -129,9 +138,7 @@ public final class LogFileConfiguration {
      *
      * @return The max size of the log file in bytes
      */
-    public long getMaxSize() {
-        return maxSize;
-    }
+    public long getMaxSize() { return maxSize; }
 
     /**
      * Sets the max size of the log file in bytes.  If a log file
@@ -156,9 +163,7 @@ public final class LogFileConfiguration {
      *
      * @return Whether or not CBL is logging in plaintext
      */
-    public boolean usesPlaintext() {
-        return usePlaintext;
-    }
+    public boolean usesPlaintext() { return usePlaintext; }
 
     /**
      * Gets the directory that the logs files are stored in.
@@ -166,17 +171,25 @@ public final class LogFileConfiguration {
      * @return The directory that the logs files are stored in.
      */
     @NonNull
-    public String getDirectory() {
-        return directory;
-    }
+    public String getDirectory() { return directory; }
 
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
 
-    LogFileConfiguration readOnlyCopy() {
-        final LogFileConfiguration config = new LogFileConfiguration(this);
-        config.readonly = true;
-        return config;
+    LogFileConfiguration readOnlyCopy() { return new LogFileConfiguration(this, true); }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (!(o instanceof LogFileConfiguration)) { return false; }
+        LogFileConfiguration that = (LogFileConfiguration) o;
+        return (maxRotateCount == that.maxRotateCount)
+            && directory.equals(that.directory)
+            && (maxSize == that.maxSize)
+            && (usePlaintext == that.usePlaintext);
     }
+
+    @Override
+    public int hashCode() { return Objects.hash(directory); }
 }

@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -73,17 +74,25 @@ public final class CouchbaseLite {
     }
 
     static String getDbDirectoryPath() {
-        return Paths.get("").toAbsolutePath().toString();
+        requireInit("Database directory not initialized");
+        return verifyDir(Paths.get("").toFile());
     }
 
     static String getTmpDirectory(@NonNull String name) {
-        final String root = new File(System.getProperty("java.io.tmpdir")).getAbsolutePath();
-        return getTmpDirectory(root, name);
+        requireInit("Temp directory not initialized");
+        return getTmpDirectory(new File(System.getProperty("java.io.tmpdir")).getAbsolutePath(), name);
     }
 
     static String getTmpDirectory(String root, String name) {
-        final File dir = new File(root, name);
+        requireInit("Temp directory not initialized");
+        return verifyDir(new File(root, name));
+    }
 
+    @VisibleForTesting
+    static void reset() { INITIALIZED.set(false); }
+
+    @NonNull
+    private static String verifyDir(@NonNull File dir) {
         final String path = dir.getAbsolutePath();
         if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
 

@@ -17,10 +17,6 @@
 //
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.utils.DateUtils;
-
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
@@ -31,12 +27,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.junit.Test;
+
+import com.couchbase.lite.internal.utils.DateUtils;
+
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 
 public class ArrayTest extends BaseTest {
 
@@ -86,30 +88,18 @@ public class ArrayTest extends BaseTest {
     private void populateDataByType(MutableArray array) {
         List<Object> data = arrayOfAllTypes();
         for (Object o : data) {
-            if (o instanceof Integer)
-                array.addInt(((Integer) o).intValue());
-            else if (o instanceof Long)
-                array.addLong(((Long) o).longValue());
-            else if (o instanceof Float)
-                array.addFloat(((Float) o).floatValue());
-            else if (o instanceof Double)
-                array.addDouble(((Double) o).doubleValue());
-            else if (o instanceof Number)
-                array.addNumber((Number) o);
-            else if (o instanceof String)
-                array.addString((String) o);
-            else if (o instanceof Boolean)
-                array.addBoolean(((Boolean) o).booleanValue());
-            else if (o instanceof Date)
-                array.addDate((Date) o);
-            else if (o instanceof Blob)
-                array.addBlob((Blob) o);
-            else if (o instanceof MutableDictionary)
-                array.addDictionary((MutableDictionary) o);
-            else if (o instanceof MutableArray)
-                array.addArray((MutableArray) o);
-            else
-                array.addValue(o);
+            if (o instanceof Integer) { array.addInt(((Integer) o).intValue()); }
+            else if (o instanceof Long) { array.addLong(((Long) o).longValue()); }
+            else if (o instanceof Float) { array.addFloat(((Float) o).floatValue()); }
+            else if (o instanceof Double) { array.addDouble(((Double) o).doubleValue()); }
+            else if (o instanceof Number) { array.addNumber((Number) o); }
+            else if (o instanceof String) { array.addString((String) o); }
+            else if (o instanceof Boolean) { array.addBoolean(((Boolean) o).booleanValue()); }
+            else if (o instanceof Date) { array.addDate((Date) o); }
+            else if (o instanceof Blob) { array.addBlob((Blob) o); }
+            else if (o instanceof MutableDictionary) { array.addDictionary((MutableDictionary) o); }
+            else if (o instanceof MutableArray) { array.addArray((MutableArray) o); }
+            else { array.addValue(o); }
         }
     }
 
@@ -118,7 +108,7 @@ public class ArrayTest extends BaseTest {
     }
 
     private Document save(MutableDocument mDoc, String key, MutableArray mArray, Validator<Array> validator)
-            throws CouchbaseLiteException {
+        throws CouchbaseLiteException {
         validator.validate(mArray);
         mDoc.setValue(key, mArray);
         Document doc = save(mDoc);
@@ -210,10 +200,8 @@ public class ArrayTest extends BaseTest {
             MutableArray array = new MutableArray();
 
             // Add objects of all types:
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             MutableDocument doc = new MutableDocument("doc1");
             save(doc, "array", array, new Validator<Array>() {
@@ -234,7 +222,7 @@ public class ArrayTest extends BaseTest {
                     // dictionary
                     Dictionary dict = (Dictionary) a.getValue(9);
                     MutableDictionary subdict = (dict instanceof MutableDictionary) ?
-                            (MutableDictionary) dict : dict.toMutable();
+                        (MutableDictionary) dict : dict.toMutable();
 
                     Map<String, Object> expectedMap = new HashMap<>();
                     expectedMap.put("name", "Scott Tiger");
@@ -243,7 +231,7 @@ public class ArrayTest extends BaseTest {
                     // array
                     Array array = (Array) a.getValue(10);
                     MutableArray subarray = array instanceof MutableArray ?
-                            (MutableArray) array : array.toMutable();
+                        (MutableArray) array : array.toMutable();
 
                     List<Object> expected = new ArrayList<>();
                     expected.add("a");
@@ -264,10 +252,8 @@ public class ArrayTest extends BaseTest {
     public void testAddObjectsToExistingArray() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             // Save
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -281,10 +267,8 @@ public class ArrayTest extends BaseTest {
             assertEquals(12, array.count());
 
             // Update:
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(24, array.count());
 
             save(doc, "array", array, new Validator<Array>() {
@@ -305,7 +289,7 @@ public class ArrayTest extends BaseTest {
                     // dictionary
                     Dictionary dict = (Dictionary) a.getValue(12 + 9);
                     MutableDictionary subdict = (dict instanceof MutableDictionary) ?
-                            (MutableDictionary) dict : dict.toMutable();
+                        (MutableDictionary) dict : dict.toMutable();
                     Map<String, Object> expectedMap = new HashMap<>();
                     expectedMap.put("name", "Scott Tiger");
                     assertEquals(expectedMap, subdict.toMap());
@@ -313,7 +297,7 @@ public class ArrayTest extends BaseTest {
                     // array
                     Array array = (Array) a.getValue(12 + 10);
                     MutableArray subarray = array instanceof MutableArray ?
-                            (MutableArray) array : array.toMutable();
+                        (MutableArray) array : array.toMutable();
                     List<Object> expected = new ArrayList<>();
                     expected.add("a");
                     expected.add("b");
@@ -335,12 +319,10 @@ public class ArrayTest extends BaseTest {
 
         // Prepare CBLArray with NSNull placeholders:
         MutableArray array = new MutableArray();
-        for (int i = 0; i < data.size(); i++)
-            array.addValue(null);
+        for (int i = 0; i < data.size(); i++) { array.addValue(null); }
 
         // Set object at index:
-        for (int i = 0; i < data.size(); i++)
-            array.setValue(i, data.get(i));
+        for (int i = 0; i < data.size(); i++) { array.setValue(i, data.get(i)); }
 
         MutableDocument doc = new MutableDocument("doc1");
         save(doc, "array", array, new Validator<Array>() {
@@ -361,7 +343,7 @@ public class ArrayTest extends BaseTest {
                 // dictionary
                 Dictionary dict = (Dictionary) a.getValue(9);
                 MutableDictionary subdict = (dict instanceof MutableDictionary) ?
-                        (MutableDictionary) dict : dict.toMutable();
+                    (MutableDictionary) dict : dict.toMutable();
                 Map<String, Object> expectedMap = new HashMap<>();
                 expectedMap.put("name", "Scott Tiger");
                 assertEquals(expectedMap, subdict.toMap());
@@ -369,7 +351,7 @@ public class ArrayTest extends BaseTest {
                 // array
                 Array array = (Array) a.getValue(10);
                 MutableArray subarray = array instanceof MutableArray ?
-                        (MutableArray) array : array.toMutable();
+                    (MutableArray) array : array.toMutable();
                 List<Object> expected = new ArrayList<>();
                 expected.add("a");
                 expected.add("b");
@@ -388,10 +370,8 @@ public class ArrayTest extends BaseTest {
     public void testSetObjectToExistingArray() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             // Save
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -404,8 +384,7 @@ public class ArrayTest extends BaseTest {
             assertEquals(data.size(), gotArray.count());
 
             // reverse the array
-            for (int j = 0; j < data.size(); j++)
-                gotArray.setValue(j, data.get(data.size() - j - 1));
+            for (int j = 0; j < data.size(); j++) { gotArray.setValue(j, data.get(data.size() - j - 1)); }
 
             save(doc, "array", gotArray, new Validator<Array>() {
                 @Override
@@ -425,7 +404,7 @@ public class ArrayTest extends BaseTest {
                     // dictionary
                     Dictionary dict = (Dictionary) a.getValue(2);
                     MutableDictionary subdict = (dict instanceof MutableDictionary) ?
-                            (MutableDictionary) dict : dict.toMutable();
+                        (MutableDictionary) dict : dict.toMutable();
 
                     Map<String, Object> expectedMap = new HashMap<>();
                     expectedMap.put("name", "Scott Tiger");
@@ -434,7 +413,7 @@ public class ArrayTest extends BaseTest {
                     // array
                     Array array = (Array) a.getValue(1);
                     MutableArray subarray = (array instanceof MutableArray) ?
-                            (MutableArray) array : array.toMutable();
+                        (MutableArray) array : array.toMutable();
 
                     List<Object> expected = new ArrayList<>();
                     expected.add("a");
@@ -456,11 +435,9 @@ public class ArrayTest extends BaseTest {
         MutableArray array = new MutableArray();
         array.addValue("a");
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.setValue(-1, "b");
+        assertThrows(IndexOutOfBoundsException.class, () -> array.setValue(-1, "b"));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.setValue(1, "b");
+        assertThrows(IndexOutOfBoundsException.class, () -> array.setValue(1, "b"));
     }
 
     @Test
@@ -580,21 +557,17 @@ public class ArrayTest extends BaseTest {
         MutableArray array = new MutableArray();
         array.addValue("a");
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.insertValue(-1, "b");
+        assertThrows(IndexOutOfBoundsException.class, () -> array.insertValue(-1, "b"));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.insertValue(2, "b");
+        assertThrows(IndexOutOfBoundsException.class, () -> array.insertValue(2, "b"));
     }
 
     @Test
     public void testRemove() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             for (int j = array.count() - 1; j >= 0; j--) {
                 array.remove(j);
@@ -616,10 +589,8 @@ public class ArrayTest extends BaseTest {
     public void testRemoveExistingArray() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
@@ -646,29 +617,23 @@ public class ArrayTest extends BaseTest {
         MutableArray array = new MutableArray();
         array.addValue("a");
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.remove(-1);
+        assertThrows(IndexOutOfBoundsException.class, () -> array.remove(-1));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        array.remove(1);
+        assertThrows(IndexOutOfBoundsException.class, () -> array.remove(1));
     }
 
     @Test
     public void testCount() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
             save(doc, "array", array, new Validator<Array>() {
                 @Override
-                public void validate(Array a) {
-                    assertEquals(12, a.count());
-                }
+                public void validate(Array a) { assertEquals(12, a.count());}
             });
         }
     }
@@ -677,10 +642,8 @@ public class ArrayTest extends BaseTest {
     public void testGetString() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -709,10 +672,8 @@ public class ArrayTest extends BaseTest {
     public void testGetNumber() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -741,10 +702,8 @@ public class ArrayTest extends BaseTest {
     public void testGetInteger() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -774,10 +733,8 @@ public class ArrayTest extends BaseTest {
     public void testGetLong() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -806,10 +763,8 @@ public class ArrayTest extends BaseTest {
     public void testGetFloat() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -838,10 +793,8 @@ public class ArrayTest extends BaseTest {
     public void testGetDouble() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -971,10 +924,8 @@ public class ArrayTest extends BaseTest {
     public void testGetBoolean() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -1003,10 +954,8 @@ public class ArrayTest extends BaseTest {
     public void testGetDate() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -1035,10 +984,8 @@ public class ArrayTest extends BaseTest {
     public void testGetMap() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -1069,10 +1016,8 @@ public class ArrayTest extends BaseTest {
     public void testGetArray() throws CouchbaseLiteException {
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
-            if (i % 2 == 0)
-                populateData(array);
-            else
-                populateDataByType(array);
+            if (i % 2 == 0) { populateData(array); }
+            else { populateDataByType(array); }
             assertEquals(12, array.count());
 
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
@@ -1241,19 +1186,18 @@ public class ArrayTest extends BaseTest {
     // @Test
     public void testArrayEnumerationWithDataModification() throws CouchbaseLiteException {
         MutableArray array = new MutableArray();
-        for (int i = 0; i < 2; i++)
-            array.addValue(i);
+        for (int i = 0; i < 2; i++) { array.addValue(i); }
 
         Iterator<Object> itr = array.iterator();
         int count = 0;
         try {
             while (itr.hasNext()) {
                 itr.next();
-                if (count++ == 0)
-                    array.addValue(2);
+                if (count++ == 0) { array.addValue(2); }
             }
             fail("Expected ConcurrentModificationException");
-        } catch (ConcurrentModificationException e) {
+        }
+        catch (ConcurrentModificationException e) {
 
         }
         assertEquals(3, array.count());
@@ -1269,11 +1213,11 @@ public class ArrayTest extends BaseTest {
         try {
             while (itr.hasNext()) {
                 itr.next();
-                if (count++ == 0)
-                    array.addValue(3);
+                if (count++ == 0) { array.addValue(3); }
             }
             fail("Expected ConcurrentModificationException");
-        } catch (ConcurrentModificationException e) {
+        }
+        catch (ConcurrentModificationException e) {
 
         }
         assertEquals(4, array.count());
@@ -1558,8 +1502,7 @@ public class ArrayTest extends BaseTest {
         assertNull(array.getDictionary(2));
         assertNotNull(array.getDictionary(3));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        assertNull(array.getDictionary(4));
+        assertThrows(IndexOutOfBoundsException.class, () -> assertNull(array.getDictionary(4)));
 
         Dictionary nestedDict = array.getDictionary(3);
         assertTrue(nestedDict.equals(mNestedDict));
@@ -1591,8 +1534,7 @@ public class ArrayTest extends BaseTest {
         assertNull(array.getArray(2));
         assertNotNull(array.getArray(3));
 
-        thrown.expect(IndexOutOfBoundsException.class);
-        assertNull(array.getArray(4));
+        assertThrows(IndexOutOfBoundsException.class, () -> assertNull(array.getArray(4)));
 
         Array nestedArray = array.getArray(3);
         assertTrue(nestedArray.equals(mNestedArray));

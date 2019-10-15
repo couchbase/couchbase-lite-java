@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -37,8 +38,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         config.setContinuous(false);
         repl = new Replicator(config);
 
-        thrown.expect(IllegalStateException.class);
-        repl.getConfig().setContinuous(true);
+        assertThrows(IllegalStateException.class, () -> repl.getConfig().setContinuous(true));
     }
 
     @Test
@@ -87,11 +87,9 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         ListenerToken token = repl.addDocumentReplicationListener(replication -> { });
         assertNotNull(token);
 
-        thrown.expect(IllegalArgumentException.class);
-        repl.addDocumentReplicationListener(null);
+        assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        repl.addDocumentReplicationListener(executor, null);
+        assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(executor, null));
     }
 
     @Test
@@ -99,11 +97,9 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         Endpoint endpoint = getRemoteTargetEndpoint();
         Replicator repl = new Replicator(makeConfig(true, false, true, endpoint));
 
-        thrown.expect(IllegalArgumentException.class);
-        repl.addChangeListener(null);
+        assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(null));
 
-        thrown.expect(IllegalArgumentException.class);
-        repl.addChangeListener(executor, null);
+        assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(executor, null));
     }
 
     // ??? Flaky

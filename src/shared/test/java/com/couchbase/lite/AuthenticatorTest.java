@@ -2,7 +2,9 @@ package com.couchbase.lite;
 
 import org.junit.Test;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
+
 
 public class AuthenticatorTest extends BaseTest {
 
@@ -20,11 +22,9 @@ public class AuthenticatorTest extends BaseTest {
         String username = "someUsername";
         String password = "somePassword";
 
-        thrown.expect(IllegalArgumentException.class);
-        BasicAuthenticator auth = new BasicAuthenticator(null, password);
+        assertThrows(IllegalArgumentException.class, () -> new BasicAuthenticator(null, password));
 
-        thrown.expect(IllegalArgumentException.class);
-        auth = new BasicAuthenticator(username, null);
+        assertThrows(IllegalArgumentException.class, () -> new BasicAuthenticator(username, null));
     }
 
     @Test
@@ -46,8 +46,7 @@ public class AuthenticatorTest extends BaseTest {
 
     @Test
     public void testSessionAuthenticatorEmptySessionID() throws CouchbaseLiteException {
-        thrown.expect(IllegalArgumentException.class);
-        SessionAuthenticator auth = new SessionAuthenticator(null, null);
+        assertThrows(IllegalArgumentException.class, () -> new SessionAuthenticator(null, null));
     }
 
     @Test

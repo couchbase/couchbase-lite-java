@@ -1073,7 +1073,7 @@ public class ResultTest extends BaseTest {
     // Contributed by Bryan Welter:
     // https://github.com/couchbase/couchbase-lite-android-ce/issues/27
     @Test
-    public void testResultToMap() throws Exception {
+    public void testEmptyDict() throws Exception {
         String doc1 = "doc1";
         String key1 = "emptyDict";
 

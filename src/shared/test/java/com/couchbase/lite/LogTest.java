@@ -19,9 +19,11 @@ import org.junit.Test;
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
 
+import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -352,11 +354,9 @@ public class LogTest extends BaseTest {
         long maxSize = 2048;
         boolean usePlainText = true;
 
-        thrown.expect(IllegalArgumentException.class);
-        new LogFileConfiguration((String) null);
+        assertThrows(IllegalArgumentException.class, () -> new LogFileConfiguration((String) null));
 
-        thrown.expect(IllegalArgumentException.class);
-        new LogFileConfiguration((LogFileConfiguration) null);
+        assertThrows(IllegalArgumentException.class, () -> new LogFileConfiguration((LogFileConfiguration) null));
 
         LogFileConfiguration config = new LogFileConfiguration(tempDirPath)
             .setMaxRotateCount(rotateCount)
@@ -383,18 +383,35 @@ public class LogTest extends BaseTest {
             LogLevel.DEBUG,
             config,
             () -> {
-                thrown.expect(IllegalStateException.class);
-                Database.log.getFile().setConfig(config);
+                assertThrows(IllegalStateException.class, () -> Database.log.getFile().getConfig().setMaxSize(1024));
 
-                thrown.expect(IllegalStateException.class);
-                Database.log.getFile().getConfig().setMaxSize(1024);
+                assertThrows(
+                    IllegalStateException.class,
+                    () -> Database.log.getFile().getConfig().setMaxRotateCount(3));
 
-                thrown.expect(IllegalStateException.class);
-                Database.log.getFile().getConfig().setMaxRotateCount(3);
-
-                thrown.expect(IllegalStateException.class);
-                Database.log.getFile().getConfig().setUsePlaintext(true);
+                assertThrows(
+                    IllegalStateException.class,
+                    () -> Database.log.getFile().getConfig().setUsePlaintext(true));
             });
+    }
+
+    @Test
+    public void testSetNewLogFileConfiguration() throws Exception {
+        LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
+
+        final FileLogger fileLogger = Database.log.getFile();
+        fileLogger.setConfig(config);
+        assertEquals(fileLogger.getConfig(), config);
+        fileLogger.setConfig(config);
+        assertEquals(fileLogger.getConfig(), config);
+        fileLogger.setConfig(null);
+        assertNull(fileLogger.getConfig());
+        fileLogger.setConfig(null);
+        assertNull(fileLogger.getConfig());
+        fileLogger.setConfig(config);
+        assertEquals(fileLogger.getConfig(), config);
+        fileLogger.setConfig(new LogFileConfiguration(tempDirPath + "/foo"));
+        assertEquals(fileLogger.getConfig(), new LogFileConfiguration(tempDirPath + "/foo"));
     }
 
     @Test
