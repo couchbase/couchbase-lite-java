@@ -321,25 +321,26 @@ public class LogTest extends BaseTest {
         Log.d(LogDomain.DATABASE, "TEST DEBUG", new Exception("whoops"));
         assertEquals("TEST DEBUG (java.lang.Exception: whoops)", logger.getMessage());
 
-        Log.d(LogDomain.DATABASE, "TEST DEBUG %s %d %f", "arg", 1, 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.000000", logger.getMessage());
+        // test formatting, including argument ordering
+        Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00", logger.getMessage());
 
-        Log.d(LogDomain.DATABASE, "TEST DEBUG %s %d %f", new Exception("whoops"), "arg", 1, 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.000000 (java.lang.Exception: whoops)", logger.getMessage());
+        Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", new Exception("whoops"), 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
     }
 
     @Test
     public void testLogStandardErrorWithFormatting() {
         Map<String, String> stdErr = new HashMap<>();
-        stdErr.put("FOO", "TEST DEBUG arg 1 3.000000");
+        stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
 
         Log.initLogging(stdErr);
 
         BasicLogger logger = new BasicLogger();
         Database.log.setCustom(logger);
 
-        Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), "arg", 1, 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.000000 (java.lang.Exception: whoops)", logger.getMessage());
+        Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
     }
 
     @Test

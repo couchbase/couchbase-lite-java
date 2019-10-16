@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.FormatterClosedException;
 import java.util.HashMap;
 import java.util.IllegalFormatException;
+import java.util.Locale;
 import java.util.Map;
 
 import com.couchbase.lite.ConsoleLogger;
@@ -93,7 +94,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void d(LogDomain domain, String msg) { log(LogLevel.DEBUG, domain, null, msg); }
+    public static void d(@NonNull LogDomain domain, @NonNull String msg) { log(LogLevel.DEBUG, domain, null, msg); }
 
     /**
      * Send a DEBUG message and log the exception.
@@ -102,7 +103,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void d(LogDomain domain, String msg, Throwable err) { log(LogLevel.DEBUG, domain, err, msg); }
+    public static void d(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        log(LogLevel.DEBUG, domain, err, msg);
+    }
 
     /**
      * Send a DEBUG message.
@@ -111,7 +114,9 @@ public final class Log {
      * @param msg    The string you would like logged plus format specifiers.
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void d(LogDomain domain, String msg, Object... args) { log(LogLevel.DEBUG, domain, null, msg, args); }
+    public static void d(@NonNull LogDomain domain, @NonNull String msg, Object... args) {
+        log(LogLevel.DEBUG, domain, null, msg, args);
+    }
 
     /**
      * Send a DEBUG message and log the exception.
@@ -121,7 +126,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void d(LogDomain domain, String msg, Throwable err, Object... args) {
+    public static void d(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
         log(LogLevel.DEBUG, domain, err, msg, args);
     }
 
@@ -131,7 +136,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void v(LogDomain domain, String msg) { log(LogLevel.VERBOSE, domain, null, msg); }
+    public static void v(@NonNull LogDomain domain, @NonNull String msg) { log(LogLevel.VERBOSE, domain, null, msg); }
 
     /**
      * Send a VERBOSE message and log the exception.
@@ -140,7 +145,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void v(LogDomain domain, String msg, Throwable err) { log(LogLevel.VERBOSE, domain, err, msg); }
+    public static void v(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        log(LogLevel.VERBOSE, domain, err, msg);
+    }
 
     /**
      * Send a VERBOSE message.
@@ -149,7 +156,7 @@ public final class Log {
      * @param msg    The string you would like logged plus format specifiers.
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void v(LogDomain domain, String msg, Object... args) {
+    public static void v(@NonNull LogDomain domain, @NonNull String msg, Object... args) {
         log(LogLevel.VERBOSE, domain, null, msg, args);
     }
 
@@ -161,7 +168,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void v(LogDomain domain, String msg, Throwable err, Object... args) {
+    public static void v(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
         log(LogLevel.VERBOSE, domain, err, msg, args);
     }
 
@@ -171,9 +178,9 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void i(LogDomain domain, String msg) { log(LogLevel.INFO, domain, null, msg); }
+    public static void i(@NonNull LogDomain domain, @NonNull String msg) { log(LogLevel.INFO, domain, null, msg); }
 
-    public static void info(LogDomain domain, String msg) { i(domain, msg); }
+    public static void info(@NonNull LogDomain domain, @NonNull String msg) { i(domain, msg); }
 
     /**
      * Send a INFO message and log the exception.
@@ -182,9 +189,13 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void i(LogDomain domain, String msg, Throwable err) { log(LogLevel.INFO, domain, err, msg); }
+    public static void i(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        log(LogLevel.INFO, domain, err, msg);
+    }
 
-    public static void info(LogDomain domain, String msg, Throwable tr) { i(domain, msg, tr); }
+    public static void info(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        i(domain, msg, err);
+    }
 
     /**
      * Send an INFO message.
@@ -193,7 +204,9 @@ public final class Log {
      * @param msg    The string you would like logged plus format specifiers.
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void i(LogDomain domain, String msg, Object... args) { log(LogLevel.INFO, domain, null, msg, args); }
+    public static void i(@NonNull LogDomain domain, @NonNull String msg, Object... args) {
+        log(LogLevel.INFO, domain, null, msg, args);
+    }
 
     /**
      * Send a INFO message and log the exception.
@@ -203,7 +216,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void i(LogDomain domain, String msg, Throwable err, Object... args) {
+    public static void i(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
         log(LogLevel.INFO, domain, err, msg, args);
     }
 
@@ -213,7 +226,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void w(LogDomain domain, String msg) { log(LogLevel.WARNING, domain, null, msg); }
+    public static void w(@NonNull LogDomain domain, @NonNull String msg) { log(LogLevel.WARNING, domain, null, msg); }
 
     /**
      * Send a WARN message and log the exception.
@@ -222,7 +235,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void w(LogDomain domain, String msg, Throwable err) { log(LogLevel.WARNING, domain, err, msg); }
+    public static void w(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        log(LogLevel.WARNING, domain, err, msg);
+    }
 
     /**
      * Send a WARN message.
@@ -231,7 +246,7 @@ public final class Log {
      * @param msg    The string you would like logged plus format specifiers.
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void w(LogDomain domain, String msg, Object... args) {
+    public static void w(@NonNull LogDomain domain, @NonNull String msg, Object... args) {
         log(LogLevel.WARNING, domain, null, msg, args);
     }
 
@@ -243,7 +258,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void w(LogDomain domain, String msg, Throwable err, Object... args) {
+    public static void w(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
         log(LogLevel.WARNING, domain, err, msg, args);
     }
 
@@ -253,7 +268,7 @@ public final class Log {
      * @param domain The log domain.
      * @param msg    The message you would like logged.
      */
-    public static void e(LogDomain domain, String msg) { log(LogLevel.ERROR, domain, null, msg); }
+    public static void e(@NonNull LogDomain domain, @NonNull String msg) { log(LogLevel.ERROR, domain, null, msg); }
 
     /**
      * Send a ERROR message and log the exception.
@@ -262,7 +277,9 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void e(LogDomain domain, String msg, Throwable err) { log(LogLevel.ERROR, domain, err, msg); }
+    public static void e(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+        log(LogLevel.ERROR, domain, err, msg);
+    }
 
     /**
      * Send a ERROR message.
@@ -271,7 +288,7 @@ public final class Log {
      * @param msg    The string you would like logged plus format specifiers.
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void e(LogDomain domain, String msg, Object... args) {
+    public static void e(@NonNull LogDomain domain, @NonNull String msg, Object... args) {
         log(LogLevel.ERROR, domain, null, msg, args);
     }
 
@@ -283,7 +300,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void e(LogDomain domain, String msg, Throwable err, Object... args) {
+    public static void e(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
         log(LogLevel.ERROR, domain, err, msg, args);
     }
 
@@ -294,7 +311,7 @@ public final class Log {
     }
 
     @NonNull
-    public static String getC4DomainForLoggingDomain(LogDomain domain) {
+    public static String getC4DomainForLoggingDomain(@NonNull LogDomain domain) {
         final String c4Domain = LOGGING_DOMAINS_TO_C4.get(domain);
         return (c4Domain != null) ? c4Domain : C4Constants.LogDomain.DATABASE;
     }
@@ -305,7 +322,7 @@ public final class Log {
         return (domain != null) ? domain : LogDomain.DATABASE;
     }
 
-    public static void setC4LogLevel(EnumSet<LogDomain> domains, LogLevel level) {
+    public static void setC4LogLevel(@NonNull EnumSet<LogDomain> domains, @NonNull LogLevel level) {
         final int c4Level = level.getValue();
         for (LogDomain domain : domains) {
             switch (domain) {
@@ -336,9 +353,13 @@ public final class Log {
         @NonNull LogLevel level,
         @NonNull LogDomain domain,
         @Nullable Throwable err,
-        @Nullable String msg,
+        @NonNull String msg,
         Object... args) {
-        String message = lookupErrorMessage(msg);
+        // Don't let logging errors cause an abort
+        if ((level == null) || (domain == null)) { return; }
+        String message = (msg != null) ? msg : "---";
+
+        message = lookupErrorMessage(message);
 
         if ((args != null) && (args.length > 0)) { message = formatMessage(message, args); }
 
@@ -348,12 +369,12 @@ public final class Log {
     }
 
     private static String lookupErrorMessage(String error) {
-        final String message = errorMessages.get(error);
+        final String message = (errorMessages == null) ? null : errorMessages.get(error);
         return (message == null) ? error : message;
     }
 
     private static String formatMessage(String msg, Object... args) {
-        try { return String.format(msg, (Object[]) args); }
+        try { return String.format(Locale.ENGLISH, msg, (Object[]) args); }
         catch (IllegalFormatException | FormatterClosedException ignore) { }
         return msg;
     }
