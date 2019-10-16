@@ -4,7 +4,7 @@
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License")
-    // you may not use this file except in compliance with the License.
+// you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 // http://www.apache.org/licenses/LICENSE-2.0
@@ -17,16 +17,8 @@
 //
 package com.couchbase.lite;
 
-import java.util.FormatterClosedException;
-import java.util.IllegalFormatException;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-
 @SuppressWarnings("LineLength")
 public final class CBLError {
-    private static final AtomicReference<Map<String, String>> ERROR_MESSAGES = new AtomicReference<>();
-
     private CBLError() {}
 
     // Error Domain
@@ -42,6 +34,7 @@ public final class CBLError {
     public static final class Code {
         private Code() {}
 
+        // @formatter:off
         public static final int ASSERTION_FAILED = 1;                    // Internal assertion failure
         public static final int UNIMPLEMENTED = 2;                       // Oops, an unimplemented API call
         public static final int UNSUPPORTED_ENCRYPTION = 3;              // Unsupported encryption algorithm
@@ -72,7 +65,7 @@ public final class CBLError {
         public static final int REMOTE_ERROR = 26;                       // Unknown error from remote server
         public static final int DATABASE_TOO_OLD = 27;                   // Database file format is older than what I can open
         public static final int DATABASE_TOO_NEW = 28;                   // Database file format is newer than what I can open
-        public static final int BAD_DOC_ID = 29;                        // Invalid document ID
+        public static final int BAD_DOC_ID = 29;                         // Invalid document ID
         public static final int CANT_UPGRADE_DATABASE = 30;              // Database can't be upgraded (might be unsupported dev version)
         // Note: These are equivalent to the C4Error codes declared in LiteCore's c4Base.h
 
@@ -117,19 +110,6 @@ public final class CBLError {
         public static final int WEB_SOCKET_CANT_FULFILL = 11011;         // Can't fulfill request due to "unexpected condition"
         public static final int WEB_SOCKET_CLOSE_USER_TRANSIENT = 14001; // Recoverable messaging error
         public static final int WEB_SOCKET_CLOSE_USER_PERMANENT = 14002; // Non-recoverable messaging error
-    }
-
-    static void setErrorMessages(Map<String, String> errorMessages) {
-        ERROR_MESSAGES.set(errorMessages);
-    }
-
-    static String lookupErrorMessage(String error, String... args) {
-        final String message = ERROR_MESSAGES.get().get(error);
-        if (message == null) { return error; }
-
-        try { return String.format(message, (Object[]) args); }
-        catch (IllegalFormatException | FormatterClosedException ignore) { }
-
-        return error;
+        // @formatter:on
     }
 }

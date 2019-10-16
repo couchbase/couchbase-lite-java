@@ -1,5 +1,7 @@
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,6 +20,7 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.utils.TestUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
@@ -28,8 +31,17 @@ import static org.junit.Assert.assertTrue;
 
 
 public class LogTest extends BaseTest {
-    interface Task {
-        void run() throws Exception;
+    static class BasicLogger implements Logger {
+        private String message;
+
+        @NonNull
+        @Override
+        public LogLevel getLevel() { return LogLevel.DEBUG; }
+
+        @Override
+        public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String msg) { message = msg; }
+
+        public String getMessage() { return message; }
     }
 
     static class LogTestLogger implements Logger {
@@ -299,6 +311,39 @@ public class LogTest extends BaseTest {
     }
 
     @Test
+    public void testBasicLogFormatting() {
+        BasicLogger logger = new BasicLogger();
+        Database.log.setCustom(logger);
+
+        Log.d(LogDomain.DATABASE, "TEST DEBUG");
+        assertEquals("TEST DEBUG", logger.getMessage());
+
+        Log.d(LogDomain.DATABASE, "TEST DEBUG", new Exception("whoops"));
+        assertEquals("TEST DEBUG (java.lang.Exception: whoops)", logger.getMessage());
+
+        // test formatting, including argument ordering
+        Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00", logger.getMessage());
+
+        Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", new Exception("whoops"), 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
+    }
+
+    @Test
+    public void testLogStandardErrorWithFormatting() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
+
+        Log.initLogging(stdErr);
+
+        BasicLogger logger = new BasicLogger();
+        Database.log.setCustom(logger);
+
+        Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
+        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
+    }
+
+    @Test
     public void testWriteLogWithError() throws Exception {
         String message = "test message";
         String uuid = UUID.randomUUID().toString();
@@ -433,7 +478,8 @@ public class LogTest extends BaseTest {
         assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
     }
 
-    private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Task task) throws Exception {
+    private void testWithConfiguration(LogLevel level, LogFileConfiguration config, TestUtils.Task task)
+        throws Exception {
         final com.couchbase.lite.Log logger = Database.log;
 
         final ConsoleLogger consoleLogger = logger.getConsole();
