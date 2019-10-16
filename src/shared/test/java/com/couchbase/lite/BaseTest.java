@@ -77,7 +77,7 @@ public class BaseTest extends PlatformBaseTest {
     public final ExpectedException thrown = ExpectedException.none();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         initCouchbaseLite();
 
         Database.log.getConsole().setLevel(LogLevel.INFO);
@@ -108,7 +108,7 @@ public class BaseTest extends PlatformBaseTest {
             throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
         finally {
-            FileUtils.cleanDirectory(getDbDir());
+            FileUtils.cleanDirectory(dbDir);
 
             ExecutionService.CloseableExecutor exec = executor;
             executor = null;
@@ -148,20 +148,20 @@ public class BaseTest extends PlatformBaseTest {
 
     protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
         // database exist, delete it
-        if (Database.exists(dbName, getDbDir())) {
-            // sometimes, db is still in used, wait for a while. Maximum 3 sec
-            for (int i = 0; i < BUSY_RETRIES; i++) {
-                try {
-                    Database.delete(dbName, getDbDir());
-                    Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
-                    break;
-                }
-                catch (CouchbaseLiteException ex) {
-                    if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
-                    Report.log(LogLevel.VERBOSE, dbName + " cannot be deleted as it is BUSY ...");
-                    try { Thread.sleep(BUSY_WAIT_MS); }
-                    catch (InterruptedException ignore) { }
-                }
+        if ((dbDir == null) || !Database.exists(dbName, dbDir)) { return; }
+
+        // sometimes, db is still in used, wait for a while. Maximum 3 sec
+        for (int i = 0; i < BUSY_RETRIES; i++) {
+            try {
+                Database.delete(dbName, dbDir);
+                Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
+                break;
+            }
+            catch (CouchbaseLiteException ex) {
+                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is BUSY ...");
+                try { Thread.sleep(BUSY_WAIT_MS); }
+                catch (InterruptedException ignore) { }
             }
         }
     }

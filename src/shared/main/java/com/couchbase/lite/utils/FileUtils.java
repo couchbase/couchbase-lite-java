@@ -31,7 +31,7 @@ public class FileUtils {
     @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"})
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static boolean cleanDirectory(File dir) {
-        if (!dir.isDirectory()) { return false; }
+        if ((dir == null) || !dir.isDirectory()) { return false; }
 
         for (File file : dir.listFiles()) {
             if (!deleteRecursive(file)) { return false; }

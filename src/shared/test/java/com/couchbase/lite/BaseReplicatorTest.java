@@ -41,7 +41,7 @@ public class BaseReplicatorTest extends BaseTest {
     protected long timeout;  // seconds
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
         timeout = 15; // seconds

@@ -80,7 +80,7 @@ public class LogTest extends BaseTest {
     private String tempDirPath;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
         tempDirPath = getTempDirectory("logtest-" + System.currentTimeMillis());
@@ -441,7 +441,7 @@ public class LogTest extends BaseTest {
     }
 
     @Test
-    public void testSetNewLogFileConfiguration() throws Exception {
+    public void testSetNewLogFileConfiguration() {
         LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
 
         final FileLogger fileLogger = Database.log.getFile();
