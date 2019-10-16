@@ -303,7 +303,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
 
     private final Set<Fn.Consumer> pendingResolutions = new HashSet<>();
-    private final List<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
+    private final Deque<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
     private final SocketFactory socketFactory;
 
     private Status status = new Status(ActivityLevel.IDLE, new Progress(0, 0), null);
@@ -551,8 +551,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             this, pendingResolutions.size(), pendingStatusNotifications.size(), c4Status);
 
         synchronized (lock) {
+            final int c4ActivityLevel = c4Status.getActivityLevel();
             if (!pendingResolutions.isEmpty()
-                && (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED)
+                && ((c4ActivityLevel == C4ReplicatorStatus.ActivityLevel.IDLE)
+                || (c4ActivityLevel == C4ReplicatorStatus.ActivityLevel.STOPPED))
                 && !actuallyMeansOffline(c4Status.getC4Error())) {
                 pendingStatusNotifications.add(c4Status);
             }
@@ -563,17 +565,21 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 if (h != null) { responseHeaders = FLValue.fromData(h).asDict(); }
             }
 
-            if (c4Status.getActivityLevel() > C4ReplicatorStatus.ActivityLevel.CONNECTING) {
-                resetRetryCount();
-                if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
-            }
-            else if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
-                final C4Error error = c4Status.getC4Error();
-                if (actuallyMeansOffline(error)) {
-                    handleError(error);
-                    // Change c4Status to offline, so my state will reflect that, and proceed:
-                    c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
-                }
+            switch (c4ActivityLevel) {
+                case C4ReplicatorStatus.ActivityLevel.IDLE:
+                case C4ReplicatorStatus.ActivityLevel.BUSY:
+                    resetRetryCount();
+                    if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
+                    break;
+
+                case C4ReplicatorStatus.ActivityLevel.STOPPED:
+                    final C4Error error = c4Status.getC4Error();
+                    if (actuallyMeansOffline(error)) {
+                        handleError(error);
+                        // Change c4Status to offline, so my state will reflect that, and proceed:
+                        c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
+                    }
+                    break;
             }
 
             // Update my properties:
@@ -584,7 +590,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             change = new ReplicatorChange((Replicator) this, this.getStatus());
             tokens = new ArrayList<>(changeListenerTokens);
 
-            // If Stopped:
+            // Note: don't use c4ActivityLevel here.  It might not be up to date.
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
                 cancelScheduledRetry();
                 clearRepl();
