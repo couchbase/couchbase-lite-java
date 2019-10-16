@@ -22,43 +22,45 @@ package com.couchbase.lite.internal.core;
 /**
  * WARNING!
  * This class and its members are referenced by name, from native code.
+ *
+ * Keep this class immutable.
  */
-public class C4ReplicatorStatus {
+public final class C4ReplicatorStatus {
     public static final class ActivityLevel {
-        private ActivityLevel() {}
-
         public static final int STOPPED = 0;
         public static final int OFFLINE = 1;
         public static final int CONNECTING = 2;
         public static final int IDLE = 3;
         public static final int BUSY = 4;
+
+        private ActivityLevel() {}
     }
 
-    private int activityLevel = -1;       // Referenced from native code: C4ReplicatorStatus.ActivityLevel
-    private long progressUnitsCompleted;  // Referenced from native code: C4Progress.unitsCompleted
-    private long progressUnitsTotal;      // Referenced from native code: C4Progress.unitsTotal
-    private long progressDocumentCount;   // Referenced from native code: C4Progress.documentCount
-    private int errorDomain;              // Referenced from native code: C4Error.domain
-    private int errorCode;                // Referenced from native code: C4Error.code
-    private int errorInternalInfo;        // Referenced from native code: C4Error.internal_info
+    private final int activityLevel;            // Referenced from native code: C4ReplicatorStatus.ActivityLevel
+    private final long progressUnitsCompleted;  // Referenced from native code: C4Progress.unitsCompleted
+    private final long progressUnitsTotal;      // Referenced from native code: C4Progress.unitsTotal
+    private final long progressDocumentCount;   // Referenced from native code: C4Progress.documentCount
+    private final int errorDomain;              // Referenced from native code: C4Error.domain
+    private final int errorCode;                // Referenced from native code: C4Error.code
+    private final int errorInternalInfo;        // Referenced from native code: C4Error.internal_info
 
     // Called from native code
-    public C4ReplicatorStatus() { }
+    public C4ReplicatorStatus() { this(-1, 0, 0, 0, 0, 0, 0); }
 
-    public C4ReplicatorStatus(int activityLevel) {
-        this.activityLevel = activityLevel;
-    }
+    public C4ReplicatorStatus(int activityLevel) { this(activityLevel, 0, 0, 0, 0, 0, 0); }
 
     public C4ReplicatorStatus(int activityLevel, int errorDomain, int errorCode) {
-        this.activityLevel = activityLevel;
-        this.errorDomain = errorDomain;
-        this.errorCode = errorCode;
+        this(activityLevel, 0, 0, 0, errorDomain, errorCode, 0);
     }
 
     public C4ReplicatorStatus(
-        int activityLevel, long progressUnitsCompleted,
-        long progressUnitsTotal, long progressDocumentCount,
-        int errorDomain, int errorCode, int errorInternalInfo) {
+        int activityLevel,
+        long progressUnitsCompleted,
+        long progressUnitsTotal,
+        long progressDocumentCount,
+        int errorDomain,
+        int errorCode,
+        int errorInternalInfo) {
         this.activityLevel = activityLevel;
         this.progressUnitsCompleted = progressUnitsCompleted;
         this.progressUnitsTotal = progressUnitsTotal;
@@ -79,9 +81,18 @@ public class C4ReplicatorStatus {
             errorInternalInfo);
     }
 
-    public int getActivityLevel() { return activityLevel; }
+    public C4ReplicatorStatus copyAtlevel(int newLevel) {
+        return new C4ReplicatorStatus(
+            newLevel,
+            progressUnitsCompleted,
+            progressUnitsTotal,
+            progressDocumentCount,
+            errorDomain,
+            errorCode,
+            errorInternalInfo);
+    }
 
-    public void setActivityLevel(int activityLevel) { this.activityLevel = activityLevel; }
+    public int getActivityLevel() { return activityLevel; }
 
     public long getProgressUnitsCompleted() { return progressUnitsCompleted; }
 
@@ -99,14 +110,14 @@ public class C4ReplicatorStatus {
 
     @Override
     public String toString() {
-        return "C4ReplicatorStatus{" +
-            "activityLevel=" + activityLevel +
-            ", progressUnitsCompleted=" + progressUnitsCompleted +
-            ", progressUnitsTotal=" + progressUnitsTotal +
-            ", progressDocumentCount=" + progressDocumentCount +
-            ", errorDomain=" + errorDomain +
-            ", errorCode=" + errorCode +
-            ", errorInternalInfo=" + errorInternalInfo +
-            '}';
+        return "C4ReplicatorStatus{"
+            + "level=" + activityLevel
+            + ", completed=" + progressUnitsCompleted
+            + ", total=" + progressUnitsTotal
+            + ", #docs=" + progressDocumentCount
+            + ", domain=" + errorDomain
+            + ", code=" + errorCode
+            + ", info=" + errorInternalInfo
+            + '}';
     }
 }

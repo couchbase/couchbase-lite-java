@@ -577,7 +577,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                     if (actuallyMeansOffline(error)) {
                         handleError(error);
                         // Change c4Status to offline, so my state will reflect that, and proceed:
-                        c4Status.setActivityLevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
+                        c4Status = c4Status.copyAtlevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
                     }
                     break;
             }
@@ -790,26 +790,15 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             status = c4repl.getStatus();
         }
         catch (LiteCoreException e) {
-            status = new C4ReplicatorStatus(
-                C4ReplicatorStatus.ActivityLevel.STOPPED,
-                0,
-                0,
-                0,
-                e.domain,
-                e.code,
-                0);
+            status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED, e.domain, e.code );
         }
 
         updateStateProperties((status != null)
             ? status
             : new C4ReplicatorStatus(
                 C4ReplicatorStatus.ActivityLevel.STOPPED,
-                0,
-                0,
-                0,
                 C4Constants.ErrorDomain.LITE_CORE,
-                C4Constants.LiteCoreError.UNEXPECTED_ERROR,
-                0));
+                C4Constants.LiteCoreError.UNEXPECTED_ERROR));
 
         // Post an initial notification:
         c4ReplListener.statusChanged(c4repl, c4ReplStatus, this);
