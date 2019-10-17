@@ -89,16 +89,19 @@ if [ ${VARIANTS[0]} = "all" ]; then
 fi
 
 for VARIANT in "${VARIANTS[@]}"; do
-  PLATFORM=$VARIANT
-  if [ $PLATFORM == "macos" ]; then
+  if [ $VARIANT == "macos" ]; then
     PLATFORM="macosx"
+    PREFIX="couchbase-litecore"
+  elif [ $VARIANT == "linux" ]; then
+    PLATFORM="centos6"
+    PREFIX="couchbase-lite"
   fi
 
   echo "Fetching $PLATFORM..."
   EXTENSION=`choose_extension $PLATFORM`
 
-  echo $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/couchbase-litecore-$PLATFORM-$SHA$SUFFIX.$EXTENSION
-  curl -Lf $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/couchbase-litecore-$PLATFORM-$SHA$SUFFIX.$EXTENSION -o litecore-$PLATFORM$SUFFIX.$EXTENSION || exit 1
+  echo $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/$PREFIX-$PLATFORM-$SHA$SUFFIX.$EXTENSION
+  curl -Lf $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/$PREFIX-$PLATFORM-$SHA$SUFFIX.$EXTENSION -o litecore-$PLATFORM$SUFFIX.$EXTENSION || exit 1
 done
 
 if [ -f "litecore-macosx$SUFFIX.zip" ]; then
@@ -112,8 +115,8 @@ if [ -f "litecore-macosx$SUFFIX.zip" ]; then
   rm -f litecore-macosx$SUFFIX.zip
 fi
 
-if [ -f "litecore-linux$SUFFIX.tar.gz" ]; then
-  tar xf litecore-linux$SUFFIX.tar.gz
+if [ -f "litecore-centos6$SUFFIX.tar.gz" ]; then
+  tar xf litecore-centos6$SUFFIX.tar.gz
 
   LIBLITECORE_DIR=linux/x86_64
   mkdir -p $LIBLITECORE_DIR && rm -rf $LIBLITECORE_DIR/*
@@ -128,8 +131,12 @@ if [ -f "litecore-linux$SUFFIX.tar.gz" ]; then
   mv -f lib/libicu*.* $LIBICU_DIR
   rm -f $LIBICU_DIR/libicutest*.*
 
+  LIBZ_DIR=support/linux/x86_64/libz
+  mkdir -p $LIBZ_DIR && rm -rf $LIBZ_DIR/*
+  mv -f lib/libz.so* $LIBZ_DIR
+
   rm -rf lib
-  rm -f litecore-linux$SUFFIX.tar.gz
+  rm -f litecore-centos6$SUFFIX.tar.gz
 fi
 
 popd > /dev/null

@@ -73,8 +73,6 @@ if [[ $OS == linux ]]; then
     make -j `expr $CORE_COUNT + 1` $LIB
   done
   
-  ./scripts/strip.sh linux
-
   for LIB in "${LIBS[@]}"; do
     if [[ $LIB == LiteCore ]]; then
       cp -f libLiteCore.so $OUTPUT_DIR
@@ -109,3 +107,5 @@ fi
 popd > /dev/null
 
 popd > /dev/null
+
+echo "Build LiteCore Complete"

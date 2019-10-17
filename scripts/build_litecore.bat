@@ -1,7 +1,7 @@
- @echo ON
+ @echo OFF
 
 if "%2%" == "" (
-    echo Usage: prebuild_windows.bat ^<VS Generator: 2015,2017,2019^> ^<CE or EE^> ^[LiteCore, mbedcrypto, all ^(default^)^]
+    echo Usage: build_litecore.bat ^<VS Generator: 2015,2017,2019^> ^<CE or EE^> ^[LiteCore, mbedcrypto, all ^(default^)^]
     exit /B 1
 )
 
@@ -36,8 +36,9 @@ echo Build using %VS_GEN% ...
 "C:\Program Files\CMake\bin\cmake.exe" -G %VS_GEN% -DBUILD_ENTERPRISE=%entBuild% ..\..
 
 SET outputDir=%scriptDir%\..\lite-core\windows\x86_64
-rmdir /Q /S %outputDir%
-mkdir %outputDir%
+if not exist "%outputDir%" (
+    mkdir %outputDir%
+)
 
 for %%l in (%libs%) do (
   echo Building %%l ...
@@ -56,4 +57,5 @@ for %%l in (%libs%) do (
 
 popd
 popd
- 
+
+echo Build LiteCore Complete
