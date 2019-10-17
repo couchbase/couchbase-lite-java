@@ -312,11 +312,7 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_close(JNIEnv *env, jclass
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write(JNIEnv * env, jclass clazz, jlong jstream,
                                                   jbyteArray jbytes, jint jsize) {
-    int length = jsize;
-    if (length < 0)
-        length = 0;
-
-    jbyteArraySlice bytes(env, jbytes, (size_t) length, true);
+    jbyteArraySlice bytes(env, jbytes, (size_t) jsize, true);
     C4Slice slice = (C4Slice) bytes;
     C4Error error = {};
     if (!c4stream_write((C4WriteStream *) jstream, slice.buf, slice.size, &error))

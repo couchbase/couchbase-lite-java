@@ -17,7 +17,10 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -54,14 +57,16 @@ public class C4BlobWriteStream {
     /**
      * Writes data to a stream.
      */
-    public void write(byte[] bytes) throws LiteCoreException {
-        write(handle, bytes, 0);
+    public void write(@NonNull byte[] bytes) throws LiteCoreException {
+        write(bytes, bytes.length);
     }
 
     /**
      * Writes data to a stream.
      */
-    public void write(byte[] bytes, int len) throws LiteCoreException {
+    public void write(@NonNull byte[] bytes, int len) throws LiteCoreException {
+        Preconditions.checkArgNotNull(bytes, "bytes");
+        if (len <= 0) { return; }
         write(handle, bytes, len);
     }
 

@@ -161,11 +161,13 @@ namespace litecore {
 
         // ATTN: In critical, should not call any other JNI methods.
         // http://docs.oracle.com/javase/6/docs/technotes/guides/jni/spec/functions.html
+        jbyteArraySlice::jbyteArraySlice(JNIEnv *env, jbyteArray jbytes, bool critical)
+            : jbyteArraySlice(env, jbytes, (size_t) (!jbytes ? 0 : env->GetArrayLength(jbytes)), critical) { }
         jbyteArraySlice::jbyteArraySlice(JNIEnv *env, jbyteArray jbytes, size_t length, bool critical)
                 : _env(env),
                   _jbytes(jbytes),
                   _critical(critical) {
-            if (jbytes == nullptr) {
+            if (!jbytes || length <= 0) {
                 _slice = kFLSliceNull;
                 return;
             }
@@ -176,9 +178,6 @@ namespace litecore {
             } else {
                 data = env->GetByteArrayElements(jbytes, NULL);
             }
-
-            if (length <= 0)
-                length = (size_t) env->GetArrayLength(jbytes);
 
             _slice = { data, length };
         }
