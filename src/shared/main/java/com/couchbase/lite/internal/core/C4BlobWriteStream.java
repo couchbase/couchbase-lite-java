@@ -29,6 +29,8 @@ public class C4BlobWriteStream {
     //-------------------------------------------------------------------------
     static native void write(long writeStream, byte[] bytes) throws LiteCoreException;
 
+    static native void write(long writeStream, byte[] bytes, int len) throws LiteCoreException;
+
     static native long computeBlobKey(long writeStream) throws LiteCoreException;
 
     //-------------------------------------------------------------------------
@@ -56,6 +58,13 @@ public class C4BlobWriteStream {
      */
     public void write(byte[] bytes) throws LiteCoreException {
         write(handle, bytes);
+    }
+
+    /**
+     * Writes data to a stream.
+     */
+    public void write(byte[] bytes, int len) throws LiteCoreException {
+        write(handle, bytes, len);
     }
 
     /**

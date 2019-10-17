@@ -309,15 +309,27 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_close(JNIEnv *env, jclass
  * Method:    write
  * Signature: (J[B)V
  */
-JNIEXPORT void JNICALL
-Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write(JNIEnv *env, jclass clazz, jlong jstream,
-                                                    jbyteArray jbytes) {
-    jbyteArraySlice bytes(env, jbytes, true);
+JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write__J_3B(JNIEnv * env, jclass clazz,
+                                                              jlong jstream, jbyteArray jbytes) {
+    Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write__J_3BI(env, clazz, jstream, jbytes, 0);
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4BlobWriteStream
+ * Method:    write
+ * Signature: (J[BI)V
+ */
+JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write__J_3BI(JNIEnv * env, jclass clazz,
+                                                              jlong jstream, jbyteArray jbytes, jint len) {
+    int length = len;
+    if (length < 0)
+        length = 0;
+
+    jbyteArraySlice bytes(env, jbytes, (size_t) length, true);
     C4Slice slice = (C4Slice) bytes;
     C4Error error = {};
     if (!c4stream_write((C4WriteStream *) jstream, slice.buf, slice.size, &error))
         throwError(env, error);
-
 }
 
 /*
