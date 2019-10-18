@@ -6,7 +6,7 @@ pipeline {
                 sh """
                     git clone https://github.com/couchbase/couchbase-lite-java.git
                     git clone https://github.com/couchbaselabs/couchbase-lite-java-ee.git
-                    git clone https://github.com/couchbaselabs/couchbase-lite-core-EE.git
+                    git clone https://github.com/couchbase/couchbase-lite-core-EE.git
                     git clone https://github.com/couchbase/couchbase-lite-core.git
                     pushd couchbase-lite-core
                     git submodule update --init --recursive
@@ -20,7 +20,7 @@ pipeline {
                 sh """
                     pushd couchbase-lite-java-ee
                     touch local.properties
-                    ./scripts/build_litecore.sh -e EE
+                    ../couchbase-lite-java/scripts/build_litecore.sh -e EE
                     ./gradlew build
                     popd
                 """
