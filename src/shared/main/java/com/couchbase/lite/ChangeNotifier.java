@@ -17,21 +17,27 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 class ChangeNotifier<T> {
     private final Object lock = new Object();
     private final Set<ChangeListenerToken<T>> listenerTokens;
 
-    ChangeNotifier() {
-        listenerTokens = new HashSet<>();
-    }
+    ChangeNotifier() { listenerTokens = new HashSet<>(); }
 
-    ChangeListenerToken addChangeListener(Executor executor, ChangeListener<T> listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener is null"); }
+    @NonNull
+    ChangeListenerToken addChangeListener(
+        @Nullable Executor executor,
+        @NonNull ChangeListener<T> listener) {
+        Preconditions.checkArgNotNull(listener, "listener");
 
         synchronized (lock) {
             final ChangeListenerToken<T> token = new ChangeListenerToken<>(executor, listener);
@@ -41,8 +47,8 @@ class ChangeNotifier<T> {
     }
 
     @SuppressWarnings("SuspiciousMethodCalls")
-    int removeChangeListener(ListenerToken token) {
-        if (token == null) { throw new IllegalArgumentException("token is null"); }
+    int removeChangeListener(@NonNull ListenerToken token) {
+        Preconditions.checkArgNotNull(token, "token");
 
         synchronized (lock) {
             listenerTokens.remove(token);

@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.LiteCoreException;
 
 
@@ -47,33 +49,30 @@ public class C4BlobReadStream {
      *
      * @param maxBytesToRead The maximum number of bytes to read to the buffer
      */
-    public byte[] read(long maxBytesToRead) throws LiteCoreException {
-        return read(handle, maxBytesToRead);
-    }
+    @NonNull
+    public byte[] read(long maxBytesToRead) throws LiteCoreException { return read(handle, maxBytesToRead); }
 
     /**
      * Returns the exact length in bytes of the stream.
      */
-    public long getLength() throws LiteCoreException {
-        return getLength(handle);
-    }
+    public long getLength() throws LiteCoreException { return getLength(handle); }
 
     /**
      * Moves to a random location in the stream; the next c4stream_read call will read from that
      * location.
      */
-    public void seek(long position) throws LiteCoreException {
-        seek(handle, position);
-    }
+    public void seek(long position) throws LiteCoreException { seek(handle, position); }
 
     /**
      * Closes a read-stream.
      */
     public void close() {
-        if (handle != 0L) {
-            close(handle);
-            handle = 0L;
-        }
+        final long hdl = handle;
+        handle = 0L;
+
+        if (hdl != 0L) { return; }
+
+        close(handle);
     }
 
     //-------------------------------------------------------------------------
@@ -89,11 +88,11 @@ public class C4BlobReadStream {
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
-    static native byte[] read(long readStream, long maxBytesToRead) throws LiteCoreException;
+    private static native byte[] read(long readStream, long maxBytesToRead) throws LiteCoreException;
 
-    static native long getLength(long readStream) throws LiteCoreException;
+    private static native long getLength(long readStream) throws LiteCoreException;
 
-    static native void seek(long readStream, long position) throws LiteCoreException;
+    private static native void seek(long readStream, long position) throws LiteCoreException;
 
-    static native void close(long readStream);
+    private static native void close(long readStream);
 }

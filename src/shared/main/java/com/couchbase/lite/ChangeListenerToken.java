@@ -17,15 +17,21 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.concurrent.Executor;
 
 
 class ChangeListenerToken<T> implements ListenerToken {
+    @NonNull
     private final ChangeListener<T> listener;
+    @Nullable
     private final Executor executor;
+
     private Object key;
 
-    ChangeListenerToken(Executor executor, ChangeListener<T> listener) {
+    ChangeListenerToken(@Nullable Executor executor, @NonNull ChangeListener<T> listener) {
         this.executor = executor;
         this.listener = listener;
     }
@@ -34,9 +40,8 @@ class ChangeListenerToken<T> implements ListenerToken {
 
     public void setKey(Object key) { this.key = key; }
 
-    void postChange(final T change) { getExecutor().execute(() -> listener.changed(change)); }
-
-    private Executor getExecutor() {
-        return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+    void postChange(final T change) {
+        final Executor exec = (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+        exec.execute(() -> listener.changed(change));
     }
 }

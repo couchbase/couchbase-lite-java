@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.AbstractReplicator;
@@ -228,10 +229,12 @@ public class C4Database {
             remoteDBID));
     }
 
+    @NonNull
     public C4Document create(String docID, byte[] body, int revisionFlags) throws LiteCoreException {
         return new C4Document(C4Document.create(handle, docID, body, revisionFlags));
     }
 
+    @NonNull
     public C4Document create(String docID, FLSliceResult body, int flags) throws LiteCoreException {
         return new C4Document(C4Document.create2(handle, docID, body != null ? body.getHandle() : 0, flags));
     }
@@ -240,10 +243,12 @@ public class C4Database {
     // C4DatabaseObserver/C4DocumentObserver
     ////////////////////////////////////////////////////////////////
 
+    @NonNull
     public C4DatabaseObserver createDatabaseObserver(C4DatabaseObserverListener listener, Object context) {
         return new C4DatabaseObserver(handle, listener, context);
     }
 
+    @NonNull
     public C4DocumentObserver createDocumentObserver(
         String docID,
         C4DocumentObserverListener listener,
@@ -255,6 +260,7 @@ public class C4Database {
     // C4BlobStore
     ////////////////////////////////
 
+    @NonNull
     public C4BlobStore getBlobStore() throws LiteCoreException {
         return new C4BlobStore(C4BlobStore.getBlobStore(handle), true);
     }

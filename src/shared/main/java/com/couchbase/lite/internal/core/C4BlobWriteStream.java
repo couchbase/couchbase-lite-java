@@ -28,41 +28,41 @@ import com.couchbase.lite.internal.utils.Preconditions;
  */
 public class C4BlobWriteStream {
     //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
-    static native void write(long writeStream, byte[] bytes, int len) throws LiteCoreException;
-
-    static native long computeBlobKey(long writeStream) throws LiteCoreException;
-
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-
-    static native void install(long writeStream) throws LiteCoreException;
-
-    static native void close(long writeStream);
-    //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
     private long handle; // hold pointer to C4BlobWriteStream
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
+
     C4BlobWriteStream(long handle) {
         if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
         this.handle = handle;
     }
 
+    //-------------------------------------------------------------------------
+    // public methods
+    //-------------------------------------------------------------------------
+
     /**
-     * Writes data to a stream.
+     * Writes an entire byte array to the stream.
+     *
+     * @param bytes array of bytes to be written in its entirety
+     * @throws LiteCoreException on write failure
      */
     public void write(@NonNull byte[] bytes) throws LiteCoreException {
+        Preconditions.checkArgNotNull(bytes, "bytes");
         write(bytes, bytes.length);
     }
 
     /**
-     * Writes data to a stream.
+     * Writes the len bytes from the passed array, to the stream.
+     *
+     * @param bytes array of bytes to be written in its entirety.
+     * @param len   the number of bytes to write
+     * @throws LiteCoreException on write failure
      */
     public void write(@NonNull byte[] bytes, int len) throws LiteCoreException {
         Preconditions.checkArgNotNull(bytes, "bytes");
@@ -74,9 +74,7 @@ public class C4BlobWriteStream {
      * Computes the blob-key (digest) of the data written to the stream. This should only be
      * called after writing the entire data. No more data can be written after this call.
      */
-    public C4BlobKey computeBlobKey() throws LiteCoreException {
-        return new C4BlobKey(computeBlobKey(handle));
-    }
+    public C4BlobKey computeBlobKey() throws LiteCoreException { return new C4BlobKey(computeBlobKey(handle)); }
 
     /**
      * Adds the data written to the stream as a finished blob to the store, and returns its key.
@@ -84,28 +82,41 @@ public class C4BlobWriteStream {
      * were unable to receive all of the data from the network, or if you've called
      * c4stream_computeBlobKey and found that the data does not match the expected digest/key.)
      */
-    public void install() throws LiteCoreException {
-        install(handle);
-    }
+    public void install() throws LiteCoreException { install(handle); }
 
     /**
      * Closes a blob write-stream. If c4stream_install was not already called, the temporary file
      * will be deleted without adding the blob to the store.
      */
     public void close() {
-        if (handle != 0L) {
-            close(handle);
-            handle = 0L;
-        }
+        final long hdl = handle;
+        handle = 0L;
+
+        if (hdl == 0L) { return; }
+
+        close(handle);
     }
 
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         close();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    private static native void write(long writeStream, byte[] bytes, int len) throws LiteCoreException;
+
+    private static native long computeBlobKey(long writeStream) throws LiteCoreException;
+
+    private static native void install(long writeStream) throws LiteCoreException;
+
+    private static native void close(long writeStream);
 }

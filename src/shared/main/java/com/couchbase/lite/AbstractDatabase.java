@@ -610,12 +610,12 @@ abstract class AbstractDatabase {
      * @param listener callback
      */
     @NonNull
-    public ListenerToken addChangeListener(Executor executor, @NonNull DatabaseChangeListener listener) {
+    public ListenerToken addChangeListener(@Nullable Executor executor, @NonNull DatabaseChangeListener listener) {
         Preconditions.checkArgNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
-            return addDatabaseChangeListener(executor, listener);
+            return addDatabaseChangeListenerSynchronized(executor, listener);
         }
     }
 
@@ -630,10 +630,10 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             mustBeOpen();
             if (token instanceof ChangeListenerToken && ((ChangeListenerToken) token).getKey() != null) {
-                removeDocumentChangeListener((ChangeListenerToken) token);
+                removeDocumentChangeListenerSynchronized((ChangeListenerToken) token);
             }
             else {
-                removeDatabaseChangeListener(token);
+                removeDatabaseChangeListenerSynchronized(token);
             }
         }
     }
@@ -655,14 +655,14 @@ abstract class AbstractDatabase {
     @NonNull
     public ListenerToken addDocumentChangeListener(
         @NonNull String id,
-        Executor executor,
+        @Nullable Executor executor,
         @NonNull DocumentChangeListener listener) {
         Preconditions.checkArgNotNull(id, "id");
         Preconditions.checkArgNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
-            return addDocumentChangeListener(executor, listener, id);
+            return addDocumentChangeListenerSynchronized(id, executor, listener);
         }
     }
 
@@ -834,6 +834,7 @@ abstract class AbstractDatabase {
         return (path != null) && path.equals(otherPath);
     }
 
+    @NonNull
     C4BlobStore getBlobStore() throws LiteCoreException {
         synchronized (lock) {
             mustBeOpen();
@@ -1091,7 +1092,10 @@ abstract class AbstractDatabase {
     // --- Database changes:
 
     // NOTE: calling method must be synchronized.
-    private ListenerToken addDatabaseChangeListener(Executor executor, DatabaseChangeListener listener) {
+    @NonNull
+    private ListenerToken addDatabaseChangeListenerSynchronized(
+        @Nullable Executor executor,
+        @NonNull DatabaseChangeListener listener) {
         if (dbChangeNotifier == null) {
             dbChangeNotifier = new ChangeNotifier<>();
             registerC4DBObserver();
@@ -1102,7 +1106,7 @@ abstract class AbstractDatabase {
     // --- Notification: - C4DatabaseObserver/C4DocumentObserver
 
     // NOTE: calling method must be synchronized.
-    private void removeDatabaseChangeListener(ListenerToken token) {
+    private void removeDatabaseChangeListenerSynchronized(@NonNull ListenerToken token) {
         if (dbChangeNotifier.removeChangeListener(token) == 0) {
             freeC4DBObserver();
             dbChangeNotifier = null;
@@ -1112,9 +1116,11 @@ abstract class AbstractDatabase {
     // --- Document changes:
 
     // NOTE: calling method must be synchronized.
-    private ListenerToken addDocumentChangeListener(
-        Executor executor, DocumentChangeListener listener, String
-        docID) {
+    @NonNull
+    private ListenerToken addDocumentChangeListenerSynchronized(
+        @NonNull String docID,
+        @Nullable Executor executor,
+        @NonNull DocumentChangeListener listener) {
         DocumentChangeNotifier docNotifier = docChangeNotifiers.get(docID);
         if (docNotifier == null) {
             docNotifier = new DocumentChangeNotifier((Database) this, docID);
@@ -1126,7 +1132,7 @@ abstract class AbstractDatabase {
     }
 
     // NOTE: calling method must be synchronized.
-    private void removeDocumentChangeListener(ChangeListenerToken token) {
+    private void removeDocumentChangeListenerSynchronized(@NonNull ChangeListenerToken token) {
         final String docID = (String) token.getKey();
         if (docChangeNotifiers.containsKey(docID)) {
             final DocumentChangeNotifier notifier = docChangeNotifiers.get(docID);

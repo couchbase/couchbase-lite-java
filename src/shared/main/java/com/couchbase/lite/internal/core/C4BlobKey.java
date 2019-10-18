@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.Nullable;
+
 import com.couchbase.lite.LiteCoreException;
 
 
@@ -30,18 +32,17 @@ public class C4BlobKey {
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
     private long handle; // hold pointer to C4BlobKey
 
     //-------------------------------------------------------------------------
-    // Constructor
+    // Constructors
     //-------------------------------------------------------------------------
 
     /**
      * Decodes a string of the form "sha1-"+base64 into a raw key.
      */
-    public C4BlobKey(String str) throws LiteCoreException {
-        handle = fromString(str);
-    }
+    public C4BlobKey(@Nullable String str) throws LiteCoreException { handle = fromString(str); }
 
     C4BlobKey(long handle) {
         if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
@@ -55,15 +56,15 @@ public class C4BlobKey {
     /**
      * Encodes a blob key to a string of the form "sha1-"+base64.
      */
-    public String toString() {
-        return toString(handle);
-    }
+    public String toString() { return toString(handle); }
 
     public void free() {
-        if (handle != 0L) {
-            free(handle);
-            handle = 0L;
-        }
+        final long hdl = handle;
+        handle = 0L;
+
+        if (hdl == 0L) { return; }
+
+        free(handle);
     }
 
     //-------------------------------------------------------------------------
@@ -78,24 +79,27 @@ public class C4BlobKey {
     }
 
     //-------------------------------------------------------------------------
+    // package methods
+    //-------------------------------------------------------------------------
+
+    long getHandle() { return handle; }
+
+    //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
 
-    long getHandle() {
-        return handle;
-    }
     /**
      * Decode a string of the form "sha1-"+base64 into a raw key
      */
-    static native long fromString(String str) throws LiteCoreException;
+    private static native long fromString(@Nullable String str) throws LiteCoreException;
 
     /**
      * Encodes a blob key to a string of the form "sha1-"+base64.
      */
-    static native String toString(long blobKey);
+    private static native String toString(long blobKey);
 
     /**
      * Release C4BlobKey
      */
-    static native void free(long blobKey);
+    private static native void free(long blobKey);
 }
