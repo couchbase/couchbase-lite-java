@@ -104,7 +104,10 @@ java {
                 "src/shared/ce/java",               // Shared code between Java and Android (CE Only)
                 "src/shared/main/java",             // Shared code between Java and Android
             ]
-            resources.srcDirs = [CBL_NATIVE_DIR]    // Native Libraries
+            resources.srcDirs = [
+                "src/main/resources",               // Resource files                
+                CBL_NATIVE_DIR                      // Native Libraries
+            ]    
         }
         test {
             java.srcDirs = [
@@ -131,6 +134,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.9.1'
 
     implementation 'org.json:json:20180813'
+
+    testCompileOnly 'com.android.support:support-annotations:28.0.0'
 
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
 

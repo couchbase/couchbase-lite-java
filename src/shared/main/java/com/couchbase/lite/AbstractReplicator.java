@@ -580,6 +580,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                         c4Status = c4Status.copyAtlevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
                     }
                     break;
+
+                default:
+                    break;
             }
 
             // Update my properties:
