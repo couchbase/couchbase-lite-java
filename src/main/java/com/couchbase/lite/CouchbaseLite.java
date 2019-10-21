@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -104,21 +103,16 @@ public final class CouchbaseLite {
         throw new IllegalStateException("Cannot create or access temp directory at " + path);
     }
 
+    @SuppressWarnings("unchecked")
     @NonNull
     private static Map<String, String> loadErrorMessages() {
-        final Map<String, String> errorMessages = new HashMap<>();
-
+        final Properties errors = new Properties();
         try (InputStream is = CouchbaseLite.class.getResourceAsStream(ERRORS_PROPERTIES_PATH)){
             if (is == null) { throw new FileNotFoundException("Cannot find resource at " + ERRORS_PROPERTIES_PATH); }
-            final Properties errors = new Properties();
             errors.load(is);
-            for (final String name: errors.stringPropertyNames()) {
-                errorMessages.put(name, errors.getProperty(name));
-            }
         } catch (IOException e) {
             Log.e(LogDomain.DATABASE, "Failed to load error messages!", e);
         }
-
-        return errorMessages;
+        return (Map<String, String>) (Map) errors;
     }
 }

@@ -582,6 +582,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                     break;
 
                 default:
+                    // This should be happening:
+                    Log.w(DOMAIN, "%s: received unrecognized activity level: ", this, c4Status);
                     break;
             }
 
