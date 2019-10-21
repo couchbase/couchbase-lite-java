@@ -580,6 +580,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                         c4Status = c4Status.copyAtlevel(C4ReplicatorStatus.ActivityLevel.OFFLINE);
                     }
                     break;
+
+                default:
+                    // This should be happening:
+                    Log.w(DOMAIN, "%s: received unrecognized activity level: ", this, c4Status);
+                    break;
             }
 
             // Update my properties:

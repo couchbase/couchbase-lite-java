@@ -21,7 +21,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.File;
-import java.nio.file.Paths;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,6 +38,8 @@ import com.couchbase.lite.internal.support.Log;
 public final class CouchbaseLite {
     // Utility class
     private CouchbaseLite() {}
+
+    private static final String ERRORS_PROPERTIES_PATH = "/errors.properties";
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
@@ -50,9 +56,7 @@ public final class CouchbaseLite {
 
         MValue.registerDelegate(new MValueDelegate());
 
-        // !!!TODO: load error messages
-
-        Log.initLogging();
+        Log.initLogging(loadErrorMessages());
     }
 
     /**
@@ -75,7 +79,7 @@ public final class CouchbaseLite {
 
     static String getDbDirectoryPath() {
         requireInit("Database directory not initialized");
-        return verifyDir(Paths.get("").toFile());
+        return verifyDir(new File("").getAbsoluteFile());
     }
 
     static String getTmpDirectory(@NonNull String name) {
@@ -97,5 +101,18 @@ public final class CouchbaseLite {
         if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
 
         throw new IllegalStateException("Cannot create or access temp directory at " + path);
+    }
+
+    @SuppressWarnings("unchecked")
+    @NonNull
+    private static Map<String, String> loadErrorMessages() {
+        final Properties errors = new Properties();
+        try (InputStream is = CouchbaseLite.class.getResourceAsStream(ERRORS_PROPERTIES_PATH)){
+            if (is == null) { throw new FileNotFoundException("Cannot find resource at " + ERRORS_PROPERTIES_PATH); }
+            errors.load(is);
+        } catch (IOException e) {
+            Log.e(LogDomain.DATABASE, "Failed to load error messages!", e);
+        }
+        return (Map<String, String>) (Map) errors;
     }
 }
