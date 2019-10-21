@@ -261,9 +261,7 @@ public class C4Database {
     ////////////////////////////////
 
     @NonNull
-    public C4BlobStore getBlobStore() throws LiteCoreException {
-        return new C4BlobStore(C4BlobStore.getBlobStore(handle), true);
-    }
+    public C4BlobStore getBlobStore() throws LiteCoreException { return new C4BlobStore(handle); }
 
     ////////////////////////////////
     // C4Query

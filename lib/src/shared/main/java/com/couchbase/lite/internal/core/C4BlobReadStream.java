@@ -20,15 +20,18 @@ package com.couchbase.lite.internal.core;
 import android.support.annotation.NonNull;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
  * An open stream for reading data from a blob.
  */
 public class C4BlobReadStream {
+
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
     private long handle; // hold pointer to C4BlobReadStream
 
     //-------------------------------------------------------------------------
@@ -36,7 +39,7 @@ public class C4BlobReadStream {
     //-------------------------------------------------------------------------
 
     C4BlobReadStream(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
+        Preconditions.checkArgNotZero(handle, "handle");
         this.handle = handle;
     }
 

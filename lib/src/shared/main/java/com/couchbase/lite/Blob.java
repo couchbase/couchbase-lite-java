@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,8 +30,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import com.couchbase.lite.internal.core.C4BlobKey;
 import com.couchbase.lite.internal.core.C4BlobReadStream;
 import com.couchbase.lite.internal.core.C4BlobStore;
@@ -39,63 +38,63 @@ import com.couchbase.lite.internal.fleece.FLEncodable;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
-import com.couchbase.lite.internal.utils.ClassUtils;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
- * A Couchbase Lite Blob. A Blob appears as a property of a Document; it contains arbitrary binary
- * data, tagged with MIME type.
- * Blobs can be arbitrarily large, and their data is loaded only on demand (when the `content` or
- * `contentStream` properties aar accessed), not when the document is loaded. The document's raw
- * JSON form only contains the Blob's metadata (type, length and digest of the data) in small
- * object. The data itself is stored externally to the document, keyed by the digest.)
+ * A Couchbase Lite Blob. A Blob appears as a property of a Document:
+ * it contains arbitrary binary data, tagged with MIME type.
+ * Blobs can be arbitrarily large and their data is loaded only on demand
+ * (when the `content` or `contentStream` properties are accessed),
+ * not when the document is loaded. The document's raw JSON form only contains
+ * the Blob's metadata (type, length and digest of the data) in small object.
+ * The data itself is stored externally to the document, keyed by the digest.)
  */
 public final class Blob implements FLEncodable {
-    private static final LogDomain DOMAIN = LogDomain.DATABASE;
 
     //---------------------------------------------
-    // static constant variables
+    // Constants
     //---------------------------------------------
-    // Max size of data that will be cached in memory with the CBLBlob
-    private static final int MAX_CACHED_CONTENT_LENGTH = 8 * 1024;
+    private static final LogDomain DOMAIN = LogDomain.DATABASE;
 
     /**
      * The sub-document property that identifies it as a special type of object.
      * For example, a blob is represented as `{"@type":"blob", "digest":"xxxx", ...}`
      */
-    private static final String PROP_DIGEST = "digest";
-    private static final String PROP_LENGTH = "length";
-    private static final String PROP_CONTENT_TYPE = "content_type";
-    private static final String META_PROP_DATA = "data";
-
     static final String META_PROP_TYPE = "@type";
     static final String TYPE_BLOB = "blob";
 
+    private static final String PROP_DIGEST = "digest";
+    private static final String PROP_LENGTH = "length";
+    private static final String PROP_CONTENT_TYPE = "content_type";
+    private static final String PROP_DATA = "data";
+
+    // Max size of data that will be cached in memory with the CBLBlob
+    private static final int MAX_CACHED_CONTENT_LENGTH = 8 * 1024;
+
+
+    //---------------------------------------------
+    // Types
+    //---------------------------------------------
+
     static final class BlobInputStream extends InputStream {
-        private C4BlobStore store;
         private C4BlobKey key;
+        private C4BlobStore store;
         private C4BlobReadStream readStream;
 
-        BlobInputStream(C4BlobStore store, C4BlobKey key) {
-            if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
-            if (store == null) {
-                key.free();
-                throw new IllegalArgumentException("store cannot be null.");
-            }
-            this.store = store;
+        BlobInputStream(@NonNull C4BlobKey key, @NonNull C4BlobStore store) throws LiteCoreException {
+            Preconditions.checkArgNotNull(key, "key");
+            Preconditions.checkArgNotNull(store, "store");
+
             this.key = key;
+            this.store = store;
 
-            try {
-                this.readStream = store.openReadStream(key);
-            }
-            catch (LiteCoreException e) {
-                throw new IllegalStateException(e);
-            }
+            this.readStream = store.openReadStream(key);
         }
-
 
         @Override
         public int read() throws IOException {
+            if (key == null) { throw new IOException("Stream is close"); }
             try {
                 final byte[] bytes = readStream.read(1);
                 return (bytes.length <= 0) ? -1 : bytes[0];
@@ -106,18 +105,19 @@ public final class Blob implements FLEncodable {
         }
 
         @Override
-        public int read(@NonNull byte[] b) throws IOException {
-            return read(b, 0, b.length);
-        }
+        public int read(@NonNull byte[] b) throws IOException { return read(b, 0, b.length); }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
+            if (off + len > b.length) {
+                throw new IllegalArgumentException("Attempt to overwrite buffer @" + off + ": " + len);
+            }
+            if (key == null) { throw new IOException("Stream is close"); }
             if (b.length <= 0) { return 0; }
+
             try {
-                final byte[] bytes = readStream.read(len);
-                if (bytes.length <= 0) { return -1; }
-                System.arraycopy(bytes, 0, b, off, bytes.length);
-                return bytes.length;
+                final int n = readStream.read(b, off, len);
+                return (n <= 0) ? -1 : n;
             }
             catch (LiteCoreException e) {
                 throw new IOException(e);
@@ -126,6 +126,7 @@ public final class Blob implements FLEncodable {
 
         @Override
         public long skip(long n) throws IOException {
+            if (key == null) { throw new IOException("Stream is close"); }
             try {
                 readStream.seek(n);
                 return n;
@@ -161,10 +162,43 @@ public final class Blob implements FLEncodable {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+
+    // A newly created unsaved blob will have either content or initialContentStream.
+    // A new blob saved to the database will have database and digest.
+    // A blob loaded from the database will have database, properties, and digest unless invalid
+
     /**
      * The type of content this CBLBlob represents; by convention this is a MIME type.
      */
+    @NonNull
     private final String contentType;
+
+    /**
+     * Gets the contents of a CBLBlob as a block of memory.
+     * Not recommended for very large blobs, as it may be slow and use up lots of RAM.
+     * <p>
+     * Non-null if new from data or if small and loaded from the db or stream source
+     */
+    @Nullable
+    private byte[] content;
+
+    /**
+     * Non-null if new from stream
+     */
+    @Nullable
+    private InputStream initialContentStream;
+
+    /**
+     * Null if blob is new and unsaved
+     */
+    @Nullable
+    private Database database;
+
+    /**
+     * The cryptographic digest of this CBLBlob's contents, which uniquely identifies it.
+     */
+    @Nullable
+    private String blobDigest;
 
     /**
      * The binary length of this CBLBlob.
@@ -172,109 +206,87 @@ public final class Blob implements FLEncodable {
     private long blobLength;
 
     /**
-     * The cryptographic digest of this CBLBlob's contents, which uniquely identifies it.
+     * The metadata associated with this CBLBlob.
+     * Only in blob read from database
      */
-    private String blobDigest;
-
-    /**
-     * Gets the contents of a CBLBlob as a block of memory.
-     * Not recommended for very large blobs, as it may be slow and use up lots of RAM.
-     */
-    private byte[] content; // If new from data, or already loaded from db
-
-    /**
-     * The metadata associated with this CBLBlob
-     */
-    private Map<String, Object> properties; // Only in blob read from database
-
-    private InputStream initialContentStream; // If new from stream
-
-    private Database database; // nil if blob is new and unsaved
-
-    // A newly created unsaved blob will have either _content or _initialContentStream.
-    // A new blob saved to the database will have _db and _digest.
-    // A blob loaded from the database will have _db and _properties, and _digest unless invalid
+    @Nullable
+    private Map<String, Object> properties;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
     /**
-     * Construct a Blob with the given in-memory data. The blob can then be added as a  property of
-     * a Document.
-     * <p>
+     * Construct a Blob with the given in-memory data.
+     * The blob can then be added as a property of a Document.
      *
      * @param contentType The type of content this Blob will represent
      * @param content     The data that this Blob will contain
      */
-    // !!! FIXME: This method stores a mutable array as private data
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Blob(@NonNull String contentType, @NonNull byte[] content) {
-        if (contentType == null) { throw new IllegalArgumentException("contentType cannot be null."); }
-        if (content == null) { throw new IllegalArgumentException("content cannot be null."); }
+        Preconditions.checkArgNotNull(contentType, "contentType");
+        Preconditions.checkArgNotNull(content, "content");
+
         this.contentType = contentType;
-        this.content = content;
-        this.blobLength = content.length;
+        this.content = copyBytes(content);
+
+        this.blobLength = this.content.length;
     }
 
     /**
-     * Construct a Blob with the given stream of data The blob can then be added as a  property of
-     * a Document.
+     * Construct a Blob with the given stream of data.
+     * The blob can then be added as a property of a Document.
      *
      * @param contentType The type of content this Blob will represent
      * @param stream      The stream of data that this Blob will consume
      */
     public Blob(@NonNull String contentType, @NonNull InputStream stream) {
-        if (contentType == null) { throw new IllegalArgumentException("contentType cannot be null."); }
-        if (stream == null) { throw new IllegalArgumentException("stream cannot be null."); }
+        Preconditions.checkArgNotNull(contentType, "contentType");
+        Preconditions.checkArgNotNull(stream, "stream");
+
         this.contentType = contentType;
         this.initialContentStream = stream;
         this.blobLength = 0L; // unknown
     }
 
     /**
-     * Construct a Blob with the content of a file. The blob can then be added as a  property of
-     * a Document.
+     * Construct a Blob with the content of a file.
+     * The blob can then be added as a property of a Document.
      *
      * @param contentType The type of content this Blob will represent
      * @param fileURL     A URL to a file containing the data that this Blob will represent.
-     * @throws IOException
+     * @throws IOException on failure to open the file URL
      */
     public Blob(@NonNull String contentType, @NonNull URL fileURL) throws IOException {
-        if (contentType == null) { throw new IllegalArgumentException("contentType cannot be null."); }
-        if (fileURL == null) { throw new IllegalArgumentException("fileURL cannot be null."); }
+        Preconditions.checkArgNotNull(contentType, "contentType");
+        Preconditions.checkArgNotNull(fileURL, "fileUrl");
+
         if (!fileURL.getProtocol().equalsIgnoreCase("file")) {
-            throw new IllegalArgumentException(
-                String.format(
-                    Locale.ENGLISH,
-                    "<%s> must be a file-based URL.",
-                    fileURL.toString()));
+            throw new IllegalArgumentException(fileURL + "must be a file-based URL.");
         }
+
         this.contentType = contentType;
         this.initialContentStream = fileURL.openStream();
         this.blobLength = 0L; // unknown
     }
 
     // Initializer for an existing blob being read from a document
-    Blob(Database database, Map<String, Object> properties) {
+    Blob(@NonNull Database database, @NonNull Map<String, Object> properties) {
         this.database = database;
         this.properties = new HashMap<>(properties);
         this.properties.remove(META_PROP_TYPE);
 
         // NOTE: length field might not be set if length is unknown.
-        if (properties.get("length") != null && properties.get("length") instanceof Number) {
-            this.blobLength = ClassUtils.cast(properties.get("length"), Number.class).longValue();
-        }
-        this.blobDigest = ClassUtils.cast(properties.get("digest"), String.class);
-        this.contentType = ClassUtils.cast(properties.get("content_type"), String.class);
+        final Object len = properties.get("length");
+        if (len instanceof Number) { this.blobLength = ((Number) len).longValue(); }
+        this.blobDigest = (String) properties.get("digest");
+        this.contentType = (String) properties.get("content_type");
 
-        final Object data = properties.get(META_PROP_DATA);
-        if (data instanceof byte[]) { this.content = (byte[]) data; }
+        final Object data = properties.get(PROP_DATA);
+        if (data instanceof byte[]) { content = (byte[]) data; }
 
-        if (this.blobDigest == null && this.content == null) {
-            Log.w(
-                DOMAIN,
-                "Blob read from database has neither digest nor data.");
+        if ((this.blobDigest == null) && (content == null)) {
+            Log.w(DOMAIN, "Blob read from database has neither digest nor data.");
         }
     }
 
@@ -283,36 +295,52 @@ public final class Blob implements FLEncodable {
     //---------------------------------------------
 
     /**
-     * Gets the contents of a Blob as a block of memory. Not recommended for very large blobs, as it
-     * may be slow and use up lots of RAM.
-     * <p>
+     * Gets the contents of a Blob as a block of memory.
+     * Not recommended for very large blobs, as it may be slow and use up lots of RAM.
      *
      * @return the contents of a Blob as a block of memory
      */
-     // !!! FIXME: This method returns a writable copy of its private data
-    @SuppressFBWarnings("EI_EXPOSE_REP")
+    @Nullable
     public byte[] getContent() {
-        if (content != null) {
-            // Data is in memory:
-            return content;
-        }
+        if (content != null) { return copyBytes(content); }
 
-        return (database != null) ? getBytesFromDatabase() : getBytesFromInitialContentStream();
+        if (database != null) { return getBytesFromDatabase(); }
+
+        // data must be in the initial content stream
+        // No recourse but to read it
+        if (initialContentStream == null) { throw new IllegalStateException("Initial content stream is null"); }
+        try { return getBytesFromStream(initialContentStream); }
+        finally {
+            try { initialContentStream.close(); }
+            catch (IOException e) { Log.i(DOMAIN, "Failed reading blob content stream", e); }
+            initialContentStream = null;
+        }
     }
 
     /**
-     * Get the stream of content of a Blob. The call is responsible for closing the stream when
-     * finished.
+     * Get the stream of content of a Blob.
+     * The caller is responsible for closing the stream when finished.
      *
      * @return the stream of content of a Blob
      */
+    @Nullable
     public InputStream getContentStream() {
-        if (database != null) {
-            return new BlobInputStream(getBlobStore(), getBlobKey());
-        }
-        else {
+        if (database == null) {
+            // if content == null, this call is going to convert
+            // some kind of stream into a byte array,
+            // which we are promptly going to convert back to a stream
             final byte[] content = getContent();
-            return content == null ? null : new ByteArrayInputStream(content);
+            return (content == null) ? null : new ByteArrayInputStream(content);
+        }
+
+        C4BlobKey key = null;
+        try {
+            key = new C4BlobKey(blobDigest);
+            return new BlobInputStream(key, database.getBlobStore());
+        }
+        catch (IllegalArgumentException | LiteCoreException e) {
+            if (key != null) { key.free(); }
+            throw new IllegalStateException("Failed opening content stream.", e);
         }
     }
 
@@ -322,27 +350,22 @@ public final class Blob implements FLEncodable {
      * @return the type of content
      */
     @NonNull
-    public String getContentType() {
-        return contentType;
-    }
+    public String getContentType() { return contentType; }
 
     /**
      * The binary length of this Blob
      *
      * @return The binary length of this Blob
      */
-    public long length() {
-        return blobLength;
-    }
+    public long length() { return blobLength; }
 
     /**
      * The cryptographic digest of this Blob's contents, which uniquely identifies it.
      *
      * @return The cryptograhic digest of this Blob's contents
      */
-    public String digest() {
-        return blobDigest;
-    }
+    @Nullable
+    public String digest() { return blobDigest; }
 
     /**
      * Return the metadata associated with this Blob
@@ -351,138 +374,25 @@ public final class Blob implements FLEncodable {
      */
     @NonNull
     public Map<String, Object> getProperties() {
-        if (properties != null) {
-            // Blob read from database;
-            return properties;
-        }
-        else {
-            final Map<String, Object> props = new HashMap<>();
-            props.put(PROP_DIGEST, blobDigest);
-            props.put(PROP_LENGTH, blobLength);
-            props.put(PROP_CONTENT_TYPE, contentType);
-            return props;
-        }
+        // Blob read from database;
+        if (properties != null) { return properties; }
+
+        final Map<String, Object> props = new HashMap<>();
+        props.put(PROP_DIGEST, blobDigest);
+        props.put(PROP_LENGTH, blobLength);
+        props.put(PROP_CONTENT_TYPE, contentType);
+        return props;
     }
 
     //---------------------------------------------
     // Override
     //---------------------------------------------
 
-    /**
-     * Returns a string representation of the object.
-     *
-     * @return a string representation of the object
-     */
-    @NonNull
-    @Override
-    public String toString() {
-        return String.format(Locale.ENGLISH, "Blob[%s; %d KB]",
-            contentType, (length() + 512) / 1024);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (!(o instanceof Blob)) { return false; }
-
-        final Blob m = (Blob) o;
-        if (blobDigest != null && m.blobDigest != null) { return blobDigest.equals(m.blobDigest); }
-        else { return Arrays.equals(getContent(), m.getContent()); }
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(getContent());
-    }
-
-    //---------------------------------------------
-    // Package level access
-    //---------------------------------------------
-
-    private Map<String, Object> jsonRepresentation() {
-        final Map<String, Object> json = new HashMap<>(getProperties());
-        json.put(META_PROP_TYPE, TYPE_BLOB);
-        if (blobDigest != null) {
-            json.put(PROP_DIGEST, blobDigest);
-        }
-        else {
-            json.put(META_PROP_DATA, getContent());
-        }
-        return json;
-    }
-
-    private void installInDatabase(Database db) {
-        if (db == null) { throw new IllegalArgumentException("db cannot be null."); }
-
-        if (this.database != null) {
-            if (this.database != db) {
-                throw new IllegalStateException(
-                    "A document contains a blob that was saved to a different database; the save operation cannot "
-                        + "complete.");
-            }
-            return;
-        }
-
-        C4BlobKey key = null;
-        try {
-            final C4BlobStore store = db.getBlobStore();
-            try {
-                if (content != null) {
-                    key = store.create(content);
-                }
-                else {
-                    final C4BlobWriteStream blobOut = store.openWriteStream();
-                    try {
-                        final byte[] buffer = new byte[MAX_CACHED_CONTENT_LENGTH];
-                        int bytesRead;
-                        this.blobLength = 0;
-                        final InputStream contentStream = getContentStream();
-                        try {
-                            if (contentStream == null) {
-                                throw new IllegalStateException(
-                                    "No data available to write for install.  Please ensure that all blobs in the "
-                                        + "document have non-null content.");
-                            }
-                            while ((bytesRead = contentStream.read(buffer)) > 0) {
-                                this.blobLength += bytesRead;
-                                blobOut.write(Arrays.copyOfRange(buffer, 0, bytesRead));
-                            }
-                        }
-                        finally {
-                            try {
-                                if (contentStream != null) { contentStream.close(); }
-                            }
-                            catch (IOException ignore) { }
-                        }
-                        key = blobOut.computeBlobKey();
-                        blobOut.install();
-                    }
-                    finally {
-                        blobOut.close();
-                    }
-                }
-                this.blobDigest = key.toString();
-                this.database = db;
-            }
-            finally {
-                if (store != null) { store.free(); }
-            }
-        }
-        catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-        finally {
-            if (key != null) { key.free(); }
-        }
-    }
-
     //FLEncodable
     @Override
-    public void encodeTo(FLEncoder encoder) {
+    public void encodeTo(@NonNull FLEncoder encoder) {
         final Object info = encoder.getExtraInfo();
-        if (info != null) {
-            installInDatabase(((MutableDocument) info).getDatabase());
-        }
+        if (info != null) { installInDatabase(((MutableDocument) info).getDatabase()); }
 
         final Map<String, Object> dict = jsonRepresentation();
         encoder.beginDict(dict.size());
@@ -493,107 +403,177 @@ public final class Blob implements FLEncodable {
         encoder.endDict();
     }
 
+    /**
+     * Returns a string representation of the object.
+     *
+     * @return a string representation of the object
+     */
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(Locale.ENGLISH, "Blob[%s; %d KB]", contentType, (length() + 512) / 1024);
+    }
+
+    @Override
+    public int hashCode() { return Arrays.hashCode(getContent()); }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (!(o instanceof Blob)) { return false; }
+
+        final Blob m = (Blob) o;
+        return ((blobDigest != null) && (m.blobDigest != null))
+            ? blobDigest.equals(m.blobDigest)
+            : Arrays.equals(getContent(), m.getContent());
+    }
+
     //---------------------------------------------
     // Private (in class only)
     //---------------------------------------------
-    private C4BlobStore getBlobStore() {
-        if (database == null) {
-            Log.w(DOMAIN, "database instance is null.");
-            return null;
+
+    private Map<String, Object> jsonRepresentation() {
+        final Map<String, Object> json = new HashMap<>(getProperties());
+        json.put(META_PROP_TYPE, TYPE_BLOB);
+        if (blobDigest != null) { json.put(PROP_DIGEST, blobDigest); }
+        else { json.put(PROP_DATA, getContent()); }
+        return json;
+    }
+
+    private void installInDatabase(@NonNull Database db) {
+        Preconditions.checkArgNotNull(db, "database");
+
+        if (database != null) {
+            if (this.database == db) { return; }
+
+            throw new IllegalStateException(
+                "Attempt to save a document containing a blob that was saved to a another database. "
+                    + "The save operation cannot be completed.");
         }
+
+        C4BlobKey key = null;
+        C4BlobStore store = null;
         try {
-            return database.getBlobStore();
+            store = db.getBlobStore();
+
+            key = (content != null) ? store.create(content) : storeBytesInDatabase(store);
+
+            this.blobDigest = key.toString();
+            this.database = db;
         }
-        catch (LiteCoreException e) {
+        catch (Exception e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private C4BlobKey getBlobKey() {
-        try {
-            return new C4BlobKey(blobDigest);
-        }
-        catch (LiteCoreException e) {
-            Log.w(DOMAIN, "Invalid digest: " + blobDigest, e);
-            return null;
+        finally {
+            if (key != null) { key.free(); }
+            if (store != null) { store.free(); }
         }
     }
 
-    private byte[] getBytesFromInitialContentStream() {
-        // No recourse but to read the initial stream into memory:
-        final byte[] contentResult;
-        if (initialContentStream == null) {
-            throw new IllegalStateException("initialContentStream variable is null");
-        }
+    @NonNull
+    private byte[] getBytesFromStream(@NonNull InputStream in) {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buff = new byte[MAX_CACHED_CONTENT_LENGTH];
         try {
-            final byte[] buffer = new byte[MAX_CACHED_CONTENT_LENGTH];
-            try {
-                int bytesRead;
-                while ((bytesRead = initialContentStream.read(buffer)) >= 0) {
-                    out.write(buffer, 0, bytesRead);
-                }
-                contentResult = out.toByteArray();
-                blobLength = contentResult.length;
-                if (blobLength <= MAX_CACHED_CONTENT_LENGTH) {
-                    content = contentResult;  // cache for later re-use
-                }
-            }
-            catch (IOException e) {
-                Log.w(DOMAIN, "I/O Error with the given stream.", e);
-                throw new IllegalStateException(e);
-            }
-            finally {
-                try {
-                    initialContentStream.close();
-                    initialContentStream = null;
-                }
-                catch (IOException ignore) { }
-            }
+            int n;
+            while ((n = in.read(buff)) > 0) { out.write(buff, 0, n); }
+            buff = out.toByteArray();
+        }
+        catch (IOException e) {
+            final String msg = "Failed reading blob content stream: " + in;
+            Log.w(DOMAIN, msg, e);
+            throw new IllegalStateException(msg, e);
         }
         finally {
             try { out.close(); }
             catch (IOException ignore) { }
         }
-        return contentResult;
+
+        blobLength = cacheContent(buff);
+
+        return buff;
     }
 
+    // Read contents from the BlobStore:
+    // Don't have to close the BlobStore because it is created by the database.
+    @Nullable
     private byte[] getBytesFromDatabase() {
-        byte[] contentResult = null;
-        // Read blob from the BlobStore:
-        // NOTE: should not return null.
-        // BlobStore does not require to be closed because it is created from database.
-        final C4BlobStore blobStore = getBlobStore();
+        Preconditions.checkArgNotNull(database, "database");
 
+        C4BlobStore blobStore = null;
+        C4BlobKey key = null;
+        FLSliceResult res = null;
         try {
-            final C4BlobKey key = getBlobKey();
-            if (key == null) { throw new IllegalStateException("Invalid digest: " + blobDigest); }
-            try {
-                final FLSliceResult res = blobStore.getContents(key);
-                try {
-                    final byte[] bytes = res.getBuf();
-                    if (bytes != null) {
-                        if (bytes.length <= MAX_CACHED_CONTENT_LENGTH) {
-                            content = bytes;  // cache for later re-use
-                        }
-                        contentResult = bytes;
-                    }
-                }
-                finally {
-                    res.free();
-                }
-            }
-            catch (LiteCoreException e) {
-                Log.e(DOMAIN, "Failed to obtain content from BlobStore. digest=" + blobDigest, e);
-                throw new IllegalStateException("Failed to obtain content from BlobStore. digest=" + blobDigest, e);
-            }
-            finally {
-                key.free();
-            }
-            return contentResult;
+            blobStore = database.getBlobStore();
+
+            key = new C4BlobKey(blobDigest);
+
+            res = blobStore.getContents(key);
+
+            final byte[] newContent = res.getBuf();
+            if (newContent == null) { return null; }
+
+            cacheContent(newContent);
+
+            return newContent;
+        }
+        catch (LiteCoreException e) {
+            final String msg = "Failed to obtain BlobStore content for digest: " + blobDigest;
+            Log.e(DOMAIN, msg, e);
+            throw new IllegalStateException(msg, e);
         }
         finally {
+            if (res != null) { res.free(); }
+            if (key != null) { key.free(); }
             if (blobStore != null) { blobStore.free(); }
         }
+    }
+
+    private C4BlobKey storeBytesInDatabase(C4BlobStore store) throws LiteCoreException, IOException {
+        final InputStream contentStream = getContentStream();
+        if (contentStream == null) {
+            throw new IllegalStateException(
+                "No data available to write for install."
+                    + "Please ensure that all blobs in the document have non-null content.");
+        }
+
+        C4BlobWriteStream blobOut = null;
+        try {
+            blobOut = store.openWriteStream();
+
+            final byte[] buffer = new byte[MAX_CACHED_CONTENT_LENGTH];
+            this.blobLength = 0;
+
+            int n;
+            while ((n = contentStream.read(buffer)) > 0) {
+                blobOut.write(buffer, n);
+                this.blobLength += n;
+            }
+
+            blobOut.install();
+
+            return blobOut.computeBlobKey();
+        }
+        finally {
+            try { contentStream.close(); }
+            catch (IOException ignore) { }
+
+            if (blobOut != null) { blobOut.close(); }
+        }
+    }
+
+    // Cache for later re-use, but only if we can fit the entire contents
+    // in a MAX_CACHED_CONTENT_LENGTH-sized buffer.
+    private int cacheContent(@NonNull byte[] newContent) {
+        final int len = newContent.length;
+        if (len <= MAX_CACHED_CONTENT_LENGTH) { content = newContent; }
+        return len;
+    }
+
+    private byte[] copyBytes(@NonNull byte[] content) {
+        final int len = content.length;
+        final byte[] copy = new byte[len];
+        System.arraycopy(content, 0, copy, 0, len);
+        return copy;
     }
 }

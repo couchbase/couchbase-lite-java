@@ -17,10 +17,14 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.io.File;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -31,6 +35,7 @@ public class C4BlobStore {
     //-------------------------------------------------------------------------
     // Public static methods
     //-------------------------------------------------------------------------
+
     /**
      * Opens a BlobStore in a directory. If the flags allow creating, the directory will be
      * created if necessary.
@@ -42,7 +47,8 @@ public class C4BlobStore {
      * @return The BlobStore reference
      * @throws LiteCoreException for any error
      */
-    public static C4BlobStore open(String dirPath, long flags) throws LiteCoreException {
+    @NonNull
+    public static C4BlobStore open(@NonNull String dirPath, long flags) throws LiteCoreException {
         if (!dirPath.endsWith(File.separator)) { dirPath = dirPath + File.separator; }
         return new C4BlobStore(openStore(dirPath, flags), false);
     }
@@ -57,8 +63,10 @@ public class C4BlobStore {
     // Constructor
     //-------------------------------------------------------------------------
 
+    C4BlobStore(long handle) throws LiteCoreException { this(getBlobStore(handle), true); }
+
     C4BlobStore(long handle, boolean managedByDatabase) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
+        Preconditions.checkArgNotZero(handle, "handle");
         this.handle = handle;
         this.managedByDatabase = managedByDatabase;
     }
@@ -91,14 +99,13 @@ public class C4BlobStore {
      * WARNING: If the blob is encrypted, the return value is a conservative estimate that may
      * be up to 16 bytes larger than the actual size.
      */
-    public long getSize(C4BlobKey blobKey) {
-        return getSize(handle, blobKey.getHandle());
-    }
+    public long getSize(C4BlobKey blobKey) { return getSize(handle, blobKey.getHandle()); }
 
     /**
      * Reads the entire contents of a blob into memory. Caller is responsible for freeing it.
      */
-    public FLSliceResult getContents(C4BlobKey blobKey) throws LiteCoreException {
+    @NonNull
+    public FLSliceResult getContents(@NonNull C4BlobKey blobKey) throws LiteCoreException {
         return new FLSliceResult(getContents(handle, blobKey.getHandle()));
     }
 
@@ -111,14 +118,16 @@ public class C4BlobStore {
      * he contents via the API if it fails.
      * Also, it goes without saying that the caller MUST not modify the file!
      */
-    public String getFilePath(C4BlobKey blobKey) throws LiteCoreException {
+    @Nullable
+    public String getFilePath(@NonNull C4BlobKey blobKey) throws LiteCoreException {
         return getFilePath(handle, blobKey.getHandle());
     }
 
     /**
      * Stores a blob. The associated key will be written to `outKey`.
      */
-    public C4BlobKey create(byte[] contents) throws LiteCoreException {
+    @NonNull
+    public C4BlobKey create(@NonNull byte[] contents) throws LiteCoreException {
         return new C4BlobKey(create(handle, contents));
     }
 
@@ -132,7 +141,8 @@ public class C4BlobStore {
     /**
      * Opens a blob for reading, as a random-access byte stream.
      */
-    public C4BlobReadStream openReadStream(C4BlobKey blobKey) throws LiteCoreException {
+    @NonNull
+    public C4BlobReadStream openReadStream(@NonNull C4BlobKey blobKey) throws LiteCoreException {
         return new C4BlobReadStream(openReadStream(handle, blobKey.getHandle()));
     }
 
@@ -141,6 +151,7 @@ public class C4BlobStore {
      * write the data, ending with c4stream_install to compute the blob's key and add it to
      * the store, and then c4stream_closeWriter.
      */
+    @NonNull
     public C4BlobWriteStream openWriteStream() throws LiteCoreException {
         return new C4BlobWriteStream(openWriteStream(handle));
     }
@@ -158,25 +169,25 @@ public class C4BlobStore {
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
-    static native long getBlobStore(long db) throws LiteCoreException;
+    private static native long getBlobStore(long db) throws LiteCoreException;
 
-    static native long openStore(String dirPath, long flags) throws LiteCoreException;
+    private static native long openStore(String dirPath, long flags) throws LiteCoreException;
 
-    static native void deleteStore(long blobStore) throws LiteCoreException;
+    private static native void deleteStore(long blobStore) throws LiteCoreException;
 
-    static native void freeStore(long blobStore);
+    private static native void freeStore(long blobStore);
 
-    static native long getSize(long blobStore, long blobKey);
+    private static native long getSize(long blobStore, long blobKey);
 
-    static native long getContents(long blobStore, long blobKey) throws LiteCoreException;
+    private static native long getContents(long blobStore, long blobKey) throws LiteCoreException;
 
-    static native String getFilePath(long blobStore, long blobKey) throws LiteCoreException;
+    private static native String getFilePath(long blobStore, long blobKey) throws LiteCoreException;
 
-    static native long create(long blobStore, byte[] contents) throws LiteCoreException;
+    private static native long create(long blobStore, byte[] contents) throws LiteCoreException;
 
-    static native void delete(long blobStore, long blobKey) throws LiteCoreException;
+    private static native void delete(long blobStore, long blobKey) throws LiteCoreException;
 
-    static native long openReadStream(long blobStore, long blobKey) throws LiteCoreException;
+    private static native long openReadStream(long blobStore, long blobKey) throws LiteCoreException;
 
-    static native long openWriteStream(long blobStore) throws LiteCoreException;
+    private static native long openWriteStream(long blobStore) throws LiteCoreException;
 }

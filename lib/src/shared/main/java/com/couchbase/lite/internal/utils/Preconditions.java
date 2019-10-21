@@ -25,6 +25,10 @@ public class Preconditions {
         if (obj == null) { throw new IllegalArgumentException(name + " cannot be null"); }
     }
 
+    public static void checkArgNotZero(long n, String name) {
+        if (n == 0) { throw new IllegalArgumentException(name + " cannot be 0"); }
+    }
+
     public static <T> void testArg(T obj, String msg, Fn.Predicate<T> predicate) {
         if (!predicate.test(obj)) { throw new IllegalArgumentException(msg); }
     }
