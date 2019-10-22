@@ -80,7 +80,7 @@ public class BaseTest extends PlatformBaseTest {
     public void setUp() throws CouchbaseLiteException {
         initCouchbaseLite();
 
-        Database.log.getConsole().setLevel(LogLevel.INFO);
+        Database.log.getConsole().setLevel(LogLevel.DEBUG);
         //setupFileLogging(); // if needed
 
         executor = CouchbaseLite.getExecutionService().getSerialExecutor();
