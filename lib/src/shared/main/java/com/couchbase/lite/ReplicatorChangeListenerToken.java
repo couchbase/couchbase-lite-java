@@ -32,7 +32,6 @@ final class ReplicatorChangeListenerToken implements ListenerToken {
 
     void notify(final ReplicatorChange change) { getExecutor().execute(() -> listener.changed(change)); }
 
-
     Executor getExecutor() {
         return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
     }
@@ -49,7 +48,6 @@ final class DocumentReplicationListenerToken implements ListenerToken {
     }
 
     void notify(final DocumentReplication update) { getExecutor().execute(() -> listener.replication(update)); }
-
 
     Executor getExecutor() {
         return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();

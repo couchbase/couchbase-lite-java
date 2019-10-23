@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.ExecutionService;
@@ -191,10 +190,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
 
-            try { dispatcher.execute(() -> replicator.c4StatusChanged(status)); }
-            catch (RejectedExecutionException e) {
-                throw new IllegalStateException("Execution rejected in status change notification: " + dispatcher, e);
-            }
+            dispatcher.execute(() -> replicator.c4StatusChanged(status));
         }
 
         @Override
@@ -209,10 +205,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             final AbstractReplicator replicator = (AbstractReplicator) context;
             if (repl != replicator.c4repl) { return; }
 
-            try { dispatcher.execute(() -> replicator.documentEnded(pushing, documents)); }
-            catch (RejectedExecutionException e) {
-                throw new IllegalStateException("Execution rejected document end notification: " + dispatcher, e);
-            }
+            dispatcher.execute(() -> replicator.documentEnded(pushing, documents));
         }
     }
 
@@ -663,12 +656,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         if ((pendingNotifications != null) && (pendingNotifications.size() > 0)) {
             for (C4ReplicatorStatus status : pendingNotifications) {
-                try { dispatcher.execute(() -> c4StatusChanged(status)); }
-                catch (RejectedExecutionException e) {
-                    throw new IllegalStateException(
-                        "Execution rejected delivering pending notifications: " + dispatcher,
-                        e);
-                }
+                dispatcher.execute(() -> c4StatusChanged(status));
             }
         }
     }

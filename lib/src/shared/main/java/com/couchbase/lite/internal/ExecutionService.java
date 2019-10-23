@@ -94,6 +94,7 @@ public interface ExecutionService {
      * @param task     the task to be executed.
      * @return a cancellable task
      */
+    @NonNull
     Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task);
 
     /**
