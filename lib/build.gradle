@@ -90,7 +90,7 @@ java {
             ]
             resources.srcDirs = [
                 "src/main/resources",               // Resource files                
-                CBL_NATIVE_DIR                      // Native Libraries
+                "${CBL_NATIVE_DIR}"                 // Native Libraries
             ]    
         }
         test {
@@ -99,8 +99,8 @@ java {
                 "src/shared/test/java",             // Shared tests between Java and Android
             ]
             resources.srcDirs = [
-                "src/shared/test/assets",          // Shared test assets between Java and Android
-                "${CBL_CORE_DIR}/C/tests/data"       // lite-core test assets
+                "src/shared/test/assets",           // Shared test assets between Java and Android
+                "${CBL_CORE_DIR}/C/tests/data"      // lite-core test assets
             ]
         }
     }
@@ -149,7 +149,7 @@ compileJava.dependsOn generateCBLVersion
 // ----------------------------------------------------------------
 
 // For generating JNI headers:
-compileJava.options.compilerArgs += ["-h", "${PROJECT_DIR}/src/shared/main/cpp"]
+compileJava.options.compilerArgs += ["-h", "${PROJECT_DIR}/lib/src/shared/main/cpp"]
 
 // UTF-8
 compileJava.options.encoding = "UTF-8"
