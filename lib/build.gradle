@@ -30,8 +30,8 @@ ext {
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Community Edition License Agreement'
     CBL_LICENSE_URL = 'https://www.couchbase.com/binaries/content/assets/website/legal/ce-license-agreement.pdf'
-    CBL_PROJECT_URL = 'https://github.com:couchbase/couchbase-lite-java-ce.git'
-    CBL_ISSUES_URL = 'https://github.com/couchbase/couchbase-lite-java-ce/issues'
+    CBL_PROJECT_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git'
+    CBL_ISSUES_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git/issues'
     CBL_SITE_URL = 'https://developer.couchbase.com/mobile/'
 
     BUILD_TIME = Instant.now().toString()
@@ -426,6 +426,37 @@ publishing {
             from components.java
             //artifact sourcesJar
             //artifact javadocJar
+
+            pom {
+                name = "${CBL_GROUP}:${CBL_ARTIFACT_ID}"
+                description = CBL_DESCRIPTION
+                url = CBL_SITE_URL
+                licenses {
+                    license {
+                        name = CBL_LICENSE
+                        url = CBL_LICENSE_URL
+                        distribution = "repo"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "Couchbase Mobile"
+                        email = "mobile@couchbase.com"
+                        organization = "Couchbase"
+                        organizationUrl = "http://www.couchbase.com"
+                    }
+                }
+                issueManagement {
+                    system = "github"
+                    url = CBL_ISSUES_URL
+                }
+                scm {
+                    url = CBL_SITE_URL
+                    connection = CBL_PROJECT_URL
+                    developerConnection = CBL_PROJECT_URL
+                }
+            }
+
         }
     }
 
@@ -448,7 +479,8 @@ publishing {
 task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
 
-task buildCI(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
