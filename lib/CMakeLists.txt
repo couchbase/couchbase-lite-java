@@ -42,8 +42,8 @@ MESSAGE( STATUS "Core root: " ${LITE_CORE_ROOT} )
 #
 # Generate JNI header files
 #
-set(JNI_CLASSPATH  ${PROJECT_SOURCE_DIR}/lib/src/shared/main/java)
-set(JNI_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/lib/src/shared/main/cpp)
+set(JNI_CLASSPATH  ${PROJECT_SOURCE_DIR}/src/shared/main/java)
+set(JNI_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/src/shared/main/cpp)
 set(JNI_CLASSES
     com.couchbase.lite.internal.core.C4
     com.couchbase.lite.internal.core.C4Base
@@ -115,7 +115,7 @@ if(BUILD_ENTERPRISE)
                     -DSQLITE_HAS_CODEC)         # Enables SQLite encryption extension (SEE)
 endif()
 
-aux_source_directory(./lib/src/shared/main/cpp  JNI_SRC)
+aux_source_directory(./src/shared/main/cpp  JNI_SRC)
 add_library(LiteCoreJNI SHARED ${JNI_SRC})
 
 # set dependency
