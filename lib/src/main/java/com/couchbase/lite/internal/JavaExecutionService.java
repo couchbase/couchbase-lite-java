@@ -18,13 +18,16 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,33 +51,30 @@ public class JavaExecutionService extends AbstractExecutionService {
     }
 
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
-    private static final int POOL_SIZE = CPU_COUNT * 2 + 1;
 
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
-        private final AtomicInteger mCount = new AtomicInteger(1);
+        private final AtomicInteger threadCount = new AtomicInteger(1);
 
-        public Thread newThread(@NonNull Runnable r) { return new Thread(r, "CBL#" + mCount.getAndIncrement()); }
+        public Thread newThread(@NonNull Runnable r) { return new Thread(r, "CBL#" + threadCount.getAndIncrement()); }
     };
 
-    private static final Executor THREAD_POOL_EXECUTOR;
+    private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
+        2, CPU_COUNT * 2 + 1, // pool varies between two threads and 2xCPUs
+        30, TimeUnit.SECONDS, // unused threads die after 30 sec
+        new LinkedBlockingQueue<>(), // unbounded queue
+        THREAD_FACTORY);  // nice recognizable names for our threads.
 
-    static {
-        THREAD_POOL_EXECUTOR = Executors.newFixedThreadPool(POOL_SIZE, THREAD_FACTORY);
-    }
 
     private final Executor mainExecutor;
-
     private final ScheduledExecutorService scheduler;
 
-    public JavaExecutionService() {
+    public JavaExecutionService() { this(THREAD_POOL_EXECUTOR); }
+
+    @VisibleForTesting
+    JavaExecutionService(ThreadPoolExecutor baseExecutor) {
+        super(baseExecutor);
         mainExecutor = Executors.newSingleThreadExecutor();
         scheduler = Executors.newSingleThreadScheduledExecutor();
-    }
-
-    @NonNull
-    @Override
-    public Executor getThreadPoolExecutor() {
-        return THREAD_POOL_EXECUTOR;
     }
 
     @NonNull
@@ -83,6 +83,7 @@ public class JavaExecutionService extends AbstractExecutionService {
         return mainExecutor;
     }
 
+    @NonNull
     @Override
     public Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task) {
         Preconditions.checkArgNotNull(executor, "executor");

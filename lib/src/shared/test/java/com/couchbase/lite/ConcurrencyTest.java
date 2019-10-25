@@ -23,11 +23,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.AbstractExecutionService;
+import com.couchbase.lite.internal.AndroidExecutionService;
 import com.couchbase.lite.utils.ConcurrencyUnitTest;
 import com.couchbase.lite.utils.Report;
 
@@ -469,6 +475,66 @@ public class ConcurrencyTest extends BaseTest {
                 }
             },
             180);
+    }
+
+    @Ignore("This is not actually a test.  Use it to verify logcat output")
+    @Test(expected = RejectedExecutionException.class)
+    public void testSerialExecutorFailure() {
+        AndroidExecutionService execSvc = new AndroidExecutionService();
+        ThreadPoolExecutor exec = execSvc.getBaseExecutor();
+        Executor serialExcecutor = execSvc.getSerialExecutor();
+
+        // hang the queue
+        final CountDownLatch latch = new CountDownLatch(1);
+        serialExcecutor.execute(() -> {
+            try { latch.await(2, TimeUnit.SECONDS); }
+            catch (InterruptedException ignore) { }
+        });
+
+        // put some stuff in the serial executor queue
+        for (int i = 1; i < 10; i++) { serialExcecutor.execute(() -> {}); }
+
+        // fill the base executor.
+        try {
+            while (true) {
+                exec.execute(
+                    new AbstractExecutionService.InstrumentedTask(
+                        () -> {
+                            try { Thread.sleep(10 * 1000); }
+                            catch (InterruptedException ignore) {}
+                        },
+                        () -> {}));
+            }
+        }
+        catch (RejectedExecutionException ignore) { }
+
+        // this should free the running serial job,
+        // which should fail trying to start the next job
+        latch.countDown();
+    }
+
+    @Ignore("This is not actually a test.  Use it to verify logcat output")
+    @Test(expected = RejectedExecutionException.class)
+    public void testConcurrentExecutorFailure() {
+        AndroidExecutionService execSvc = new AndroidExecutionService();
+        ThreadPoolExecutor exec = execSvc.getBaseExecutor();
+
+        // fill the executor
+        try {
+            while (true) {
+                exec.execute(
+                    new AndroidExecutionService.InstrumentedTask(
+                        () -> {
+                            try { Thread.sleep(10 * 1000); }
+                            catch (InterruptedException ignore) {}
+                        },
+                        () -> {}));
+            }
+        }
+        catch (RejectedExecutionException ignore) { }
+
+        // this should fail because the executor is full
+        execSvc.getConcurrentExecutor().execute(() -> {});
     }
 
     private MutableDocument createDocumentWithTag(String tag) {
