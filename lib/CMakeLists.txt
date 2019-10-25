@@ -20,7 +20,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 project (LiteCoreJNI)
 
-set(LITE_CORE_ROOT ${PROJECT_SOURCE_DIR}/../couchbase-lite-core)
+set(LITE_CORE_ROOT ${PROJECT_SOURCE_DIR}/../../couchbase-lite-core)
 
 find_package(Java COMPONENTS Development)
 include (UseJava)
@@ -37,6 +37,7 @@ MESSAGE( STATUS "Java_INCLUDE_DIRS: "     ${Java_INCLUDE_DIRS} )
 MESSAGE( STATUS "JAVA_INCLUDE_PATH: "     ${JAVA_INCLUDE_PATH} )
 MESSAGE( STATUS "JAVA_INCLUDE_PATH2: "    ${JAVA_INCLUDE_PATH2} )
 MESSAGE( STATUS "Java_JAVAH_EXECUTABLE: " ${Java_JAVAH_EXECUTABLE} )
+MESSAGE( STATUS "Core root: " ${LITE_CORE_ROOT} )
 
 #
 # Generate JNI header files
