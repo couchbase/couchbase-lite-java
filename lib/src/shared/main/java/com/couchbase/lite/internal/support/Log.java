@@ -103,7 +103,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void d(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void d(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         log(LogLevel.DEBUG, domain, err, msg);
     }
 
@@ -126,7 +126,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void d(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
+    public static void d(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err, Object... args) {
         log(LogLevel.DEBUG, domain, err, msg, args);
     }
 
@@ -145,7 +145,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void v(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void v(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         log(LogLevel.VERBOSE, domain, err, msg);
     }
 
@@ -168,7 +168,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void v(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
+    public static void v(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err, Object... args) {
         log(LogLevel.VERBOSE, domain, err, msg, args);
     }
 
@@ -189,11 +189,11 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void i(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void i(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         log(LogLevel.INFO, domain, err, msg);
     }
 
-    public static void info(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void info(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         i(domain, msg, err);
     }
 
@@ -216,7 +216,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void i(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
+    public static void i(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err, Object... args) {
         log(LogLevel.INFO, domain, err, msg, args);
     }
 
@@ -235,7 +235,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void w(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void w(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         log(LogLevel.WARNING, domain, err, msg);
     }
 
@@ -258,7 +258,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void w(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
+    public static void w(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err, Object... args) {
         log(LogLevel.WARNING, domain, err, msg, args);
     }
 
@@ -277,7 +277,7 @@ public final class Log {
      * @param msg    The message you would like logged.
      * @param err    An exception to log
      */
-    public static void e(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err) {
+    public static void e(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err) {
         log(LogLevel.ERROR, domain, err, msg);
     }
 
@@ -300,7 +300,7 @@ public final class Log {
      * @param err    An exception to log
      * @param args   Variable number of Object args to be used as params to formatString.
      */
-    public static void e(@NonNull LogDomain domain, @NonNull String msg, @NonNull Throwable err, Object... args) {
+    public static void e(@NonNull LogDomain domain, @NonNull String msg, @Nullable Throwable err, Object... args) {
         log(LogLevel.ERROR, domain, err, msg, args);
     }
 

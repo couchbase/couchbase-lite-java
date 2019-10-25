@@ -196,7 +196,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
             InstrumentedTask prev,
             InstrumentedTask current,
             Deque<InstrumentedTask> tasks) {
-            if (throttle()) { return; }
+            if (throttled()) { return; }
 
             dumpServiceState(executor, ex, "size: " + tasks.size());
 
@@ -238,7 +238,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
     static void dumpServiceState(Executor ex, Exception e, String msg) { dumpServiceState(ex, e, null, msg); }
 
     private static void dumpServiceState(Executor ex, Exception e, Exception origin, String msg) {
-        if (throttle()) { return; }
+        if (throttled()) { return; }
 
         Log.d(LogDomain.DATABASE, "!!!! Catastrophic failure on executor " + ex + ": " + msg, e);
         if (origin != null) { Log.d(DOMAIN, "!! Origin: ", origin); }
@@ -261,7 +261,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
         }
     }
 
-    private static boolean throttle() {
+    private static boolean throttled() {
         final long now = System.currentTimeMillis();
         synchronized (DUMP_LOCK) {
             // don't dump any more than once a second
