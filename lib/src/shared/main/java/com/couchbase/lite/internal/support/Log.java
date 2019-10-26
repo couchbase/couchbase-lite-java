@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.IllegalFormatException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.ConsoleLogger;
 import com.couchbase.lite.Database;
@@ -43,6 +44,8 @@ import com.couchbase.lite.internal.core.CBLVersion;
  * Couchbase Lite Internal Log Utility.
  */
 public final class Log {
+    private static final AtomicBoolean WARNED = new AtomicBoolean(false);
+
     // Utility class.
     private Log() { }
 
@@ -347,6 +350,14 @@ public final class Log {
                     break;
             }
         }
+    }
+
+    public static void warn() {
+        if (WARNED.getAndSet(true)) { return; }
+        Log.w(
+            LogDomain.DATABASE,
+            "Database.log.getFile().getConfig() is now null: logging is disabled.  "
+                + "Log files required for product support are not being generated.");
     }
 
     private static void log(

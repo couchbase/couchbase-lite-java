@@ -278,6 +278,9 @@ abstract class AbstractDatabase {
 
         // Initialize a shared keys:
         this.sharedKeys = new SharedKeys(c4db);
+
+        // warn if logging has not been turned on
+        Log.warn();
     }
 
     /**

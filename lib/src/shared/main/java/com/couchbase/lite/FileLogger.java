@@ -33,11 +33,18 @@ import com.couchbase.lite.internal.support.Log;
  * that log messages can persist durably after the application has
  * stopped or encountered a problem.  Each log level is written to
  * a separate file.
+ * Threading policy: This class is certain to be used from multiple
+ * threads.  As long as it is thread safe, the various race conditions
+ * are unlikely and the penalties very small.  "Volatile" ensures
+ * the thread safety and the several races are tolerable.
  */
 public final class FileLogger implements Logger {
     @Nullable
-    private LogFileConfiguration config;
-    private LogLevel logLevel;
+    private volatile LogFileConfiguration config;
+    @Nullable
+    private volatile String initializedPath;
+    @NonNull
+    private volatile LogLevel logLevel;
 
     // The singleton instance is available from Database.log.getFile()
     FileLogger() { reset(); }
@@ -50,10 +57,7 @@ public final class FileLogger implements Logger {
 
     @NonNull
     @Override
-    public LogLevel getLevel() {
-        logLevel = Log.getLogLevelForC4Level(C4Log.getBinaryFileLevel());
-        return logLevel;
-    }
+    public LogLevel getLevel() { return logLevel; }
 
     /**
      * Sets the overall logging level that will be written to the logging files.
@@ -66,19 +70,22 @@ public final class FileLogger implements Logger {
         }
 
         if (logLevel == level) { return; }
-
         logLevel = level;
-        C4Log.setBinaryFileLevel(level.getValue());
+
+        if (!initLog()) { C4Log.setBinaryFileLevel(level.getValue()); }
+
+        if (level == LogLevel.NONE) { Log.warn(); }
     }
 
     /**
      * Gets the configuration currently in use by the file logger.
-     * Note that once a configuration has been installed in the logger,
-     * that configuration can no longer be modified.
+     * Note that once a configuration has been installed in a logger,
+     * the configuration is read-only and can no longer be modified.
      * An attempt to modify the configuration returned by this method will cause an exception.
      *
      * @return The configuration currently in use
      */
+    @Nullable
     public LogFileConfiguration getConfig() { return config; }
 
     /**
@@ -87,20 +94,15 @@ public final class FileLogger implements Logger {
      * @param newConfig The configuration to use
      */
     public void setConfig(@Nullable LogFileConfiguration newConfig) {
+        if (config == newConfig) { return; }
+
         if (newConfig == null) {
-            Log.w(
-                LogDomain.DATABASE,
-                "Database.log.getFile().getConfig() is now null: logging is disabled.  "
-                    + "Log files required for product support are not being generated.");
             config = null;
+            Log.warn();
             return;
         }
 
-        config = newConfig.readOnlyCopy();
-
-        final String logDirPath = config.getDirectory();
-
-        final File logDir = new File(logDirPath);
+        final File logDir = new File(newConfig.getDirectory());
         String errMsg = null;
         if (!logDir.exists()) {
             if (!logDir.mkdirs()) { errMsg = "Cannot create log directory: " + logDir.getAbsolutePath(); }
@@ -115,19 +117,37 @@ public final class FileLogger implements Logger {
             return;
         }
 
-        C4Log.writeToBinaryFile(
-            logDirPath,
-            LogLevel.INFO.getValue(),
-            config.getMaxRotateCount(),
-            config.getMaxSize(),
-            config.usesPlaintext(),
-            CBLVersion.getVersionInfo());
+        config = newConfig.readOnlyCopy();
+
+        initLog();
     }
 
     @VisibleForTesting
     void reset() {
         config = null;
-        logLevel = LogLevel.WARNING;
+        initializedPath = null;
+        logLevel = LogLevel.NONE;
+    }
+
+    private boolean initLog() {
+        final LogLevel level = logLevel;
+        final LogFileConfiguration cfg = config;
+
+        if ((cfg == null) || (level == LogLevel.NONE)) { return false; }
+
+        final String logDirPath = cfg.getDirectory();
+        if (logDirPath.equals(initializedPath)) { return false; }
+        initializedPath = logDirPath;
+
+        C4Log.writeToBinaryFile(
+            logDirPath,
+            level.getValue(),
+            cfg.getMaxRotateCount(),
+            cfg.getMaxSize(),
+            cfg.usesPlaintext(),
+            CBLVersion.getVersionInfo());
+
+        return true;
     }
 }
 
