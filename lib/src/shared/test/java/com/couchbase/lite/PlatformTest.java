@@ -29,6 +29,9 @@ public interface PlatformTest {
     /* For calling CouchbaseLite.init() method. */
     void initCouchbaseLite();
 
+    /* Set up any test specific logging */
+    void setupFileLogging();
+
     /* Gets the directory for storing test databases. */
     String getDatabaseDirectory();
 

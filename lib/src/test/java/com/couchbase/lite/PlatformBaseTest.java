@@ -36,6 +36,7 @@ public abstract class PlatformBaseTest implements PlatformTest {
     }
 
     // set up the file logger...
+    @Override
     public void setupFileLogging() { }
 
     @Override
