@@ -478,6 +478,7 @@ publishing {
 
 task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
+task fullTest(dependsOn: ['unitTest'])
 
 task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
 task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
