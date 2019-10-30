@@ -92,9 +92,42 @@ public final class Blob implements FLEncodable {
             this.readStream = store.openReadStream(key);
         }
 
+        // not supported...
+        @Override
+        public int available() throws IOException { return super.available(); }
+
+        // I think we could support this.
+        // Currently, however, we do not.
+        @Override
+        public boolean markSupported() { return false; }
+
+        @Override
+        public synchronized void mark(int readlimit) {
+            throw new UnsupportedOperationException("'mark()' not supported");
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            throw new UnsupportedOperationException("'reset()' not supported");
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            if (key == null) { throw new IOException("Stream is closed"); }
+
+            try {
+                readStream.seek(n);
+                return n;
+            }
+            catch (LiteCoreException e) {
+                throw new IOException(e);
+            }
+        }
+
         @Override
         public int read() throws IOException {
-            if (key == null) { throw new IOException("Stream is close"); }
+            if (key == null) { throw new IOException("Stream is closed"); }
+
             try {
                 final byte[] bytes = readStream.read(1);
                 return (bytes.length <= 0) ? -1 : bytes[0];
@@ -105,34 +138,29 @@ public final class Blob implements FLEncodable {
         }
 
         @Override
-        public int read(@NonNull byte[] b) throws IOException { return read(b, 0, b.length); }
+        public int read(@NonNull byte[] buf) throws IOException { return read(buf, 0, buf.length); }
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            if (off + len >= b.length) {
-                throw new IllegalArgumentException("Attempt to overwrite buffer @" + off + ": " + len);
+        public int read(@NonNull byte[] buf, int off, int len) throws IOException {
+            Preconditions.checkArgNotNull(buf, "buffer");
+            if (off < 0) { throw new IndexOutOfBoundsException("Read offset < 0: " + off); }
+            if (len < 0) { throw new IndexOutOfBoundsException("Read length < 0: " + len); }
+
+            if (off + len > buf.length) {
+                throw new IndexOutOfBoundsException(
+                    "off + len > buf.length (" + off + ", " + len + ", " + buf.length + ")");
             }
-            if (key == null) { throw new IOException("Stream is close"); }
-            if (b.length <= 0) { return 0; }
+
+            if (len == 0) { return 0; }
+
+            if (key == null) { throw new IOException("Stream is closed"); }
 
             try {
-                final int n = readStream.read(b, off, len);
+                final int n = readStream.read(buf, off, len);
                 return (n <= 0) ? -1 : n;
             }
             catch (LiteCoreException e) {
-                throw new IOException(e);
-            }
-        }
-
-        @Override
-        public long skip(long n) throws IOException {
-            if (key == null) { throw new IOException("Stream is close"); }
-            try {
-                readStream.seek(n);
-                return n;
-            }
-            catch (LiteCoreException e) {
-                throw new IOException(e);
+                throw new IOException("Failed reading blob", e);
             }
         }
 
