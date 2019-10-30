@@ -52,6 +52,10 @@ public class C4BlobReadStream {
     @NonNull
     public byte[] read(long maxBytesToRead) throws LiteCoreException { return read(handle, maxBytesToRead); }
 
+    public int read(byte[] b, int offset, long maxBytesToRead) throws LiteCoreException {
+        return read(handle, b, offset, maxBytesToRead);
+    }
+
     /**
      * Returns the exact length in bytes of the stream.
      */
@@ -89,6 +93,8 @@ public class C4BlobReadStream {
     // native methods
     //-------------------------------------------------------------------------
     private static native byte[] read(long readStream, long maxBytesToRead) throws LiteCoreException;
+
+    private static native int read(long readStream, byte[] b, int offset, long maxBytesToRead) throws LiteCoreException;
 
     private static native long getLength(long readStream) throws LiteCoreException;
 
