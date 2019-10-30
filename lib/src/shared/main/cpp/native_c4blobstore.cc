@@ -93,7 +93,7 @@ Java_com_couchbase_lite_internal_core_C4BlobKey_free(JNIEnv *env, jclass clazz, 
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_openStore(JNIEnv *env, jclass clazz, jstring jdirpath,
-                                                  jlong jflags) {
+                                                            jlong jflags) {
     jstringSlice dirPath(env, jdirpath);
     C4Error error;
     // TODO: Need to work for encryption
@@ -132,7 +132,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_freeStore(JNIEnv *env, jclass 
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_getSize(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                                jlong jblobkey) {
+                                                          jlong jblobkey) {
     C4BlobKey *pBlobKey = (C4BlobKey *) jblobkey;
     return (jlong) c4blob_getSize((C4BlobStore *) jblobstore, *pBlobKey);
 }
@@ -144,7 +144,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_getSize(JNIEnv *env, jclass cl
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_getContents(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                                    jlong jblobkey) {
+                                                              jlong jblobkey) {
     C4BlobKey *pBlobKey = (C4BlobKey *) jblobkey;
     C4Error error = {};
     C4SliceResult res = c4blob_getContents((C4BlobStore *) jblobstore, *pBlobKey, &error);
@@ -163,7 +163,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_getContents(JNIEnv *env, jclas
  */
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_getFilePath(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                                    jlong jblobkey) {
+                                                              jlong jblobkey) {
     C4BlobKey *pBlobKey = (C4BlobKey *) jblobkey;
     C4Error error = {};
     C4StringResult res = c4blob_getFilePath((C4BlobStore *) jblobstore, *pBlobKey, &error);
@@ -181,7 +181,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_getFilePath(JNIEnv *env, jclas
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_create(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                               jbyteArray jcontents) {
+                                                         jbyteArray jcontents) {
     jbyteArraySlice ccontents(env, jcontents, true);
 
     C4BlobKey blobKey;
@@ -202,7 +202,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_create(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_delete(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                               jlong jblobkey) {
+                                                         jlong jblobkey) {
     C4BlobKey *pBlobKey = (C4BlobKey *) jblobkey;
     C4Error error = {};
     if (!c4blob_delete((C4BlobStore *) jblobstore, *pBlobKey, &error))
@@ -216,7 +216,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_delete(JNIEnv *env, jclass cla
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_openReadStream(JNIEnv *env, jclass clazz, jlong jblobstore,
-                                                       jlong jblobkey) {
+                                                                 jlong jblobkey) {
     C4BlobKey *pBlobKey = (C4BlobKey *) jblobkey;
     C4Error error = {};
     C4ReadStream *stream = c4blob_openReadStream((C4BlobStore *) jblobstore, *pBlobKey, &error);
@@ -232,7 +232,7 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_openReadStream(JNIEnv *env, jc
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobStore_openWriteStream(JNIEnv *env, jclass clazz,
-                                                        jlong jblobstore) {
+                                                                  jlong jblobstore) {
     C4Error error = {};
     C4WriteStream *stream = c4blob_openWriteStream((C4BlobStore *) jblobstore, &error);
     if (stream == NULL)
@@ -250,8 +250,8 @@ Java_com_couchbase_lite_internal_core_C4BlobStore_openWriteStream(JNIEnv *env, j
  * Signature: (JJ)[B
  */
 JNIEXPORT jbyteArray JNICALL
-Java_com_couchbase_lite_internal_core_C4BlobReadStream_read(JNIEnv *env, jclass clazz, jlong jstream,
-                                                  jlong jsize) {
+Java_com_couchbase_lite_internal_core_C4BlobReadStream_read__JJ(JNIEnv *env, jclass clazz, jlong jstream,
+                                                                jlong jsize) {
 
     C4Error error = {};
     char *buff = new char[(size_t) jsize];
@@ -261,6 +261,32 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_read(JNIEnv *env, jclass 
                                 &error);
     C4Slice s = {buff, read};
     return toJByteArray(env, s);
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4BlobReadStream
+ * Method:    read
+ * Signature: (J[BIJ)I
+ */
+JNIEXPORT jint JNICALL
+Java_com_couchbase_lite_internal_core_C4BlobReadStream_read__J_3BIJ(JNIEnv *env, jclass clazz, jlong jstream,
+                                                                    jbyteArray buffer, jint offset, jlong jsize) {
+    C4Error error = {};
+
+    int bufSize = env->GetArrayLength(buffer);
+    if (offset + jsize > bufSize)
+        throwError(env, error);
+
+    jbyte *buff = env->GetByteArrayElements(buffer, NULL);
+
+    size_t read = c4stream_read((C4ReadStream *) jstream,
+                                buff + offset,
+                                (size_t) jsize,
+                                &error);
+
+    env->ReleaseByteArrayElements(buffer, buff, NULL);
+
+    return read;
 }
 
 /*
@@ -284,7 +310,7 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_getLength(JNIEnv *env, jc
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobReadStream_seek(JNIEnv *env, jclass clazz, jlong jstream,
-                                                  jlong jposition) {
+                                                            jlong jposition) {
     C4Error error = {};
     if (!c4stream_seek((C4ReadStream *) jstream, (uint64_t) jposition, &error))
         throwError(env, error);
@@ -310,8 +336,8 @@ Java_com_couchbase_lite_internal_core_C4BlobReadStream_close(JNIEnv *env, jclass
  * Signature: (J[BI)V
  */
 JNIEXPORT void JNICALL
-Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write(JNIEnv * env, jclass clazz, jlong jstream,
-                                                  jbyteArray jbytes, jint jsize) {
+Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write(JNIEnv *env, jclass clazz, jlong jstream,
+                                                              jbyteArray jbytes, jint jsize) {
     jbyteArraySlice bytes(env, jbytes, (size_t) jsize, true);
     C4Slice slice = (C4Slice) bytes;
     C4Error error = {};
@@ -326,7 +352,7 @@ Java_com_couchbase_lite_internal_core_C4BlobWriteStream_write(JNIEnv * env, jcla
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4BlobWriteStream_computeBlobKey(JNIEnv *env, jclass clazz,
-                                                             jlong jstream) {
+                                                                       jlong jstream) {
     C4BlobKey *blobKey = (C4BlobKey *) ::malloc(sizeof(C4BlobKey));
     *blobKey = c4stream_computeBlobKey((C4WriteStream *) jstream);
     return (jlong) blobKey;
