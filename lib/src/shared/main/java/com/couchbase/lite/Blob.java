@@ -109,7 +109,7 @@ public final class Blob implements FLEncodable {
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
-            if (off + len > b.length) {
+            if (off + len >= b.length) {
                 throw new IllegalArgumentException("Attempt to overwrite buffer @" + off + ": " + len);
             }
             if (key == null) { throw new IOException("Stream is close"); }
@@ -476,7 +476,7 @@ public final class Blob implements FLEncodable {
         byte[] buff = new byte[MAX_CACHED_CONTENT_LENGTH];
         try {
             int n;
-            while ((n = in.read(buff)) > 0) { out.write(buff, 0, n); }
+            while ((n = in.read(buff)) >= 0) { out.write(buff, 0, n); }
             buff = out.toByteArray();
         }
         catch (IOException e) {
@@ -545,7 +545,7 @@ public final class Blob implements FLEncodable {
             this.blobLength = 0;
 
             int n;
-            while ((n = contentStream.read(buffer)) > 0) {
+            while ((n = contentStream.read(buffer)) >= 0) {
                 blobOut.write(buffer, n);
                 this.blobLength += n;
             }
