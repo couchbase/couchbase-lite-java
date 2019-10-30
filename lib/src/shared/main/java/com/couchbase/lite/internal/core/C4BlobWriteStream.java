@@ -74,10 +74,11 @@ public class C4BlobWriteStream {
      * Computes the blob-key (digest) of the data written to the stream. This should only be
      * called after writing the entire data. No more data can be written after this call.
      */
+    @NonNull
     public C4BlobKey computeBlobKey() throws LiteCoreException { return new C4BlobKey(computeBlobKey(handle)); }
 
     /**
-     * Adds the data written to the stream as a finished blob to the store, and returns its key.
+     * Adds the data written to the stream as a finished blob to the store.
      * If you skip this call, the blob will not be added to the store. (You might do this if you
      * were unable to receive all of the data from the network, or if you've called
      * c4stream_computeBlobKey and found that the data does not match the expected digest/key.)
