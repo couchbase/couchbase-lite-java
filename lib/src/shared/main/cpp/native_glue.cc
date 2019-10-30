@@ -27,14 +27,6 @@ using namespace litecore;
 using namespace litecore::jni;
 using namespace std;
 
-namespace litecore {
-    namespace jni {
-        std::string JstringToUTF8(JNIEnv *env, jstring jstr);
-
-        jstring UTF8ToJstring(JNIEnv *env, char *s, size_t size);
-    }
-}
-
 // Java uses Modified-UTF-8, not UTF-8: Attempting to decode a real UTF-8 string will cause a failure that looks like:
 //   art/runtime/check_jni.cc:65] JNI DETECTED ERROR IN APPLICATION: input is not valid Modified UTF-8: illegal start byte ...
 //   art/runtime/check_jni.cc:65]     string: ...
@@ -46,7 +38,7 @@ namespace litecore {
 //   https://github.com/incanus/android-jni/blob/master/app/src/main/jni/JNI.cpp#L57-L86
 // !! Creating the wstring_convert is expensive.  It would be nice to create one
 //    and to re-use it.  It is *NOT*, however, threadsafe.
-jstring litecore::jni::UTF8ToJstring(JNIEnv *env, char *s, size_t size) {
+jstring litecore::jni::UTF8ToJstring(JNIEnv *env, const char *s, size_t size) {
     std::u16string ustr;
     try { ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size); }
     catch (const std::bad_alloc &x) {

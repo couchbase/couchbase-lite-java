@@ -43,6 +43,9 @@ namespace litecore {
         bool initC4Replicator(JNIEnv *); // Implemented in native_c4replicator.cc
         bool initC4Socket(JNIEnv *);     // Implemented in native_c4socket.cc
 
+        std::string JstringToUTF8(JNIEnv *env, jstring jstr);
+        jstring UTF8ToJstring(JNIEnv *env, const char *s, size_t size);
+
         // Creates a temporary slice value from a Java String object
         class jstringSlice {
         public:
