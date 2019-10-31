@@ -456,7 +456,6 @@ publishing {
                     developerConnection = CBL_PROJECT_URL
                 }
             }
-
         }
     }
 
@@ -514,26 +513,31 @@ def setupJNILibraryBuildTasks(library, platform) {
 def createCopyNativeLibraryTask(library, targetPlatform) {
     if (CBL_NATIVE_LIBRARIES.contains(library)) return
 
-    CBL_NATIVE_LIBRARIES.add(library)
-    
-    def libs = ["macos/x86_64/libLiteCore.dylib", 
-                "linux/x86_64/libLiteCore.so", 
-                "windows/x86_64/LiteCore.dll"]
-    for (lib in libs) {
-        def libFile = file("${CBL_CORE_NATIVE_DIR}/${lib}")
-        if (libFile.exists()) {
-            CBL_NATIVE_LIBRARIES.add(libFile)
-        }
-    }
-
     def libPath = getNativeLibraryResourcePath(targetPlatform)
-    def task = tasks.create("copyNativeLibraries", Copy) {
-        from CBL_NATIVE_LIBRARIES
+    task copyJni(type: Copy, dependsOn: LiteCoreJNISharedLibrary) {
+        from library
         into "${CBL_NATIVE_DIR}/libs/${libPath}"
     }
 
-    processResources.dependsOn(task)
-    task.dependsOn(LiteCoreJNISharedLibrary)
+    task copyLiteCore(type: Copy, dependsOn: LiteCoreJNISharedLibrary) {
+        from ("${CBL_CORE_NATIVE_DIR}") {
+            include "macos/**"
+            include "linux/**"
+            include "windows/**"
+            exclude "**/*.a"
+        }
+        into "${CBL_NATIVE_DIR}/libs"
+    }
+
+    task generateNativeLibraryMD5(dependsOn: ["copyJni", "copyLiteCore"]) {
+        doFirst {
+            fileTree(dir: "${CBL_NATIVE_DIR}/libs").each { File file ->
+                ant.checksum(file: file)
+            }
+        }
+    }
+
+    processResources.dependsOn(["generateNativeLibraryMD5"])
 }
 
 def getNativeLibraryResourcePath(platform) {
