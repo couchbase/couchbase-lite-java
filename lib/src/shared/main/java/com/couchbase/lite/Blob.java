@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.couchbase.lite.internal.core.C4BlobKey;
 import com.couchbase.lite.internal.core.C4BlobReadStream;
 import com.couchbase.lite.internal.core.C4BlobStore;
@@ -524,7 +526,7 @@ public final class Blob implements FLEncodable {
 
     // Read contents from the BlobStore:
     // Don't have to close the BlobStore because it is created by the database.
-    @Nullable
+    @Nullable @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private byte[] getBytesFromDatabase() {
         Preconditions.checkArgNotNull(database, "database");
 
