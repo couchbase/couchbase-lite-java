@@ -23,46 +23,78 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * For extracting and loading native libraries for couchbase-lite-java.
+ */
 final class NativeLibrary {
     private static final String[] LIBRARIES = { "LiteCore", "LiteCoreJNI" };
 
-    private static final String LIBS_RES_PATH = "/libs";
+    private static final String LIBS_RES_BASE_DIR = "/libs";
 
-    private static final String TMP_DIR_NAME = "com.couchbase.lite.java";
+    private static final String TARGET_BASE_DIR = "com.couchbase.lite.java/native";
 
     private static final AtomicBoolean LOADED = new AtomicBoolean(false);
 
+    /**
+     * Extracts and loads native libraries.
+     */
     static void load() {
         if (LOADED.getAndSet(true)) { return; }
-
-        for (String lib : LIBRARIES) { load(lib); }
-    }
-
-    private static void load(String libName) {
         try {
-            final File libFile = extractLibrary(libName);
-            System.load(libFile.getAbsolutePath());
+            final String[] libPaths = Arrays.stream(LIBRARIES).map(lib -> getResourcePath(lib)).toArray(String[]::new);
+            final String targetDir = getTargetDirectory(libPaths);
+            for (String path : libPaths) {
+                System.load(extract(path, targetDir).getAbsolutePath());
+            }
         }
         catch (Throwable th) {
             final String platform = System.getProperty("os.name") + "/" + System.getProperty("os.arch");
-            throw new IllegalStateException("Cannot load native library : " + libName + " for " + platform, th);
+            throw new IllegalStateException("Cannot load native library for " + platform, th);
         }
     }
 
-    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
-    private static File extractLibrary(@NonNull String libName) throws IOException, InterruptedException {
-        final String libResPath = getLibraryResourcePath(libName);
-        final String tmpDir = CouchbaseLite.getTmpDirectory(TMP_DIR_NAME);
-        final String targetDir = new File(tmpDir).getAbsolutePath();
-        final File targetFile = new File(targetDir, System.mapLibraryName(libName));
+    /**
+     * Returns a target directory for extracting the native libraries into. The structure of the
+     * directory will be <System Temp Directory>/com.couchbase.lite.java/native/<MD5-Hash>.
+     * The MD5-Hash is the combined MD5 hash of the hashes of all native libraries.
+     */
+    @NonNull
+    private static String getTargetDirectory(@NonNull String[] libPaths)
+        throws NoSuchAlgorithmException, URISyntaxException, IOException {
+        final MessageDigest md = MessageDigest.getInstance("MD5");
+        for (String path : libPaths) {
+            final URI md5File = NativeLibrary.class.getResource(path + ".MD5").toURI();
+            md.update(Files.readAllBytes(Paths.get(md5File)));
+        }
+        final String md5 =  String.format("%032x", new BigInteger(1, md.digest()));
+        return new File(CouchbaseLite.getTmpDirectory(TARGET_BASE_DIR), md5).getAbsolutePath();
+    }
 
-        if (targetFile.exists() && !targetFile.delete()) {
-            throw new IllegalStateException("Failed to delete the existing native library at " +
-                        targetFile.getAbsolutePath());
+    /**
+     * Extracts the given path to the native library in the resource directory into the target directory.
+     * If the native library already exists in the target library, the existing native library will be used.
+     */
+    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
+    private static File extract(@NonNull String libResPath, @NonNull String targetDir)
+        throws IOException, InterruptedException {
+        final File targetFile = new File(targetDir, new File(libResPath).getName());
+        if (targetFile.exists()) { return targetFile; }
+
+        final File dir = new File(targetDir);
+        if (!dir.mkdirs() && !dir.exists()) {
+            throw new IOException("Cannot create target directory: " + dir.getAbsolutePath());
         }
 
         // Extract the library to the target directory:
@@ -70,7 +102,7 @@ final class NativeLibrary {
         FileOutputStream out = null;
         try {
             in = NativeLibrary.class.getResourceAsStream(libResPath);
-            if (in == null) { throw new IllegalStateException("Native library not found at " + libResPath); }
+            if (in == null) { throw new IOException("Native library not found at " + libResPath); }
 
             out = new FileOutputStream(targetFile);
             final byte[] buffer = new byte[1024];
@@ -86,16 +118,18 @@ final class NativeLibrary {
 
         // On non-windows systems set up permissions for the extracted native library.
         if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
-            Runtime.getRuntime().exec(
-                    new String[] {"chmod", "755", targetFile.getAbsolutePath()}).waitFor();
+            Runtime.getRuntime().exec(new String[] {"chmod", "755", targetFile.getAbsolutePath()}).waitFor();
         }
         return targetFile;
     }
 
+    /**
+     * Returns the path in the resource directory where the native libraries are located.
+     */
     @NonNull
-    private static String getLibraryResourcePath(@NonNull String libraryName) {
+    private static String getResourcePath(@NonNull String libraryName) {
         // Root native library folder.
-        String path = LIBS_RES_PATH;
+        String path = LIBS_RES_BASE_DIR;
 
         // OS:
         final String osName = System.getProperty("os.name");
