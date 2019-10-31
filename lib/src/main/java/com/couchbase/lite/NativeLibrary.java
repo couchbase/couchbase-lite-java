@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -69,7 +71,8 @@ final class NativeLibrary {
      * The MD5-Hash is the combined MD5 hash of the hashes of all native libraries.
      */
     @NonNull
-    private static String getTargetDirectory(@NonNull String[] libPaths) throws Exception {
+    private static String getTargetDirectory(@NonNull String[] libPaths)
+        throws NoSuchAlgorithmException, URISyntaxException, IOException {
         final MessageDigest md = MessageDigest.getInstance("MD5");
         for (String path : libPaths) {
             final URI md5File = NativeLibrary.class.getResource(path + ".MD5").toURI();
@@ -84,7 +87,8 @@ final class NativeLibrary {
      * If the native library already exists in the target library, the existing native library will be used.
      */
     @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
-    private static File extract(@NonNull String libResPath, @NonNull String targetDir) throws Exception {
+    private static File extract(@NonNull String libResPath, @NonNull String targetDir)
+        throws IOException, InterruptedException {
         final File targetFile = new File(targetDir, new File(libResPath).getName());
         if (targetFile.exists()) { return targetFile; }
 
