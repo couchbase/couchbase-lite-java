@@ -234,8 +234,8 @@ public class C4DatabaseTest extends C4BaseTest {
                 try {
                     String docID = String.format(Locale.ENGLISH, "doc-%03d", i);
                     assertEquals(docID, doc.getDocID());
-                    assertEquals(kRevID, doc.getRevID());
-                    assertEquals(kRevID, doc.getSelectedRevID());
+                    assertEquals(REV_ID_1, doc.getRevID());
+                    assertEquals(REV_ID_1, doc.getSelectedRevID());
                     assertEquals(i, doc.getSelectedSequence());
                     assertNull(doc.getSelectedBody());
                     // Doc was loaded without its body, but it should load on demand:
@@ -270,8 +270,8 @@ public class C4DatabaseTest extends C4BaseTest {
                 try {
                     String docID = String.format(Locale.ENGLISH, "doc-%03d", i);
                     assertEquals(docID, doc.getDocID());
-                    assertEquals(kRevID, doc.getRevID());
-                    assertEquals(kRevID, doc.getSelectedRevID());
+                    assertEquals(REV_ID_1, doc.getRevID());
+                    assertEquals(REV_ID_1, doc.getSelectedRevID());
                     assertEquals(i, doc.getSequence());
                     assertEquals(i, doc.getSelectedSequence());
                     assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
@@ -294,7 +294,7 @@ public class C4DatabaseTest extends C4BaseTest {
     public void testDatabaseChanges() throws LiteCoreException {
         for (int i = 1; i < 100; i++) {
             String docID = String.format(Locale.ENGLISH, "doc-%03d", i);
-            createRev(docID, kRevID, kFleeceBody);
+            createRev(docID, REV_ID_1, kFleeceBody);
         }
 
         C4Document doc;
@@ -352,7 +352,7 @@ public class C4DatabaseTest extends C4BaseTest {
     @Test
     public void testDatabaseExpired() throws LiteCoreException {
         String docID = "expire_me";
-        createRev(docID, kRevID, kFleeceBody);
+        createRev(docID, REV_ID_1, kFleeceBody);
 
         // unix time
         long expire = System.currentTimeMillis() / 1000 + 1;
@@ -363,11 +363,11 @@ public class C4DatabaseTest extends C4BaseTest {
         db.setExpiration(docID, expire);
 
         String docID2 = "expire_me_too";
-        createRev(docID2, kRevID, kFleeceBody);
+        createRev(docID2, REV_ID_1, kFleeceBody);
         db.setExpiration(docID2, expire);
 
         String docID3 = "dont_expire_me";
-        createRev(docID3, kRevID, kFleeceBody);
+        createRev(docID3, REV_ID_1, kFleeceBody);
         try {
             Thread.sleep(2 * 1000); // sleep 2 sec
         }
@@ -382,7 +382,7 @@ public class C4DatabaseTest extends C4BaseTest {
     @Test
     public void testPurgeExpiredDocs() throws LiteCoreException {
         String docID = "expire_me";
-        createRev(docID, kRevID, kFleeceBody);
+        createRev(docID, REV_ID_1, kFleeceBody);
 
         // unix time
         long expire = System.currentTimeMillis() / 1000 + 1;
@@ -392,7 +392,7 @@ public class C4DatabaseTest extends C4BaseTest {
         db.setExpiration(docID, expire);
 
         String docID2 = "expire_me_too";
-        createRev(docID2, kRevID, kFleeceBody);
+        createRev(docID2, REV_ID_1, kFleeceBody);
         db.setExpiration(docID2, expire);
 
         try {
@@ -409,7 +409,7 @@ public class C4DatabaseTest extends C4BaseTest {
     @Test
     public void testPurgeDoc() throws LiteCoreException {
         String docID = "purge_me";
-        createRev(docID, kRevID, kFleeceBody);
+        createRev(docID, REV_ID_1, kFleeceBody);
         try {
             db.purgeDoc(docID);
         }
@@ -428,7 +428,7 @@ public class C4DatabaseTest extends C4BaseTest {
     @Test
     public void testDatabaseCancelExpire() throws LiteCoreException {
         String docID = "expire_me";
-        createRev(docID, kRevID, kFleeceBody);
+        createRev(docID, REV_ID_1, kFleeceBody);
 
         // unix time
         long expire = System.currentTimeMillis() / 1000 + 2;
@@ -493,7 +493,7 @@ public class C4DatabaseTest extends C4BaseTest {
         assertTrue(store.getSize(key3) > 0);
 
         // Only reference to first blob is gone
-        createRev(doc1ID, kRev2ID, null, C4Constants.DocumentFlags.DELETED);
+        createRev(doc1ID, REV_ID_2, null, C4Constants.DocumentFlags.DELETED);
         db.compact();
         assertTrue(store.getSize(key1) == -1);
         assertTrue(store.getSize(key2) > 0);
@@ -501,21 +501,21 @@ public class C4DatabaseTest extends C4BaseTest {
 
         // Two references exist to the second blob, so it should still
         // exist after deleting doc002
-        createRev(doc2ID, kRev2ID, null, C4Constants.DocumentFlags.DELETED);
+        createRev(doc2ID, REV_ID_2, null, C4Constants.DocumentFlags.DELETED);
         db.compact();
         assertTrue(store.getSize(key1) == -1);
         assertTrue(store.getSize(key2) > 0);
         assertTrue(store.getSize(key3) > 0);
 
         // After deleting doc4 both blobs should be gone
-        createRev(doc4ID, kRev2ID, null, C4Constants.DocumentFlags.DELETED);
+        createRev(doc4ID, REV_ID_2, null, C4Constants.DocumentFlags.DELETED);
         db.compact();
         assertTrue(store.getSize(key1) == -1);
         assertTrue(store.getSize(key2) == -1);
         assertTrue(store.getSize(key3) > 0);
 
         // Delete doc with legacy attachment, and it too will be gone
-        createRev(doc3ID, kRev2ID, null, C4Constants.DocumentFlags.DELETED);
+        createRev(doc3ID, REV_ID_2, null, C4Constants.DocumentFlags.DELETED);
         db.compact();
         assertTrue(store.getSize(key1) == -1);
         assertTrue(store.getSize(key2) == -1);
@@ -528,8 +528,8 @@ public class C4DatabaseTest extends C4BaseTest {
         String doc1ID = "doc001";
         String doc2ID = "doc002";
 
-        createRev(doc1ID, kRevID, kFleeceBody);
-        createRev(doc2ID, kRevID, kFleeceBody);
+        createRev(doc1ID, REV_ID_1, kFleeceBody);
+        createRev(doc2ID, REV_ID_1, kFleeceBody);
 
         String srcPath = db.getPath();
 
@@ -570,7 +570,7 @@ public class C4DatabaseTest extends C4BaseTest {
             C4Constants.EncryptionAlgorithm.NONE,
             null);
         assertNotNull(nudb);
-        createRev(nudb, doc1ID, kRevID, kFleeceBody);
+        createRev(nudb, doc1ID, REV_ID_1, kFleeceBody);
         assertEquals(1, nudb.getDocumentCount());
         nudb.close();
 
@@ -634,10 +634,10 @@ public class C4DatabaseTest extends C4BaseTest {
     private void setupAllDocs() throws LiteCoreException {
         for (int i = 1; i < 100; i++) {
             String docID = String.format(Locale.ENGLISH, "doc-%03d", i);
-            createRev(docID, kRevID, kFleeceBody);
+            createRev(docID, REV_ID_1, kFleeceBody);
         }
 
         // Add a deleted doc to make sure it's skipped by default:
-        createRev("doc-005DEL", kRevID, null, C4Constants.DocumentFlags.DELETED);
+        createRev("doc-005DEL", REV_ID_1, null, C4Constants.DocumentFlags.DELETED);
     }
 }

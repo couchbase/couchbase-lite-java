@@ -46,10 +46,10 @@ import static org.junit.Assert.fail;
 
 
 public class C4BaseTest extends PlatformBaseTest {
-    protected static final String kDocID = "mydoc";
-    protected static final String kRevID = "1-abcd";
-    protected static final String kRev2ID = "2-c001d00d";
-    protected static final String kRev3ID = "3-deadbeef";
+    protected static final String DOC_ID = "mydoc";
+    protected static final String REV_ID_1 = "1-abcd";
+    protected static final String REV_ID_2 = "2-c001d00d";
+    protected static final String REV_ID_3 = "3-deadbeef";
 
     protected File dir;
     protected C4Database db;
@@ -96,10 +96,6 @@ public class C4BaseTest extends PlatformBaseTest {
     protected int encryptionAlgorithm() { return C4Constants.EncryptionAlgorithm.NONE; }
 
     protected byte[] encryptionKey() { return null; }
-
-    protected boolean isRevTrees() { return versioning == C4Constants.DocumentVersioning.REVISION_TREES; }
-
-    protected boolean isVersionVectors() { return versioning == C4Constants.DocumentVersioning.VERSION_VECTORS; }
 
     private void deleteDatabaseFile(String dbFileName) { deleteFile(dbFileName); }
 
