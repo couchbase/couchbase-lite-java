@@ -24,10 +24,12 @@ import android.support.annotation.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
 
 
@@ -247,6 +249,22 @@ public class C4Replicator {
         }
     }
 
+    public Set<String> getPendingDocIDs() throws LiteCoreException {
+        synchronized (lock) {
+            if (handle == 0) { return null; }
+
+            FLSliceResult result = new FLSliceResult(getPendingDocIds(handle));
+
+            return null;
+        }
+    }
+
+    public boolean isDocumentPending(String docId) throws LiteCoreException {
+        synchronized (lock) {
+            return (handle != 0) && isDocumentPending(handle, docId);
+        }
+    }
+
     @Nullable
     public byte[] getResponseHeaders() {
         synchronized (lock) {
@@ -352,6 +370,16 @@ public class C4Replicator {
     private static native byte[] getResponseHeaders(long replicator);
 
     /**
+     * Returns a list of string ids for pending documents.
+     */
+    private static native long getPendingDocIds(long handle) throws LiteCoreException;
+
+    /**
+     * Returns true if there are documents that have not been resolved.
+     */
+    private static native boolean isDocumentPending(long handle, String id) throws LiteCoreException;
+
+    /**
      * Returns true if this is a network error that may be transient,
      * i.e. the client should retry after a delay.
      */
@@ -363,3 +391,4 @@ public class C4Replicator {
      */
     private static native boolean mayBeNetworkDependent(int domain, int code, int info);
 }
+
