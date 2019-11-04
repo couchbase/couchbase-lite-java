@@ -268,7 +268,7 @@ public class C4DocumentTest extends C4BaseTest {
             C4Document doc = db.put(kFleeceBody, DOC_ID, 0, false, false, new String[0], true, 0, 0);
             assertNotNull(doc);
             assertEquals(DOC_ID, doc.getDocID());
-            String kExpectedRevID = "1-12b55bef";
+            String kExpectedRevID = "1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032";
             assertEquals(kExpectedRevID, doc.getRevID());
             assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
             assertEquals(kExpectedRevID, doc.getSelectedRevID());
@@ -280,7 +280,7 @@ public class C4DocumentTest extends C4BaseTest {
             doc = db.put(json2fleece("{'ok':'go'}"), DOC_ID, 0, false, false, history, true, 0, 0);
             assertNotNull(doc);
             // NOTE: With current JNI binding, unable to check commonAncestorIndex value
-            String kExpectedRevID2 = "2-5c59e21c";
+            String kExpectedRevID2 = "2-201796aeeaa6ddbb746d6cab141440f23412ac51";
             assertEquals(kExpectedRevID2, doc.getRevID());
             assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
             assertEquals(kExpectedRevID2, doc.getSelectedRevID());
@@ -320,7 +320,7 @@ public class C4DocumentTest extends C4BaseTest {
             db.endTransaction(commit);
         }
 
-        String kExpectedRevID = "1-12b55bef";
+        String kExpectedRevID = "1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032";
         assertEquals(kExpectedRevID, doc.getRevID());
         assertTrue(doc.exists());
         assertEquals(kExpectedRevID, doc.getSelectedRevID());
@@ -346,7 +346,7 @@ public class C4DocumentTest extends C4BaseTest {
             db.endTransaction(commit);
         }
 
-        String kExpectedRev2ID = "2-5c59e21c";
+        String kExpectedRev2ID = "2-201796aeeaa6ddbb746d6cab141440f23412ac51";
         assertEquals(kExpectedRev2ID, doc.getRevID());
         assertTrue(doc.exists());
         assertEquals(kExpectedRev2ID, doc.getSelectedRevID());
@@ -392,7 +392,7 @@ public class C4DocumentTest extends C4BaseTest {
         testDocumentConflict(doc -> {
             doc.resolveConflict("4-dddd", "3-aaaaaa", mergedBody, 0);
             assertTrue(doc.selectCurrentRevision());
-            assertEquals("5-42068bf7", doc.getSelectedRevID());
+            assertEquals("5-8647a1d644ddc7addc279d8cbfe74978b68f067b", doc.getSelectedRevID());
             assertArrayEquals(mergedBody, doc.getSelectedBody());
             assertTrue(doc.selectParentRevision());
             assertEquals("4-dddd", doc.getSelectedRevID());
@@ -405,7 +405,7 @@ public class C4DocumentTest extends C4BaseTest {
         testDocumentConflict(doc -> {
             doc.resolveConflict("3-aaaaaa", "4-dddd", mergedBody, 0);
             assertTrue(doc.selectCurrentRevision());
-            assertEquals("4-47b66ee5", doc.getSelectedRevID());
+            assertEquals("4-d204defb3e1b28f0ecd78591ee04b6c1d109cb5c", doc.getSelectedRevID());
             assertArrayEquals(mergedBody, doc.getSelectedBody());
             assertTrue(doc.selectParentRevision());
             assertEquals("3-aaaaaa", doc.getSelectedRevID());
