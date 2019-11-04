@@ -1215,9 +1215,16 @@ abstract class AbstractDatabase {
             remoteDoc = getConflictingRevision(docID);
         }
 
-        // Resolve conflict:
-        final Document resolvedDoc
-            = resolveConflict((resolver != null) ? resolver : ConflictResolver.DEFAULT, docID, localDoc, remoteDoc);
+        Document resolvedDoc = null;
+        if (localDoc.isDeleted() && remoteDoc.isDeleted()) {
+            // Resolve automatically with the remote doc:
+            resolvedDoc = remoteDoc;
+        }
+        else {
+            // Resolve with conflict resolver:
+            resolvedDoc = resolveConflict((resolver != null) ?
+                resolver : ConflictResolver.DEFAULT, docID, localDoc, remoteDoc);
+        }
 
         synchronized (lock) {
             boolean commit = false;
