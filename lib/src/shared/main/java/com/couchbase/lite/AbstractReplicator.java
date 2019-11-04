@@ -403,6 +403,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final C4Replicator repl;
         synchronized (lock) { repl = c4repl; }
 
+        // !!! Need to return a result here: will require recreating the replicator.
         if (repl == null) {
             Log.i(DOMAIN, "%s: Call to getPendingDocumentIds with unstarted replicator", this);
             return Collections.emptySet();
@@ -410,10 +411,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         final Set<String> pending;
         try { pending = c4repl.getPendingDocIDs(); }
-        catch (LiteCoreException e) {
-            Log.w(DOMAIN, "Error while fetching pending documentIds: %d/%d", e.domain, e.code);
-            return Collections.emptySet();
-        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed fetching pending documentIds"); }
 
         return (pending.size() <= 0) ? Collections.emptySet() : Collections.unmodifiableSet(pending);
     }
@@ -432,17 +430,14 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final C4Replicator repl;
         synchronized (lock) { repl = c4repl; }
 
+        // !!! Need to return a result here: will require recreating the replicator.
         if (repl == null) {
             Log.i(DOMAIN, "%s: Call to isDocumentPending with unstarted replicator", this);
             return false;
         }
 
         try { return c4repl.isDocumentPending(docId); }
-        catch (LiteCoreException e) {
-            Log.w(DOMAIN, "Error while fetching pending documentIds: %d/%d", e.domain, e.code);
-        }
-
-        return false;
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed getting document pending status"); }
     }
 
     /**

@@ -22,7 +22,9 @@ import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.support.Log;
 
 
@@ -253,9 +256,12 @@ public class C4Replicator {
         synchronized (lock) {
             if (handle == 0) { return null; }
 
-            FLSliceResult result = new FLSliceResult(getPendingDocIds(handle));
-
-            return null;
+            final FLSliceResult result = new FLSliceResult(getPendingDocIds(handle));
+            try {
+                final FLValue slice = FLValue.fromData(result);
+                return (slice == null) ? Collections.emptySet() : new HashSet<>(slice.asTypedArray());
+            }
+            finally { result.free(); }
         }
     }
 

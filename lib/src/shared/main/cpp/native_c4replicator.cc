@@ -271,8 +271,8 @@ static void statusChangedCallback(C4Replicator *repl, C4ReplicatorStatus status,
                                       m_C4Replicator_statusChangedCallback,
                                       (jlong) repl,
                                       toJavaObject(env, status));
-            if (gJVM->DetachCurrentThread() != 0) C4Warn(
-                    "doRequestClose(): Failed to detach the current thread from a Java VM");
+            if (gJVM->DetachCurrentThread() != 0)
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
             C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
@@ -310,8 +310,8 @@ static void documentEndedCallback(C4Replicator *repl,
                                       (jlong) repl,
                                       pushing,
                                       toJavaDocumentEndedArray(env, numDocs, documentEnded));
-            if (gJVM->DetachCurrentThread() != 0) C4Warn(
-                    "doRequestClose(): Failed to detach the current thread from a Java VM");
+            if (gJVM->DetachCurrentThread() != 0)
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
             C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
@@ -341,8 +341,8 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
                                                (jlong) dict,
                                                isPush,
                                                (jobject) ctx);
-            if (gJVM->DetachCurrentThread() != 0) C4Warn(
-                    "doRequestClose(): Failed to detach the current thread from a Java VM");
+            if (gJVM->DetachCurrentThread() != 0)
+                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
         } else {
             C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
         }
@@ -561,7 +561,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_getPendingDocIds
     if (c4Error.domain != 0 && c4Error.code != 0)
         throwError(env, c4Error);
 
-    C4SliceResult *sliceResult = (C4SliceResult *) ::malloc(sizeof(C4SliceResult));
+    auto *sliceResult = (C4SliceResult *) ::malloc(sizeof(C4SliceResult));
 
     sliceResult->buf = res.buf;
     sliceResult->size = res.size;
