@@ -333,7 +333,7 @@ public final class Blob implements FLEncodable {
      */
     @Nullable
     public byte[] getContent() {
-        // this will load blobContent from the blobContentStream
+        // this will load blobContent from the blobContentStream (all of it!)
         if (blobContentStream != null) { readContentFromInitStream(); }
 
         if (blobContent != null) { return copyBytes(blobContent); }
@@ -459,6 +459,17 @@ public final class Blob implements FLEncodable {
         return ((blobDigest != null) && (m.blobDigest != null))
             ? blobDigest.equals(m.blobDigest)
             : Arrays.equals(getContent(), m.getContent());
+    }
+
+    @SuppressWarnings("NoFinalizer")
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
+    @Override
+    protected void finalize() throws Throwable {
+        if (blobContentStream != null) {
+            try { blobContentStream.close(); }
+            catch (IOException ignore) { }
+        }
+        super.finalize();
     }
 
     //---------------------------------------------
