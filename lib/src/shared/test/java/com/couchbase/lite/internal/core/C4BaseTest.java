@@ -22,24 +22,25 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.couchbase.lite.LogLevel;
-import com.couchbase.lite.PlatformBaseTest;
-import com.couchbase.lite.utils.Report;
 import org.junit.After;
 import org.junit.Before;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogLevel;
+import com.couchbase.lite.PlatformBaseTest;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.utils.StopWatch;
 import com.couchbase.lite.utils.FileUtils;
+import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -56,7 +57,6 @@ public class C4BaseTest extends PlatformBaseTest {
 
     protected byte[] kFleeceBody;
 
-    private final int flags = C4Constants.DatabaseFlags.CREATE | C4Constants.DatabaseFlags.SHARED_KEYS;
     private final int versioning = C4Constants.DocumentVersioning.REVISION_TREES;
 
     @Before
@@ -89,7 +89,7 @@ public class C4BaseTest extends PlatformBaseTest {
         createRev(docID, revID, body, 0);
     }
 
-    protected int getFlags() { return flags; }
+    protected int getFlags() { return C4Constants.DatabaseFlags.CREATE | C4Constants.DatabaseFlags.SHARED_KEYS; }
 
     protected int getVersioning() { return versioning; }
 
@@ -232,12 +232,10 @@ public class C4BaseTest extends PlatformBaseTest {
     }
 
     private long importJSONLines(InputStream is) throws LiteCoreException, IOException {
-        // Android API 16 arm emulator is slow. This is reason timeout is set 60 sec
         return importJSONLines(is, 120, true);
     }
 
     private long importJSONLines(InputStream is, String idPrefix) throws LiteCoreException, IOException {
-        // Android API 16 arm emulator is slow. This is reason timeout is set 60 sec
         return importJSONLines(is, idPrefix, 120, true);
     }
 
@@ -255,11 +253,10 @@ public class C4BaseTest extends PlatformBaseTest {
         boolean commit = false;
         db.beginTransaction();
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            try {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    FLSliceResult body = db.encodeJSON(line.getBytes("UTF-8"));
+                    FLSliceResult body = db.encodeJSON(line.getBytes(StandardCharsets.UTF_8));
                     try {
                         String docID = String.format(Locale.ENGLISH, "%s%07d", idPrefix, numDocs + 1);
 
@@ -289,9 +286,6 @@ public class C4BaseTest extends PlatformBaseTest {
                     }
                 }
             }
-            finally {
-                br.close();
-            }
             commit = true;
         }
         finally {
@@ -313,10 +307,13 @@ public class C4BaseTest extends PlatformBaseTest {
     private byte[] createFleeceBody(Map<String, Object> body) throws LiteCoreException {
         FLEncoder enc = new FLEncoder();
         try {
-            enc.beginDict(body != null ? body.size() : 0);
-            for (String key : body.keySet()) {
-                enc.writeKey(key);
-                enc.writeValue(body.get(key));
+            if (body == null) { enc.beginDict(0); }
+            else {
+                enc.beginDict(body.size());
+                for (String key : body.keySet()) {
+                    enc.writeKey(key);
+                    enc.writeValue(body.get(key));
+                }
             }
             enc.endDict();
             return enc.finish();

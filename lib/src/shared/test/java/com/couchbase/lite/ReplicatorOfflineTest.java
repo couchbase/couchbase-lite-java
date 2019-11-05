@@ -80,6 +80,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         repl.removeChangeListener(token);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testDocumentChangeListenerToken() throws Exception {
         Endpoint endpoint = getRemoteTargetEndpoint();
@@ -92,6 +93,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(executor, null));
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testChangeListenerEmptyArg() throws Exception {
         Endpoint endpoint = getRemoteTargetEndpoint();
@@ -102,7 +104,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(executor, null));
     }
 
-    // ??? Flaky
+    // ??? Flaky Test
     @Test
     public void testNetworkRetry() throws URISyntaxException, InterruptedException {
         final CountDownLatch offline = new CountDownLatch(2);
@@ -123,7 +125,6 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
                         stopped.countDown();
                         return;
                     default:
-                        ;
                 }
             });
 

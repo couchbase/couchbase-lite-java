@@ -35,7 +35,6 @@ public class ReplicatorMiscTest extends BaseReplicatorTest {
 
     @Test
     public void testReplicatorChange() {
-        String docID = "someDocumentID";
         long completed = 10;
         long total = 20;
         int errorCode = CBLError.Code.BUSY;
@@ -59,15 +58,13 @@ public class ReplicatorMiscTest extends BaseReplicatorTest {
         assertEquals(repChange.getStatus().getProgress().getTotal(), total);
         assertEquals(repChange.getStatus().getError().getCode(), errorCode);
         assertEquals(repChange.getStatus().getError().getDomain(), CBLError.Domain.CBLITE);
-        String changeInString = "ReplicatorChange{" +
-            "replicator=" + repl +
-            ", status=" + status + '}';
+        String changeInString = "ReplicatorChange{replicator=" + repl + ", status=" + status + '}';
         assertEquals(repChange.toString(), changeInString);
     }
 
     @Test
     public void testDocumentReplication() {
-        boolean isPush = true;
+        final boolean isPush = true;
         List<ReplicatedDocument> docs = new ArrayList<>();
         DocumentReplication doc = new DocumentReplication(repl, isPush, docs);
         assertEquals(doc.isPush(), isPush);
