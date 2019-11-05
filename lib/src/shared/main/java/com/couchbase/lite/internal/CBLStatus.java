@@ -36,6 +36,10 @@ public class CBLStatus {
         return convertException(e.domain, e.code, null, e);
     }
 
+    public static CouchbaseLiteException convertException(LiteCoreException e, String msg) {
+        return convertException(e.domain, e.code, msg, e);
+    }
+
     public static CouchbaseLiteException convertException(int domainCode, int statusCode, int internalInfo) {
         return ((domainCode == 0) || (statusCode == 0))
             ? convertException(domainCode, statusCode, null, null)

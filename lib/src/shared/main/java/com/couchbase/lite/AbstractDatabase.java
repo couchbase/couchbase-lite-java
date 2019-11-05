@@ -1216,14 +1216,15 @@ abstract class AbstractDatabase {
         }
 
         Document resolvedDoc = null;
-        if (localDoc.isDeleted() && remoteDoc.isDeleted()) {
-            // Resolve automatically with the remote doc:
-            resolvedDoc = remoteDoc;
-        }
+        // If both docs have been deleted, we're done here
+        if (localDoc.isDeleted() && remoteDoc.isDeleted()) { resolvedDoc = remoteDoc; }
         else {
             // Resolve with conflict resolver:
-            resolvedDoc = resolveConflict((resolver != null) ?
-                resolver : ConflictResolver.DEFAULT, docID, localDoc, remoteDoc);
+            resolvedDoc = resolveConflict(
+                (resolver != null) ? resolver : ConflictResolver.DEFAULT,
+                docID,
+                localDoc,
+                remoteDoc);
         }
 
         synchronized (lock) {

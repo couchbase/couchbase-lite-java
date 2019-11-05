@@ -48,14 +48,17 @@ public class FLArray {
         this.handle = handle;
     }
 
-    public List<Object> asArray() {
-        final List<Object> results = new ArrayList<>();
+    public List<Object> asArray() { return asTypedArray(); }
+
+    @SuppressWarnings("unchecked")
+    public <T> List<T> asTypedArray() {
+        final List<T> results = new ArrayList<>();
         final FLArrayIterator itr = new FLArrayIterator();
         try {
             itr.begin(this);
             FLValue value;
             while ((value = itr.getValue()) != null) {
-                results.add(value.asObject());
+                results.add((T) value.asObject());
                 if (!itr.next()) { break; }
             }
         }

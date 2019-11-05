@@ -304,7 +304,7 @@ static void documentEndedCallback(C4Replicator *repl,
                                   pushing,
                                   toJavaDocumentEndedArray(env, numDocs, documentEnded));
     } else if (getEnvStat == JNI_EDETACHED) {
-        if (attachCurrentThread(&env)== 0) {
+        if (attachCurrentThread(&env) == 0) {
             env->CallStaticVoidMethod(cls_C4Replicator,
                                       m_C4Replicator_documentEndedCallback,
                                       (jlong) repl,
@@ -548,6 +548,49 @@ Java_com_couchbase_lite_internal_core_C4Replicator_getResponseHeaders(JNIEnv *en
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Replicator
+ * Method:    getPendingDocIDs
+ * Signature: (J)Ljava/lang/Object;
+ */
+JNIEXPORT jlong JNICALL
+Java_com_couchbase_lite_internal_core_C4Replicator_getPendingDocIds
+        (JNIEnv *env, jclass clazz, jlong repl) {
+    C4Error c4Error = {};
+
+    C4SliceResult res = c4repl_getPendingDocIDs((C4Replicator *) repl, &c4Error);
+
+    if (c4Error.domain != 0 && c4Error.code != 0)
+        throwError(env, c4Error);
+
+    auto *sliceResult = (C4SliceResult *) ::malloc(sizeof(C4SliceResult));
+
+    sliceResult->buf = res.buf;
+    sliceResult->size = res.size;
+
+    return (jlong) sliceResult;
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Replicator
+ * Method:    isDocumentPending
+ * Signature: (JLjava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_couchbase_lite_internal_core_C4Replicator_isDocumentPending
+        (JNIEnv *env, jclass clazz, jlong repl, jstring jDocId) {
+
+    jstringSlice docId(env, jDocId);
+
+    C4Error c4Error = {};
+    bool pending = c4repl_isDocumentPending((C4Replicator *) repl, docId, &c4Error);
+
+    if (c4Error.domain != 0 && c4Error.code != 0)
+        throwError(env, c4Error);
+
+    return (jboolean) pending;
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Replicator
  * Method:    mayBeTransient
  * Signature: (III)Z
  */
@@ -557,7 +600,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_mayBeTransient(JNIEnv *env,
                                                                   jint domain,
                                                                   jint code,
                                                                   jint ii) {
-    C4Error c4Error = { (C4ErrorDomain) domain, code, ii };
+    C4Error c4Error = {(C4ErrorDomain) domain, code, ii};
     return c4error_mayBeTransient(c4Error);
 }
 
@@ -572,7 +615,7 @@ Java_com_couchbase_lite_internal_core_C4Replicator_mayBeNetworkDependent(JNIEnv 
                                                                          jint domain,
                                                                          jint code,
                                                                          jint ii) {
-    C4Error c4Error = { (C4ErrorDomain) domain, code, ii };
+    C4Error c4Error = {(C4ErrorDomain) domain, code, ii};
     return c4error_mayBeNetworkDependent(c4Error);
 }
 

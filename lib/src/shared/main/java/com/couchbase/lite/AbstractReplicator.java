@@ -284,6 +284,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // member variables
     //---------------------------------------------
 
+    @NonNull
     final ReplicatorConfiguration config;
 
     private final Object lock = new Object();
@@ -389,6 +390,55 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public Status getStatus() { return status.copy(); }
+
+    @NonNull
+    public Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
+        if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
+            throw new CouchbaseLiteException(
+                "Pending Document IDs are not supported on pull-only replicators.",
+                Log.LOGGING_DOMAINS_TO_C4.get(DOMAIN),
+                CBLError.Code.UNSUPPORTED);
+        }
+
+        final C4Replicator repl;
+        synchronized (lock) { repl = c4repl; }
+
+        // !!! Need to return a result here: will require recreating the replicator.
+        if (repl == null) {
+            Log.i(DOMAIN, "%s: Call to getPendingDocumentIds with unstarted replicator", this);
+            return Collections.emptySet();
+        }
+
+        final Set<String> pending;
+        try { pending = c4repl.getPendingDocIDs(); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed fetching pending documentIds"); }
+
+        return (pending.size() <= 0) ? Collections.emptySet() : Collections.unmodifiableSet(pending);
+    }
+
+    @NonNull
+    public boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
+        Preconditions.checkArgNotNull(docId, "document ID");
+
+        if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
+            throw new CouchbaseLiteException(
+                "Pending Document IDs are not supported on pull-only replicators.",
+                Log.LOGGING_DOMAINS_TO_C4.get(DOMAIN),
+                CBLError.Code.UNSUPPORTED);
+        }
+
+        final C4Replicator repl;
+        synchronized (lock) { repl = c4repl; }
+
+        // !!! Need to return a result here: will require recreating the replicator.
+        if (repl == null) {
+            Log.i(DOMAIN, "%s: Call to isDocumentPending with unstarted replicator", this);
+            return false;
+        }
+
+        try { return c4repl.isDocumentPending(docId); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed getting document pending status"); }
+    }
 
     /**
      * Set the given ReplicatorChangeListener for this replicator, delivering events on the default executor
@@ -783,7 +833,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             status = c4repl.getStatus();
         }
         catch (LiteCoreException e) {
-            status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED, e.domain, e.code );
+            status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED, e.domain, e.code);
         }
 
         updateStateProperties((status != null)
