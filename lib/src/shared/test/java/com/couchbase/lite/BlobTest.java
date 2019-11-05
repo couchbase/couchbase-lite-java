@@ -23,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Arrays;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,17 +31,17 @@ import org.junit.rules.TemporaryFolder;
 import com.couchbase.lite.utils.IOUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-// There are other blob tests over in DocumentTest
+// There are other blob tests in test suites...
 public class BlobTest extends BaseTest {
-    final static String kBlobTestBlob1 = "i'm blob";
-    final static String kBlobTestBlob2 = "i'm blob2";
+    private static final String BLOB_1 = "i'm blob";
+    private static final String BLOB_2 = "i'm blob too";
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -50,9 +49,9 @@ public class BlobTest extends BaseTest {
     @Test
     public void testEquals() throws CouchbaseLiteException {
 
-        byte[] content1a = kBlobTestBlob1.getBytes();
-        byte[] content1b = kBlobTestBlob1.getBytes();
-        byte[] content2a = kBlobTestBlob2.getBytes();
+        byte[] content1a = BLOB_1.getBytes();
+        byte[] content1b = BLOB_1.getBytes();
+        byte[] content2a = BLOB_2.getBytes();
 
         // store blob
         Blob data1a = new Blob("text/plain", content1a);
@@ -90,9 +89,9 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void testHashCode() throws CouchbaseLiteException {
-        byte[] content1a = kBlobTestBlob1.getBytes();
-        byte[] content1b = kBlobTestBlob1.getBytes();
-        byte[] content2a = kBlobTestBlob2.getBytes();
+        byte[] content1a = BLOB_1.getBytes();
+        byte[] content1b = BLOB_1.getBytes();
+        byte[] content2a = BLOB_2.getBytes();
 
         // store blob
         Blob data1a = new Blob("text/plain", content1a);
@@ -128,27 +127,59 @@ public class BlobTest extends BaseTest {
         assertEquals(data1c.hashCode(), blob1a.hashCode());
     }
 
+
     @Test
-    public void testGetContent() throws IOException, CouchbaseLiteException {
-        byte[] bytes;
+    public void testBlobContentBytes() throws IOException, CouchbaseLiteException {
+        byte[] blobContent;
+        try (InputStream is = getAsset("attachment.png")) { blobContent = IOUtils.toByteArray(is); }
 
-        InputStream is = getAsset("attachment.png");
-        try {
-            bytes = IOUtils.toByteArray(is);
-        }
-        finally {
-            is.close();
-        }
-
-        Blob blob = new Blob("image/png", bytes);
+        Blob blob = new Blob("image/png", blobContent);
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setBlob("blob", blob);
-        Document doc = save(mDoc);
+        save(mDoc);
+
+        Document doc = db.getDocument("doc1");
         Blob savedBlob = doc.getBlob("blob");
         assertNotNull(savedBlob);
+
+        byte[] buff = blob.getContent();
+        assertEquals(blobContent.length, buff.length);
+        assertArrayEquals(blobContent, buff);
+
+        assertEquals(blobContent.length, savedBlob.length());
+
         assertEquals("image/png", savedBlob.getContentType());
-        byte[] content = blob.getContent();
-        assertTrue(Arrays.equals(content, bytes));
+    }
+
+    @Test
+    public void testBlobContentStream() throws CouchbaseLiteException, IOException {
+        try (InputStream is = getAsset("attachment.png")) {
+            Blob blob = new Blob("image/png", is);
+            MutableDocument mDoc = new MutableDocument("doc1");
+            mDoc.setBlob("blob", blob);
+            db.save(mDoc);
+        }
+
+        Document doc = db.getDocument("doc1");
+        Blob savedBlob = doc.getBlob("blob");
+        assertNotNull(savedBlob);
+
+        byte[] blobContent;
+        try (InputStream is = getAsset("attachment.png")) { blobContent = IOUtils.toByteArray(is); }
+
+        byte[] buff = new byte[1024];
+        try (InputStream in = savedBlob.getContentStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            int n;
+            while ((n = in.read(buff)) > 0) { out.write(buff, 0, n); }
+            buff = out.toByteArray();
+        }
+
+        assertEquals(blobContent.length, buff.length);
+        assertArrayEquals(blobContent, buff);
+
+        assertEquals(blobContent.length, savedBlob.length());
+
+        assertEquals("image/png", savedBlob.getContentType());
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1438
@@ -156,12 +187,8 @@ public class BlobTest extends BaseTest {
     public void testGetContent6MBFile() throws IOException, CouchbaseLiteException {
         byte[] bytes;
 
-        InputStream is = getAsset("iTunesMusicLibrary.json");
-        try {
+        try (InputStream is = getAsset("iTunesMusicLibrary.json")) {
             bytes = IOUtils.toByteArray(is);
-        }
-        finally {
-            is.close();
         }
 
         Blob blob = new Blob("application/json", bytes);
@@ -172,7 +199,7 @@ public class BlobTest extends BaseTest {
         assertNotNull(savedBlob);
         assertEquals("application/json", savedBlob.getContentType());
         byte[] content = blob.getContent();
-        assertTrue(Arrays.equals(content, bytes));
+        assertArrayEquals(content, bytes);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1611
@@ -180,12 +207,8 @@ public class BlobTest extends BaseTest {
     public void testGetNonCachedContent6MBFile() throws IOException, CouchbaseLiteException {
         byte[] bytes;
 
-        InputStream is = getAsset("iTunesMusicLibrary.json");
-        try {
+        try (InputStream is = getAsset("iTunesMusicLibrary.json")) {
             bytes = IOUtils.toByteArray(is);
-        }
-        finally {
-            is.close();
         }
 
         Blob blob = new Blob("application/json", bytes);
@@ -198,19 +221,19 @@ public class BlobTest extends BaseTest {
         Document reloadedDoc = db.getDocument(doc.getId());
         Blob savedBlob = reloadedDoc.getBlob("blob");
         byte[] content = savedBlob.getContent();
-        assertTrue(Arrays.equals(content, bytes));
+        assertArrayEquals(content, bytes);
 
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testBlobFromFileURL() throws Exception {
         String contentType = "image/png";
         Blob blob = null;
         URL url = null;
         File path = tempFolder.newFile("attachment.png");
-        InputStream is = getAsset("attachment.png");
 
-        try {
+        try (InputStream is = getAsset("attachment.png")) {
             byte[] bytes = IOUtils.toByteArray(is);
             FileOutputStream fos = new FileOutputStream(path);
             fos.write(bytes);
@@ -221,13 +244,10 @@ public class BlobTest extends BaseTest {
         catch (Exception e) {
             fail("Failed when writing to tempFile " + e);
         }
-        finally {
-            is.close();
-        }
 
         byte[] bytes = IOUtils.toByteArray(path);
         byte[] content = blob.getContent();
-        assertTrue(Arrays.equals(content, bytes));
+        assertArrayEquals(content, bytes);
 
         assertThrows(IllegalArgumentException.class, () -> new Blob(null, url));
 
@@ -240,29 +260,25 @@ public class BlobTest extends BaseTest {
     public void testBlobReadFunctions() throws Exception {
         byte[] bytes;
 
-        InputStream is = getAsset("iTunesMusicLibrary.json");
-        try {
+        try (InputStream is = getAsset("iTunesMusicLibrary.json")) {
             bytes = IOUtils.toByteArray(is);
-        }
-        finally {
-            is.close();
         }
 
         Blob blob = new Blob("application/json", bytes);
         try {
-            // The "iTunesMusicLibrary.json has different size on Windowss
+            // The "iTunesMusicLibrary.json has different size on Windows
             if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                assertEquals(blob.toString(), "Blob[application/json; 6572 KB]");
+                assertEquals("Blob[application/json; 6572 KB]", blob.toString());
             }
             else {
-                assertEquals(blob.toString(), "Blob[application/json; 6560 KB]");
+                assertEquals("Blob[application/json; 6560 KB]", blob.toString());
             }
             assertEquals(blob.getContentStream().read(), bytes[0]);
 
             blob = new Blob("application/json", bytes);
             byte[] bytesReadFromBlob = new byte[bytes.length];
             blob.getContentStream().read(bytesReadFromBlob, 0, bytes.length);
-            assertTrue(Arrays.equals(bytesReadFromBlob, bytes));
+            assertArrayEquals(bytesReadFromBlob, bytes);
 
             blob = new Blob("application/json", bytes);
             InputStream iStream = blob.getContentStream();
@@ -277,9 +293,7 @@ public class BlobTest extends BaseTest {
     @Test
     public void testReadBlobStream() throws Exception {
         byte[] bytes;
-        InputStream is = getAsset("attachment.png");
-        try { bytes = IOUtils.toByteArray(is); }
-        finally { is.close(); }
+        try (InputStream is = getAsset("attachment.png")) { bytes = IOUtils.toByteArray(is); }
 
         Blob blob = new Blob("image/png", bytes);
         MutableDocument mDoc = new MutableDocument("doc1");
@@ -290,26 +304,19 @@ public class BlobTest extends BaseTest {
         assertNotNull(savedBlob);
         assertEquals("image/png", savedBlob.getContentType());
 
-        int len = 0;
         final byte[] buffer = new byte[1024];
 
-        ByteArrayOutputStream out = null;
-        InputStream in = null;
-        try {
-            out = new ByteArrayOutputStream();
-            in = savedBlob.getContentStream();
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream(); InputStream in = savedBlob.getContentStream()) {
+            int len;
             while ((len = in.read(buffer)) != -1) {
                 out.write(buffer, 0, len);
             }
             byte[] readBytes = out.toByteArray();
-            assertTrue(Arrays.equals(bytes, readBytes));
-        }
-        finally {
-            if (out != null) { try { out.close(); } catch (Exception e) { } }
-            if (in != null) { try { in.close(); } catch (Exception e) { } }
+            assertArrayEquals(bytes, readBytes);
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testBlobConstructorsWithEmptyArgs() throws Exception {
         byte[] bytes;
