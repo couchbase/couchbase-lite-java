@@ -76,6 +76,22 @@ public class BaseReplicatorTest extends BaseTest {
         catch (Exception ignore) { }
     }
 
+    protected ReplicatorConfiguration pullConfig() {
+        return pullConfig(null);
+    }
+
+    protected ReplicatorConfiguration pullConfig(ConflictResolver resolver) {
+        return this.makeConfig(false, true, resolver);
+    }
+
+    protected ReplicatorConfiguration pushConfig() {
+        return makeConfig(true, false, (ConflictResolver) null);
+    }
+
+    protected ReplicatorConfiguration makeConfig(boolean push, boolean pull, ConflictResolver resolver) {
+        return makeConfig(push, pull, false, db, new DatabaseEndpoint(otherDB), resolver);
+    }
+
     protected ReplicatorConfiguration makeConfig(boolean push, boolean pull, boolean continuous, Endpoint target) {
         return makeConfig(push, pull, continuous, this.db, target);
     }
@@ -103,7 +119,7 @@ public class BaseReplicatorTest extends BaseTest {
         return config;
     }
 
-    protected Replicator run(final ReplicatorConfiguration config, final int code, final String domain) {
+    protected Replicator run(ReplicatorConfiguration config, int code, String domain) {
         return run(config, code, domain, false);
     }
 
