@@ -40,7 +40,14 @@ using namespace std;
 //    and to re-use it.  It is *NOT*, however, threadsafe.
 jstring litecore::jni::UTF8ToJstring(JNIEnv *env, const char *s, size_t size) {
     std::u16string ustr;
-    try { ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size); }
+    try {
+        #ifdef _MSC_VER
+            auto tmpstr = std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t>().from_bytes(s, s + size);
+            ustr = reinterpret_cast<const char16_t *>(tmpstr.data());
+        #else
+            ustr = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(s, s + size);
+        #endif
+    }
     catch (const std::bad_alloc &x) {
         C4Error error = {LiteCoreDomain, kC4ErrorMemoryError, 0};
         throwError(env, error);
@@ -75,9 +82,16 @@ std::string litecore::jni::JstringToUTF8(JNIEnv *env, jstring jstr) {
         str = std::string();
     } else {
         try {
-            str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
-                    .to_bytes(reinterpret_cast<const char16_t *>(chars),
-                              reinterpret_cast<const char16_t *>(chars + len));
+            #ifdef _MSC_VER
+                str = std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t>()
+                                    .to_bytes(reinterpret_cast<const int16_t *>(chars),
+                                              reinterpret_cast<const int16_t *>(chars + len));
+            #else
+                str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+                                    .to_bytes(reinterpret_cast<const char16_t *>(chars),
+                                              reinterpret_cast<const char16_t *>(chars + len));
+            #endif
+
         }
         catch (const std::exception &x) {
             str = std::string();

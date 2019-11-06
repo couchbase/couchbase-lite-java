@@ -27,7 +27,7 @@ echo ======== Building mbedcrypto ...
 call %cblJavaDir%\scripts\build_litecore.bat %vsGen% %edition% mbedcrypto
 
 echo ======== Build Couchbase Lite Java ...
-call gradlew.bat ciCheck -PbuildNumber=%buildNumber%
+call gradlew.bat ciCheckWindows -PbuildNumber=%buildNumber%
 
 echo ======== Create distribution zip for Couchbase Lite Java, %edition% Edition, Build %buildNumber%
 call gradlew.bat distZip -PbuildNumber=%buildNumber%
