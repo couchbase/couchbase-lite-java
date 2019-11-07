@@ -95,7 +95,7 @@ public class C4BlobWriteStream {
 
         if (hdl == 0L) { return; }
 
-        close(handle);
+        close(hdl);
     }
 
     //-------------------------------------------------------------------------

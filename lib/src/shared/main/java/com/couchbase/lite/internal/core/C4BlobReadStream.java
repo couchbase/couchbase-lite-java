@@ -77,9 +77,9 @@ public class C4BlobReadStream {
         final long hdl = handle;
         handle = 0L;
 
-        if (hdl != 0L) { return; }
+        if (hdl == 0L) { return; }
 
-        close(handle);
+        close(hdl);
     }
 
     //-------------------------------------------------------------------------
