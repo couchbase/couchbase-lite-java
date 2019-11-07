@@ -255,6 +255,7 @@ model {
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
+                    cppCompiler.args "/MD"
                 }
             }
         }
@@ -480,6 +481,7 @@ task unitTest(dependsOn: ['smokeTest', 'test'])
 task fullTest(dependsOn: ['unitTest'])
 
 task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+task ciCheckWindows(dependsOn: ['pmd', 'findbugsXml', 'test'])
 task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
