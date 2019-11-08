@@ -35,6 +35,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
@@ -266,9 +267,11 @@ public class BlobTest extends BaseTest {
 
         Blob blob = new Blob("application/json", bytes);
         try {
-            // The "iTunesMusicLibrary.json has different size on Windows
             if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                assertEquals("Blob[application/json; 6572 KB]", blob.toString());
+                // The "iTunesMusicLibrary.json could have different size on Windows depending
+                // on the line endings.
+                assertTrue(blob.toString().equals("Blob[application/json; 6560 KB]") ||
+                    blob.toString().equals("Blob[application/json; 6572 KB]"));
             }
             else {
                 assertEquals("Blob[application/json; 6560 KB]", blob.toString());
