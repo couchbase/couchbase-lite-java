@@ -393,6 +393,7 @@ if (TEST_FILTER != null) {
 distributions {
     main {
         contents {
+            baseName = "${CBL_ARTIFACT_ID}"
             into("support") {
                 from "${CBL_CORE_NATIVE_DIR}/support"
             }
