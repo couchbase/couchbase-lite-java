@@ -150,7 +150,8 @@ public abstract class BaseTest extends PlatformBaseTest {
         // database exist, delete it
         if ((dbDir == null) || !Database.exists(dbName, dbDir)) { return; }
 
-        // sometimes, db is still in used, wait for a while. Maximum 3 sec
+        // If a test involves a replicator or a live query,
+        // it may take a while for the db to close
         int i = 0;
         while (true) {
             try {
@@ -161,7 +162,7 @@ public abstract class BaseTest extends PlatformBaseTest {
             catch (CouchbaseLiteException ex) {
                 if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
 
-                if (i++ > BUSY_RETRIES) { fail("Failed closing DB"); }
+                if (i++ >= BUSY_RETRIES) { fail("Failed closing DB"); }
 
                 Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is BUSY ...");
                 try { Thread.sleep(BUSY_WAIT_MS); }
