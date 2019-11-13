@@ -196,8 +196,15 @@ static jobject toJavaObject(JNIEnv *env, C4ReplicatorStatus status) {
 
 static jobject toJavaDocumentEnded(JNIEnv *env, const C4DocumentEnded *document) {
     jobject obj = env->NewObject(cls_C4DocEnded, m_C4DocEnded_init);
-    env->SetObjectField(obj, f_C4DocEnded_docID, toJString(env, document->docID));
-    env->SetObjectField(obj, f_C4DocEnded_revID, toJString(env, document->revID));
+
+    jstring docID = toJString(env, document->docID);
+    env->SetObjectField(obj, f_C4DocEnded_docID, docID);
+    env->DeleteLocalRef(docID);
+
+    jstring revID = toJString(env, document->docID);
+    env->SetObjectField(obj, f_C4DocEnded_revID, revID);
+    env->DeleteLocalRef(revID);
+
     env->SetIntField(obj, f_C4DocEnded_flags, (int) document->flags);
     env->SetLongField(obj, f_C4DocEnded_sequence, (long) document->sequence);
     env->SetBooleanField(obj, f_C4DocEnded_errorIsTransient, (bool) document->errorIsTransient);
@@ -212,6 +219,7 @@ static jobjectArray toJavaDocumentEndedArray(JNIEnv *env, int arraySize, const C
     for (int i = 0; i < arraySize; i++) {
         jobject d = toJavaDocumentEnded(env, array[i]);
         env->SetObjectArrayElement(ds, i, d);
+        env->DeleteLocalRef(d);
     }
     return ds;
 }
@@ -297,25 +305,30 @@ static void documentEndedCallback(C4Replicator *repl,
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if (getEnvStat == JNI_OK) {
+        jobjectArray docs = toJavaDocumentEndedArray(env, numDocs, documentEnded);
         env->CallStaticVoidMethod(cls_C4Replicator,
                                   m_C4Replicator_documentEndedCallback,
                                   (jlong) repl,
                                   pushing,
-                                  toJavaDocumentEndedArray(env, numDocs, documentEnded));
+                                  docs);
+        env->DeleteLocalRef(docs);
     } else if (getEnvStat == JNI_EDETACHED) {
         if (gJVM->AttachCurrentThread(&env, NULL) == 0) {
+            jobjectArray docs = toJavaDocumentEndedArray(env, numDocs, documentEnded);
             env->CallStaticVoidMethod(cls_C4Replicator,
                                       m_C4Replicator_documentEndedCallback,
                                       (jlong) repl,
                                       pushing,
-                                      toJavaDocumentEndedArray(env, numDocs, documentEnded));
-            if (gJVM->DetachCurrentThread() != 0)
-                C4Warn("doRequestClose(): Failed to detach the current thread from a Java VM");
+                                      docs);
+            env->DeleteLocalRef(docs);
+            if (gJVM->DetachCurrentThread() != 0) {
+                C4Warn("Failed to detach the current thread from a Java VM");
+            }
         } else {
-            C4Warn("doRequestClose(): Failed to attaches the current thread to a Java VM");
+            C4Warn("Failed to attach the current thread to a Java VM");
         }
     } else {
-        C4Warn("doClose(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        C4Warn("Failed to get the environment: getEnvStat -> %d", getEnvStat);
     }
 }
 
