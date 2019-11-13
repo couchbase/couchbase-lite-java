@@ -47,11 +47,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class BaseTest extends PlatformBaseTest {
+public abstract class BaseTest extends PlatformBaseTest {
     public final static String TEST_DB = "testdb";
 
     private static final int BUSY_WAIT_MS = 100;
-    private static final int BUSY_RETRIES = 20;
+    private static final int BUSY_RETRIES = 5;
 
     interface Execution {
         void run() throws CouchbaseLiteException;
@@ -150,8 +150,10 @@ public class BaseTest extends PlatformBaseTest {
         // database exist, delete it
         if ((dbDir == null) || !Database.exists(dbName, dbDir)) { return; }
 
-        // sometimes, db is still in used, wait for a while. Maximum 3 sec
-        for (int i = 0; i < BUSY_RETRIES; i++) {
+        // If a test involves a replicator or a live query,
+        // it may take a while for the db to close
+        int i = 0;
+        while (true) {
             try {
                 Database.delete(dbName, dbDir);
                 Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
@@ -159,6 +161,9 @@ public class BaseTest extends PlatformBaseTest {
             }
             catch (CouchbaseLiteException ex) {
                 if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+
+                if (i++ >= BUSY_RETRIES) { fail("Failed closing DB"); }
+
                 Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is BUSY ...");
                 try { Thread.sleep(BUSY_WAIT_MS); }
                 catch (InterruptedException ignore) { }

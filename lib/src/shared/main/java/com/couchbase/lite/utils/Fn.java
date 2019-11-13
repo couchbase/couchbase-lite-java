@@ -1,5 +1,3 @@
-package com.couchbase.lite.utils;
-
 //
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
@@ -15,9 +13,18 @@ package com.couchbase.lite.utils;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+package com.couchbase.lite.utils;
+
+
 public interface Fn {
+    @FunctionalInterface
+    interface FunctionThrows<T, R, E extends Throwable> { R apply(T x) throws E; }
+    @FunctionalInterface
     interface Function<T, R> { R apply(T x); }
+    @FunctionalInterface
     interface Predicate<T> { boolean test(T x); }
+    @FunctionalInterface
     interface Provider<T> { T get(); }
+    @FunctionalInterface
     interface Consumer<T> { void accept(T x); }
 }
