@@ -252,6 +252,23 @@ public class C4Replicator {
         }
     }
 
+    @Nullable
+    public byte[] getResponseHeaders() {
+        synchronized (lock) {
+            return (handle == 0) ? null : getResponseHeaders(handle);
+        }
+    }
+
+    // Null return value indicates that this replicator is dead
+    @Nullable
+    public Boolean isDocumentPending(String docId) throws LiteCoreException {
+        synchronized (lock) {
+            return (handle == 0) ? null : Boolean.valueOf(isDocumentPending(handle, docId));
+        }
+    }
+
+    // Null return value indicates that this replicator is dead
+    @Nullable
     public Set<String> getPendingDocIDs() throws LiteCoreException {
         synchronized (lock) {
             if (handle == 0) { return null; }
@@ -265,24 +282,12 @@ public class C4Replicator {
         }
     }
 
-    public boolean isDocumentPending(String docId) throws LiteCoreException {
-        synchronized (lock) {
-            return (handle != 0) && isDocumentPending(handle, docId);
-        }
-    }
-
-    @Nullable
-    public byte[] getResponseHeaders() {
-        synchronized (lock) {
-            return (handle == 0) ? null : getResponseHeaders(handle);
-        }
-    }
-
     // Several bugs have been reported, near here:
     // Usually: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
     // https://issues.couchbase.com/browse/CBL-34
     public void free() {
         final long handle;
+
         synchronized (lock) {
             if (this.handle == 0) { return; }
             handle = this.handle;

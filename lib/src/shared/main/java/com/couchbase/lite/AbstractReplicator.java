@@ -18,6 +18,7 @@
 
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -179,7 +180,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // just queue everything up for in-order processing.
     final class ReplicatorListener implements C4ReplicatorListener {
         @Override
-        public void statusChanged(final C4Replicator repl, final C4ReplicatorStatus status, final Object context) {
+        public void statusChanged(C4Replicator repl, C4ReplicatorStatus status, Object context) {
             Log.i(DOMAIN, "C4ReplicatorListener.statusChanged, context: %s, status: %s", context, status);
 
             if (context == null) {
@@ -188,7 +189,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl != replicator.c4repl) { return; }
+            if (!replicator.isSameReplicator(repl)) { return; }
 
             dispatcher.execute(() -> replicator.c4StatusChanged(status));
         }
@@ -203,7 +204,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
 
             final AbstractReplicator replicator = (AbstractReplicator) context;
-            if (repl != replicator.c4repl) { return; }
+            if (!replicator.isSameReplicator(repl)) { return; }
 
             dispatcher.execute(() -> replicator.documentEnded(pushing, documents));
         }
@@ -289,9 +290,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private final Object lock = new Object();
 
-    // Protected by lock
+    @GuardedBy("lock")
     private final Set<ReplicatorChangeListenerToken> changeListenerTokens = new HashSet<>();
-    // Protected by lock
+    @GuardedBy("lock")
     private final Set<DocumentReplicationListenerToken> docEndedListenerTokens = new HashSet<>();
 
     private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
@@ -300,8 +301,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private final Deque<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
     private final SocketFactory socketFactory;
 
+    @GuardedBy("lock")
+    private C4Replicator c4Replicator;
+
     private Status status = new Status(ActivityLevel.IDLE, new Progress(0, 0), null);
-    private C4Replicator c4repl;
     private C4ReplicatorStatus c4ReplStatus;
     private C4ReplicatorListener c4ReplListener;
     private C4ReplicationFilter c4ReplPushFilter;
@@ -335,7 +338,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public void start() {
         synchronized (lock) {
             Log.i(DOMAIN, "Replicator is starting .....");
-            if (c4repl != null) {
+            if (c4Replicator != null) {
                 Log.i(DOMAIN, "%s has already started", this);
                 return;
             }
@@ -347,7 +350,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             Log.i(DOMAIN, "%s: Starting", this);
             resetRetryCount();
-            internalStart();
+            startLocked();
         }
     }
 
@@ -361,8 +364,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             Log.i(DOMAIN, "%s: Replicator is stopping ...", this);
 
             // this is async; status will change when repl actually stops
-            if (c4repl != null) { c4repl.stop(); }
-            else { Log.i(DOMAIN, "%s: Replicator has been stopped or offlined.", this); }
+            if (c4Replicator != null) { c4Replicator.stop(); }
+            else { Log.i(DOMAIN, "%s: Replicator already stopped or offline.", this); }
 
             if ((c4ReplStatus != null)
                 && (c4ReplStatus.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
@@ -392,52 +395,56 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public Status getStatus() { return status.copy(); }
 
     @NonNull
-    public Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
+    Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
                 "Pending Document IDs are not supported on pull-only replicators.",
-                Log.LOGGING_DOMAINS_TO_C4.get(DOMAIN),
+                CBLError.Domain.CBLITE,
                 CBLError.Code.UNSUPPORTED);
         }
 
         final C4Replicator repl;
-        synchronized (lock) { repl = c4repl; }
+        synchronized (lock) { repl = c4Replicator; }
 
-        // !!! Need to return a result here: will require recreating the replicator.
+        // ??? Not yet implemented
         if (repl == null) {
             Log.i(DOMAIN, "%s: Call to getPendingDocumentIds with unstarted replicator", this);
             return Collections.emptySet();
         }
 
         final Set<String> pending;
-        try { pending = c4repl.getPendingDocIDs(); }
+        try { pending = repl.getPendingDocIDs(); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed fetching pending documentIds"); }
 
-        return (pending.size() <= 0) ? Collections.emptySet() : Collections.unmodifiableSet(pending);
+        // ??? C4 call returns null if the native replicator is gone: Not yet implemented
+        return (pending == null) ? Collections.emptySet() : Collections.unmodifiableSet(pending);
     }
 
-    @NonNull
-    public boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
+    boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
         Preconditions.checkArgNotNull(docId, "document ID");
 
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
                 "Pending Document IDs are not supported on pull-only replicators.",
-                Log.LOGGING_DOMAINS_TO_C4.get(DOMAIN),
+                CBLError.Domain.CBLITE,
                 CBLError.Code.UNSUPPORTED);
         }
 
         final C4Replicator repl;
-        synchronized (lock) { repl = c4repl; }
+        synchronized (lock) { repl = c4Replicator; }
 
-        // !!! Need to return a result here: will require recreating the replicator.
+        // ??? Not yet implemented
         if (repl == null) {
             Log.i(DOMAIN, "%s: Call to isDocumentPending with unstarted replicator", this);
             return false;
         }
 
-        try { return c4repl.isDocumentPending(docId); }
+        final Boolean pending;
+        try { pending = repl.isDocumentPending(docId); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e, "Failed getting document pending status"); }
+
+        // ??? C4 call returns null if the native replicator is gone: Not yet implemented
+        return (pending != null) && pending;
     }
 
     /**
@@ -573,7 +580,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     void networkReachable() {
         Log.i(DOMAIN, "%s: Server may now be reachable; retrying...", this);
         synchronized (lock) {
-            if (c4repl != null) { return; }
+            if (c4Replicator != null) { return; }
             resetRetryCount();
             scheduleRetry(0);
         }
@@ -603,8 +610,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             }
             if (!pendingStatusNotifications.isEmpty()) { return; }
 
-            if ((responseHeaders == null) && (c4repl != null)) {
-                final byte[] h = c4repl.getResponseHeaders();
+            if ((responseHeaders == null) && (c4Replicator != null)) {
+                final byte[] h = c4Replicator.getResponseHeaders();
                 if (h != null) { responseHeaders = FLValue.fromData(h).asDict(); }
             }
 
@@ -723,8 +730,25 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Private methods
     //---------------------------------------------
 
-    // must be called holding lock
-    private void internalStart() {
+    /**
+     * Compare the passed C4Replicator to ours.
+     *
+     * @param repl a C4Replicator
+     * @return true if the passed replicator is ours
+     */
+    private boolean isSameReplicator(C4Replicator repl) {
+        synchronized (lock) { return repl == c4Replicator; }
+    }
+
+    /**
+     * Create and return the c4Replicator
+     * Sets c4Replicator.
+     * Must be called holding lock
+     *
+     * @return the c4Replicator
+     * @throws LiteCoreException on failure to create the replicator
+     */
+    private C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
         // Source
         final Database sourceDB = config.getDatabase();
 
@@ -809,28 +833,42 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         c4ReplListener = new ReplicatorListener();
 
-        // Create a C4Replicator:
+        // create a C4Replicator:
+        final C4Replicator repl = sourceDB.createReplicator(
+            (Replicator) this,
+            schema,
+            host,
+            port,
+            path,
+            dbName,
+            targetDb,
+            mkmode(push, continuous),
+            mkmode(pull, continuous),
+            optionsFleece,
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter,
+            this,
+            socketFactory,
+            framing);
+
+        // assign the global!
+        c4Replicator = repl;
+
+        return repl;
+    }
+
+    /**
+     * Create and start the c4Replicator
+     * Must be called holding lock
+     */
+    private void startLocked() {
+        C4Replicator repl = null;
         C4ReplicatorStatus status;
         try {
-            c4repl = sourceDB.createReplicator(
-                (Replicator) this,
-                schema,
-                host,
-                port,
-                path,
-                dbName,
-                targetDb,
-                mkmode(push, continuous),
-                mkmode(pull, continuous),
-                optionsFleece,
-                c4ReplListener,
-                c4ReplPushFilter,
-                c4ReplPullFilter,
-                this,
-                socketFactory,
-                framing);
-            c4repl.start();
-            status = c4repl.getStatus();
+            repl = getC4ReplicatorLocked();
+            repl.start();
+            status = repl.getStatus();
         }
         catch (LiteCoreException e) {
             status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED, e.domain, e.code);
@@ -844,7 +882,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 C4Constants.LiteCoreError.UNEXPECTED_ERROR));
 
         // Post an initial notification:
-        c4ReplListener.statusChanged(c4repl, c4ReplStatus, this);
+        c4ReplListener.statusChanged(repl, c4ReplStatus, this);
     }
 
     private EnumSet<DocumentFlag> documentFlags(int flags) {
@@ -866,12 +904,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private void retry() {
         synchronized (lock) {
-            if ((c4repl != null) || (c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
+            if ((c4Replicator != null)
+                || (c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.OFFLINE)) {
                 return;
             }
 
             Log.i(DOMAIN, "%s: Retrying...", this);
-            internalStart();
+            startLocked();
         }
     }
 
@@ -979,10 +1018,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     // - (void) clearRepl
     private void clearRepl() {
-        if (c4repl != null) {
-            c4repl.free();
-            c4repl = null;
+        final C4Replicator repl;
+        synchronized (lock) {
+            if (c4Replicator == null) { return; }
+            repl = c4Replicator;
+            c4Replicator = null;
         }
+        repl.free();
     }
 
     // Decompose a path into its elements.
