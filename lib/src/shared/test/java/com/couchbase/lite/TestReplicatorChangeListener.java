@@ -1,8 +1,8 @@
 package com.couchbase.lite;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -16,12 +16,14 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
     private final CountDownLatch latch = new CountDownLatch(1);
 
     private final Replicator replicator;
+    private final boolean continuous;
     private final String domain;
     private final int code;
     private final boolean ignoreErrorAtStopped;
 
     public TestReplicatorChangeListener(Replicator replicator, String domain, int code, boolean ignoreErrorAtStopped) {
         this.replicator = replicator;
+        this.continuous = replicator.getConfig().isContinuous();
         this.domain = domain;
         this.code = code;
         this.ignoreErrorAtStopped = ignoreErrorAtStopped;
@@ -40,10 +42,11 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
         final Replicator.Status status = change.getStatus();
         final Replicator.Progress progress = status.getProgress();
         final CouchbaseLiteException error = status.getError();
+        final AbstractReplicator.ActivityLevel state = status.getActivityLevel();
 
         try {
-            if (!replicator.getConfig().isContinuous()) {
-                if (status.getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
+            if (!continuous) {
+                if (state == Replicator.ActivityLevel.STOPPED) {
                     if (code == 0) {
                         if (!ignoreErrorAtStopped) { assertNull(error); }
                     }
@@ -56,7 +59,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
                 }
             }
             else {
-                if ((status.getActivityLevel() == Replicator.ActivityLevel.IDLE)
+                if ((state == Replicator.ActivityLevel.IDLE)
                     && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
                     if (code == 0) { assertNull(error); }
                     else {
@@ -65,7 +68,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
                     }
                     latch.countDown();
                 }
-                else if (status.getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
+                else if (state == Replicator.ActivityLevel.OFFLINE) {
                     if (code == 0) {
                         // TBD
                     }
@@ -81,5 +84,6 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
         catch (AssertionError e) {
             testFailureReason.compareAndSet(null, e);
         }
+
     }
 }

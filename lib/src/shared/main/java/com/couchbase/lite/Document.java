@@ -462,6 +462,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
     }
 
+    @NonNull
     FLSliceResult encode() throws LiteCoreException {
         final FLEncoder encoder = getDatabase().getC4Database().getSharedFleeceEncoder();
         try {
