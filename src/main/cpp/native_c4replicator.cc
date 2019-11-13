@@ -321,6 +321,9 @@ static void documentEndedCallback(C4Replicator *repl,
                                       pushing,
                                       docs);
             env->DeleteLocalRef(docs);
+            if (gJVM->DetachCurrentThread() != 0) {
+                C4Warn("Failed to detach the current thread from a Java VM");
+            }
         } else {
             C4Warn("Failed to attach the current thread to a Java VM");
         }
