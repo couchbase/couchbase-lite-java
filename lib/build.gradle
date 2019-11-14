@@ -24,7 +24,6 @@ import org.gradle.internal.os.OperatingSystem
 // ----------------------------------------------------------------
 
 ext {
-    CBL_ORG = 'couchbase'
     CBL_GROUP = 'com.couchbase.lite'
     CBL_ARTIFACT_ID = 'couchbase-lite-java'
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
@@ -33,8 +32,7 @@ ext {
     CBL_PROJECT_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git'
     CBL_ISSUES_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git/issues'
     CBL_SITE_URL = 'https://developer.couchbase.com/mobile/'
-
-    BUILD_TIME = Instant.now().toString()
+    
     BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
     BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
@@ -46,9 +44,8 @@ ext {
     ETC_DIR = "${PROJECT_DIR}/etc"
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
     CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
-    CBL_NATIVE_DIR = "${PROJECT_DIR}/build/native"
     CBL_CORE_NATIVE_DIR = "${PROJECT_DIR}/lite-core"
-    MODULE_DIR = "${PROJECT_DIR}/lib"
+    CBL_NATIVE_DIR = "${buildDir}/native"
     REPORTS_DIR = "${buildDir}/reports"
     CBL_NATIVE_LIBRARIES = []
 }
@@ -385,6 +382,13 @@ if (TEST_FILTER != null) {
     test { exclude "${TEST_FILTER}" }
 }
 
+// ----------------------------------------------------------------
+// jar
+// ----------------------------------------------------------------
+
+jar {
+    archivesBaseName = "${CBL_ARTIFACT_ID}"
+}
 
 // ----------------------------------------------------------------
 // java-library-distribution
