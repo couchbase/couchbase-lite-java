@@ -1,12 +1,11 @@
 //
 // Database.java
 //
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// Copyright (c) 2018 Couchbase, Inc.  All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
+// You may obtain a copy of the License at:
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -32,7 +31,7 @@ public final class Database extends AbstractDatabase {
     /**
      * Make a copy of a database in a new location.
      *
-     * @param path   path to the exisiting db filee
+     * @param path   path to the existing db file
      * @param name   the name of the new DB
      * @param config a config with the new location
      * @throws CouchbaseLiteException on copy failure
@@ -48,12 +47,26 @@ public final class Database extends AbstractDatabase {
 
         AbstractDatabase.copy(path, name, config, C4Constants.EncryptionAlgorithm.NONE, null);
     }
+
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
+
+    /**
+     * Construct a Database with a given name and the default config.
+     * If the database does not yet exist it will be created.
+     *
+     * @param name   The name of the database: May NOT contain capital letters!
+     * @throws CouchbaseLiteException if any error occurs during the open operation.
+     */
+    public Database(@NonNull String name) throws CouchbaseLiteException {super(name, new DatabaseConfiguration()); }
+
     /**
      * Construct a  AbstractDatabase with a given name and database config.
      * If the database does not yet exist, it will be created, unless the `readOnly` option is used.
      *
-     * @param name   The name of the database. May NOT contain capital letters!
-     * @param config The database config, Note: null config parameter is not allowed with Android platform
+     * @param name   The name of the database: May NOT contain capital letters!
+     * @param config The database config.
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the open operation.
      */
     public Database(@NonNull String name, @NonNull DatabaseConfiguration config) throws CouchbaseLiteException {
@@ -61,14 +74,12 @@ public final class Database extends AbstractDatabase {
     }
 
     //---------------------------------------------
-    // Implementing abstract methods for Encryption
+    // Package visible: Implementing abstract methods for Encryption
     //---------------------------------------------
 
-    int getEncryptionAlgorithm() {
-        return C4Constants.EncryptionAlgorithm.NONE;
-    }
+    @Override
+    int getEncryptionAlgorithm() { return C4Constants.EncryptionAlgorithm.NONE; }
 
-    byte[] getEncryptionKey() {
-        return null;
-    }
+    @Override
+    byte[] getEncryptionKey() { return null; }
 }
