@@ -822,13 +822,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final boolean continuous = config.isContinuous();
 
         if (config.getPushFilter() != null) {
-            c4ReplPushFilter = (docID, flags, dict, isPush, context)
-                -> ((AbstractReplicator) context).validationFunction(docID, documentFlags(flags), dict, isPush);
+            c4ReplPushFilter = (docID, revId, flags, dict, isPush, context)
+                -> ((AbstractReplicator) context).validationFunction(docID, revId, documentFlags(flags), dict, isPush);
         }
 
         if (config.getPullFilter() != null) {
-            c4ReplPullFilter = (docID, flags, dict, isPush, context)
-                -> ((AbstractReplicator) context).validationFunction(docID, documentFlags(flags), dict, isPush);
+            c4ReplPullFilter = (docID, revId, flags, dict, isPush, context)
+                -> ((AbstractReplicator) context).validationFunction(docID, revId, documentFlags(flags), dict, isPush);
         }
 
         c4ReplListener = new ReplicatorListener();
@@ -896,7 +896,12 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         return documentFlags;
     }
 
-    private boolean validationFunction(String docID, EnumSet<DocumentFlag> flags, long dict, boolean isPush) {
+    private boolean validationFunction(
+        String docID,
+        String revId,
+        EnumSet<DocumentFlag> flags,
+        long dict,
+        boolean isPush) {
         final Document document = new Document(config.getDatabase(), docID, new FLDict(dict));
         if (isPush) { return config.getPushFilter().filtered(document, flags); }
         else { return config.getPullFilter().filtered(document, flags); }
