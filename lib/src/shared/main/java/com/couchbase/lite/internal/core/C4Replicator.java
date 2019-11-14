@@ -109,13 +109,20 @@ public class C4Replicator {
         if (listener != null) { listener.documentEnded(repl, pushing, documentsEnded, repl.replicatorContext); }
     }
 
-    static boolean validationFunction(String docID, int flags, long dict, boolean isPush, @Nullable Object context) {
+    static boolean validationFunction(
+        String docID,
+        String revID,
+        int flags,
+        long dict,
+        boolean isPush,
+        Object context) {
         final C4Replicator repl = getReplicatorForContext(context);
         if (repl == null) { return true; }
 
         final C4ReplicationFilter filter = (isPush) ? repl.pushFilter : repl.pullFilter;
 
-        return (filter == null) || filter.validationFunction(docID, flags, dict, isPush, repl.replicatorContext);
+        return (filter == null)
+            || filter.validationFunction(docID, revID, flags, dict, isPush, repl.replicatorContext);
     }
 
     //-------------------------------------------------------------------------

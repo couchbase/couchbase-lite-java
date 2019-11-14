@@ -18,5 +18,5 @@
 package com.couchbase.lite.internal.core;
 
 public interface C4ReplicationFilter {
-    boolean validationFunction(String docID, int flags, long dict, boolean isPush, Object context);
+    boolean validationFunction(String docID, String revID, int flags, long dict, boolean isPush, Object context);
 }

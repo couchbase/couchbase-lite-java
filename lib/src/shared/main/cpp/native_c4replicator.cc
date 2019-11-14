@@ -85,7 +85,7 @@ bool litecore::jni::initC4Replicator(JNIEnv *env) {
 
         m_C4Replicator_validationFunction = env->GetStaticMethodID(cls_C4Replicator,
                                                                    "validationFunction",
-                                                                   "(Ljava/lang/String;IJZLjava/lang/Object;)Z");
+                                                                   "(Ljava/lang/String;Ljava/lang/String;IJZLjava/lang/Object;)Z");
         if (!m_C4Replicator_validationFunction)
             return false;
     }
@@ -333,7 +333,12 @@ static void documentEndedCallback(C4Replicator *repl,
     }
 }
 
-static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict dict, bool isPush, void *ctx) {
+static jboolean replicationFilter(C4String docID,
+                                  C4String revID,
+                                  C4RevisionFlags flags,
+                                  FLDict dict,
+                                  bool isPush,
+                                  void *ctx) {
     JNIEnv *env = NULL;
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     bool res = false;
@@ -341,6 +346,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
         res = env->CallStaticBooleanMethod(cls_C4Replicator,
                                            m_C4Replicator_validationFunction,
                                            toJString(env, docID),
+                                           toJString(env, revID),
                                            flags,
                                            (jlong) dict,
                                            isPush,
@@ -350,6 +356,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
             res = env->CallStaticBooleanMethod(cls_C4Replicator,
                                                m_C4Replicator_validationFunction,
                                                toJString(env, docID),
+                                               toJString(env, revID),
                                                flags,
                                                (jlong) dict,
                                                isPush,
@@ -371,12 +378,13 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
         'hasAttachments' will be set.)
  *
  * @param docID
+ * @param revID
  * @param flags
  * @param dict
  * @param ctx
  */
-static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
-    return (bool) replicationFilter(docID, flags, dict, false, ctx);
+static bool validationFunction(C4String docID, C4String revID, C4RevisionFlags flags, FLDict dict, void *ctx) {
+    return (bool) replicationFilter(docID, revID, flags, dict, false, ctx);
 }
 
 /*
@@ -385,12 +393,13 @@ static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dic
         'hasAttachments' will be set.)
  *
  * @param docID
+ * @param revID
  * @param flags
  * @param dict
  * @param ctx
  */
-static bool pushFilterFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
-    return (bool) replicationFilter(docID, flags, dict, true, ctx);
+static bool pushFilterFunction(C4String docID, C4String revID, C4RevisionFlags flags, FLDict dict, void *ctx) {
+    return (bool) replicationFilter(docID, revID, flags, dict, true, ctx);
 }
 
 /*
