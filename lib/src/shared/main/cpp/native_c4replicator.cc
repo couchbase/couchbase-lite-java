@@ -375,7 +375,7 @@ static jboolean replicationFilter(C4String docID, C4RevisionFlags flags, FLDict 
  * @param dict
  * @param ctx
  */
-static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
+static bool validationFunction(C4String docID, C4String revID, C4RevisionFlags flags, FLDict dict, void *ctx) {
     return (bool) replicationFilter(docID, flags, dict, false, ctx);
 }
 
@@ -389,7 +389,7 @@ static bool validationFunction(C4String docID, C4RevisionFlags flags, FLDict dic
  * @param dict
  * @param ctx
  */
-static bool pushFilterFunction(C4String docID, C4RevisionFlags flags, FLDict dict, void *ctx) {
+static bool pushFilterFunction(C4String docID, C4String revID, C4RevisionFlags flags, FLDict dict, void *ctx) {
     return (bool) replicationFilter(docID, flags, dict, true, ctx);
 }
 
