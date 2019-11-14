@@ -204,7 +204,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testCreateWithDefaultConfiguration() throws CouchbaseLiteException {
 
-        Database db = new Database("db", new DatabaseConfiguration());
+        Database db = new Database("db");
         try {
             assertNotNull(db);
             assertEquals(0, db.getCount());
