@@ -82,12 +82,6 @@ public final class MutableDocument extends Document implements MutableDictionary
         setData(data);
     }
 
-    // !!!  There is something very very wrong here.
-    // Although it seems obvious that it should be possible to express
-    // one of the two constructors below, in terms of the other,
-    // doing so will break all kinds of stuff.
-    // There is an implicit contract that is difficult to identify.
-
     protected MutableDocument(Document doc) {
         this(doc.getDatabase(), doc.getId(), doc.getC4doc());
         if (doc.isMutable()) {
@@ -98,11 +92,9 @@ public final class MutableDocument extends Document implements MutableDictionary
 
     // !!! Expressing this constructor in terms of the previous one
     // fails because the previous constructor does not copy
-    // the source documents mutated state.  It *does* copy its mutable
-    // state, but if the source has been changed since it was created
-    // the previous constructor will lose those changes when it is
-    // encoded.
-
+    // the source document's mutated state.  While it *does* copy the
+    // mutable state, if the source has been changed since it was created
+    // the previous constructor will lose those changes when it is encoded.
     MutableDocument(String id, Document doc) {
         this(doc.getDatabase(), id, null);
         setData(doc.getContent().toMap());
@@ -116,10 +108,6 @@ public final class MutableDocument extends Document implements MutableDictionary
     // public API methods
     //---------------------------------------------
 
-    //---------------------------------------------
-    // DictionaryInterface implementation
-    //---------------------------------------------
-
     /**
      * Returns the copy of this MutableDocument object.
      *
@@ -128,6 +116,10 @@ public final class MutableDocument extends Document implements MutableDictionary
     @NonNull
     @Override
     public MutableDocument toMutable() { return new MutableDocument(this); }
+
+    //---------------------------------------------
+    // DictionaryInterface implementation
+    //---------------------------------------------
 
     /**
      * Set a dictionary as a content. Allowed value types are List, Date, Map, Number, null, String,

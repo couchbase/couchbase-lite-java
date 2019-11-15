@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -42,7 +43,9 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     //-------------------------------------------------------------------------
     // member variables
     //-------------------------------------------------------------------------
+    @NonNull
     protected final Object lock;
+    @NonNull
     protected final MDict internalDict;
 
     //-------------------------------------------------------------------------
@@ -98,6 +101,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key.
      * @return the object value or nil.
      */
+    @NonNull
     @Override
     public Object getValue(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -110,6 +114,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key
      * @return the String or null.
      */
+    @Nullable
     @Override
     public String getString(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -125,6 +130,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key
      * @return the Number or nil.
      */
+    @Nullable
     @Override
     public Number getNumber(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -207,6 +213,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key
      * @return the Blob value or null.
      */
+    @Nullable
     @Override
     public Blob getBlob(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -227,6 +234,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key
      * @return the Date value or null.
      */
+    @Nullable
     @Override
     public Date getDate(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -240,6 +248,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key.
      * @return the Array object.
      */
+    @Nullable
     @Override
     public Array getArray(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -256,6 +265,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key.
      * @return the Dictionary object or null if the key doesn't exist.
      */
+    @Nullable
     @Override
     public Dictionary getDictionary(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
@@ -356,6 +366,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
         return h;
     }
 
+    @NonNull
     @Override
     public String toString() {
         final StringBuilder buf = new StringBuilder("Dictionary")
@@ -387,6 +398,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     // private
     //---------------------------------------------
 
+    @NonNull
     private Object getSharedLock() {
         final MContext context = internalDict.getContext();
         return ((context == null) || (context == MContext.NULL))
@@ -399,5 +411,6 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
         return (key == null ? 0 : key.hashCode()) ^ (value == null ? 0 : value.hashCode());
     }
 
+    @NonNull
     private MValue getMValue(MDict dict, String key) { return dict.get(key); }
 }
