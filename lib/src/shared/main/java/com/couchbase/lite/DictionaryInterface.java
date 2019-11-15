@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Date;
 import java.util.List;
@@ -35,10 +36,13 @@ public interface DictionaryInterface {
     List<String> getKeys();
 
     // Array, Blob, Boolean, Dictionary, Number, String
+    @Nullable
     Object getValue(@NonNull String key);
 
+    @Nullable
     String getString(@NonNull String key);
 
+    @Nullable
     Number getNumber(@NonNull String key);
 
     int getInt(@NonNull String key);
@@ -51,12 +55,16 @@ public interface DictionaryInterface {
 
     boolean getBoolean(@NonNull String key);
 
+    @Nullable
     Blob getBlob(@NonNull String key);
 
+    @Nullable
     Date getDate(@NonNull String key);
 
+    @Nullable
     ArrayInterface getArray(@NonNull String key);
 
+    @Nullable
     DictionaryInterface getDictionary(@NonNull String key);
 
     @NonNull

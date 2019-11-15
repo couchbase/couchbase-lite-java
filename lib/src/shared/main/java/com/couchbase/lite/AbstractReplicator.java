@@ -903,7 +903,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         long dict,
         boolean isPush) {
         final ReplicationFilter filter = (isPush) ? config.getPushFilter() : config.getPullFilter();
-        return filter.filtered(new Document(config.getDatabase(), docId, new FLDict(dict)), flags);
+        return filter.filtered(new Document(config.getDatabase(), docId, revId, new FLDict(dict)), flags);
     }
 
     private void retry() {

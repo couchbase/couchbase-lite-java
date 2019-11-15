@@ -101,7 +101,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * @param key the key.
      * @return the object value or MValue.EMPTY.
      */
-    @NonNull
+    @Nullable
     @Override
     public Object getValue(@NonNull String key) {
         Preconditions.checkArgNotNull(key, "key");
