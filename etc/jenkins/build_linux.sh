@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 #
 # CI build script for building couchbase-lite-java{-ee} on linux platforms.

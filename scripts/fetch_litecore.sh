@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 function usage() {
   echo "usage: fetch_litecore.sh -n <VAL> -v <VAL> -e <VAL> [-d]"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 function usage() {
     echo "usage: litecore_sha -e <VAL> [-o <VAL> -v]"
@@ -47,7 +47,7 @@ if [ -z "$EDITION" ]; then
 fi
 
 if [[ $EDITION == EE ]]; then
-  pushd $SCRIPT_DIR/../../couchbase-lite-core-ee > /dev/null
+  pushd $SCRIPT_DIR/../../couchbase-lite-core-EE > /dev/null
     first_sha=`git rev-parse HEAD`
     first_sha=${first_sha:0:40}
     if [ $VERBOSE ]; then

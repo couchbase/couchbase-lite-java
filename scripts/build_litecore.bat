@@ -1,4 +1,4 @@
- @echo OFF
+ @echo ON
 
 if "%2%" == "" (
     echo Usage: build_litecore.bat ^<VS Generator: 2015,2017,2019^> ^<CE or EE^> ^[LiteCore, mbedcrypto, all ^(default^)^]
@@ -31,9 +31,9 @@ rmdir /Q /S x64
 mkdir x64
 pushd x64
 
-echo Enterprise Edition : %entBuild% 
+echo Enterprise Edition : %entBuild%
 echo Build using %VS_GEN% ...
-"C:\Program Files\CMake\bin\cmake.exe" -G %VS_GEN% -DBUILD_ENTERPRISE=%entBuild% ..\..
+"C:\Program Files\CMake\bin\cmake.exe" -G %VS_GEN% -DBUILD_ENTERPRISE=%entBuild% ..\.. || goto :error
 
 SET outputDir=%scriptDir%\..\lite-core\windows\x86_64
 if not exist "%outputDir%" (
@@ -43,8 +43,8 @@ if not exist "%outputDir%" (
 for %%l in (%libs%) do (
   echo Building %%l ...
 
-  "C:\Program Files\CMake\bin\cmake.exe" --build . --target %lib% --config RelWithDebInfo
-  
+  "C:\Program Files\CMake\bin\cmake.exe" --build . --target %lib% --config RelWithDebInfo || goto :error
+
   if "%%l" == "LiteCore" (
     copy /y %liteCoreBuildDir%\x64\RelWithDebInfo\LiteCore.dll %outputDir%
     copy /y %liteCoreBuildDir%\x64\RelWithDebInfo\LiteCore.lib %outputDir%
@@ -59,3 +59,9 @@ popd
 popd
 
 echo Build LiteCore Complete
+
+goto :eof
+
+:error
+echo Failed with error %ERRORLEVEL%.
+exit /b %ERRORLEVEL%

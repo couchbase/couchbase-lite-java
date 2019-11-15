@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 #
 # The script for extracting LiteCore native libraries from the CBL Java distribution zip file and
