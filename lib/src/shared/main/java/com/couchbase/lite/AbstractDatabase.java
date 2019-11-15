@@ -211,8 +211,10 @@ abstract class AbstractDatabase {
 
     protected C4Database c4db;
 
+    @NonNull
     final DatabaseConfiguration config;
 
+    @NonNull
     private final Object lock = new Object();     // Main database lock object for thread-safety
 
     // guarded by 'lock'
@@ -824,6 +826,7 @@ abstract class AbstractDatabase {
     // Package level access
     //---------------------------------------------
 
+    @NonNull
     Object getLock() { return lock; }
 
     boolean equalsWithPath(Database other) {

@@ -159,6 +159,7 @@ public class MDict extends MCollection implements Iterable<String> {
 
     public boolean remove(String key) { return set(key, MValue.EMPTY); }
 
+    @NonNull
     public MValue get(String key) {
         Preconditions.checkArgNotNull(key, "key");
 

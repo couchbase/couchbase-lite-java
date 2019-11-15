@@ -897,14 +897,13 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     private boolean validationFunction(
-        String docID,
+        String docId,
         String revId,
         EnumSet<DocumentFlag> flags,
         long dict,
         boolean isPush) {
-        final Document document = new Document(config.getDatabase(), docID, new FLDict(dict));
-        if (isPush) { return config.getPushFilter().filtered(document, flags); }
-        else { return config.getPullFilter().filtered(document, flags); }
+        final ReplicationFilter filter = (isPush) ? config.getPushFilter() : config.getPullFilter();
+        return filter.filtered(new Document(config.getDatabase(), docId, new FLDict(dict)), flags);
     }
 
     private void retry() {
