@@ -11,12 +11,12 @@ if($Edition -eq "") {
 Write-Host "LiteCore Edition : $Edition"
 
 if($Edition -eq "EE") {
-    Push-Location $PSScriptRoot\..\..\couchbase-lite-core-ee
+    Push-Location $PSScriptRoot\..\..\couchbase-lite-core-EE
     $FirstSha = (& git rev-parse HEAD).Substring(0, 40)
     if($Verbose) {
         Write-Host "EE SHA is: '$FirstSha'"
     }
-    Pop-Location   
+    Pop-Location
 }
 
 Push-Location $PSScriptRoot\..\..\couchbase-lite-core
@@ -27,7 +27,7 @@ if($Verbose) {
 Pop-Location
 
 if($Edition -eq "EE") {
-    $sha1 = New-Object System.Security.Cryptography.SHA1CryptoServiceProvider 
+    $sha1 = New-Object System.Security.Cryptography.SHA1CryptoServiceProvider
     $amalgamation = $SecondSha + $FirstSha
     $finalSha = [System.BitConverter]::ToString($sha1.ComputeHash([System.Text.Encoding]::ASCII.GetBytes($amalgamation)))
 } else {
@@ -36,5 +36,5 @@ if($Edition -eq "EE") {
 
 Write-Output $finalSha.ToLowerInvariant().Replace("-", "")
 if($OutPath) {
-    Write-Output $finalSha.ToLowerInvariant().Replace("-", "") | Out-File -FilePath $OutPath -Force -NoNewline -Encoding ASCII 
+    Write-Output $finalSha.ToLowerInvariant().Replace("-", "") | Out-File -FilePath $OutPath -Force -NoNewline -Encoding ASCII
 }

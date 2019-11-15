@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 #
 # CI build script for building couchbase-lite-java{-ee} on macos platforms.
@@ -43,4 +43,4 @@ echo "======== Create distribution zip for Couchbase Lite Java, $EDITION Edition
 ./gradlew distZip -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 echo "======== Distribion Zip :"
-find build/distributions -name "*.zip"
+find lib/build/distributions -name "*.zip"

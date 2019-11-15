@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 #
-# The script for generating the final distribution zip file and publising the final artifact 
+# The script for generating the final distribution zip file and publising the final artifact
 # to the internal maven server.
 #
 
@@ -28,4 +28,4 @@ echo "======== Create distribution zip v`cat ../version.txt`-${BUILD_NUMBER}"
 ./gradlew distZip -PbuildNumber="${BUILD_NUMBER}"
 
 echo "======== Distribion Zip :"
-find build/distributions -name "*.zip"
+find lib/build/distributions -name "*.zip"

@@ -1,4 +1,4 @@
-@echo OFF
+@echo ON
 
 :: CI build script for building couchbase-lite-java{-ee} on Windows platforms.
 
@@ -21,15 +21,21 @@ popd
 set cblJavaDir=%scriptDir%\..\..
 
 echo ======== Download Lite Core ...
-powershell.exe -ExecutionPolicy Bypass -Command "%cblJavaDir%\scripts\fetch_litecore.ps1" %liteCoreRepoUrl% %edition%
+powershell.exe -ExecutionPolicy Bypass -Command "%cblJavaDir%\scripts\fetch_litecore.ps1" %liteCoreRepoUrl% %edition% || goto error
 
 echo ======== Building mbedcrypto ...
-call %cblJavaDir%\scripts\build_litecore.bat %vsGen% %edition% mbedcrypto
+call %cblJavaDir%\scripts\build_litecore.bat %vsGen% %edition% mbedcrypto || goto error
 
 echo ======== Build Couchbase Lite Java ...
-call gradlew.bat ciCheckWindows -PbuildNumber=%buildNumber%
+call gradlew.bat ciCheckWindows -PbuildNumber=%buildNumber% || goto error
 
 echo ======== Create distribution zip for Couchbase Lite Java, %edition% Edition, Build %buildNumber%
-call gradlew.bat distZip -PbuildNumber=%buildNumber%
+call gradlew.bat distZip -PbuildNumber=%buildNumber% || goto error
 
 echo ======== Complete
+
+goto :eof
+
+:error
+echo Failed with error %ERRORLEVEL%.
+exit /b %ERRORLEVEL%
