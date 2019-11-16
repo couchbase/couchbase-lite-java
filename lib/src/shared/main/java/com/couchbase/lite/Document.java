@@ -17,7 +17,9 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -26,11 +28,13 @@ import java.util.Map;
 
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
+import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Document;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.MRoot;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -38,7 +42,7 @@ import com.couchbase.lite.internal.fleece.MRoot;
  */
 public class Document implements DictionaryInterface, Iterable<String> {
     // !!! This code is from v1.x. Replace with c4rev_getGeneration().
-    static long generationFromRevID(String revID) {
+    private static long generationFromRevID(String revID) {
         long generation = 0;
         final long length = Math.min(revID == null ? 0 : revID.length(), 9);
         for (int i = 0; i < length; ++i) {
@@ -54,44 +58,64 @@ public class Document implements DictionaryInterface, Iterable<String> {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+
+    @NonNull
     private final Object lock = new Object(); // lock for thread-safety
 
+    @NonNull
     private String id;
+
+    @SuppressWarnings("NullableProblems")
+    @NonNull
+    private Dictionary internalDict;
+
+    @GuardedBy("lock")
+    @Nullable
+    private C4Document c4doc;
+
+    @Nullable
     private Database database;
 
-    private Dictionary internalDict;
-    private C4Document c4doc;
+    @Nullable
     private FLDict data;
+    @Nullable
     private MRoot root;
+
+    // This nasty little hack is set when a document is created by a replication filter,
+    // without a c4doc.  Since that is the only place it is set, it is *also* used
+    // in toMutable, as a flag meaning that this document was obtained from a replication filter,
+    // to prevent modification of a doc while the replication is running.
+    @Nullable
+    private String revId;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
-    protected Document(Database database, String id, C4Document c4doc) {
+    protected Document(@Nullable Database database, @NonNull String id, @Nullable C4Document c4doc) {
         this.database = database;
         this.id = id;
         setC4Document(c4doc);
     }
 
-    Document(Database database, String id, FLDict body) {
-        this(database, id, (C4Document) null);
+    Document(@NonNull Database database, @NonNull String id, @Nullable String revId, @Nullable FLDict body) {
+        this(database, id, null);
         this.data = body;
-        updateDictionary();
+        this.revId = revId;
+        synchronized (lock) { updateDictionaryLocked(); }
     }
 
-    Document(Database database, String id, boolean includeDeleted) throws CouchbaseLiteException {
-        this(database, id, (C4Document) null);
+    Document(@NonNull Database database, @NonNull String id, boolean includeDeleted) throws CouchbaseLiteException {
+        this(database, id, null);
+        Preconditions.checkArgNotNull(database, "database");
+
         final C4Document doc;
         try {
-            if ((this.database == null) || (this.database.getC4Database() == null)) {
-                throw new IllegalStateException("Database must be non-null and open");
-            }
-            doc = this.database.getC4Database().get(getId(), true);
+            final C4Database c4db = database.getC4Database();
+            if (c4db == null) { throw new IllegalStateException("Database must be open"); }
+            doc = c4db.get(getId(), true);
         }
-        catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
-        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
         if (!includeDeleted && (doc.getFlags() & C4Constants.DocumentFlags.DELETED) != 0) {
             doc.retain();
@@ -116,29 +140,32 @@ public class Document implements DictionaryInterface, Iterable<String> {
     public String getId() { return id; }
 
     /**
-     * Get the document's revision id. The revision id in the Document class is a constant, while
-     * the revision id in the MutableDocument class is not. The newly created Document will have
-     * a null revision id. The revision id in MutableDocument will be updated on save.
-     * The revision id format is opaque, which means its format has no meaning and shouldn't be
-     * parsed to get information.
+     * Get the document's revision id.
+     * The revision id in the Document class is a constant while the revision id in the MutableDocument
+     * class is not. A newly created Document will have a null revision id. The revision id in
+     * a MutableDocument will be updated on save. The revision id format is opaque, which means its format
+     * has no meaning and shouldn't be parsed to get information.
      *
      * @return the document's revision id
      */
+    @Nullable
     public String getRevisionID() {
-        synchronized (lock) { return c4doc == null ? null : c4doc.getSelectedRevID(); }
+        synchronized (lock) { return (c4doc == null) ? revId : c4doc.getSelectedRevID(); }
     }
 
     /**
      * Return the sequence number of the document in the database.
-     * This indicates how recently the document has been changed: every time any document is updated,
-     * the database assigns it the next sequential sequence number. Thus, if a document's `sequence`
-     * property changes that means it's been changed (on-disk); and if one document's `sequence`
-     * is greater than another's, that means it was changed more recently.
+     * The sequence number indicates how recently the document has been changed.  Every time a document
+     * is updated, the database assigns it the next sequential sequence number.  Thus, when a document's
+     * sequence number changes it means that the document been update (on-disk).  If one document's sequence
+     * is different than another's, the document with the larger sequence number was changed more recently.
+     * Sequence numbers are not available for documents obtained from a replication filter.  This method
+     * will always return 0 for such documents.
      *
      * @return the sequence number of the document in the database.
      */
     public long getSequence() {
-        synchronized (lock) { return c4doc != null ? c4doc.getSelectedSequence() : 0; }
+        synchronized (lock) { return (c4doc == null) ? 0 : c4doc.getSelectedSequence(); }
     }
 
     /**
@@ -147,7 +174,12 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the MutableDocument instance
      */
     @NonNull
-    public MutableDocument toMutable() { return new MutableDocument(this); }
+    public MutableDocument toMutable() {
+        if (revId != null) {
+            throw new UnsupportedOperationException("Documents from a replication filter may not be edited.");
+        }
+        return new MutableDocument(this);
+    }
 
     /**
      * Gets a number of the entries in the dictionary.
@@ -178,6 +210,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key.
      * @return the object value or nil.
      */
+    @Nullable
     @Override
     public Object getValue(@NonNull String key) { return internalDict.getValue(key); }
 
@@ -188,6 +221,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return the String or null.
      */
+    @Nullable
     @Override
     public String getString(@NonNull String key) { return internalDict.getString(key); }
 
@@ -198,6 +232,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return the Number or nil.
      */
+    @Nullable
     @Override
     public Number getNumber(@NonNull String key) { return internalDict.getNumber(key); }
 
@@ -262,6 +297,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return the Blob value or null.
      */
+    @Nullable
     @Override
     public Blob getBlob(@NonNull String key) { return internalDict.getBlob(key); }
 
@@ -276,6 +312,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return the Date value or null.
      */
+    @Nullable
     @Override
     public Date getDate(@NonNull String key) { return internalDict.getDate(key); }
 
@@ -286,6 +323,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return The Array object or null.
      */
+    @Nullable
     @Override
     public Array getArray(@NonNull String key) { return internalDict.getArray(key); }
 
@@ -297,6 +335,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @param key the key
      * @return The Dictionary object or null.
      */
+    @Nullable
     @Override
     public Dictionary getDictionary(@NonNull String key) { return internalDict.getDictionary(key); }
 
@@ -322,7 +361,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     public boolean contains(@NonNull String key) { return internalDict.contains(key); }
 
     //---------------------------------------------
-    // Iterable implementation
+    // Iterator implementation
     //---------------------------------------------
 
     /**
@@ -372,12 +411,15 @@ public class Document implements DictionaryInterface, Iterable<String> {
             .append(isMutable() ? "+" : ".")
             .append(isDeleted() ? "?" : ".")
             .append("{").append(id).append("@").append(getRevisionID()).append(":");
+
         boolean first = true;
         for (String key : getKeys()) {
             if (first) { first = false; }
             else { buf.append(","); }
+
             buf.append(key).append("=>").append(getValue(key));
         }
+
         return buf.append("}").toString();
     }
 
@@ -394,76 +436,76 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     boolean isMutable() { return false; }
 
-    boolean isEmpty() { return internalDict.isEmpty(); }
+    // TODO: c4rev_getGeneration
+    long generation() { return generationFromRevID(getRevisionID()); }
 
-    boolean isNewDocument() { return getRevisionID() == null; }
+    final boolean isEmpty() { return internalDict.isEmpty(); }
+
+    final boolean isNewDocument() { return getRevisionID() == null; }
 
     /**
      * Return whether the document exists in the database.
      *
      * @return true if exists, false otherwise.
      */
-    boolean exists() { return c4doc != null && c4doc.exists(); }
+    final boolean exists() {
+        synchronized (lock) { return (c4doc != null) && c4doc.exists(); }
+    }
 
     /**
      * Return whether the document is deleted
      *
      * @return true if deleted, false otherwise
      */
-    boolean isDeleted() {
+    final boolean isDeleted() {
         synchronized (lock) { return (c4doc != null) && c4doc.deleted(); }
     }
 
-    // TODO: c4rev_getGeneration
-    long generation() {
-        synchronized (lock) { return generationFromRevID(getRevisionID()); }
-    }
+    final void setId(@NonNull String id) { this.id = id; }
 
-    void setId(String id) { this.id = id; }
+    @Nullable
+    final Database getDatabase() { return database; }
 
-    Database getDatabase() { return database; }
-    void setDatabase(Database database) { this.database = database; }
+    void setDatabase(@Nullable Database database) { this.database = database; }
 
-    Dictionary getContent() { return internalDict; }
-    void setContent(Dictionary content) { internalDict = content; }
+    @NonNull
+    final Dictionary getContent() { return internalDict; }
 
-    C4Document getC4doc() {
+    final void setContent(@NonNull Dictionary content) { internalDict = content; }
+
+    // This seems pretty worrisome: we are returning a reference to the thing that lock protects.
+    @Nullable
+    final C4Document getC4doc() {
         synchronized (lock) { return c4doc; }
     }
 
-    void replaceC4Document(C4Document c4doc) {
-        synchronized (lock) {
-            final C4Document oldDoc = this.c4doc;
-            this.c4doc = c4doc;
-            if (oldDoc != this.c4doc) {
-                if (this.c4doc != null) { this.c4doc.retain(); }
-                // oldDoc should be retained.
-                if (oldDoc != null) { oldDoc.release(); }
-            }
-        }
+    final void replaceC4Document(@Nullable C4Document c4doc) {
+        synchronized (lock) { updateC4DocumentLocked(c4doc); }
     }
 
-    boolean selectConflictingRevision() throws LiteCoreException {
+    final boolean selectConflictingRevision() throws LiteCoreException {
+        boolean foundConflict = false;
         synchronized (lock) {
-            boolean foundConflict = false;
-            if (c4doc != null) {
-                while (!foundConflict) {
-                    try { c4doc.selectNextLeafRevision(true, true); }
-                    catch (LiteCoreException e) {
-                        // NOTE: other platforms checks if return value from c4doc_selectNextLeafRevision() is false
-                        if (e.code == 0) { break; }
-                        else { throw e; }
-                    }
-                    foundConflict = c4doc.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
+            if (c4doc == null) { return false; }
+
+            while (!foundConflict) {
+                try { c4doc.selectNextLeafRevision(true, true); }
+                catch (LiteCoreException e) {
+                    // NOTE: other platforms checks if return value from c4doc_selectNextLeafRevision() is false
+                    if (e.code == 0) { break; }
+                    else { throw e; }
                 }
+                foundConflict = c4doc.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
             }
+
             if (foundConflict) { setC4Document(c4doc); }
-            return foundConflict;
         }
+
+        return foundConflict;
     }
 
     @NonNull
-    FLSliceResult encode() throws LiteCoreException {
+    final FLSliceResult encode() throws LiteCoreException {
         final FLEncoder encoder = getDatabase().getC4Database().getSharedFleeceEncoder();
         try {
             encoder.setExtraInfo(this);
@@ -480,32 +522,52 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // Private access
     //---------------------------------------------
 
-    // Sets c4doc and updates my root dictionary
-    private void setC4Document(C4Document c4doc) {
+    // Sets c4doc and updates the root dictionary
+    private void setC4Document(@Nullable C4Document c4doc) {
         synchronized (lock) {
-            replaceC4Document(c4doc);
-            data = null;
-            if (c4doc != null && !c4doc.deleted()) { data = c4doc.getSelectedBody2(); }
-            updateDictionary();
+            updateC4DocumentLocked(c4doc);
+            data = ((c4doc == null) || c4doc.deleted()) ? null : c4doc.getSelectedBody2();
+            updateDictionaryLocked();
         }
     }
 
-    private void updateDictionary() {
-        if (data != null) {
-            root = new MRoot(new DocContext(database, c4doc), data.toFLValue(), isMutable());
-            synchronized (database.getLock()) { internalDict = (Dictionary) root.asNative(); }
+    private void updateC4DocumentLocked(@Nullable C4Document c4doc) {
+        if (this.c4doc == c4doc) { return; }
+
+        // current c4doc should have been retained.
+        if (this.c4doc != null) { this.c4doc.release(); }
+
+        if (c4doc != null) {
+            c4doc.retain();
+            revId = null;
         }
-        else {
+
+        this.c4doc = c4doc;
+    }
+
+    private void updateDictionaryLocked() {
+        if (data == null) {
             root = null;
             internalDict = isMutable() ? new MutableDictionary() : new Dictionary();
+            return;
         }
+
+        root = new MRoot(new DocContext(database, c4doc), data.toFLValue(), isMutable());
+
+        final Dictionary dict;
+        synchronized (database.getLock()) { dict = (Dictionary) root.asNative(); }
+
+        internalDict = dict;
     }
 
     private void free() {
         root = null;
-        if (c4doc != null) {
-            c4doc.release(); // c4doc should be retained.
-            c4doc = null;
+
+        synchronized (lock) {
+            if (c4doc != null) {
+                c4doc.release(); // c4doc should be retained.
+                c4doc = null;
+            }
         }
     }
 }

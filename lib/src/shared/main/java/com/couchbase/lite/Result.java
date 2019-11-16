@@ -19,6 +19,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -264,6 +265,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Object.
      */
+    @Nullable
     @Override
     public Object getValue(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -279,6 +281,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The String object.
      */
+    @Nullable
     @Override
     public String getString(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -294,6 +297,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Number object.
      */
+    @Nullable
     @Override
     public Number getNumber(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -384,6 +388,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Blob object.
      */
+    @Nullable
     @Override
     public Blob getBlob(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -399,6 +404,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Date object.
      */
+    @Nullable
     @Override
     public Date getDate(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -414,6 +420,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Array object.
      */
+    @Nullable
     @Override
     public Array getArray(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
@@ -429,6 +436,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      * @param key The select result key.
      * @return The Dictionary object.
      */
+    @Nullable
     @Override
     public Dictionary getDictionary(@NonNull String key) {
         if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
