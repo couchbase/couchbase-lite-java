@@ -99,7 +99,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      * property value is null or the property doesn't exist.
      *
      * @param key the key.
-     * @return the object value or MValue.EMPTY.
+     * @return the object value or null.
      */
     @Nullable
     @Override

@@ -208,7 +208,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * property value is null or the property doesn't exist.
      *
      * @param key the key.
-     * @return the object value or nil.
+     * @return the object value or null.
      */
     @Nullable
     @Override
