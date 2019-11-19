@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * A Join component representing a single JOIN clause in the query statement.
@@ -38,7 +40,7 @@ public class Join {
     }
 
     /**
-     * On component used for specifying join conditions.
+     * Component used for specifying join on conditions.
      */
     public static final class On extends Join {
         //---------------------------------------------
@@ -49,9 +51,7 @@ public class Join {
         //---------------------------------------------
         // Constructors
         //---------------------------------------------
-        private On(Type type, DataSource datasource) {
-            super(type, datasource);
-        }
+        private On(Type type, DataSource datasource) { super(type, datasource); }
 
         //---------------------------------------------
         // API - public methods
@@ -65,9 +65,7 @@ public class Join {
          */
         @NonNull
         public Join on(@NonNull Expression expression) {
-            if (expression == null) {
-                throw new IllegalArgumentException("expression cannot be null.");
-            }
+            Preconditions.checkArgNotNull(expression, "expression");
             this.onExpression = expression;
             return this;
         }
@@ -75,7 +73,7 @@ public class Join {
         //---------------------------------------------
         // Package level access
         //---------------------------------------------
-
+        @NonNull
         @Override
         Object asJSON() {
             final Map<String, Object> json = new HashMap<>();
@@ -98,9 +96,7 @@ public class Join {
      * @return The On object used for specifying join conditions.
      */
     @NonNull
-    public static On join(@NonNull DataSource datasource) {
-        return innerJoin(datasource);
-    }
+    public static On join(@NonNull DataSource datasource) { return innerJoin(datasource); }
 
     /**
      * Create an INNER JOIN component with the given data source.
@@ -111,9 +107,7 @@ public class Join {
      */
     @NonNull
     public static On innerJoin(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
+        Preconditions.checkArgNotNull(datasource, "data source");
         return new On(Type.INNER, datasource);
     }
 
@@ -126,6 +120,7 @@ public class Join {
      */
     @NonNull
     public static On leftJoin(@NonNull DataSource datasource) {
+        Preconditions.checkArgNotNull(datasource, "data source");
         return leftOuterJoin(datasource);
     }
 
@@ -138,9 +133,7 @@ public class Join {
      */
     @NonNull
     public static On leftOuterJoin(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
+        Preconditions.checkArgNotNull(datasource, "data source");
         return new On(Type.LEFT_OUTER, datasource);
     }
 
@@ -153,9 +146,7 @@ public class Join {
      */
     @NonNull
     public static Join crossJoin(@NonNull DataSource datasource) {
-        if (datasource == null) {
-            throw new IllegalArgumentException("datasource cannot be null.");
-        }
+        Preconditions.checkArgNotNull(datasource, "data source");
         return new Join(Type.CROSS, datasource);
     }
 
@@ -163,15 +154,19 @@ public class Join {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    @NonNull
     private final Type type;
+    @NonNull
     private final DataSource dataSource;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-    private Join(Type type, DataSource dataSource) {
+    private Join(@NonNull Type type, @NonNull DataSource datasource) {
+        Preconditions.checkArgNotNull(type, "type");
+        Preconditions.checkArgNotNull(datasource, "data source");
         this.type = type;
-        this.dataSource = dataSource;
+        this.dataSource = datasource;
     }
 
     //---------------------------------------------
