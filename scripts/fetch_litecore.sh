@@ -9,14 +9,6 @@ function usage() {
   echo
 }
 
-function choose_extension() {
-  if [ "$1" = "linux" ]; then
-    echo "tar.gz"
-  else
-    echo "zip"
-  fi
-}
-
 DEBUG_LIB=false
 shopt -s nocasematch
 while [[ $# -gt 0 ]]; do
@@ -90,14 +82,15 @@ fi
 
 for VARIANT in "${VARIANTS[@]}"; do
   if [ $VARIANT == "macos" ]; then
-    PLATFORM="macosx"  
+    PLATFORM="macosx"
+    EXTENSION="zip"
   elif [ $VARIANT == "linux" ]; then
     PLATFORM="centos6"
+    EXTENSION="tar.gz"
   fi
 
   echo "Fetching $PLATFORM..."
   PREFIX="couchbase-litecore"
-  EXTENSION=`choose_extension $PLATFORM`
   echo $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/$PREFIX-$PLATFORM-$SHA$SUFFIX.$EXTENSION
   curl -Lf $NEXUS_REPO/couchbase-litecore-$PLATFORM/$SHA/$PREFIX-$PLATFORM-$SHA$SUFFIX.$EXTENSION -o litecore-$PLATFORM$SUFFIX.$EXTENSION || exit 1
 done
