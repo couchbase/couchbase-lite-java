@@ -17,6 +17,9 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.internal.fleece.FLConstants;
@@ -27,11 +30,17 @@ import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
 
 
-/* Internal delegate class for MValue - Mutable Fleece Value */
+/**
+ * Internal delegate class for MValue - Mutable Fleece Value
+ */
 final class MValueDelegate implements MValue.Delegate {
 
+    //-------------------------------------------------------------------------
+    // Public methods
+    //-------------------------------------------------------------------------
+    @Nullable
     @Override
-    public Object toNative(MValue mv, MCollection parent, AtomicBoolean cacheIt) {
+    public Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt) {
         final FLValue value = mv.getValue();
         switch (value.getType()) {
             case FLConstants.ValueType.ARRAY:
@@ -47,45 +56,36 @@ final class MValueDelegate implements MValue.Delegate {
         }
     }
 
+    @Nullable
     @Override
-    public MCollection collectionFromNative(Object object) {
-        if (object instanceof Array) { return ((Array) object).toMCollection(); }
-        else if (object instanceof Dictionary) { return ((Dictionary) object).toMCollection(); }
+    public MCollection collectionFromNative(@Nullable Object object) {
+        if (object instanceof Dictionary) { return ((Dictionary) object).toMCollection(); }
+        else if (object instanceof Array) { return ((Array) object).toMCollection(); }
         else { return null; }
     }
 
     @Override
-    public void encodeNative(FLEncoder enc, Object object) {
+    public void encodeNative(@NonNull FLEncoder enc, @Nullable Object object) {
         if (object == null) { enc.writeNull(); }
         else { enc.writeValue(object); }
     }
 
-    private Object mValueToArray(MValue mv, MCollection parent) {
-        if (parent != null && parent.hasMutableChildren()) { return new MutableArray(mv, parent); }
-        else { return new Array(mv, parent); }
+    //-------------------------------------------------------------------------
+    // Private methods
+    //-------------------------------------------------------------------------
+    @NonNull
+    private Object mValueToArray(@NonNull MValue mv, @Nullable MCollection parent) {
+        return ((parent == null) || !parent.hasMutableChildren())
+            ? new Array(mv, parent)
+            : new MutableArray(mv, parent);
     }
 
-    private Object createSpecialObjectOfType(String type, FLDict properties, DocContext context) {
-        if (Blob.TYPE_BLOB.equals(type)) { return createBlob(properties, context); }
-        return null;
-    }
-
-    private Object createBlob(FLDict properties, DocContext context) {
-        return new Blob(context.getDatabase(), properties.asDict());
-    }
-
-    private boolean isOldAttachment(FLDict flDict) {
-        return flDict.get("digest") != null
-            && flDict.get("length") != null
-            && flDict.get("stub") != null
-            && flDict.get("revpos") != null;
-    }
-
-    private Object mValueToDictionary(MValue mv, MCollection parent) {
+    @NonNull
+    private Object mValueToDictionary(@NonNull MValue mv, @NonNull MCollection parent) {
         final FLDict flDict = mv.getValue().asFLDict();
         final DocContext context = (DocContext) parent.getContext();
         final FLValue flType = flDict.get(Blob.META_PROP_TYPE);
-        final String type = flType != null ? flType.asString() : null;
+        final String type = (flType == null) ? null : flType.asString();
         if (type == null) {
             if (isOldAttachment(flDict)) { return createBlob(flDict, context); }
         }
@@ -96,5 +96,25 @@ final class MValueDelegate implements MValue.Delegate {
 
         if (parent.hasMutableChildren()) { return new MutableDictionary(mv, parent); }
         else { return new Dictionary(mv, parent); }
+    }
+
+    private boolean isOldAttachment(@NonNull FLDict flDict) {
+        return (flDict.get("digest") != null)
+            && (flDict.get("length") != null)
+            && (flDict.get("stub") != null)
+            && (flDict.get("revpos") != null);
+    }
+
+    @Nullable
+    private Object createSpecialObjectOfType(
+        @Nullable String type,
+        @NonNull FLDict properties,
+        @NonNull DocContext context) {
+        return (!Blob.TYPE_BLOB.equals(type)) ? null : createBlob(properties, context);
+    }
+
+    @NonNull
+    private Object createBlob(@NonNull FLDict properties, @NonNull DocContext context) {
+        return new Blob(context.getDatabase(), properties.asDict());
     }
 }

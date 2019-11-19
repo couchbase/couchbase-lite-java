@@ -17,12 +17,22 @@
 //
 package com.couchbase.lite.internal.fleece;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
+@VisibleForTesting
 public class MValueDelegate implements MValue.Delegate {
+
+    //-------------------------------------------------------------------------
+    // Public methods
+    //-------------------------------------------------------------------------
+    @Nullable
     @Override
-    public Object toNative(MValue mv, MCollection parent, AtomicBoolean cacheIt) {
+    public Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt) {
         FLValue value = mv.getValue();
         int type = value.getType();
         switch (type) {
@@ -37,15 +47,16 @@ public class MValueDelegate implements MValue.Delegate {
         }
     }
 
+    @Nullable
     @Override
-    public MCollection collectionFromNative(Object object) {
-        if (object instanceof FleeceArray) { return ((FleeceArray) object).toMCollection(); }
-        else if (object instanceof FleeceDict) { return ((FleeceDict) object).toMCollection(); }
+    public MCollection collectionFromNative(@Nullable Object object) {
+        if (object instanceof FleeceDict) { return ((FleeceDict) object).toMCollection(); }
+        else if (object instanceof FleeceArray) { return ((FleeceArray) object).toMCollection(); }
         else { return null; }
     }
 
     @Override
-    public void encodeNative(FLEncoder enc, Object object) {
+    public void encodeNative(@NonNull FLEncoder enc, @Nullable Object object) {
         if (object == null) { enc.writeNull(); }
         else { enc.writeValue(object); }
     }
