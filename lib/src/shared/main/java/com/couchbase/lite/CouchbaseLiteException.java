@@ -22,6 +22,7 @@ import android.support.annotation.NonNull;
 import java.util.Map;
 
 import com.couchbase.lite.internal.CBLInternalException;
+import com.couchbase.lite.internal.support.Log;
 
 
 /**
@@ -125,7 +126,7 @@ public final class CouchbaseLiteException extends Exception {
         @NonNull String domain,
         int code,
         Map<String, Object> info) {
-        super(message, cause);
+        super(Log.lookupStandardMessage(message), cause);
         this.domain = domain;
         this.code = code;
         this.info = info;
@@ -152,6 +153,6 @@ public final class CouchbaseLiteException extends Exception {
     @Override
     public String toString() {
         final String msg = getMessage();
-        return "CouchbaseLiteException{" + domain + "," + code + "," + ((msg == null) ? null : ("'" + msg + "'")) + "}";
+        return "CouchbaseLiteException{" + domain + "," + code + "," + ((msg == null) ? "" : ("'" + msg + "'")) + "}";
     }
 }

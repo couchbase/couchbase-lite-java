@@ -398,7 +398,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
-                "Pending Document IDs are not supported on pull-only replicators.",
+                "PullOnlyPendingDocIDs",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.UNSUPPORTED);
         }
@@ -425,7 +425,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
-                "Pending Document IDs are not supported on pull-only replicators.",
+                "PullOnlyPendingDocIDs",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.UNSUPPORTED);
         }
@@ -538,8 +538,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         synchronized (lock) {
             if ((c4ReplStatus != null)
                 && (c4ReplStatus.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.STOPPED)) {
-                throw new IllegalStateException(
-                    "Attempt to reset the checkpoint for a replicator that is not stopped.");
+                throw new IllegalStateException(Log.lookupStandardMessage("ReplicatorNotStopped"));
             }
             shouldResetCheckpoint = true;
         }

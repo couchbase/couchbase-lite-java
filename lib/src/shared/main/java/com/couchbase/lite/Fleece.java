@@ -20,13 +20,13 @@ package com.couchbase.lite;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 import com.couchbase.lite.internal.fleece.FLConstants;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
+import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.DateUtils;
 
 
@@ -82,11 +82,11 @@ final class Fleece {
                 value instanceof Number ||
                 value instanceof Boolean ||
                 value instanceof Blob)) {
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH,
-                    "%s is not a valid type. You may only pass %s.",
-                    value.getClass().getSimpleName(),
-                    SUPPORTED_TYPES));
+                throw new IllegalArgumentException(
+                    Log.formatStandardMessage(
+                        "InvalidValueToBeDeserialized",
+                        value.getClass().getSimpleName(),
+                        SUPPORTED_TYPES));
             }
         }
         return value;

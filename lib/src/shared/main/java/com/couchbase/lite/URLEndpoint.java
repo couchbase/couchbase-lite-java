@@ -20,7 +20,9 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 
 import java.net.URI;
-import java.util.Locale;
+
+import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -28,7 +30,7 @@ import java.util.Locale;
  */
 public final class URLEndpoint implements Endpoint {
     //---------------------------------------------
-    // Constant variables
+    // Constants
     //---------------------------------------------
     static final String SCHEME_STD = "ws";
     static final String SCHEME_TLS = "wss";
@@ -36,6 +38,7 @@ public final class URLEndpoint implements Endpoint {
     //---------------------------------------------
     // Member variables
     //---------------------------------------------
+    @NonNull
     private final URI url;
 
     //---------------------------------------------
@@ -49,33 +52,28 @@ public final class URLEndpoint implements Endpoint {
      * @param url The url.
      */
     public URLEndpoint(@NonNull URI url) {
-        if (url == null) { throw new IllegalArgumentException("url cannot be null."); }
+        Preconditions.checkArgNotNull(url, "url");
 
         final String scheme = url.getScheme();
         if (!(SCHEME_STD.equals(scheme) || SCHEME_TLS.equals(scheme))) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH,
-                    "Invalid scheme for URLEndpoint url (%s); must be either %s or %s.",
-                    scheme, SCHEME_STD, SCHEME_TLS));
+            throw new IllegalArgumentException(Log.formatStandardMessage("InvalidSchemeURLEndpoint", scheme));
         }
 
         final String userInfo = url.getUserInfo();
         if (userInfo != null && userInfo.split(":").length == 2) {
-            throw new IllegalArgumentException(
-                "Embedded credentials in a URL (username:password@url) are not allowed; use the BasicAuthenticator "
-                    + "class instead.");
+            throw new IllegalArgumentException(Log.lookupStandardMessage("InvalidEmbeddedCredentialsInURL"));
         }
 
         this.url = url;
     }
 
-    @NonNull
-    @Override
-    public String toString() { return "URLEndpoint{url=" + url + '}'; }
-
     //---------------------------------------------
     // API - public methods
     //---------------------------------------------
+
+    @NonNull
+    @Override
+    public String toString() { return "URLEndpoint{url=" + url + '}'; }
 
     /**
      * Returns the url.

@@ -25,6 +25,7 @@ import com.couchbase.lite.utils.TestUtils;
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -476,6 +477,37 @@ public class LogTest extends BaseTest {
         assertEquals(rs.allResults().size(), 1);
 
         assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
+    }
+
+    // brittle:  will break when the wording of the error message is changed
+    @Test
+    public void testLookupStandardMessage() {
+        assertEquals("Missing AS clause for JOIN.", Log.lookupStandardMessage("MissASforJoin"));
+    }
+
+    // brittle:  will break when the wording of the error message is changed
+    @Test
+    public void testFormatStandardMessage() {
+         assertEquals("XXX must be a file-based URL.", Log.formatStandardMessage("NotFileBasedURL", "XXX"));
+    }
+
+    // brittle:  will break when the wording of the error message is changed
+    @Test
+    public void testStandardCBLException() {
+        CouchbaseLiteException e = new CouchbaseLiteException(
+            "MissONforJoin",
+            CBLError.Domain.CBLITE,
+            CBLError.Code.UNIMPLEMENTED);
+        assertEquals("Missing ON statement for JOIN.", e.getMessage());
+    }
+
+    @Test
+    public void testNonStandardCBLException() {
+        CouchbaseLiteException e = new CouchbaseLiteException(
+            "MissNOforJoin",
+            CBLError.Domain.CBLITE,
+            CBLError.Code.UNIMPLEMENTED);
+        assertEquals("MissNOforJoin", e.getMessage());
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, TestUtils.Task task)

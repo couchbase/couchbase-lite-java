@@ -86,7 +86,7 @@ public class ResultSet implements Iterable<Result> {
             try {
                 if (c4enum == null) { return null; }
                 else if (isAllEnumerated) {
-                    Log.w(DOMAIN, "All query results have already been enumerated.");
+                    Log.w(DOMAIN, "ResultSetAlreadyEnumerated");
                     return null;
                 }
                 else if (!c4enum.next()) {
@@ -168,7 +168,7 @@ public class ResultSet implements Iterable<Result> {
     // or it has seized the lock and execution of the `free` method cannot actually free this object until
     // this method exits.
     ResultSet refresh() throws CouchbaseLiteException {
-        if (query == null) { throw new IllegalStateException("_query variable is null"); }
+        Preconditions.checkArgNotNull(query, "query");
 
         synchronized (getDatabase().getLock()) {
             if (!isAlive.get()) { return null; }

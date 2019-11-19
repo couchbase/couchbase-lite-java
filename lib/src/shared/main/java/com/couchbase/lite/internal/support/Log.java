@@ -50,6 +50,7 @@ public final class Log {
     private Log() { }
 
     public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
+
     static {
         final Map<String, LogDomain> m = new HashMap<>();
         m.put(C4Constants.LogDomain.DATABASE, LogDomain.DATABASE);
@@ -62,6 +63,7 @@ public final class Log {
     }
 
     public static final Map<LogDomain, String> LOGGING_DOMAINS_TO_C4;
+
     static {
         final Map<LogDomain, String> m = new HashMap<>();
         m.put(LogDomain.DATABASE, C4Constants.LogDomain.DATABASE);
@@ -72,6 +74,7 @@ public final class Log {
     }
 
     public static final Map<Integer, LogLevel> LOG_LEVEL_FROM_C4;
+
     static {
         final Map<Integer, LogLevel> m = new HashMap<>();
         for (LogLevel level : LogLevel.values()) { m.put(level.getValue(), level); }
@@ -308,6 +311,17 @@ public final class Log {
     }
 
     @NonNull
+    public static String lookupStandardMessage(@NonNull String msg) {
+        final String message = (errorMessages == null) ? null : errorMessages.get(msg);
+        return (message == null) ? msg : message;
+    }
+
+    @NonNull
+    public static String formatStandardMessage(@NonNull String msg, Object... args) {
+        return String.format(Locale.ENGLISH, lookupStandardMessage(msg), args);
+    }
+
+    @NonNull
     public static LogLevel getLogLevelForC4Level(int c4Level) {
         final LogLevel level = LOG_LEVEL_FROM_C4.get(c4Level);
         return (level != null) ? level : LogLevel.INFO;
@@ -368,20 +382,15 @@ public final class Log {
         Object... args) {
         // Don't let logging errors cause an abort
         if ((level == null) || (domain == null)) { return; }
-        String message = (msg != null) ? msg : "---";
+        String message = (msg == null) ? "---" : msg;
 
-        message = lookupErrorMessage(message);
+        message = lookupStandardMessage(message);
 
         if ((args != null) && (args.length > 0)) { message = formatMessage(message, args); }
 
         if (err != null) { message = message + " (" + err + ")"; }
 
         sendToLoggers(level, domain, message);
-    }
-
-    private static String lookupErrorMessage(String error) {
-        final String message = (errorMessages == null) ? null : errorMessages.get(error);
-        return (message == null) ? error : message;
     }
 
     private static String formatMessage(String msg, Object... args) {

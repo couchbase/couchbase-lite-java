@@ -292,7 +292,7 @@ public final class Blob implements FLEncodable {
         Preconditions.checkArgNotNull(fileURL, "fileUrl");
 
         if (!fileURL.getProtocol().equalsIgnoreCase("file")) {
-            throw new IllegalArgumentException(fileURL + "must be a file-based URL.");
+            throw new IllegalArgumentException(Log.formatStandardMessage("NotFileBasedURL", fileURL));
         }
 
         this.contentType = contentType;
@@ -546,9 +546,7 @@ public final class Blob implements FLEncodable {
         if (database != null) {
             if (this.database == db) { return; }
 
-            throw new IllegalStateException(
-                "Attempt to save a document containing a blob that was saved to a another database. "
-                    + "The save operation cannot be completed.");
+            throw new IllegalStateException(Log.lookupStandardMessage("BlobDifferentDatabase"));
         }
 
         C4BlobKey key = null;
@@ -558,11 +556,7 @@ public final class Blob implements FLEncodable {
 
             if (blobContent != null) { key = store.create(blobContent); }
             else if (blobContentStream != null) { key = writeDatabaseFromInitStream(store); }
-            else {
-                throw new IllegalStateException(
-                    "No data available for write to Database."
-                        + "Please ensure that all blobs in the document have non-null content.");
-            }
+            else { throw new IllegalStateException(Log.lookupStandardMessage("BlobContentNull")); }
 
             this.database = db;
             this.blobDigest = key.toString();
