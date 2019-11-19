@@ -141,7 +141,7 @@ final class LiveQuery implements DatabaseChangeListener {
                 // 2) when the query parameters have changed.
                 // In either case we probably want to kick off a new query.
                 // In the latter case the current query results are irrelevant and need to be cleared.
-                if (shouldClearResults) { releaseResultSetSynchronized(); }
+                if (shouldClearResults) { previousResults = null; }
             }
         }
 
@@ -164,7 +164,7 @@ final class LiveQuery implements DatabaseChangeListener {
                 dbListenerToken = null;
             }
 
-            releaseResultSetSynchronized();
+            previousResults = null;
         }
     }
 
@@ -201,11 +201,5 @@ final class LiveQuery implements DatabaseChangeListener {
         catch (CouchbaseLiteException err) {
             changeNotifier.postChange(new QueryChange(query, null, err));
         }
-    }
-
-    private void releaseResultSetSynchronized() {
-        if (previousResults == null) { return; }
-        previousResults.free();
-        previousResults = null;
     }
 }
