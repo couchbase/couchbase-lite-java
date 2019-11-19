@@ -24,6 +24,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -68,7 +69,7 @@ final class LiveQuery implements DatabaseChangeListener {
     //---------------------------------------------
 
     LiveQuery(@NonNull AbstractQuery query) {
-        if (query == null) { throw new IllegalArgumentException("query cannot be null."); }
+        Preconditions.checkArgNotNull(query, "query");
         this.query = query;
     }
 

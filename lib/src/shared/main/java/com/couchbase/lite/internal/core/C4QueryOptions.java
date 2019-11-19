@@ -24,19 +24,9 @@ public class C4QueryOptions {
     private boolean rankFullText = true;
 
     //-------------------------------------------------------------------------
-    // Constructor
-    //-------------------------------------------------------------------------
-    public C4QueryOptions() {
-    }
-
-    //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public boolean isRankFullText() {
-        return rankFullText;
-    }
+    public boolean isRankFullText() { return rankFullText; }
 
-    public void setRankFullText(boolean rankFullText) {
-        this.rankFullText = rankFullText;
-    }
+    public void setRankFullText(boolean rankFullText) { this.rankFullText = rankFullText; }
 }

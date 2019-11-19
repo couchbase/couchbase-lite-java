@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4QueryEnumerator;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -78,7 +79,7 @@ public class ResultSet implements Iterable<Result> {
      * if there are no more rows, or ResultSet is freed already.
      */
     public Result next() {
-        if (query == null) { throw new IllegalStateException("_query variable is null"); }
+        Preconditions.checkArgNotNull(query, "query");
         if (!isAlive.get()) { return null; }
 
         synchronized (getDatabase().getLock()) {
@@ -93,7 +94,9 @@ public class ResultSet implements Iterable<Result> {
                     isAllEnumerated = true;
                     return null;
                 }
-                else { return currentObject(); }
+                else {
+                    return currentObject();
+                }
             }
             catch (LiteCoreException e) {
                 Log.w(DOMAIN, "Query enumeration error: %s", e.toString());

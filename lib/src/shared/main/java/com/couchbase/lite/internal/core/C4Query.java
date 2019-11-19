@@ -132,14 +132,11 @@ public class C4Query {
 
     // - Creates a database index, to speed up subsequent queries.
 
-    public C4QueryEnumerator run(C4QueryOptions options, AllocSlice parameters)
-        throws LiteCoreException {
+    public C4QueryEnumerator run(C4QueryOptions options, AllocSlice parameters) throws LiteCoreException {
         AllocSlice params = null;
         try {
             params = parameters;
-            if (params == null) {
-                params = new FLSliceResult();
-            }
+            if (params == null) { params = new FLSliceResult(); }
             return new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
         }
         finally { if (params != parameters) { params.free(); } }
