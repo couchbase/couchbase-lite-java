@@ -312,7 +312,7 @@ abstract class AbstractQuery implements Query {
 
             if (map.containsKey(name)) {
                 throw new CouchbaseLiteException(
-                    String.format(Locale.ENGLISH, "Duplicate select result named %s", name),
+                    Log.formatStandardMessage("DuplicateSelectResultName", name),
                     CBLError.Domain.CBLITE,
                     CBLError.Code.INVALID_QUERY);
             }

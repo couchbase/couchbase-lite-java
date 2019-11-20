@@ -462,10 +462,7 @@ abstract class AbstractDatabase {
         Preconditions.checkArgNotNull(document, "document");
 
         if (document.isNewDocument()) {
-            throw new CouchbaseLiteException(
-                "Document doesn't exist in the database.",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.NOT_FOUND);
+            throw new CouchbaseLiteException("DocumentNotFound", CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
         synchronized (lock) {
@@ -532,7 +529,7 @@ abstract class AbstractDatabase {
             try {
                 if (getC4Database().get(id, true) == null) {
                     throw new CouchbaseLiteException(
-                        "Document doesn't exist in the database.",
+                        "DocumentNotFound",
                         CBLError.Domain.CBLITE,
                         CBLError.Code.NOT_FOUND);
                 }
@@ -684,7 +681,7 @@ abstract class AbstractDatabase {
 
             if (hasActiveReplicators()) {
                 throw new CouchbaseLiteException(
-                    "Cannot close the database.  Please stop all replicators before closing.",
+                    "CloseDBFailedReplications",
                     CBLError.Domain.CBLITE,
                     CBLError.Code.BUSY);
             }
@@ -692,7 +689,7 @@ abstract class AbstractDatabase {
 
             if (activeLiveQueries.size() > 0) {
                 throw new CouchbaseLiteException(
-                    "Cannot close the database.  Please remove all query listeners before closing.",
+                    "CloseDBFailedQueryListeners",
                     CBLError.Domain.CBLITE,
                     CBLError.Code.BUSY);
             }
@@ -725,15 +722,14 @@ abstract class AbstractDatabase {
 
             if (hasActiveReplicators()) {
                 throw new CouchbaseLiteException(
-                    "Cannot delete the database.  Please stop all replicators before deleting.",
+                    "DeleteDBFailedReplications",
                     CBLError.Domain.CBLITE,
                     CBLError.Code.BUSY);
             }
 
-
             if (activeLiveQueries.size() > 0) {
                 throw new CouchbaseLiteException(
-                    "Cannot delete the database.  Please remove all query listeners before deleting.",
+                    "DeleteDBFailedQueryListeners",
                     CBLError.Domain.CBLITE,
                     CBLError.Code.BUSY);
             }
@@ -811,7 +807,7 @@ abstract class AbstractDatabase {
     //---------------------------------------------
 
     protected void mustBeOpen() {
-        if (c4db == null) { throw new IllegalStateException("Attempt to perform an operation on a closed database"); }
+        if (c4db == null) { throw new IllegalStateException(Log.lookupStandardMessage("DBClosed")); }
     }
 
     @SuppressWarnings("NoFinalizer")
@@ -1046,11 +1042,7 @@ abstract class AbstractDatabase {
             }
 
             if (e.code == CBLError.Code.CANT_OPEN_FILE) {
-                throw new CouchbaseLiteException(
-                    "Unable to create database directory.",
-                    e,
-                    CBLError.Domain.CBLITE,
-                    e.code);
+                throw new CouchbaseLiteException("CreateDBDirectoryFailed", e, CBLError.Domain.CBLITE, e.code);
             }
 
             throw CBLStatus.convertException(e);
@@ -1073,7 +1065,7 @@ abstract class AbstractDatabase {
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private void setupDirectory(File dir) throws CouchbaseLiteException {
         if (!dir.exists()) { dir.mkdirs(); }
-        if (!dir.isDirectory()) { throw new CouchbaseLiteException("Unable to create directory for: " + dir); }
+        if (!dir.isDirectory()) { throw new CouchbaseLiteException("CreateDBDirectoryFailed"); }
     }
 
     // --- C4Database
@@ -1201,7 +1193,7 @@ abstract class AbstractDatabase {
         if (document.getDatabase() == null) { document.setDatabase((Database) this); }
         else if (document.getDatabase() != this) {
             throw new CouchbaseLiteException(
-                "Cannot operate on a document from another database.",
+                "DocumentAnotherDatabase",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.INVALID_PARAMETER);
         }
@@ -1406,7 +1398,7 @@ abstract class AbstractDatabase {
 
         if (deleting && (!document.exists())) {
             throw new CouchbaseLiteException(
-                "Cannot delete a document that has not yet been saved.",
+                "DeleteDocFailedNotSaved",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.NOT_FOUND);
         }

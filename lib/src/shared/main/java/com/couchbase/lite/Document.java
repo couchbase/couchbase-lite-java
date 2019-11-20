@@ -34,6 +34,7 @@ import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.MRoot;
+import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
@@ -112,7 +113,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         final C4Document doc;
         try {
             final C4Database c4db = database.getC4Database();
-            if (c4db == null) { throw new IllegalStateException("Database must be open"); }
+            if (c4db == null) { throw new IllegalStateException(Log.lookupStandardMessage("DBClosed")); }
             doc = c4db.get(getId(), true);
         }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }

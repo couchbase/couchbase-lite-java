@@ -66,7 +66,7 @@ public final class FileLogger implements Logger {
      */
     public void setLevel(@NonNull LogLevel level) {
         if (config == null) {
-            throw new IllegalStateException("Cannot set the FileLogger's level while it has no configuration");
+            throw new IllegalStateException(Log.lookupStandardMessage("CannotSetLogLevel"));
         }
 
         if (logLevel == level) { return; }

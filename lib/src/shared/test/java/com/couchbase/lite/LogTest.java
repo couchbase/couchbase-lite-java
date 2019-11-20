@@ -330,20 +330,6 @@ public class LogTest extends BaseTest {
     }
 
     @Test
-    public void testLogStandardErrorWithFormatting() {
-        Map<String, String> stdErr = new HashMap<>();
-        stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
-
-        Log.initLogging(stdErr);
-
-        BasicLogger logger = new BasicLogger();
-        Database.log.setCustom(logger);
-
-        Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
-    }
-
-    @Test
     public void testWriteLogWithError() throws Exception {
         String message = "test message";
         String uuid = UUID.randomUUID().toString();
@@ -476,6 +462,85 @@ public class LogTest extends BaseTest {
         assertEquals(rs.allResults().size(), 1);
 
         assertTrue(customLogger.getContent().contains("[{\"hebrew\":\"" + hebrew + "\"}]"));
+    }
+
+    @Test
+    public void testLogStandardErrorWithFormatting() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
+        try {
+            Log.initLogging(stdErr);
+
+            BasicLogger logger = new BasicLogger();
+            Database.log.setCustom(logger);
+
+            Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
+            assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
+        }
+        finally {
+            reloadStandardErrorMessages();
+        }
+    }
+
+    @Test
+    public void testLookupStandardMessage() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG");
+        try {
+            Log.initLogging(stdErr);
+            assertEquals("TEST DEBUG", Log.lookupStandardMessage("FOO"));
+        }
+        finally {
+            reloadStandardErrorMessages();
+        }
+    }
+
+    @Test
+    public void testFormatStandardMessage() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
+        try {
+            Log.initLogging(stdErr);
+            assertEquals("TEST DEBUG arg 1 3.00", Log.formatStandardMessage("FOO", 1, "arg", 3.0F));
+        }
+        finally {
+            reloadStandardErrorMessages();
+        }
+    }
+
+    // brittle:  will break when the wording of the error message is changed
+    @Test
+    public void testStandardCBLException() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG");
+        try {
+            Log.initLogging(stdErr);
+            CouchbaseLiteException e = new CouchbaseLiteException(
+                "FOO",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNIMPLEMENTED);
+            assertEquals("TEST DEBUG", e.getMessage());
+        }
+        finally {
+            reloadStandardErrorMessages();
+        }
+    }
+
+    @Test
+    public void testNonStandardCBLException() {
+        Map<String, String> stdErr = new HashMap<>();
+        stdErr.put("FOO", "TEST DEBUG");
+        try {
+            Log.initLogging(stdErr);
+            CouchbaseLiteException e = new CouchbaseLiteException(
+                "BORK",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.UNIMPLEMENTED);
+            assertEquals("BORK", e.getMessage());
+        }
+        finally {
+            reloadStandardErrorMessages();
+        }
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, TestUtils.Task task)

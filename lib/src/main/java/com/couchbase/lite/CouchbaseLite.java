@@ -94,17 +94,10 @@ public final class CouchbaseLite {
     @VisibleForTesting
     static void reset() { INITIALIZED.set(false); }
 
-    @NonNull
-    private static String verifyDir(@NonNull File dir) {
-        final String path = dir.getAbsolutePath();
-        if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
-
-        throw new IllegalStateException("Cannot create or access temp directory at " + path);
-    }
-
+    @VisibleForTesting
     @SuppressWarnings("unchecked")
     @NonNull
-    private static Map<String, String> loadErrorMessages() {
+    static Map<String, String> loadErrorMessages() {
         final Properties errors = new Properties();
         try (InputStream is = CouchbaseLite.class.getResourceAsStream(ERRORS_PROPERTIES_PATH)){
             errors.load(is);
@@ -112,5 +105,13 @@ public final class CouchbaseLite {
             Log.e(LogDomain.DATABASE, "Failed to load error messages!", e);
         }
         return (Map<String, String>) (Map) errors;
+    }
+
+    @NonNull
+    private static String verifyDir(@NonNull File dir) {
+        final String path = dir.getAbsolutePath();
+        if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
+
+        throw new IllegalStateException("Cannot create or access temp directory at " + path);
     }
 }

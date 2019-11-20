@@ -21,6 +21,7 @@ package com.couchbase.lite;
 import java.io.IOException;
 import java.io.InputStream;
 
+
 /**
  * Contains methods required for the tests to run on both Android and Java platforms.
  */
@@ -43,4 +44,7 @@ public interface PlatformTest {
 
     /* Scheduled to execute a task asynchronously. */
     void executeAsync(long delayMs, Runnable task);
+
+    /* Reload the cross-platform error messages. */
+    void reloadStandardErrorMessages();
 }

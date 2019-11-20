@@ -17,10 +17,11 @@
 //
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.ExecutionService;
-
 import java.io.InputStream;
-import java.io.PrintStream;
+
+import com.couchbase.lite.internal.ExecutionService;
+import com.couchbase.lite.internal.support.Log;
+
 
 /**
  * Platform test class for Java.
@@ -58,5 +59,10 @@ public abstract class PlatformBaseTest implements PlatformTest {
     public void executeAsync(long delayMs, Runnable task) {
         ExecutionService executionService = CouchbaseLite.getExecutionService();
         executionService.postDelayedOnExecutor(delayMs, executionService.getMainExecutor(), task);
+    }
+
+    @Override
+    public void reloadStandardErrorMessages() {
+        Log.initLogging(CouchbaseLite.loadErrorMessages());
     }
 }
