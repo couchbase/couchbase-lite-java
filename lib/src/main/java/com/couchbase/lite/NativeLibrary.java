@@ -24,10 +24,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -70,13 +66,24 @@ final class NativeLibrary {
      * directory will be <System Temp Directory>/com.couchbase.lite.java/native/<MD5-Hash>.
      * The MD5-Hash is the combined MD5 hash of the hashes of all native libraries.
      */
-    @NonNull
+    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private static String getTargetDirectory(@NonNull String[] libPaths)
-        throws NoSuchAlgorithmException, URISyntaxException, IOException {
+        throws NoSuchAlgorithmException, IOException {
         final MessageDigest md = MessageDigest.getInstance("MD5");
         for (String path : libPaths) {
-            final URI md5File = NativeLibrary.class.getResource(path + ".MD5").toURI();
-            md.update(Files.readAllBytes(Paths.get(md5File)));
+            InputStream in = null;
+            try {
+                in = NativeLibrary.class.getResourceAsStream(path + ".MD5");
+                if (in == null) { throw new IOException("Cannot find MD5 for library at " + path); }
+                final byte[] buffer = new byte[128];
+                int bytesRead = 0;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    md.update(buffer, 0, bytesRead);
+                }
+            }
+            finally {
+                if (in != null) { try { in.close(); } catch (IOException e) { } }
+            }
         }
         final String md5 =  String.format("%032x", new BigInteger(1, md.digest()));
         return new File(CouchbaseLite.getTmpDirectory(TARGET_BASE_DIR), md5).getAbsolutePath();
