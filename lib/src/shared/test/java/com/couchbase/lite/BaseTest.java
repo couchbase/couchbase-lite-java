@@ -78,7 +78,6 @@ public abstract class BaseTest extends PlatformBaseTest {
 
     @Before
     public void setUp() throws CouchbaseLiteException {
-        CouchbaseLite.reset();
         initCouchbaseLite();
 
         Database.log.getConsole().setLevel(LogLevel.DEBUG);

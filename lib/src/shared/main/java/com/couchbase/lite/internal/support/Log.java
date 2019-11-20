@@ -44,10 +44,11 @@ import com.couchbase.lite.internal.core.CBLVersion;
  * Couchbase Lite Internal Log Utility.
  */
 public final class Log {
+    private Log() { } // Utility class
+
     private static final AtomicBoolean WARNED = new AtomicBoolean(false);
 
-    // Utility class.
-    private Log() { }
+    private static final String DEFAULT_MSG = "Unknown error";
 
     public static final Map<String, LogDomain> LOGGING_DOMAINS_FROM_C4;
 
@@ -311,13 +312,14 @@ public final class Log {
     }
 
     @NonNull
-    public static String lookupStandardMessage(@NonNull String msg) {
-        final String message = (errorMessages == null) ? null : errorMessages.get(msg);
+    public static String lookupStandardMessage(@Nullable String msg) {
+        if (msg == null) { return DEFAULT_MSG; }  // Don't let logging errors cause an abort
+        final String message = (errorMessages == null) ? msg : errorMessages.get(msg);
         return (message == null) ? msg : message;
     }
 
     @NonNull
-    public static String formatStandardMessage(@NonNull String msg, Object... args) {
+    public static String formatStandardMessage(@Nullable String msg, Object... args) {
         return String.format(Locale.ENGLISH, lookupStandardMessage(msg), args);
     }
 
@@ -380,11 +382,10 @@ public final class Log {
         @Nullable Throwable err,
         @NonNull String msg,
         Object... args) {
-        // Don't let logging errors cause an abort
-        if ((level == null) || (domain == null)) { return; }
-        String message = (msg == null) ? "---" : msg;
-
-        message = lookupStandardMessage(message);
+        // Don't let logging errors cause a failure
+        if (level == null) { level = LogLevel.INFO; }
+        if (domain == null) { domain = LogDomain.DATABASE; }
+        String message = lookupStandardMessage(msg);
 
         if ((args != null) && (args.length > 0)) { message = formatMessage(message, args); }
 
@@ -394,7 +395,7 @@ public final class Log {
     }
 
     private static String formatMessage(String msg, Object... args) {
-        try { return String.format(Locale.ENGLISH, msg, (Object[]) args); }
+        try { return String.format(Locale.ENGLISH, msg, args); }
         catch (IllegalFormatException | FormatterClosedException ignore) { }
         return msg;
     }

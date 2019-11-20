@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Map;
 
@@ -35,8 +36,10 @@ public final class CouchbaseLiteException extends Exception {
             && (CBLError.Code.CONFLICT == err.getCode());
     }
 
-    private final String domain;
     private final int code;
+    @NonNull
+    private final String domain;
+    @Nullable
     private final Map<String, Object> info;
 
     /**
@@ -44,18 +47,14 @@ public final class CouchbaseLiteException extends Exception {
      *
      * @param message the detail message.
      */
-    public CouchbaseLiteException(@NonNull String message) {
-        this(message, null, CBLError.Domain.CBLITE, 0, null);
-    }
+    public CouchbaseLiteException(@NonNull String message) { this(message, null, null, 0, null); }
 
     /**
      * Constructs a new exception with the specified cause
      *
      * @param cause the cause
      */
-    public CouchbaseLiteException(@NonNull Throwable cause) {
-        this(null, cause, CBLError.Domain.CBLITE, 0, null);
-    }
+    public CouchbaseLiteException(@NonNull Throwable cause) { this(null, cause, null, 0, null); }
 
     /**
      * Constructs a new exception with the specified error domain and error code
@@ -63,9 +62,7 @@ public final class CouchbaseLiteException extends Exception {
      * @param domain the error domain
      * @param code   the error code
      */
-    public CouchbaseLiteException(@NonNull String domain, int code) {
-        this(null, null, domain, code, null);
-    }
+    public CouchbaseLiteException(@NonNull String domain, int code) { this(null, null, domain, code, null); }
 
     /**
      * Constructs a new exception with the specified detail message, error domain and error code
@@ -111,24 +108,18 @@ public final class CouchbaseLiteException extends Exception {
      * @param cause the internal exception
      */
     public CouchbaseLiteException(@NonNull CBLInternalException cause) {
-        this(
-            (null == cause.getMessage()) ? "Internal error" : cause.getMessage(),
-            cause,
-            CBLError.Domain.CBLITE,
-            CBLError.Code.UNEXPECTED_ERROR,
-            null);
-        setStackTrace(cause.getStackTrace());
+        this(cause.getMessage(), cause, null, CBLError.Code.UNEXPECTED_ERROR, null);
     }
 
-    CouchbaseLiteException(
-        String message,
-        Throwable cause,
+    private CouchbaseLiteException(
+        @Nullable String message,
+        @Nullable Throwable cause,
         @NonNull String domain,
         int code,
-        Map<String, Object> info) {
+        @Nullable Map<String, Object> info) {
         super(Log.lookupStandardMessage(message), cause);
-        this.domain = domain;
-        this.code = code;
+        this.domain = (domain != null) ? domain : CBLError.Domain.CBLITE;
+        this.code = (code < 0) ? 0 : code;
         this.info = info;
     }
 
