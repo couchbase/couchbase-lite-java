@@ -308,7 +308,8 @@ abstract class AbstractQuery implements Query {
 
             if (name != null && name.equals(PropertyExpression.PROPS_ALL)) { name = from.getColumnName(); }
 
-            if (name == null) { name = String.format(Locale.ENGLISH, "$%d", ++provisionKeyIndex); }
+            if (name == null) { name = "$" + (++provisionKeyIndex); }
+
             if (map.containsKey(name)) {
                 throw new CouchbaseLiteException(
                     String.format(Locale.ENGLISH, "Duplicate select result named %s", name),

@@ -25,6 +25,8 @@ import java.util.TimeZone;
 
 
 public final class DateUtils {
+    private DateUtils() { }
+
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
         protected synchronized SimpleDateFormat initialValue() {
             final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH);
@@ -36,12 +38,11 @@ public final class DateUtils {
     public static String toJson(Date date) { return DATE_FORMAT.get().format(date); }
 
     public static Date fromJson(String json) {
-        if (json != null) {
-            try { return DATE_FORMAT.get().parse(json); }
-            catch (ParseException ignore) { }
-        }
+        if (json == null) { return null; }
+
+        try { return DATE_FORMAT.get().parse(json); }
+        catch (ParseException ignore) { }
+
         return null;
     }
-
-    private DateUtils() { }
 }

@@ -22,7 +22,7 @@ public final class ClassUtils {
 
     @SuppressWarnings("unchecked")
     public static <T> T cast(Object obj, Class<T> clazz) {
-        if (obj != null && !clazz.isInstance(obj)) { return null; }
+        if ((obj != null) && !clazz.isInstance(obj)) { return null; }
         return (T) obj;
     }
 }
