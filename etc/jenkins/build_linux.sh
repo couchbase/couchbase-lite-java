@@ -37,10 +37,13 @@ $CBL_JAVA_DIR/scripts/fetch_litecore.sh -n $LITE_CORE_REPO_URL -v linux -e $EDIT
 echo "======== Building mbedcrypto ..."
 $CBL_JAVA_DIR/scripts/build_litecore.sh -e $EDITION -l mbedcrypto
 
+SUPPORT_DIR="${CBL_JAVA_DIR}/lite-core/support/linux/x86_64"
+export LD_LIBRARY_PATH="${SUPPORT_DIR}/libicu:${SUPPORT_DIR}/libz:${SUPPORT_DIR}/libc++"
+
 echo "======== Build Couchbase Lite Java, $EDITION v`cat ../version.txt`-${BUILD_NUMBER}"
-./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
+./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" --info || exit 1
 
 echo "======== Publish build candidates to CI maven"
-./gradlew ciPublish -PbuildNumber="${BUILD_NUMBER}" -PmavenUrl="${MAVEN_URL}" || exit 1
+./gradlew ciPublish -PbuildNumber="${BUILD_NUMBER}" -PmavenUrl="${MAVEN_URL}" --info || exit 1
 
 echo "======== BUILD COMPLETE"
