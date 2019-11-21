@@ -18,7 +18,6 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.VisibleForTesting;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -38,18 +37,10 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * ExecutionService for Java.
  */
 public class JavaExecutionService extends AbstractExecutionService {
-    private static class CancellableTask implements Cancellable {
-        private Future future;
 
-        private CancellableTask(@NonNull Future future) {
-            Preconditions.checkArgNotNull(future, "future");
-            this.future = future;
-        }
-
-        @Override
-        public void cancel() { future.cancel(false); }
-    }
-
+    //---------------------------------------------
+    // Constants
+    //---------------------------------------------
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
 
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
@@ -64,24 +55,43 @@ public class JavaExecutionService extends AbstractExecutionService {
         new LinkedBlockingQueue<>(), // unbounded queue
         THREAD_FACTORY);  // nice recognizable names for our threads.
 
+    //---------------------------------------------
+    // Types
+    //---------------------------------------------
+    private static class CancellableTask implements Cancellable {
+        private final Future future;
 
+        private CancellableTask(@NonNull Future future) {
+            Preconditions.checkArgNotNull(future, "future");
+            this.future = future;
+        }
+
+        @Override
+        public void cancel() { future.cancel(false); }
+    }
+
+
+    //---------------------------------------------
+    // Instance variables
+    //---------------------------------------------
     private final Executor mainExecutor;
     private final ScheduledExecutorService scheduler;
 
-    public JavaExecutionService() { this(THREAD_POOL_EXECUTOR); }
-
-    @VisibleForTesting
-    JavaExecutionService(ThreadPoolExecutor baseExecutor) {
-        super(baseExecutor);
+    //---------------------------------------------
+    // Constructor
+    //---------------------------------------------
+    public JavaExecutionService() {
+        super(THREAD_POOL_EXECUTOR);
         mainExecutor = Executors.newSingleThreadExecutor();
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
+    //---------------------------------------------
+    // Public methods
+    //---------------------------------------------
     @NonNull
     @Override
-    public Executor getMainExecutor() {
-        return mainExecutor;
-    }
+    public Executor getMainExecutor() { return mainExecutor; }
 
     @NonNull
     @Override
@@ -89,9 +99,7 @@ public class JavaExecutionService extends AbstractExecutionService {
         Preconditions.checkArgNotNull(executor, "executor");
         Preconditions.checkArgNotNull(task, "task");
         final Runnable delayedTask = () -> {
-            try {
-                executor.execute(task);
-            }
+            try { executor.execute(task); }
             catch (RejectedExecutionException ignored) { }
         };
 
