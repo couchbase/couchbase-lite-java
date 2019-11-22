@@ -65,21 +65,28 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
     @VisibleForTesting
     static class InstrumentedTask implements Runnable {
-        private final Runnable task;
-        private final Runnable onComplete;
-
         // Putting a `new Exception()` here is useful but extremely expensive
         final Exception origin = null;
+
+        @NonNull
+        private final Runnable task;
 
         private final long createdAt = System.currentTimeMillis();
         private long startedAt;
         private long finishedAt;
         private long completedAt;
 
-        InstrumentedTask(Runnable task, Runnable onComplete) {
+        @Nullable
+        private volatile Runnable onComplete;
+
+        InstrumentedTask(@NonNull Runnable task) { this(task, null); }
+
+        InstrumentedTask(@NonNull Runnable task, @Nullable Runnable onComplete) {
             this.task = task;
             this.onComplete = onComplete;
         }
+
+        public void setCompletion(@NonNull Runnable onComplete) { this.onComplete = onComplete; }
 
         public void run() {
             try {
@@ -101,14 +108,25 @@ public abstract class AbstractExecutionService implements ExecutionService {
     /**
      * This executor schedules tasks on an underlying thread pool executor
      * (probably some application-wide executor: the Async Task's on Android).
-     * If the underlying executor is low on resources, this executor reverts
+     * </br>If the underlying executor is low on resources, this executor reverts
      * to serial execution, using an unbounded pending queue.
-     * If the executor is stopped with unscheduled pending tasks
+     * </br>If the executor is stopped while there are unscheduled pending tasks
      * (in the pendingTask queue), all of those tasks are simply discarded.
-     * If the pendingTask queue is non-empty, the head task is scheduled.
-     * There is probably no need to dump the pendingTask queue, on failure:
-     * the problem is, almost certainly, tasks that are already scheduled
-     * in the underlying executor.
+     * If the pendingTask queue is non-empty, either the head task is scheduled
+     * or <code>needsRestart</code> is true (see below) .
+     * </br>Soft resource exhaustion, <code>spaceAvailable</code>is intended to make it
+     * unlikely that this executor ever encounters a <code>RejectedExecutionException</code>.
+     * There are two circumstances under which a <code>RejectedExecutionException</code>
+     * is possible:
+     * <nl>
+     * </li> The underlying executor rejects the execution of a new task, even though
+     * <code>spaceAvailable</code> returns true.  This exception will be passed back
+     * to client code.
+     * </li> A task on the pending queue attempts to schedule the next task from the queue
+     * for execution.  When this happens, the queue is stalled and <code>needsRestart</code>
+     * is set true.  Subsequent calls to <code>execute</code> will make a best-effort attempt
+     * to restart the queue.
+     * </nl>
      */
     private static class ConcurrentExecutor implements CloseableExecutor {
         @NonNull
@@ -126,6 +144,9 @@ public abstract class AbstractExecutionService implements ExecutionService {
         @GuardedBy("this")
         private int running;
 
+        @GuardedBy("this")
+        private boolean needsRestart;
+
         ConcurrentExecutor(@NonNull ThreadPoolExecutor executor) {
             Preconditions.checkArgNotNull(executor, "executor");
             this.executor = executor;
@@ -133,10 +154,14 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
         /**
          * Schedule a task for concurrent execution.
-         * If there is insufficient room to schedule the task, safely, on the underlying
-         * executor, the task is added to the pendingTask queue and executed when spaces is available.
          * There are absolutely no guarantees about execution order, on this executor,
          * particularly once it fails back to using the pending task queue.
+         * If there is insufficient room to schedule the task, safely, on the underlying
+         * executor, the task is added to the pendingTask queue and executed when space
+         * is available.
+         * This method may throw a <code>RejectedExecutionException</code> if the underlying
+         * executor's resources are completely exhausted even though <code>spaceAvailable</code>
+         * returns true.
          *
          * @param task a task for concurrent execution.
          * @throws ExecutorClosedException    if the executor has been stopped
@@ -146,22 +171,25 @@ public abstract class AbstractExecutionService implements ExecutionService {
         public void execute(@NonNull Runnable task) {
             Preconditions.checkArgNotNull(task, "task");
 
-            final int n;
+            final int pendingTaskCount;
             synchronized (this) {
                 if (stopLatch != null) { throw new ExecutorClosedException("Executor has been stopped"); }
 
-                final InstrumentedTask newTask;
-                if (spaceAvailable()) { newTask = new InstrumentedTask(task, this::finishTask); }
-                else {
-                    newTask = new InstrumentedTask(task, this::scheduleNext);
-                    pendingTasks.add(newTask);
+                if (spaceAvailable()) {
+                    if (needsRestart) { restartQueue(); }
+
+                    executeTask(new InstrumentedTask(task, this::finishTask));
+
+                    return;
                 }
 
-                n = pendingTasks.size();
-                if (n <= 1) { executeTask(newTask); }
+                pendingTasks.add(new InstrumentedTask(task));
+
+                pendingTaskCount = pendingTasks.size();
+                if (needsRestart || (pendingTaskCount == 1)) { restartQueue(); }
             }
 
-            if (n > 0) { Log.w(DOMAIN, "Parallel executor overflow: " + n); }
+            Log.w(DOMAIN, "Parallel executor overflow: " + pendingTaskCount);
         }
 
         /**
@@ -210,14 +238,45 @@ public abstract class AbstractExecutionService implements ExecutionService {
                 // the executor has been stopped
                 if (pendingTasks.size() <= 0) { return; }
 
-                do {
-                    pendingTasks.remove();
-                    final InstrumentedTask task = pendingTasks.peek();
-                    if (task == null) { return; }
+                // completing task is head of queue: remove it
+                pendingTasks.remove();
+
+                // run as many tasks as possible
+                try {
+                    while (true) {
+                        final InstrumentedTask task = pendingTasks.peek();
+                        if (task == null) { return; }
+
+                        if (!spaceAvailable()) { break; }
+
+                        task.setCompletion(this::finishTask);
+
+                        executeTask(task);
+                        pendingTasks.remove();
+                    }
+                }
+                catch (RejectedExecutionException ignore) { }
+
+                // assert: on exiting the loop `task` is first unexecutable (soft or hard) task
+                // this task is unexecuted, head of queue, and will service the queue on completion.
+                restartQueue();
+            }
+        }
+
+        // assert: queue is not empty.
+        private void restartQueue() {
+            final InstrumentedTask task = pendingTasks.peek();
+            try {
+                if (task != null) {
+                    task.setCompletion(this::scheduleNext);
                     executeTask(task);
                 }
-                while (spaceAvailable());
+                needsRestart = false;
+                return;
             }
+            catch (RejectedExecutionException ignore) { }
+
+            needsRestart = true;
         }
 
         @GuardedBy("this")
@@ -227,13 +286,31 @@ public abstract class AbstractExecutionService implements ExecutionService {
                 running++;
             }
             catch (RejectedExecutionException e) {
-                dumpServiceState(executor, "size: " + running, e);
+                dumpExecutorState(e, newTask);
                 throw e;
             }
         }
 
-        // note that this is only accurate at the moment it is called...
+        // Note that this is only accurate at the moment it is called...
         private boolean spaceAvailable() { return executor.getQueue().remainingCapacity() > MIN_CAPACITY; }
+
+        // This shouldn't happen.  Checking `spaceAvailable` should guarantee that the
+        // underlying executor always has resources when we attempt to execute something.
+        private void dumpExecutorState(@NonNull RejectedExecutionException ex, @Nullable InstrumentedTask current) {
+            if (throttled()) { return; }
+
+            dumpServiceState(executor, "size: " + running, ex);
+
+            Log.d(DOMAIN, "==== Concurrent Executor status: " + this);
+
+            if (current != null) { Log.d(DOMAIN, "== Current task: " + current, current.origin); }
+
+            final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
+            Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
+            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
+            int n = 0;
+            for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
+        }
     }
 
     /**
@@ -334,28 +411,27 @@ public abstract class AbstractExecutionService implements ExecutionService {
             }
             catch (RejectedExecutionException e) {
                 needsRestart = true;
-                dumpExecutorState(e, prevTask, pendingTasks);
+                dumpExecutorState(e, prevTask);
             }
         }
 
-        private void dumpExecutorState(
-            @NonNull RejectedExecutionException ex,
-            @Nullable InstrumentedTask prev,
-            @NonNull Queue<InstrumentedTask> tasks) {
+        private void dumpExecutorState(@NonNull RejectedExecutionException ex, @Nullable InstrumentedTask prev) {
             if (throttled()) { return; }
 
-            dumpServiceState(executor, "size: " + tasks.size(), ex);
+            dumpServiceState(executor, "size: " + pendingTasks.size(), ex);
 
             Log.d(DOMAIN, "==== Serial Executor status: " + this);
 
             if (prev != null) { Log.d(DOMAIN, "== Previous task: " + prev, prev.origin); }
 
-            final InstrumentedTask current = tasks.poll();
+            final InstrumentedTask current = pendingTasks.poll();
             if (current == null) { Log.d(DOMAIN, "== Queue is empty"); }
             else {
+                if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
+
                 Log.d(DOMAIN, "== Current task: " + current, current.origin);
 
-                final ArrayList<InstrumentedTask> waiting = new ArrayList<>(tasks);
+                final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
                 Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
                 int n = 0;
                 for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
