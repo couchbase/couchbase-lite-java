@@ -121,7 +121,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         if (!includeDeleted && (doc.getFlags() & C4Constants.DocumentFlags.DELETED) != 0) {
             doc.retain();
             doc.release(); // doc is not retained before set.
-            throw new CouchbaseLiteException(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
+            throw new CouchbaseLiteException("DocumentNotFound", CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
         // NOTE: c4doc should not be null.

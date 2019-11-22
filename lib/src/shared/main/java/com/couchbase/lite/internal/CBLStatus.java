@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
@@ -27,41 +29,42 @@ import com.couchbase.lite.internal.core.C4Error;
 import com.couchbase.lite.internal.support.Log;
 
 
-public class CBLStatus {
-    public static CouchbaseLiteException convertError(C4Error c4err) {
-        return convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
+public final class CBLStatus {
+    private CBLStatus() {}
+
+    @NonNull
+    public static CouchbaseLiteException convertError(@NonNull C4Error c4err) {
+        return (c4err == null)
+            ? new CouchbaseLiteException((String) null)
+            : convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
     }
 
-    public static CouchbaseLiteException convertException(LiteCoreException e) {
-        return convertException(e.domain, e.code, null, e);
+    @NonNull
+    public static CouchbaseLiteException convertException(@NonNull LiteCoreException e) {
+        return (e == null)
+            ? new CouchbaseLiteException((String) null)
+            : convertException(e.domain, e.code, null, e);
     }
 
-    public static CouchbaseLiteException convertException(LiteCoreException e, String msg) {
-        return convertException(e.domain, e.code, msg, e);
+    @NonNull
+    public static CouchbaseLiteException convertException(@NonNull LiteCoreException e, String msg) {
+        return (e == null)
+            ? new CouchbaseLiteException(msg)
+            : convertException(e.domain, e.code, msg, e);
     }
 
     public static CouchbaseLiteException convertException(int domainCode, int statusCode, int internalInfo) {
         return ((domainCode == 0) || (statusCode == 0))
             ? convertException(domainCode, statusCode, null, null)
-            : convertException(new LiteCoreException(
-                domainCode,
-                statusCode,
-                C4Base.getMessage(domainCode, statusCode, internalInfo)));
+            : convertException(domainCode, statusCode, C4Base.getMessage(domainCode, statusCode, internalInfo), null);
     }
 
-    public static CouchbaseLiteException convertException(
-            int domainCode,
-            int statusCode,
-            String msg,
-            LiteCoreException e) {
-        final String message = (msg != null) ? msg : ((e != null) ? e.getMessage() : null);
-
+    public static CouchbaseLiteException convertException(int domainCode, int statusCode, String msg, Exception e) {
         int code = statusCode;
 
-        final String domain;
+        String domain = CBLError.Domain.CBLITE;
         switch (domainCode) {
             case C4Constants.ErrorDomain.LITE_CORE:
-                domain = CBLError.Domain.CBLITE;
                 break;
             case C4Constants.ErrorDomain.POSIX:
                 domain = "POSIXErrorDomain";
@@ -73,22 +76,19 @@ public class CBLStatus {
                 domain = CBLError.Domain.FLEECE;
                 break;
             case C4Constants.ErrorDomain.NETWORK:
-                domain = CBLError.Domain.CBLITE;
                 code += CBLError.Code.NETWORK_BASE;
                 break;
             case C4Constants.ErrorDomain.WEB_SOCKET:
-                domain = CBLError.Domain.CBLITE;
                 code += CBLError.Code.HTTP_BASE;
                 break;
             default:
-                domain = CBLError.Domain.CBLITE;
-                // don't mess with the code, in case it is useful...
                 Log.w(
                     LogDomain.DATABASE,
                     "Unable to map C4Error(%d,%d) to an CouchbaseLiteException",
                     domainCode,
                     statusCode);
         }
-        return new CouchbaseLiteException(message, e, domain, code);
+
+        return new CouchbaseLiteException(msg, e, domain, code);
     }
 }

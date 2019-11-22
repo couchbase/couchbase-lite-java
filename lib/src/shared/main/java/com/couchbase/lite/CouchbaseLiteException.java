@@ -30,11 +30,23 @@ import com.couchbase.lite.internal.support.Log;
  * A CouchbaseLiteException gets raised whenever a Couchbase Lite faces errors.
  */
 public final class CouchbaseLiteException extends Exception {
-    public static boolean isConflict(CouchbaseLiteException err) {
+    static boolean isConflict(@Nullable CouchbaseLiteException err) {
         return (err != null)
             && CBLError.Domain.CBLITE.equals(err.getDomain())
             && (CBLError.Code.CONFLICT == err.getCode());
     }
+
+    @NonNull
+    private static String getErrorMessage(@Nullable String msg, @Nullable Throwable e) {
+        String errMsg = msg;
+
+        if ((msg == null) && (e != null)) { errMsg = e.getMessage(); }
+
+        // look up message by code?
+
+        return Log.lookupStandardMessage(errMsg);
+    }
+
 
     private final int code;
     @NonNull
@@ -61,7 +73,9 @@ public final class CouchbaseLiteException extends Exception {
      *
      * @param domain the error domain
      * @param code   the error code
+     * @deprecated Must supply an error message
      */
+    @Deprecated
     public CouchbaseLiteException(@NonNull String domain, int code) { this(null, null, domain, code, null); }
 
     /**
@@ -81,11 +95,22 @@ public final class CouchbaseLiteException extends Exception {
      * @param domain the error domain
      * @param code   the error code
      * @param cause  the cause
+     * @deprecated Must supply an error message
      */
+    @Deprecated
     public CouchbaseLiteException(@NonNull String domain, int code, @NonNull Throwable cause) {
         this(null, cause, domain, code, null);
     }
 
+    /**
+     * Constructs a new exception with the specified error domain, error code and the specified cause
+     *
+     * @param domain the error domain
+     * @param code   the error code
+     * @param info   the internal info map
+     * @deprecated Must supply an error message
+     */
+    @Deprecated
     public CouchbaseLiteException(@NonNull String domain, int code, Map<String, Object> info) {
         this(null, null, domain, code, info);
     }
@@ -108,18 +133,18 @@ public final class CouchbaseLiteException extends Exception {
      * @param cause the internal exception
      */
     public CouchbaseLiteException(@NonNull CBLInternalException cause) {
-        this(cause.getMessage(), cause, null, CBLError.Code.UNEXPECTED_ERROR, null);
+        this(null, cause, null, (cause == null) ? 0 : cause.getCode(), null);
     }
 
     private CouchbaseLiteException(
         @Nullable String message,
         @Nullable Throwable cause,
-        @NonNull String domain,
+        @Nullable String domain,
         int code,
         @Nullable Map<String, Object> info) {
-        super(Log.lookupStandardMessage(message), cause);
+        super(getErrorMessage(message, cause), cause);
         this.domain = (domain != null) ? domain : CBLError.Domain.CBLITE;
-        this.code = (code < 0) ? 0 : code;
+        this.code = (code > 0) ? code : CBLError.Code.UNEXPECTED_ERROR;
         this.info = info;
     }
 
@@ -138,6 +163,7 @@ public final class CouchbaseLiteException extends Exception {
      */
     public int getCode() { return code; }
 
+    @Nullable
     public Map<String, Object> getInfo() { return info; }
 
     @NonNull
