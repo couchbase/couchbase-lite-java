@@ -117,7 +117,10 @@ abstract class AbstractDatabase {
         Preconditions.checkArgNotNull(name, "name");
         Preconditions.checkArgNotNull(directory, "directory");
         if (!exists(name, directory)) {
-            throw new CouchbaseLiteException(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
+            throw new CouchbaseLiteException(
+                "Database not found for delete",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.NOT_FOUND);
         }
 
         final File path = getDatabasePath(directory, name);
