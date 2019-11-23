@@ -77,7 +77,12 @@ public interface Query {
     String explain() throws CouchbaseLiteException;
 
     /**
-     * Adds a query change listener. Changes will be posted on the main queue.
+     * Adds a change listener for the changes that occur in the query results.
+     * The changes will be delivered on the UI thread for the Android platform and on an arbitrary
+     * thread for the Java platform. When developing a Java Desktop application using Swing or JavaFX
+     * that needs to update the UI after receiving the changes, make sure to schedule the UI update
+     * on the UI thread by using SwingUtilities.invokeLater(Runnable) or Platform.runLater(Runnable)
+     * respectively.
      *
      * @param listener The listener to post changes.
      * @return An opaque listener token object for removing the listener.
@@ -86,9 +91,10 @@ public interface Query {
     ListenerToken addChangeListener(@NonNull QueryChangeListener listener);
 
     /**
-     * Adds a query change listener with the dispatch queue on which changes
-     * will be posted. If the dispatch queue is not specified, the changes will be
-     * posted on the main queue.
+     * Adds a change listener for the changes that occur in the query results with an executor
+     * on which the changes will be posted to the listener. If the executor is not specified,
+     * the changes will be delivered on the UI thread for the Android platform and on an
+     * arbitrary thread for the Java platform.
      *
      * @param executor The executor object that calls listener
      * @param listener The listener to post changes.

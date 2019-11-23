@@ -597,7 +597,11 @@ abstract class AbstractDatabase {
     // Document changes:
 
     /**
-     * Set the given DatabaseChangeListener to the this database.
+     * Adds a change listener for the changes that occur in the database. The changes will be delivered on the UI
+     * thread for the Android platform and on an arbitrary thread for the Java platform. When developing a Java
+     * Desktop application using Swing or JavaFX that needs to update the UI after receiving the changes, make
+     * sure to schedule the UI update on the UI thread by using SwingUtilities.invokeLater(Runnable) or
+     * Platform.runLater(Runnable) respectively.
      *
      * @param listener callback
      */
@@ -609,8 +613,9 @@ abstract class AbstractDatabase {
     // Others:
 
     /**
-     * Set the given DatabaseChangeListener to the this database with an executor on which the
-     * the changes will be posted to the listener.
+     * Adds a change listener for the changes that occur in the database with an executor on which the changes will be
+     * posted to the listener. If the executor is not specified, the changes will be delivered on the UI thread for
+     * the Android platform and on an arbitrary thread for the Java platform.
      *
      * @param listener callback
      */
@@ -625,7 +630,7 @@ abstract class AbstractDatabase {
     }
 
     /**
-     * Remove the given DatabaseChangeListener from the this database.
+     * Removes the change listener added to the database.
      *
      * @param token returned by a previous call to addChangeListener or addDocumentListener.
      */
@@ -643,10 +648,13 @@ abstract class AbstractDatabase {
         }
     }
 
-    // Maintenance operations:
-
     /**
-     * Add the given DocumentChangeListener to the specified document.
+     * Adds a change listener for the changes that occur to the specified document.
+     * The changes will be delivered on the UI thread for the Android platform and on an arbitrary
+     * thread for the Java platform. When developing a Java Desktop application using Swing or JavaFX
+     * that needs to update the UI after receiving the changes, make sure to schedule the UI update
+     * on the UI thread by using SwingUtilities.invokeLater(Runnable) or Platform.runLater(Runnable)
+     * respectively.
      */
     @NonNull
     public ListenerToken addDocumentChangeListener(@NonNull String id, @NonNull DocumentChangeListener listener) {
@@ -654,8 +662,9 @@ abstract class AbstractDatabase {
     }
 
     /**
-     * Add the given DocumentChangeListener to the specified document with an executor on which
-     * the changes will be posted to the listener.
+     * Adds a change listener for the changes that occur to the specified document with an executor on which
+     * the changes will be posted to the listener.  If the executor is not specified, the changes will be
+     * delivered on the UI thread for the Android platform and on an arbitrary thread for the Java platform.
      */
     @NonNull
     public ListenerToken addDocumentChangeListener(

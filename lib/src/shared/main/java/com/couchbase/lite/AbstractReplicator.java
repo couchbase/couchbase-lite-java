@@ -448,7 +448,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     /**
-     * Set the given ReplicatorChangeListener for this replicator, delivering events on the default executor
+     * Adds a change listener for the changes in the replication status and progress. The changes will be
+     * delivered on the UI thread for the Android platform and on an arbitrary thread for the Java platform.
+     * When developing a Java Desktop application using Swing or JavaFX that needs to update the UI after
+     * receiving the changes, make sure to schedule the UI update on the UI thread by using
+     * SwingUtilities.invokeLater(Runnable) or Platform.runLater(Runnable) respectively.
      *
      * @param listener callback
      */
@@ -459,7 +463,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     /**
-     * Set the given ReplicatorChangeListener for this replicator, delivering events on the passed executor
+     * Adds a change listener for the changes in the replication status and progress with an executor on which
+     * the changes will be posted to the listener. If the executor is not specified, the changes will be delivered
+     * on the UI thread for the Android platform and on an arbitrary thread for the Java platform.
      *
      * @param executor executor on which events will be delivered
      * @param listener callback
@@ -499,7 +505,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     /**
-     * Set the given DocumentReplicationListener to the this replicator.
+     * Adds a listener for receiving the replication status of the specified document. The status will be
+     * delivered on the UI thread for the Android platform and on an arbitrary thread for the Java platform.
+     * When developing a Java Desktop application using Swing or JavaFX that needs to update the UI after
+     * receiving the status, make sure to schedule the UI update on the UI thread by using
+     * SwingUtilities.invokeLater(Runnable) or Platform.runLater(Runnable) respectively.
      *
      * @param listener callback
      * @return A ListenerToken that can be used to remove the handler in the future.
@@ -512,7 +522,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     /**
-     * Set the given DocumentReplicationListener to the this replicator.
+     * Adds a listener for receiving the replication status of the specified document with an executor on which
+     * the status will be posted to the listener. If the executor is not specified, the status will be delivered
+     * on the UI thread for the Android platform and on an arbitrary thread for the Java platform.
      *
      * @param executor executor on which events will be delivered
      * @param listener callback
