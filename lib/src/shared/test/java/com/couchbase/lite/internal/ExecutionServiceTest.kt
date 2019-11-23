@@ -34,13 +34,14 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
+private const val TIMEOUT_SEC = 5L;
+private const val CAPACITY = AbstractExecutionService.MIN_CAPACITY * 2
+private const val THREADS = 3;
 
-class ExecutionServicesTest : PlatformBaseTest() {
-    private val capacity = AbstractExecutionService.MIN_CAPACITY * 2
+class ExecutionServiceTest : PlatformBaseTest() {
+    private val queue = ArrayBlockingQueue<Runnable>(CAPACITY)
 
-    private val queue = ArrayBlockingQueue<Runnable>(capacity)
-
-    private val baseExecutor = ThreadPoolExecutor(3, 3, 5, TimeUnit.SECONDS, queue)
+    private val baseExecutor = ThreadPoolExecutor(THREADS, THREADS, 5, TimeUnit.SECONDS, queue)
 
     private val baseService = object : AbstractExecutionService(baseExecutor) {
         override fun postDelayedOnExecutor(
@@ -68,6 +69,9 @@ class ExecutionServicesTest : PlatformBaseTest() {
         cblService = CouchbaseLite.getExecutionService()
     }
 
+
+    // Serial Executor tests
+
     // The serial executor executes in order.
     @Test
     fun testSerialExecutor() {
@@ -80,7 +84,8 @@ class ExecutionServicesTest : PlatformBaseTest() {
 
         executor.execute {
             try {
-                startLatch.await() // wait for the 2nd task to be scheduled.
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+                // second task is queued but should not pass us.
                 Thread.sleep(1000)
             } catch (ignore: InterruptedException) {
             }
@@ -99,7 +104,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         startLatch.countDown()
 
         try {
-            finishLatch.await(5, TimeUnit.SECONDS)
+            finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
         } catch (ignore: InterruptedException) {
         }
 
@@ -107,6 +112,40 @@ class ExecutionServicesTest : PlatformBaseTest() {
             assertEquals("TWO", stack.pop())
             assertEquals("ONE", stack.pop())
         }
+    }
+
+    // A serial executor can be restarted even if it stalls.
+    @Test
+    fun testRestartSerialExecutor() {
+        val executor = baseService.serialExecutor
+
+        val startLatch = CountDownLatch(1)
+        // block the queue
+        executor.execute {
+            try {
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+            } catch (ignore: InterruptedException) {
+            }
+        }
+
+        val nTasks = 10
+        val finishLatch = CountDownLatch(nTasks)
+        for (i in 0 until nTasks - 1) {
+            executor.execute { finishLatch.countDown() }
+        }
+
+        val swampLatch = swamp()
+
+        startLatch.countDown()
+        swampLatch.countDown()
+
+        // should be stalled.
+        assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
+
+
+        executor.execute { finishLatch.countDown() }
+
+        assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
     }
 
     // A stopped serial executor throws on further attempts to schedule
@@ -127,7 +166,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
 
         executor.execute {
             try {
-                startLatch.await()
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
             } catch (ignore: InterruptedException) {
             }
 
@@ -136,7 +175,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
 
         executor.execute {
             try {
-                startLatch.await()
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
             } catch (ignore: InterruptedException) {
             }
 
@@ -155,12 +194,15 @@ class ExecutionServicesTest : PlatformBaseTest() {
         startLatch.countDown()
 
         try {
-            assertTrue(finishLatch.await(5, TimeUnit.SECONDS))
+            assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         } catch (ignore: InterruptedException) {
         }
 
         assertTrue(executor.stop(5, TimeUnit.SECONDS)) // everything should be done shortly
     }
+
+
+    // Concurrent Executor tests
 
     // The concurrent executor can execute out of order.
     @Test
@@ -174,7 +216,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
 
         executor.execute {
             try {
-                startLatch.await() // wait for the 2nd task to be scheduled.
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                 Thread.sleep(1000)
             } catch (ignore: InterruptedException) {
             }
@@ -193,7 +235,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         startLatch.countDown()
 
         try {
-            finishLatch.await(5, TimeUnit.SECONDS)
+            finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
         } catch (ignore: InterruptedException) {
         }
 
@@ -207,7 +249,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
     // A concurrent executor fails over before swamping the underlying executor's queue
     @Test
     fun testConcurrentExecutorFailover() {
-        val nTasks = capacity * 2
+        val nTasks = CAPACITY * 2
 
         val startLatch = CountDownLatch(1)
         val finishLatch = CountDownLatch(nTasks)
@@ -219,7 +261,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         for (i in 0 until nTasks) {
             executor.execute {
                 try {
-                    startLatch.await(1, TimeUnit.SECONDS)
+                    startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                 } catch (ignore: InterruptedException) {
                 } finally {
                     finishLatch.countDown()
@@ -230,8 +272,10 @@ class ExecutionServicesTest : PlatformBaseTest() {
         // Set all of the tasks free
         startLatch.countDown()
 
-        assertTrue(finishLatch.await(1, TimeUnit.SECONDS))
+        assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
     }
+
+    // A test for restarting a concurrent queue is pretty hard to write...
 
     // A stopped concurrent executor finishes currently queued tasks.
     @Test
@@ -244,7 +288,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         // enqueue two tasks
         executor.execute {
             try {
-                startLatch.await()
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
             } catch (ignore: InterruptedException) {
             }
 
@@ -253,7 +297,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
 
         executor.execute {
             try {
-                startLatch.await()
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
             } catch (ignore: InterruptedException) {
             }
 
@@ -272,7 +316,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         startLatch.countDown()
 
         try {
-            assertTrue(finishLatch.await(5, TimeUnit.SECONDS))
+            assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         } catch (ignore: InterruptedException) {
         }
 
@@ -286,6 +330,10 @@ class ExecutionServicesTest : PlatformBaseTest() {
         assertTrue(executor.stop(0, TimeUnit.SECONDS)) // no tasks
         executor.execute { Log.d(LogDomain.DATABASE, "This test is about to fail!") }
     }
+
+
+    // Implementation tests
+    // These are tests of the platform specific implementations of the ExecutionService
 
     // The main executor always uses the same thread.
     @Test
@@ -305,7 +353,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
         }
 
         try {
-            latch.await(2, TimeUnit.SECONDS)
+            latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
         } catch (ignore: InterruptedException) {
         }
 
@@ -337,7 +385,7 @@ class ExecutionServicesTest : PlatformBaseTest() {
             })
 
         try {
-            assertTrue(finishLatch.await(5, TimeUnit.SECONDS))
+            assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         } catch (ignore: InterruptedException) {
         }
 
@@ -377,32 +425,41 @@ class ExecutionServicesTest : PlatformBaseTest() {
         val latch = CountDownLatch(1)
         executor.execute {
             try {
-                latch.await(2, TimeUnit.SECONDS)
+                latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
             } catch (ignore: InterruptedException) {
             }
         }
 
         // put some stuff in the serial executor queue
-        for (i in 1..9) {
+        for (i in 1..10) {
             executor.execute { }
         }
 
-        // fill the base executor.
+        val swampLatch = swamp();
+        try {
+            // this should free the running serial jobs,
+            // which should fail trying to start the next job
+            // which should log a bunch of stuff.
+            latch.countDown()
+        } finally {
+            swampLatch.countDown();
+        }
+    }
+
+    // fill the base executor.
+    fun swamp(): CountDownLatch {
+        val latch = CountDownLatch(1)
         try {
             while (true) {
                 baseExecutor.execute {
                     try {
-                        Thread.sleep(1000) // sleep for a second
+                        latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                     } catch (ignore: InterruptedException) {
                     }
                 }
             }
         } catch (ignore: RejectedExecutionException) {
         }
-
-        // this should free the running serial job,
-        // which should fail trying to start the next job
-        // which should log a bunch of stuff.
-        latch.countDown()
+        return latch
     }
 }

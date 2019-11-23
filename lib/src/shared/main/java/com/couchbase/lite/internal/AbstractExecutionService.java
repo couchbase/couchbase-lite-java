@@ -250,15 +250,15 @@ public abstract class AbstractExecutionService implements ExecutionService {
                         if (!spaceAvailable()) { break; }
 
                         task.setCompletion(this::finishTask);
-
                         executeTask(task);
+
                         pendingTasks.remove();
                     }
                 }
                 catch (RejectedExecutionException ignore) { }
 
-                // assert: on exiting the loop `task` is first unexecutable (soft or hard) task
-                // this task is unexecuted, head of queue, and will service the queue on completion.
+                // assert: on exiting the loop, head of queue is first unexecutable (soft or hard) task
+                // it has not been submitted, successfully, for execution.
                 restartQueue();
             }
         }
@@ -302,12 +302,12 @@ public abstract class AbstractExecutionService implements ExecutionService {
             dumpServiceState(executor, "size: " + running, ex);
 
             Log.d(DOMAIN, "==== Concurrent Executor status: " + this);
+            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
 
             if (current != null) { Log.d(DOMAIN, "== Current task: " + current, current.origin); }
 
             final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
             Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
-            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
             int n = 0;
             for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
         }
@@ -358,7 +358,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
                 pendingTasks.add(new InstrumentedTask(task, this::scheduleNext));
 
-                if (needsRestart || (pendingTasks.size() <= 1)) { executeTask(null); }
+                if (needsRestart || (pendingTasks.size() == 1)) { executeTask(null); }
             }
         }
 
@@ -404,7 +404,6 @@ public abstract class AbstractExecutionService implements ExecutionService {
         private void executeTask(@Nullable InstrumentedTask prevTask) {
             final InstrumentedTask nextTask = pendingTasks.peek();
             if (nextTask == null) { return; }
-
             try {
                 executor.execute(nextTask);
                 needsRestart = false;
@@ -421,17 +420,17 @@ public abstract class AbstractExecutionService implements ExecutionService {
             dumpServiceState(executor, "size: " + pendingTasks.size(), ex);
 
             Log.d(DOMAIN, "==== Serial Executor status: " + this);
+            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
 
             if (prev != null) { Log.d(DOMAIN, "== Previous task: " + prev, prev.origin); }
 
-            final InstrumentedTask current = pendingTasks.poll();
-            if (current == null) { Log.d(DOMAIN, "== Queue is empty"); }
+            if (pendingTasks.isEmpty()) { Log.d(DOMAIN, "== Queue is empty"); }
             else {
-                if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
+                final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
 
+                final InstrumentedTask current = waiting.remove(0);
                 Log.d(DOMAIN, "== Current task: " + current, current.origin);
 
-                final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
                 Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
                 int n = 0;
                 for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
