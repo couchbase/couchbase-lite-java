@@ -301,15 +301,15 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
             dumpServiceState(executor, "size: " + running, ex);
 
-            Log.d(DOMAIN, "==== Concurrent Executor status: " + this);
-            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
+            Log.w(DOMAIN, "==== Concurrent Executor status: " + this);
+            if (needsRestart) { Log.w(DOMAIN, "= stalled"); }
 
-            if (current != null) { Log.d(DOMAIN, "== Current task: " + current, current.origin); }
+            if (current != null) { Log.w(DOMAIN, "== Current task: " + current, current.origin); }
 
             final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
-            Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
+            Log.w(DOMAIN, "== Pending tasks: " + waiting.size());
             int n = 0;
-            for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
+            for (InstrumentedTask t : waiting) { Log.w(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
         }
     }
 
@@ -419,21 +419,21 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
             dumpServiceState(executor, "size: " + pendingTasks.size(), ex);
 
-            Log.d(DOMAIN, "==== Serial Executor status: " + this);
-            if (needsRestart) { Log.d(DOMAIN, "= stalled"); }
+            Log.w(DOMAIN, "==== Serial Executor status: " + this);
+            if (needsRestart) { Log.w(DOMAIN, "= stalled"); }
 
-            if (prev != null) { Log.d(DOMAIN, "== Previous task: " + prev, prev.origin); }
+            if (prev != null) { Log.w(DOMAIN, "== Previous task: " + prev, prev.origin); }
 
-            if (pendingTasks.isEmpty()) { Log.d(DOMAIN, "== Queue is empty"); }
+            if (pendingTasks.isEmpty()) { Log.w(DOMAIN, "== Queue is empty"); }
             else {
                 final ArrayList<InstrumentedTask> waiting = new ArrayList<>(pendingTasks);
 
                 final InstrumentedTask current = waiting.remove(0);
-                Log.d(DOMAIN, "== Current task: " + current, current.origin);
+                Log.w(DOMAIN, "== Current task: " + current, current.origin);
 
-                Log.d(DOMAIN, "== Pending tasks: " + waiting.size());
+                Log.w(DOMAIN, "== Pending tasks: " + waiting.size());
                 int n = 0;
-                for (InstrumentedTask t : waiting) { Log.d(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
+                for (InstrumentedTask t : waiting) { Log.w(DOMAIN, "@" + (++n) + ": " + t, t.origin); }
             }
         }
     }
@@ -444,23 +444,23 @@ public abstract class AbstractExecutionService implements ExecutionService {
     static void dumpServiceState(@NonNull Executor ex, @NonNull String msg, @Nullable Exception e) {
         if (throttled()) { return; }
 
-        Log.d(LogDomain.DATABASE, "====== Catastrophic failure of executor " + ex + ": " + msg, e);
+        Log.w(LogDomain.DATABASE, "====== Catastrophic failure of executor " + ex + ": " + msg, e);
 
         final Map<Thread, StackTraceElement[]> stackTraces = Thread.getAllStackTraces();
-        Log.d(DOMAIN, "==== Threads: " + stackTraces.size());
+        Log.w(DOMAIN, "==== Threads: " + stackTraces.size());
         for (Map.Entry<Thread, StackTraceElement[]> stack : stackTraces.entrySet()) {
-            Log.d(DOMAIN, "== Thread: " + stack.getKey());
-            for (StackTraceElement frame : stack.getValue()) { Log.d(DOMAIN, "      at " + frame); }
+            Log.w(DOMAIN, "== Thread: " + stack.getKey());
+            for (StackTraceElement frame : stack.getValue()) { Log.w(DOMAIN, "      at " + frame); }
         }
 
         if (!(ex instanceof ThreadPoolExecutor)) { return; }
 
         final ArrayList<Runnable> waiting = new ArrayList<>(((ThreadPoolExecutor) ex).getQueue());
-        Log.d(DOMAIN, "==== Executor queue: " + waiting.size());
+        Log.w(DOMAIN, "==== Executor queue: " + waiting.size());
         int n = 0;
         for (Runnable r : waiting) {
             final Exception orig = (!(r instanceof InstrumentedTask)) ? null : ((InstrumentedTask) r).origin;
-            Log.d(DOMAIN, "@" + (n++) + ": " + r, orig);
+            Log.w(DOMAIN, "@" + (n++) + ": " + r, orig);
         }
     }
 
