@@ -134,7 +134,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
             executor.execute { finishLatch.countDown() }
         }
 
-        val swampLatch = swamp()
+        val swampLatch = swamp(baseExecutor)
 
         startLatch.countDown()
         swampLatch.countDown()
@@ -275,7 +275,84 @@ class ExecutionServiceTest : PlatformBaseTest() {
         assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
     }
 
-    // A test for restarting a concurrent queue is pretty hard to write...
+
+    // A concurrent executor that has been stalled can be restarted
+    @Test
+    fun testConcurrentExecutorRestart() {
+        val tinyQueue = ArrayBlockingQueue<Runnable>(5)
+        val tinyExecutor = ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS, tinyQueue)
+
+        val tinyService = object : AbstractExecutionService(tinyExecutor) {
+            override fun postDelayedOnExecutor(
+                delayMs: Long,
+                executor: Executor,
+                task: Runnable
+            ): ExecutionService.Cancellable {
+                throw UnsupportedOperationException()
+            }
+
+            override fun cancelDelayedTask(future: ExecutionService.Cancellable) {
+                throw UnsupportedOperationException()
+            }
+
+            override fun getMainExecutor(): Executor {
+                throw UnsupportedOperationException()
+            }
+        }
+
+        val executor = tinyService.concurrentExecutor
+
+        // block the executor
+        val blockLatch = CountDownLatch(1)
+        tinyExecutor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
+
+        val nTasks = 10;
+        val startLatch = CountDownLatch(1)
+        val finishLatch = CountDownLatch(nTasks)
+
+        // Queue up some tasks.  These will all be enqueued, because `spaceAvailable`
+        // never returns true on this executor
+        for (i in 0 until nTasks - 1) {
+            executor.execute {
+                try {
+                    startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+                } catch (ignore: InterruptedException) {
+                } finally {
+                    finishLatch.countDown()
+                 }
+            }
+        }
+
+        blockLatch.countDown()
+        Thread.sleep(2) // yield to the executor
+        // the first of the nTasks is now blocking the queue.
+
+        // fill the executor
+        val swampLatch = swamp(tinyExecutor)
+
+        startLatch.countDown()
+        Thread.sleep(2) // yield to the executor
+        // the executing task completes but fails to restart the queue:
+
+        swampLatch.countDown()
+        Thread.sleep(2) // yield to the executor
+
+        // the queue is stalled even though resources are available.
+        assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
+        assertEquals(nTasks - 1L, finishLatch.count);
+
+        // This should restart the queue
+        executor.execute {
+            try {
+                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+            } catch (ignore: InterruptedException) {
+            } finally {
+                finishLatch.countDown()
+            }
+        }
+
+        assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+    }
 
     // A stopped concurrent executor finishes currently queued tasks.
     @Test
@@ -435,7 +512,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
             executor.execute { }
         }
 
-        val swampLatch = swamp();
+        val swampLatch = swamp(baseExecutor);
         try {
             // this should free the running serial jobs,
             // which should fail trying to start the next job
@@ -447,11 +524,11 @@ class ExecutionServiceTest : PlatformBaseTest() {
     }
 
     // fill the base executor.
-    fun swamp(): CountDownLatch {
+    fun swamp(ex: Executor): CountDownLatch {
         val latch = CountDownLatch(1)
         try {
             while (true) {
-                baseExecutor.execute {
+                ex.execute {
                     try {
                         latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                     } catch (ignore: InterruptedException) {
