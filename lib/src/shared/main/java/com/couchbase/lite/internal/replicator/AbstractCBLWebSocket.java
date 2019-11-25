@@ -149,34 +149,34 @@ public class AbstractCBLWebSocket extends C4Socket {
     class CBLWebSocketListener extends WebSocketListener {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
-            Log.v(TAG, "WebSocketListener.onOpen() response -> " + response);
+            Log.v(TAG, "WebSocketListener opened with response " + response);
             AbstractCBLWebSocket.this.webSocket = webSocket;
             receivedHTTPResponse(response);
-            Log.i(TAG, "CBLWebSocket CONNECTED!");
+            Log.i(TAG, "WebSocket CONNECTED!");
             opened();
         }
 
         @Override
         public void onMessage(WebSocket webSocket, String text) {
-            Log.v(TAG, "WebSocketListener.onMessage() text -> " + text);
+            Log.v(TAG, "WebSocketListener received text string with length of " + text.length());
             received(text.getBytes(StandardCharsets.UTF_8));
         }
 
         @Override
         public void onMessage(WebSocket webSocket, ByteString bytes) {
-            Log.v(TAG, "WebSocketListener.onMessage() bytes -> " + bytes.hex());
+            Log.v(TAG, "WebSocketListener received data of " + bytes.size() + " bytes");
             received(bytes.toByteArray());
         }
 
         @Override
         public void onClosing(WebSocket webSocket, int code, String reason) {
-            Log.v(TAG, "WebSocketListener.onClosing() code -> " + code + ", reason -> " + reason);
+            Log.v(TAG, "WebSocketListener is closing with code " + code + ", reason " + reason);
             closeRequested(code, reason);
         }
 
         @Override
         public void onClosed(WebSocket webSocket, int code, String reason) {
-            Log.v(TAG, "WebSocketListener.onClosed() code -> " + code + ", reason -> " + reason);
+            Log.v(TAG, "WebSocketListener closed with code " + code + ", reason " + reason);
             didClose(code, reason);
         }
 
@@ -187,7 +187,7 @@ public class AbstractCBLWebSocket extends C4Socket {
 
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-            Log.w(TAG, "WebSocketListener.onFailure() response -> " + response, t);
+            Log.w(TAG, "WebSocketListener failed with response " + response, t);
 
             // Invoked when a web socket has been closed due to an error reading from or writing to the
             // network. Both outgoing and incoming messages may have been lost. No further calls to this
@@ -221,7 +221,7 @@ public class AbstractCBLWebSocket extends C4Socket {
         int port,
         String path,
         byte[] options) {
-        Log.e(TAG, "CBLWebSocket.socket_open()");
+        Log.v(TAG, "Creating a CBLWebSocket ...");
 
         Map<String, Object> fleeceOptions = null;
         if (options != null) { fleeceOptions = FLValue.fromData(options).asDict(); }
@@ -235,7 +235,7 @@ public class AbstractCBLWebSocket extends C4Socket {
         }
 
         try { return new CBLWebSocket(handle, scheme, hostname, port, path, fleeceOptions); }
-        catch (Exception e) { Log.e(TAG, "Failed to instantiate C4Socket: ", e); }
+        catch (Exception e) { Log.e(TAG, "Failed to instantiate CBLWebSocket", e); }
 
         return null;
     }
@@ -275,7 +275,7 @@ public class AbstractCBLWebSocket extends C4Socket {
 
     @Override
     protected void openSocket() {
-        Log.v(TAG, String.format(Locale.ENGLISH, "CBLWebSocket connecting to %s...", uri));
+        Log.v(TAG, String.format(Locale.ENGLISH, "CBLWebSocket is connecting to %s ...", uri));
         httpClient.newWebSocket(newRequest(), wsListener);
     }
 
@@ -284,7 +284,7 @@ public class AbstractCBLWebSocket extends C4Socket {
         if (this.webSocket.send(ByteString.of(allocatedData, 0, allocatedData.length))) {
             completedWrite(allocatedData.length);
         }
-        else { Log.e(TAG, "CBLWebSocket.send() FAILED to send data"); }
+        else { Log.e(TAG, "CBLWebSocket failed to send data of " + allocatedData.length + " bytes"); }
     }
 
     @Override
@@ -296,14 +296,14 @@ public class AbstractCBLWebSocket extends C4Socket {
     @Override
     protected void requestClose(int status, String message) {
         if (webSocket == null) {
-            Log.w(TAG, "CBLWebSocket.requestClose() webSocket is not initialized.");
+            Log.w(TAG, "CBLWebSocket has not been initialized when receiving close request.");
             return;
         }
 
         if (!webSocket.close(status, message)) {
             Log.w(
                 TAG,
-                "CBLWebSocket.requestClose() Failed to attempt to initiate a graceful shutdown of this web socket.");
+                "CBLWebSocket failed to initiate a graceful shutdown of this web socket.");
         }
     }
 
@@ -336,13 +336,13 @@ public class AbstractCBLWebSocket extends C4Socket {
                 if (username != null && password != null) {
                     return (route, response) -> {
                         // http://www.ietf.org/rfc/rfc2617.txt
-                        Log.v(TAG, "Authenticating for response: " + response);
+                        Log.v(TAG, "CBLWebSocket authenticated for response " + response);
 
                         // If failed 3 times, give up.
                         if (responseCount(response) >= 3) { return null; }
 
                         final List<Challenge> challenges = response.challenges();
-                        Log.v(TAG, "Challenges: " + challenges);
+                        Log.v(TAG, "CBLWebSocket received challenges " + challenges);
                         if (challenges != null) {
                             for (Challenge challenge : challenges) {
                                 if (challenge.scheme().equals("Basic")) {
@@ -351,11 +351,6 @@ public class AbstractCBLWebSocket extends C4Socket {
                                         .header("Authorization", Credentials.basic(username, password))
                                         .build();
                                 }
-
-                                // NOTE: Not implemented Digest authentication
-                                //       https://github.com/rburgst/okhttp-digest
-                                //else if(challenge.scheme().equals("Digest")){
-                                //}
                             }
                         }
 
@@ -417,7 +412,7 @@ public class AbstractCBLWebSocket extends C4Socket {
 
     private void receivedHTTPResponse(Response response) {
         final int httpStatus = response.code();
-        Log.v(TAG, "receivedHTTPResponse() httpStatus -> " + httpStatus);
+        Log.v(TAG, "CBLWebSocket received HTTP response with status " + httpStatus);
 
         // Post the response headers to LiteCore:
         final Headers hs = response.headers();
@@ -426,7 +421,6 @@ public class AbstractCBLWebSocket extends C4Socket {
             final Map<String, Object> headers = new HashMap<>();
             for (int i = 0; i < hs.size(); i++) {
                 headers.put(hs.name(i), hs.value(i));
-                //Log.e(TAG, hs.name(i) + " -> " + hs.value(i));
             }
             final FLEncoder enc = new FLEncoder();
             enc.write(headers);
@@ -434,7 +428,7 @@ public class AbstractCBLWebSocket extends C4Socket {
                 headersFleece = enc.finish();
             }
             catch (LiteCoreException e) {
-                Log.e(TAG, "Failed to encode", e);
+                Log.e(TAG, "CBLWebSocket failed to encode response header", e);
             }
             finally {
                 enc.free();
