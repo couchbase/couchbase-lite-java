@@ -258,6 +258,22 @@ model {
     }
 }
 
+/////// JavaDoc
+
+javadoc {
+    exclude "**/internal/**"
+    exclude "com/couchbase/lite/utils"
+    options {
+        title = "Couchbase Lite ${BUILD_VERSION}, Community Edition"
+        memberLevel = JavadocMemberLevel.PUBLIC
+        docEncoding = 'UTF-8'
+        encoding = 'UTF-8'
+        charSet = 'UTF-8'
+        locale = 'en_US'
+        links "https://docs.oracle.com/javase/8/docs/api/"
+        addStringOption('Xdoclint:none', '-quiet')
+    }
+}
 
 // ----------------------------------------------------------------
 // Static analysis
@@ -421,6 +437,23 @@ apply plugin: 'maven-publish'
 def mavenRepoUser = properties.getProperty('maven.repo.user')
 def mavenRepoPass = properties.getProperty('maven.repo.pass')
 
+// Generate javadoc.jar
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// Generate source.jar
+task sourcesJar(type: Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.java.srcDirs
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
 publishing {
     publications {
         couchbaseLiteJava(MavenPublication) {
@@ -429,8 +462,8 @@ publishing {
             version BUILD_VERSION
 
             from components.java
-            //artifact sourcesJar
-            //artifact javadocJar
+            artifact sourcesJar
+            artifact javadocJar
 
             pom {
                 name = "${CBL_GROUP}:${CBL_ARTIFACT_ID}"
