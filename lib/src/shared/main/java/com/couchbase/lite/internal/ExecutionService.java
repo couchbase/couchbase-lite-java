@@ -29,11 +29,11 @@ public interface ExecutionService {
      * They simply get to say that they are done with it
      */
     interface CloseableExecutor extends Executor {
-        class ExecutorClosedExeception extends RejectedExecutionException {
-            public ExecutorClosedExeception() {}
-            public ExecutorClosedExeception(String msg) { super(msg); }
-            public ExecutorClosedExeception(String msg, Throwable err) { super(msg, err); }
-            public ExecutorClosedExeception(Throwable err) { super(err); }
+        class ExecutorClosedException extends RejectedExecutionException {
+            public ExecutorClosedException() {}
+            public ExecutorClosedException(String msg) { super(msg); }
+            public ExecutorClosedException(String msg, Throwable err) { super(msg, err); }
+            public ExecutorClosedException(Throwable err) { super(err); }
         }
 
         /**
