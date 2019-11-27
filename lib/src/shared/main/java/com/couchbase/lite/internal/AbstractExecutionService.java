@@ -441,9 +441,8 @@ public abstract class AbstractExecutionService implements ExecutionService {
     //---------------------------------------------
     // Class methods
     //---------------------------------------------
+    // check `throttled()` before calling.
     static void dumpServiceState(@NonNull Executor ex, @NonNull String msg, @Nullable Exception e) {
-        if (throttled()) { return; }
-
         Log.w(LogDomain.DATABASE, "====== Catastrophic failure of executor " + ex + ": " + msg, e);
 
         final Map<Thread, StackTraceElement[]> stackTraces = Thread.getAllStackTraces();
