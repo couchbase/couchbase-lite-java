@@ -497,10 +497,10 @@ public class QueryTest extends BaseTest {
         SelectResult S_SENTENCE = SelectResult.property("sentence");
         FullTextExpression SENTENCE = FullTextExpression.index("sentence");
         Query query = QueryBuilder
-                .select(SR_DOCID, S_SENTENCE)
-                .from(DataSource.database(db))
-                .where(SENTENCE.match("'Dummie woman'"))
-                .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
+            .select(SR_DOCID, S_SENTENCE)
+            .from(DataSource.database(db))
+            .where(SENTENCE.match("'Dummie woman'"))
+            .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
 
         int numRows = verifyQuery(query, (n, result) -> {
             assertNotNull(result.getString(0));
@@ -1294,7 +1294,7 @@ public class QueryTest extends BaseTest {
         assertEquals(expected.length, numRows);
     }
 
-    @Ignore("Pending fix of: https://issues.couchbase.com/browse/CBL-355")
+    @Ignore("This test is platform dependent")
     @Test
     public void testUnicodeCollationWithLocaleSwedish() throws Exception {
         String[] letters = {"B", "A", "Z", "Å"};
@@ -1982,8 +1982,8 @@ public class QueryTest extends BaseTest {
         SelectResult rsCntNotExist = SelectResult.expression(cntNotExist);
 
         Query query = QueryBuilder
-                .select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist)
-                .from(ds);
+            .select(rsCntNum1, rsCntInt1, rsCntAstr, rsCntAll, rsCntStr, rsCntDate, rsCntNotExist)
+            .from(ds);
 
         int numRows = verifyQuery(query, (n, result) -> {
             assertEquals(100L, (long) result.getValue(0));
@@ -2288,10 +2288,10 @@ public class QueryTest extends BaseTest {
         String[] expectedContents = {"beauty", "beautifully", "beautiful"};
 
         Query query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("beautiful"))
-                .orderBy(Ordering.expression(Meta.id));
+            .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("beautiful"))
+            .orderBy(Ordering.expression(Meta.id));
 
         int numRows = verifyQuery(query, (n, result) -> {
             assertEquals(expectedIDs[n - 1], result.getString("id"));
@@ -2364,10 +2364,10 @@ public class QueryTest extends BaseTest {
 
         // AND binary set operator
         Query query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
+            .orderBy(Ordering.expression(Meta.id));
 
         final String[] expectedIDs = {"doc3"};
         int numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs[n - 1], result.getString("id")));
@@ -2375,10 +2375,10 @@ public class QueryTest extends BaseTest {
 
         // implicit AND operator
         query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
+            .orderBy(Ordering.expression(Meta.id));
 
         final String[] expectedIDs2 = {"doc3"};
         numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs2[n - 1], result.getString("id")));
@@ -2386,10 +2386,10 @@ public class QueryTest extends BaseTest {
 
         // OR operator
         query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
-                .orderBy(Ordering.expression(Meta.id));
+            .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
+            .orderBy(Ordering.expression(Meta.id));
 
         String[] expectedIDs3 = {"doc1", "doc2", "doc3"};
         numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs3[n - 1], result.getString("id")));
@@ -2429,10 +2429,10 @@ public class QueryTest extends BaseTest {
 
         // A AND B AND C
         Query query = QueryBuilder
-                .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-                .from(DataSource.database(db))
-                .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
-                .orderBy(Ordering.expression(Meta.id));
+            .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
+            .from(DataSource.database(db))
+            .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
+            .orderBy(Ordering.expression(Meta.id));
 
         String[] expectedIDs = {"doc2"};
         int numRows = verifyQuery(query, (n, result) -> assertEquals(expectedIDs[n - 1], result.getString("id")));

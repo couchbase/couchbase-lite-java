@@ -320,7 +320,7 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("dict", dict);
-        save(doc, new Validator<Document>() {
+        save(doc, new DocValidator() {
             @Override
             public void validate(Document doc) {
                 Map<String, Object> result = new HashMap<>();
@@ -417,7 +417,7 @@ public class DictionaryTest extends BaseTest {
         mDict.setArray("array-null", null);
         mDict.setDictionary("dict-null", null);
         mDoc.setDictionary("dict", mDict);
-        save(mDoc, new Validator<Document>() {
+        save(mDoc, new DocValidator() {
             @Override
             public void validate(Document doc) {
                 assertEquals(1, doc.count());

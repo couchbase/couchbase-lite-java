@@ -48,22 +48,16 @@ import static org.junit.Assert.fail;
 
 
 public abstract class BaseTest extends PlatformBaseTest {
-    public final static String TEST_DB = "testdb";
+    public static final String TEST_DB = "testdb";
 
     private static final int BUSY_WAIT_MS = 100;
     private static final int BUSY_RETRIES = 5;
 
-    interface Execution {
-        void run() throws CouchbaseLiteException;
-    }
+    interface Execution { void run() throws CouchbaseLiteException; }
 
-    interface Validator<T> {
-        void validate(final T doc);
-    }
+    interface DocValidator { void validate(final Document doc); }
 
-    interface QueryResult {
-        void check(int n, Result result) throws Exception;
-    }
+    interface QueryResult { void check(int n, Result result) throws Exception; }
 
 
     protected Database db;
@@ -124,7 +118,7 @@ public abstract class BaseTest extends PlatformBaseTest {
         return savedDoc;
     }
 
-    protected Document save(MutableDocument doc, Validator<Document> validator) throws CouchbaseLiteException {
+    protected Document save(MutableDocument doc, DocValidator validator) throws CouchbaseLiteException {
         validator.validate(doc);
         db.save(doc);
         Document savedDoc = db.getDocument(doc.getId());

@@ -357,12 +357,12 @@ public class DocumentTest extends BaseTest {
 
     @Test
     public void testSetString() throws CouchbaseLiteException {
-        Validator<Document> validator4Save = d -> {
+        DocValidator validator4Save = d -> {
             assertEquals("", d.getValue("string1"));
             assertEquals("string", d.getValue("string2"));
         };
 
-        Validator<Document> validator4SUpdate = d -> {
+        DocValidator validator4SUpdate = d -> {
             assertEquals("string", d.getValue("string1"));
             assertEquals("", d.getValue("string2"));
         };
@@ -420,14 +420,14 @@ public class DocumentTest extends BaseTest {
 
     @Test
     public void testSetNumber() throws CouchbaseLiteException {
-        Validator<Document> validator4Save = d -> {
+        DocValidator validator4Save = d -> {
             assertEquals(1, ((Number) d.getValue("number1")).intValue());
             assertEquals(0, ((Number) d.getValue("number2")).intValue());
             assertEquals(-1, ((Number) d.getValue("number3")).intValue());
             assertEquals(-10, ((Number) d.getValue("number4")).intValue());
         };
 
-        Validator<Document> validator4SUpdate = d -> {
+        DocValidator validator4SUpdate = d -> {
             assertEquals(0, ((Number) d.getValue("number1")).intValue());
             assertEquals(1, ((Number) d.getValue("number2")).intValue());
             assertEquals(-10, ((Number) d.getValue("number3")).intValue());
@@ -663,7 +663,7 @@ public class DocumentTest extends BaseTest {
 
     @Test
     public void testSetGetMinMaxNumbers() throws CouchbaseLiteException {
-        Validator<Document> validator = doc -> {
+        DocValidator validator = doc -> {
             assertEquals(Integer.MIN_VALUE, doc.getNumber("min_int").intValue());
             assertEquals(Integer.MAX_VALUE, doc.getNumber("max_int").intValue());
             assertEquals(Integer.MIN_VALUE, ((Number) doc.getValue("min_int")).intValue());
@@ -721,7 +721,7 @@ public class DocumentTest extends BaseTest {
 
     @Test
     public void testSetGetFloatNumbers() throws CouchbaseLiteException {
-        Validator<Document> validator = doc -> {
+        DocValidator validator = doc -> {
             assertEquals(1.00, ((Number) doc.getValue("number1")).doubleValue(), 0.00001);
             assertEquals(1.00, doc.getNumber("number1").doubleValue(), 0.00001);
             assertEquals(1, doc.getInt("number1"));
@@ -790,13 +790,13 @@ public class DocumentTest extends BaseTest {
 
     @Test
     public void testSetBoolean() throws CouchbaseLiteException {
-        Validator<Document> validator4Save = d -> {
+        DocValidator validator4Save = d -> {
             assertEquals(true, d.getValue("boolean1"));
             assertEquals(false, d.getValue("boolean2"));
             assertEquals(true, d.getBoolean("boolean1"));
             assertEquals(false, d.getBoolean("boolean2"));
         };
-        Validator<Document> validator4Update = d -> {
+        DocValidator validator4Update = d -> {
             assertEquals(false, d.getValue("boolean1"));
             assertEquals(true, d.getValue("boolean2"));
             assertEquals(false, d.getBoolean("boolean1"));
@@ -914,7 +914,7 @@ public class DocumentTest extends BaseTest {
         final Blob blob = new Blob("text/plain", TEST_BLOB.getBytes());
         final Blob nuBlob = new Blob("text/plain", "1234567890".getBytes());
 
-        Validator<Document> validator4Save = d -> {
+        DocValidator validator4Save = d -> {
             assertEquals(blob.getProperties().get("length"), d.getBlob("blob").getProperties().get("length"));
             assertEquals(
                 blob.getProperties().get("content-type"),
@@ -933,7 +933,7 @@ public class DocumentTest extends BaseTest {
             assertTrue(Arrays.equals(TEST_BLOB.getBytes(), d.getBlob("blob").getContent()));
         };
 
-        Validator<Document> validator4Update = d -> {
+        DocValidator validator4Update = d -> {
             assertEquals(nuBlob.getProperties().get("length"), d.getBlob("blob").getProperties().get("length"));
             assertEquals(
                 nuBlob.getProperties().get("content-type"),
