@@ -104,7 +104,6 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(executor, null));
     }
 
-    // ??? Flaky Test
     @Test
     public void testNetworkRetry() throws URISyntaxException, InterruptedException {
         final CountDownLatch offline = new CountDownLatch(2);

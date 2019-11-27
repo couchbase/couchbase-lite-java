@@ -1,6 +1,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -595,16 +596,15 @@ public class LogTest extends BaseTest {
         return files;
     }
 
-    @NotNull
-    private File getTempDir() { return new File(tempDirPath); }
+    @Nullable
+    private File getTempDir() { return (tempDirPath == null) ? null : new File(tempDirPath); }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void recursiveDelete(File root) {
+    private void recursiveDelete(@Nullable File root) {
+        if (root == null) { return; }
         File[] files = root.listFiles();
         if (files != null) {
-            for (File file : files) {
-                recursiveDelete(file);
-            }
+            for (File file : files) { recursiveDelete(file); }
         }
         root.delete();
     }
