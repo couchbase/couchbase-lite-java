@@ -24,7 +24,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import java.util.Stack
 import java.util.concurrent.ArrayBlockingQueue
@@ -117,31 +116,73 @@ class ExecutionServiceTest : PlatformBaseTest() {
     // A serial executor can be restarted even if it stalls.
     @Test
     fun testRestartSerialExecutor() {
-        val executor = baseService.serialExecutor
+        val tinyQueue = ArrayBlockingQueue<Runnable>(5)
+        val tinyExecutor = ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS, tinyQueue)
 
-        val startLatch = CountDownLatch(1)
-        // block the queue
-        executor.execute {
-            try {
-                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
-            } catch (ignore: InterruptedException) {
+        val tinyService = object : AbstractExecutionService(tinyExecutor) {
+            override fun postDelayedOnExecutor(
+                delayMs: Long,
+                executor: Executor,
+                task: Runnable
+            ): ExecutionService.Cancellable {
+                throw UnsupportedOperationException()
+            }
+
+            override fun cancelDelayedTask(future: ExecutionService.Cancellable) {
+                throw UnsupportedOperationException()
+            }
+
+            override fun getMainExecutor(): Executor {
+                throw UnsupportedOperationException()
             }
         }
 
+        val executor = tinyService.serialExecutor
+
+        // block the executor: it has a single thread so no tasks can run
+        val blockLatch = CountDownLatch(1)
+        executor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
+
         val nTasks = 10
+        val startLatch = CountDownLatch(1)
+        val firstStartedLatch = CountDownLatch(1)
+        val firstFinishedLatch = CountDownLatch(1)
         val finishLatch = CountDownLatch(nTasks)
+        // put some tasks into the serial queue.
+        // the first of these should be scheduled (but not run)
         for (i in 0 until nTasks - 1) {
-            executor.execute { finishLatch.countDown() }
+            executor.execute {
+                try {
+                    firstStartedLatch.countDown()
+                    startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+                } catch (ignore: InterruptedException) {
+                } finally {
+                    firstFinishedLatch.countDown()
+                    finishLatch.countDown()
+                }
+            }
         }
 
-        val swampLatch = swamp(baseExecutor)
+        // clear the block and wait for the first of nTasks to start running
+        blockLatch.countDown()
+        assertTrue(firstStartedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+        // the first of the nTasks is now blocking the queue.
+
+        // fill the executor
+        val swampLatch = CountDownLatch(1)
+        val clearSwampLatch = swamp(tinyExecutor, swampLatch)
 
         startLatch.countDown()
+        assertTrue(firstFinishedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+        // the executing task completes but fails to restart the queue:
+
         swampLatch.countDown()
+        assertTrue(clearSwampLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+        // the swamp is now drained
 
         // should be stalled.
         assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
-
+        assertEquals(nTasks - 1L, finishLatch.count);
 
         executor.execute { finishLatch.countDown() }
 
@@ -302,12 +343,14 @@ class ExecutionServiceTest : PlatformBaseTest() {
 
         val executor = tinyService.concurrentExecutor
 
-        // block the executor
+        // block the executor: it has a single thread so no tasks can run
         val blockLatch = CountDownLatch(1)
         tinyExecutor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
 
         val nTasks = 10;
         val startLatch = CountDownLatch(1)
+        val firstStartedLatch = CountDownLatch(1)
+        val firstFinishedLatch = CountDownLatch(1)
         val finishLatch = CountDownLatch(nTasks)
 
         // Queue up some tasks.  These will all be enqueued, because `spaceAvailable`
@@ -315,41 +358,39 @@ class ExecutionServiceTest : PlatformBaseTest() {
         for (i in 0 until nTasks - 1) {
             executor.execute {
                 try {
+                    firstStartedLatch.countDown()
                     startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                 } catch (ignore: InterruptedException) {
                 } finally {
+                    firstFinishedLatch.countDown()
                     finishLatch.countDown()
-                 }
+                }
             }
         }
 
+        // clear the block and wait for the first of nTasks to start running
         blockLatch.countDown()
-        Thread.sleep(2) // yield to the executor
+        assertTrue(firstStartedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         // the first of the nTasks is now blocking the queue.
 
         // fill the executor
-        val swampLatch = swamp(tinyExecutor)
+        val swampLatch = CountDownLatch(1)
+        val clearSwampLatch = swamp(tinyExecutor, swampLatch)
 
         startLatch.countDown()
-        Thread.sleep(2) // yield to the executor
+        assertTrue(firstFinishedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         // the executing task completes but fails to restart the queue:
 
         swampLatch.countDown()
-        Thread.sleep(2) // yield to the executor
+        assertTrue(clearSwampLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+        // the swamp is now drained
 
         // the queue is stalled even though resources are available.
         assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
         assertEquals(nTasks - 1L, finishLatch.count);
 
         // This should restart the queue
-        executor.execute {
-            try {
-                startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
-            } catch (ignore: InterruptedException) {
-            } finally {
-                finishLatch.countDown()
-            }
-        }
+        executor.execute { finishLatch.countDown() }
 
         assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
     }
@@ -493,50 +534,24 @@ class ExecutionServiceTest : PlatformBaseTest() {
         assertFalse(completed[0])
     }
 
-    @Ignore("This is not actually a test.  Use it to verify logcat output")
-    @Test(expected = RejectedExecutionException::class)
-    fun testSerialExecutorFailure() {
-        val executor = baseService.serialExecutor
-
-        // hang the queue
-        val latch = CountDownLatch(1)
-        executor.execute {
-            try {
-                latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
-            } catch (ignore: InterruptedException) {
-            }
-        }
-
-        // put some stuff in the serial executor queue
-        for (i in 1..10) {
-            executor.execute { }
-        }
-
-        val swampLatch = swamp(baseExecutor);
-        try {
-            // this should free the running serial jobs,
-            // which should fail trying to start the next job
-            // which should log a bunch of stuff.
-            latch.countDown()
-        } finally {
-            swampLatch.countDown();
-        }
-    }
-
-    // fill the base executor.
-    fun swamp(ex: Executor): CountDownLatch {
-        val latch = CountDownLatch(1)
+    // fill an executor.
+    private fun swamp(ex: Executor, startLatch: CountDownLatch): CountDownLatch {
+        val stopLatch = CountDownLatch(1)
+        var n = 0
         try {
             while (true) {
                 ex.execute {
                     try {
-                        latch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+                        startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
                     } catch (ignore: InterruptedException) {
+                    } finally {
+                        if (--n == 0) stopLatch.countDown()
                     }
                 }
+                n++
             }
         } catch (ignore: RejectedExecutionException) {
         }
-        return latch
+        return stopLatch
     }
 }
