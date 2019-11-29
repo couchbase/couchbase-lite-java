@@ -2,8 +2,8 @@
 
 function usage() {
     echo "usage: build_litecore -e <VAL> [-l <VAL>]"
-    echo "  -e|--edition <VAL>   LiteCore edition, CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
-    echo "  -l|--libs <VAL>      The comma separated list of libraries to build. The libraries are LiteCore and mbedcrypto. The default is both."
+    echo "  -e|--edition <VAL>   LiteCore edition: CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
+    echo "  -l|--lib <VAL>       The library to build:  LiteCore (LiteCore + mbedcrypto) or mbedcrypto (mbedcrypto only). The default is LiteCore."
     echo
 }
 
@@ -11,7 +11,7 @@ shopt -s nocasematch
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-LIBS=(LiteCore mbedcrypto)
+LIB="LiteCore"
 
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -21,8 +21,8 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
-        -l|--libs)
-        IFS=',' read -ra LIBS <<< "$2"
+        -l|--lib)
+        LIB="$2"
         shift
         shift
         ;;
@@ -41,7 +41,7 @@ if [ -z "$EDITION" ]; then
 fi
 
 echo "LiteCore Edition: $EDITION"
-echo "Libraries: ${LIBS[*]}"
+echo "Library: $LIB"
 
 ENT="OFF"
 if [[ $EDITION == EE ]]; then
@@ -68,44 +68,44 @@ OUTPUT_DIR=$SCRIPT_DIR/../lite-core/$OS/x86_64
 mkdir -p $OUTPUT_DIR
 
 if [[ $OS == linux ]]; then
-  CC=clang CXX=clang++ cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
-  for LIB in "${LIBS[@]}"; do
-    make -j `expr $CORE_COUNT + 1` $LIB
-  done
-  
-  for LIB in "${LIBS[@]}"; do
-    if [[ $LIB == LiteCore ]]; then
-      cp -f libLiteCore.so $OUTPUT_DIR
-    fi
-    if [[ $LIB == mbedcrypto ]]; then
-      cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
-    fi
-  done
+  if [[ $LIB == LiteCore ]]; then
+    CC=clang CXX=clang++ cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
+
+    make -j `expr $CORE_COUNT + 1` LiteCore
+    cp -f libLiteCore.so $OUTPUT_DIR
+
+    make -j `expr $CORE_COUNT + 1` mbedcrypto
+    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
+  fi
+
+  if [[ $LIB == mbedcrypto ]]; then
+    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../../vendor/mbedtls
+    make -j `expr $CORE_COUNT + 1`
+    cp -f library/libmbedcrypto.a $OUTPUT_DIR
+  fi
 fi
 
 if [[ $OS == macos ]]; then
-  cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
-  for LIB in "${LIBS[@]}"; do
-    make -j `expr $CORE_COUNT + 1` $LIB
-  done
+  if [[ $LIB == LiteCore ]]; then
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
 
-  if [ -f "libLiteCore.dylib" ]; then
+    make -j `expr $CORE_COUNT + 1` LiteCore
     strip -x libLiteCore.dylib
+    cp -f libLiteCore.dylib $OUTPUT_DIR
+
+    make -j `expr $CORE_COUNT + 1` mbedcrypto
+    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
   fi
 
-  echo "Copy libraries to $OUTPUT_DIR ..."
-  for LIB in "${LIBS[@]}"; do
-    if [[ $LIB == LiteCore ]]; then
-      cp -f libLiteCore.dylib $OUTPUT_DIR
-    fi
-    if [[ $LIB == mbedcrypto ]]; then
-      cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
-    fi
-  done
+  if [[ $LIB == mbedcrypto ]]; then
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../../vendor/mbedtls
+    make -j `expr $CORE_COUNT + 1`
+    cp -f library/libmbedcrypto.a $OUTPUT_DIR
+  fi
 fi
 
 popd > /dev/null
 
 popd > /dev/null
 
-echo "Build LiteCore Complete"
+echo "Build $LIB Complete"
