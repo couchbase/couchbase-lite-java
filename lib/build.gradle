@@ -240,13 +240,14 @@ model {
                     cppCompiler.args '-stdlib=libc++'
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.linux) {
-                    if (project.hasProperty("cxxIncludeDir")) {
-                        cppCompiler.args '-isystem', project.property('cxxIncludeDir')
-                    }
+                    def libCxxIncDir = properties.getProperty('LINUX_LIBCXX_INCDIR')
+                    if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
                     cppCompiler.args '-I', "${JAVA_HOME}/include"
                     cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
+                    def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
+                    if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
