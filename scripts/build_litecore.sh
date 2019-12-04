@@ -79,7 +79,7 @@ if [[ $OS == linux ]]; then
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../../vendor/mbedtls
+    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
     make -j `expr $CORE_COUNT + 1`
     cp -f library/libmbedcrypto.a $OUTPUT_DIR
   fi
@@ -98,7 +98,7 @@ if [[ $OS == macos ]]; then
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../../vendor/mbedtls
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
     make -j `expr $CORE_COUNT + 1`
     cp -f library/libmbedcrypto.a $OUTPUT_DIR
   fi
