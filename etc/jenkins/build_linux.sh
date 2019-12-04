@@ -37,8 +37,13 @@ $CBL_JAVA_DIR/scripts/fetch_litecore.sh -n $LITE_CORE_REPO_URL -v linux -e $EDIT
 echo "======== Building mbedcrypto ..."
 $CBL_JAVA_DIR/scripts/build_litecore.sh -e $EDITION -l mbedcrypto
 
+# Set load library path for building and testing:
 SUPPORT_DIR="${CBL_JAVA_DIR}/lite-core/support/linux/x86_64"
 export LD_LIBRARY_PATH="${SUPPORT_DIR}/libicu:${SUPPORT_DIR}/libz:${SUPPORT_DIR}/libc++"
+
+# Set libc++ include and lib directory from cbdeps:
+echo "LINUX_LIBCXX_INCDIR=${LIBCXX_INCDIR}/c++/v1" >> local.properties
+echo "LINUX_LIBCXX_LIBDIR=${LIBCXX_LIBDIR}" >> local.properties
 
 echo "======== Build Couchbase Lite Java, $EDITION v`cat ../version.txt`-${BUILD_NUMBER}"
 ./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" --info || exit 1
