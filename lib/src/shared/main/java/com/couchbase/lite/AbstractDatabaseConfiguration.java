@@ -101,7 +101,7 @@ abstract class AbstractDatabaseConfiguration {
     void setTempDir() {
         synchronized (AbstractDatabaseConfiguration.class) {
             final String tempDir = getTempDir();
-            if (!tempDir.equals(AbstractDatabaseConfiguration.tempDir)) {
+            if ((tempDir == null) || (!tempDir.equals(AbstractDatabaseConfiguration.tempDir))) {
                 AbstractDatabaseConfiguration.tempDir = tempDir;
                 C4Base.setTempDir(AbstractDatabaseConfiguration.tempDir);
             }
