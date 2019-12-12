@@ -581,7 +581,9 @@ Java_com_couchbase_lite_internal_core_C4Document_dictContainsBlobs(JNIEnv *env, 
                                                           jlong jbody, jlong jsk) {
     FLDoc doc = FLDoc_FromResultData(*(FLSliceResult *) jbody, kFLTrusted, (FLSharedKeys) jsk, kFLSliceNull);
     FLDict dict = (FLDict)FLDoc_GetRoot(doc);
-    return c4doc_dictContainsBlobs(dict);
+    bool containsBlobs = c4doc_dictContainsBlobs(dict);
+    FLDoc_Release(doc);
+    return containsBlobs;
 }
 
 /*
