@@ -18,9 +18,11 @@
 package com.couchbase.lite.internal.core;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLSharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.support.Log;
 
 
 public class C4Document extends RefCounted {
@@ -178,6 +180,7 @@ public class C4Document extends RefCounted {
     @Override
     void free() {
         if (handle != 0L) {
+            Log.i(LogDomain.DATABASE, "[PS] ** C4Document (%d) id=%s is freed **", handle, getDocID());
             free(handle);
             handle = 0L;
         }
@@ -330,6 +333,9 @@ public class C4Document extends RefCounted {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
+        if (handle != 0L) {
+            Log.i(LogDomain.DATABASE, "[PS] ** C4Document (%d) id=%s is finalized **", handle, getDocID());
+        }
         free();
         super.finalize();
     }

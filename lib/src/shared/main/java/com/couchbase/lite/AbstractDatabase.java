@@ -959,6 +959,7 @@ abstract class AbstractDatabase {
                 }
 
                 try {
+                    Log.i(DOMAIN, "%s: [PS] resolving conflict for '%s' ...", this, docId);
                     resolveConflictOnce(resolver, docId);
                     callback.accept(null);
                     return;
@@ -1237,6 +1238,8 @@ abstract class AbstractDatabase {
             boolean commit = false;
             beginTransaction();
             try {
+                Log.i(DOMAIN, "%s: [PS] resolving conflict for '%s' [ local: %s, remote: %s, resolved: %s ]",
+                    this, docID, localDoc, remoteDoc, resolvedDoc);
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                 commit = true;
             }
@@ -1268,7 +1271,7 @@ abstract class AbstractDatabase {
         final Conflict conflict
             = new Conflict(localDoc.isDeleted() ? null : localDoc, remoteDoc.isDeleted() ? null : remoteDoc);
 
-        Log.v(
+        Log.i(
             DOMAIN,
             "Resolving doc '%s' (local=%s and remote=%s) with resolver %s",
             docID,
@@ -1317,6 +1320,9 @@ abstract class AbstractDatabase {
 
         if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
 
+        Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' [ local: %s, remote: %s, resolved: %s ]",
+            this, localDoc.getId(), localDoc, remoteDoc, resolvedDoc);
+
         FLSliceResult mergedBody = null;
         int mergedFlags = 0x00;
         try {
@@ -1324,6 +1330,10 @@ abstract class AbstractDatabase {
             if (resolvedDoc != remoteDoc) {
                 if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) {
                     mergedBody = resolvedDoc.encode();
+                    final long size = mergedBody.getSize();
+                    Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' with encoded mergedBody size = %d bytes,"
+                            + " [ local: %s, remote: %s, resolved: %s ]",
+                        this, localDoc.getId(), size, localDoc, remoteDoc, resolvedDoc);
                 }
                 else {
                     mergedFlags = C4Constants.RevisionFlags.DELETED;
@@ -1333,6 +1343,11 @@ abstract class AbstractDatabase {
                         mergedBody = enc.finish2();
                     }
                     finally { enc.reset(); }
+
+                    final long size = mergedBody.getSize();
+                    Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' with empty mergedBody size = %d bytes, "
+                        + "[ local: %s, remote: %s, resolved: %s ]",
+                        this, localDoc.getId(), size, localDoc, remoteDoc, resolvedDoc);
                 }
             }
 
@@ -1342,9 +1357,14 @@ abstract class AbstractDatabase {
             // Ask LiteCore to do the resolution:
             final C4Document rawDoc = localDoc.getC4doc();
             // The remote branch has to win so that the doc revision history matches the server's.
-            rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
-            rawDoc.save(0);
 
+            final long size = mergedBody != null ? mergedBody.getSize() : 0L;
+            Log.i(DOMAIN, "%s: [PS] RawDoc resolve conflict with winRevID=%s, lostRevID=%s, bodySize=%d, flag=%d ",
+                this, localDoc.getId(), remoteDoc.getRevisionID(), localDoc.getRevisionID(), size, mergedFlags);
+            rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
+            Log.i(DOMAIN, "%s: [PS] Save raw doc resolved with winRevID=%s, lostRevID=%s, bodySize=%d, flag=%d ",
+                this, localDoc.getId(), remoteDoc.getRevisionID(), localDoc.getRevisionID(), size, mergedFlags);
+            rawDoc.save(0);
             Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
         }
         catch (LiteCoreException e) {
