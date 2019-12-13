@@ -408,25 +408,20 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     @Override
     public String toString() {
+        final C4Document c4doc = getC4doc();
         final StringBuilder buf = new StringBuilder("Document")
-            .append(isMutable() ? "+" : ".")
-            .append(isDeleted() ? "?" : ".")
-            .append("{").append(id).append("@").append(getRevisionID()).append(":");
-
-        boolean first = true;
-        for (String key : getKeys()) {
-            if (first) { first = false; }
-            else { buf.append(","); }
-
-            buf.append(key).append("=>").append(getValue(key));
-        }
-
-        return buf.append("}").toString();
+            .append("@" + Integer.toHexString(System.identityHashCode(this)) + " ")
+            .append("{ id: ").append(id)
+            .append(", revid: ").append(c4doc != null && c4doc.getHandle() != 0 ? getRevisionID() : "?")
+            .append(", c4doc: ").append(c4doc != null ? c4doc.toString() : "NULL")
+            .append(" }");
+        return buf.toString();
     }
 
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
+        Log.i(LogDomain.DATABASE, "[PS] %% Document %s is finalized and freed %% ", this);
         free();
         super.finalize();
     }
@@ -492,6 +487,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
             while (!foundConflict) {
                 try { c4doc.selectNextLeafRevision(true, true); }
                 catch (LiteCoreException e) {
+                    Log.i(LogDomain.DATABASE, "[PS] Select Next Left Revision Failed (docid=%s) : " + e.code, id);
                     // NOTE: other platforms checks if return value from c4doc_selectNextLeafRevision() is false
                     if (e.code == 0) { break; }
                     else { throw e; }

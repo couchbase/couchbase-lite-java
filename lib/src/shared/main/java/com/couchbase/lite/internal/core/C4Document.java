@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.FLDict;
@@ -180,7 +182,7 @@ public class C4Document extends RefCounted {
     @Override
     void free() {
         if (handle != 0L) {
-            Log.i(LogDomain.DATABASE, "[PS] ** C4Document (%d) id=%s is freed **", handle, getDocID());
+            Log.i(LogDomain.DATABASE, "[PS] ** %s, id=%s is freed **", this, getDocID());
             free(handle);
             handle = 0L;
         }
@@ -334,10 +336,21 @@ public class C4Document extends RefCounted {
     @Override
     protected void finalize() throws Throwable {
         if (handle != 0L) {
-            Log.i(LogDomain.DATABASE, "[PS] ** C4Document (%d) id=%s is finalized **", handle, getDocID());
+            Log.i(LogDomain.DATABASE, "[PS] ** %s, id=%s is finalized and freed **", this, getDocID());
+            free(handle);
+            handle = 0L;
         }
         free();
         super.finalize();
     }
-    // doc -> pointer to C4Document
+
+    public long getHandle() {
+        return handle;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "C4Document@" + Integer.toHexString(hashCode()) + ":" + handle;
+    }
 }

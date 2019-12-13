@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -949,6 +950,7 @@ abstract class AbstractDatabase {
         int n = 0;
         CouchbaseLiteException err = null;
         try {
+
             while (true) {
                 if (n++ > MAX_CONFLICT_RESOLUTION_RETRIES) {
                     err = new CouchbaseLiteException(
@@ -1238,9 +1240,13 @@ abstract class AbstractDatabase {
             boolean commit = false;
             beginTransaction();
             try {
-                Log.i(DOMAIN, "%s: [PS] resolving conflict for '%s' [ local: %s, remote: %s, resolved: %s ]",
+                final String uuid = UUID.randomUUID().toString();
+                Log.i(DOMAIN, "%s: [PS] +++++ <" + uuid + "> +++++", this);
+                Log.i(DOMAIN, "%s: [PS] About to save resolved conflict, docid='%s' "
+                        + "[ local: %s, remote: %s, resolved: %s ]",
                     this, docID, localDoc, remoteDoc, resolvedDoc);
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                Log.i(DOMAIN, "%s: [PS] ----- </" + uuid + "> -----", this);
                 commit = true;
             }
             finally { endTransaction(commit); }
@@ -1318,10 +1324,12 @@ abstract class AbstractDatabase {
             else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
         }
 
-        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
+        final String docID = localDoc.getId();
 
-        Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' [ local: %s, remote: %s, resolved: %s ]",
-            this, localDoc.getId(), localDoc, remoteDoc, resolvedDoc);
+        Log.i(DOMAIN, "%s: [PS] Saving resolved doc, docid='%s' [ local: %s, remote: %s, resolved: %s ]",
+                this, docID, localDoc, remoteDoc, resolvedDoc);
+
+        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
 
         FLSliceResult mergedBody = null;
         int mergedFlags = 0x00;
@@ -1330,10 +1338,6 @@ abstract class AbstractDatabase {
             if (resolvedDoc != remoteDoc) {
                 if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) {
                     mergedBody = resolvedDoc.encode();
-                    final long size = mergedBody.getSize();
-                    Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' with encoded mergedBody size = %d bytes,"
-                            + " [ local: %s, remote: %s, resolved: %s ]",
-                        this, localDoc.getId(), size, localDoc, remoteDoc, resolvedDoc);
                 }
                 else {
                     mergedFlags = C4Constants.RevisionFlags.DELETED;
@@ -1343,11 +1347,6 @@ abstract class AbstractDatabase {
                         mergedBody = enc.finish2();
                     }
                     finally { enc.reset(); }
-
-                    final long size = mergedBody.getSize();
-                    Log.i(DOMAIN, "%s: [PS] saving resolved doc for '%s' with empty mergedBody size = %d bytes, "
-                        + "[ local: %s, remote: %s, resolved: %s ]",
-                        this, localDoc.getId(), size, localDoc, remoteDoc, resolvedDoc);
                 }
             }
 
@@ -1357,15 +1356,14 @@ abstract class AbstractDatabase {
             // Ask LiteCore to do the resolution:
             final C4Document rawDoc = localDoc.getC4doc();
             // The remote branch has to win so that the doc revision history matches the server's.
-
             final long size = mergedBody != null ? mergedBody.getSize() : 0L;
-            Log.i(DOMAIN, "%s: [PS] RawDoc resolve conflict with winRevID=%s, lostRevID=%s, bodySize=%d, flag=%d ",
-                this, localDoc.getId(), remoteDoc.getRevisionID(), localDoc.getRevisionID(), size, mergedFlags);
+            Log.i(DOMAIN, "%s: [PS] 1. RawDoc=%s is resolving conflict for docid='%s'", this, rawDoc, docID);
             rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
-            Log.i(DOMAIN, "%s: [PS] Save raw doc resolved with winRevID=%s, lostRevID=%s, bodySize=%d, flag=%d ",
-                this, localDoc.getId(), remoteDoc.getRevisionID(), localDoc.getRevisionID(), size, mergedFlags);
+            Log.i(DOMAIN, "%s: [PS] 2. RawDoc is saving conflict for docid='%s'", this, docID);
+            Log.i(DOMAIN, "%s: [PS] 3. RawDoc=%s is saving conflict for docid='%s'", this, rawDoc, docID);
             rawDoc.save(0);
-            Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
+            Log.i(DOMAIN, "%s: [PS] 4. DONE resolving conflict for docid='%s'", this, docID);
+            Log.i(DOMAIN, "%s: [PS] 5. RawDoc=%s is DONE saving conflict for docid='%s'", this, rawDoc, docID);
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
