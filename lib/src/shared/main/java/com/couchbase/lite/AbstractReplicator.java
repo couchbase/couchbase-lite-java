@@ -578,6 +578,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
+        Log.i(LogDomain.DATABASE, "%s: [PS] ************* Replicator is finalized *************", this);
         clearRepl();
         if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
         super.finalize();

@@ -826,6 +826,7 @@ abstract class AbstractDatabase {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
+        Log.i(LogDomain.DATABASE, "%s: [PS] ************* DATABASE is finalized *************", this);
         freeC4Observers();
         freeC4DB();
         super.finalize();
@@ -934,7 +935,10 @@ abstract class AbstractDatabase {
     }
 
     void removeActiveReplicator(Replicator replicator) {
-        synchronized (lock) { activeReplications.remove(replicator); }
+        synchronized (lock) {
+            Log.i(DOMAIN, "%s: [PS] THE REPLICATOR IS REMOVED FROM THE ACTIVE LIST : %s", this, replicator);
+            activeReplications.remove(replicator);
+        }
     }
 
     boolean hasActiveReplicators() {
@@ -1217,11 +1221,14 @@ abstract class AbstractDatabase {
     //////// RESOLVE REPLICATED CONFLICTS:
     private void resolveConflictOnce(@Nullable ConflictResolver resolver, @NonNull String docID)
         throws CouchbaseLiteException, CBLInternalException {
+
         final Document localDoc;
         final Document remoteDoc;
+
         synchronized (lock) {
             localDoc = new Document((Database) this, docID, true);
             remoteDoc = getConflictingRevision(docID);
+            CouchbaseLite.LOCAL_DOCS.add(localDoc);
         }
 
         Document resolvedDoc = null;
@@ -1240,13 +1247,9 @@ abstract class AbstractDatabase {
             boolean commit = false;
             beginTransaction();
             try {
-                final String uuid = UUID.randomUUID().toString();
-                Log.i(DOMAIN, "%s: [PS] +++++ <" + uuid + "> +++++", this);
-                Log.i(DOMAIN, "%s: [PS] About to save resolved conflict, docid='%s' "
-                        + "[ local: %s, remote: %s, resolved: %s ]",
-                    this, docID, localDoc, remoteDoc, resolvedDoc);
+                Log.i(DOMAIN, "%s: [PS] +++++ <BEGIN> +++++", this);
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                Log.i(DOMAIN, "%s: [PS] ----- </" + uuid + "> -----", this);
+                Log.i(DOMAIN, "%s: [PS] ----- <END> -----", this);
                 commit = true;
             }
             finally { endTransaction(commit); }
@@ -1358,11 +1361,15 @@ abstract class AbstractDatabase {
             // The remote branch has to win so that the doc revision history matches the server's.
             final long size = mergedBody != null ? mergedBody.getSize() : 0L;
             Log.i(DOMAIN, "%s: [PS] 1. RawDoc=%s is resolving conflict for docid='%s'", this, rawDoc, docID);
+
             rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
-            Log.i(DOMAIN, "%s: [PS] 2. RawDoc is saving conflict for docid='%s'", this, docID);
+
             Log.i(DOMAIN, "%s: [PS] 3. RawDoc=%s is saving conflict for docid='%s'", this, rawDoc, docID);
+
             rawDoc.save(0);
+
             Log.i(DOMAIN, "%s: [PS] 4. DONE resolving conflict for docid='%s'", this, docID);
+
             Log.i(DOMAIN, "%s: [PS] 5. RawDoc=%s is DONE saving conflict for docid='%s'", this, rawDoc, docID);
         }
         catch (LiteCoreException e) {

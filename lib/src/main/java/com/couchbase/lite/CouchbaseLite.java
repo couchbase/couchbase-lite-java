@@ -23,6 +23,8 @@ import android.support.annotation.VisibleForTesting;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,6 +45,8 @@ public final class CouchbaseLite {
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
     private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
+
+    public static final List<Document> LOCAL_DOCS = new ArrayList<Document>();
 
     /**
      * Initialize CouchbaseLite library. This method MUST be called before
