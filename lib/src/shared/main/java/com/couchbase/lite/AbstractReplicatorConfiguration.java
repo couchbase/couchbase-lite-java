@@ -100,7 +100,7 @@ abstract class AbstractReplicatorConfiguration {
     //---------------------------------------------
 
     AbstractReplicatorConfiguration(@NonNull AbstractReplicatorConfiguration config) {
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(config, "config");
 
         this.readonly = false;
         this.database = config.database;
@@ -118,8 +118,8 @@ abstract class AbstractReplicatorConfiguration {
     }
 
     protected AbstractReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
-        Preconditions.checkArgNotNull(database, "database");
-        Preconditions.checkArgNotNull(target, "target");
+        Preconditions.assertNotNull(database, "database");
+        Preconditions.assertNotNull(target, "target");
         this.readonly = false;
         this.replicatorType = ReplicatorType.PUSH_AND_PULL;
         this.database = database;
@@ -140,7 +140,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setAuthenticator(@NonNull Authenticator authenticator) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.authenticator = authenticator;
         return getReplicatorConfiguration();
     }
@@ -156,9 +156,13 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setChannels(List<String> channels) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.channels = channels;
         return getReplicatorConfiguration();
+    }
+
+    private void checkReadOnly() {
+        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
     }
 
     /**
@@ -168,7 +172,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     public ReplicatorConfiguration setConflictResolver(@Nullable ConflictResolver conflictResolver) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.conflictResolver = conflictResolver;
         return getReplicatorConfiguration();
     }
@@ -184,7 +188,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setContinuous(boolean continuous) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.continuous = continuous;
         return getReplicatorConfiguration();
     }
@@ -198,7 +202,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setDocumentIDs(List<String> documentIDs) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.documentIDs = documentIDs;
         return getReplicatorConfiguration();
     }
@@ -211,7 +215,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setHeaders(Map<String, String> headers) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.headers = new HashMap<>(headers);
         return getReplicatorConfiguration();
     }
@@ -224,10 +228,11 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     // !!! FIXME: This method stores a mutable array as private data
+    @SuppressWarnings("PMD.ArrayIsStoredDirectly")
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @NonNull
     public ReplicatorConfiguration setPinnedServerCertificate(byte[] pinnedServerCertificate) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.pinnedServerCertificate = pinnedServerCertificate;
         return getReplicatorConfiguration();
     }
@@ -241,7 +246,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setPullFilter(ReplicationFilter pullFilter) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.pullFilter = pullFilter;
         return getReplicatorConfiguration();
     }
@@ -255,7 +260,7 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setPushFilter(ReplicationFilter pushFilter) {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        checkReadOnly();
         this.pushFilter = pushFilter;
         return getReplicatorConfiguration();
     }
@@ -269,8 +274,8 @@ abstract class AbstractReplicatorConfiguration {
      */
     @NonNull
     public ReplicatorConfiguration setReplicatorType(@NonNull ReplicatorType replicatorType) {
-        Preconditions.checkArgNotNull(replicatorType, "replicatorType");
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
+        Preconditions.assertNotNull(replicatorType, "replicatorType");
+        checkReadOnly();
         this.replicatorType = replicatorType;
         return getReplicatorConfiguration();
     }
@@ -324,6 +329,7 @@ abstract class AbstractReplicatorConfiguration {
      * Return the remote target's SSL certificate.
      */
     // !!! FIXME: This method returns a writable copy of its private data
+    @SuppressWarnings("PMD.MethodReturnsInternalArray")
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getPinnedServerCertificate() { return pinnedServerCertificate; }
 
@@ -373,24 +379,20 @@ abstract class AbstractReplicatorConfiguration {
 
         // Add the pinned certificate if any:
         if (pinnedServerCertificate != null) {
-            options.put(
-                REPLICATOR_OPTION_PINNED_SERVER_CERT,
-                pinnedServerCertificate);
+            options.put(REPLICATOR_OPTION_PINNED_SERVER_CERT, pinnedServerCertificate);
         }
 
-        if (documentIDs != null && documentIDs.size() > 0) { options.put(REPLICATOR_OPTION_DOC_IDS, documentIDs); }
+        if ((documentIDs != null) && (!documentIDs.isEmpty())) { options.put(REPLICATOR_OPTION_DOC_IDS, documentIDs); }
 
-        if (channels != null && channels.size() > 0) { options.put(REPLICATOR_OPTION_CHANNELS, channels); }
+        if ((channels != null) && (!channels.isEmpty())) { options.put(REPLICATOR_OPTION_CHANNELS, channels); }
 
         final Map<String, Object> httpHeaders = new HashMap<>();
         // User-Agent:
         httpHeaders.put("User-Agent", CBLVersion.getUserAgent());
         // headers
-        if (headers != null && headers.size() > 0) {
+        if ((headers != null) && (!headers.isEmpty())) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
-                httpHeaders.put(
-                    entry.getKey(),
-                    entry.getValue());
+                httpHeaders.put(entry.getKey(), entry.getValue());
             }
         }
         options.put(REPLICATOR_OPTION_EXTRA_HEADERS, httpHeaders);

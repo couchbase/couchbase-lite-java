@@ -26,18 +26,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-public class FileUtils {
+public final class FileUtils {
+    private FileUtils() { }
+
     public static boolean eraseFileOrDir(@NonNull String fileOrDirectory) {
-        Preconditions.checkArgNotNull(fileOrDirectory, "file or directory");
+        Preconditions.assertNotNull(fileOrDirectory, "file or directory");
         return eraseFileOrDir(new File(fileOrDirectory));
     }
 
     public static boolean eraseFileOrDir(File fileOrDirectory) {
-        Preconditions.checkArgNotNull(fileOrDirectory, "file or directory");
+        Preconditions.assertNotNull(fileOrDirectory, "file or directory");
         return deleteRecursive(fileOrDirectory);
     }
 
-    @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"})
+    @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"})
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static boolean deleteContents(File fileOrDirectory) {
         if ((fileOrDirectory == null) || (!fileOrDirectory.isDirectory())) { return true; }
@@ -52,10 +54,12 @@ public class FileUtils {
         return true;
     }
 
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public static boolean setPermissionRecursive(File fileOrDirectory, boolean readable, boolean writable) {
         if (fileOrDirectory.isDirectory()) {
-            for (File child : fileOrDirectory.listFiles()) { setPermissionRecursive(child, readable, writable); }
+            final File[] files = fileOrDirectory.listFiles();
+            if (files != null) {
+                for (File child : files) { setPermissionRecursive(child, readable, writable); }
+            }
         }
         return fileOrDirectory.setReadable(readable) && fileOrDirectory.setWritable(writable);
     }

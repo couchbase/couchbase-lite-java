@@ -33,7 +33,7 @@ public class FLDict {
     //-------------------------------------------------------------------------
 
     public FLDict(long handle) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
     }
 
@@ -60,7 +60,8 @@ public class FLDict {
         itr.begin(this);
         String key;
         while ((key = itr.getKeyString()) != null) {
-            results.put(key, itr.getValue().asObject());
+            final FLValue val = itr.getValue();
+            results.put(key, (val == null) ? null : val.asObject());
             itr.next();
         }
 

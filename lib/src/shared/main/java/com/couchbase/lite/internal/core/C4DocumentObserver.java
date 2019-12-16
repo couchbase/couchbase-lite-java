@@ -39,9 +39,10 @@ public class C4DocumentObserver {
      * observer -> this instance
      * context ->  maintained in java layer
      */
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void callback(long handle, String docID, long sequence) {
         final C4DocumentObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
-        if (obs != null && obs.listener != null) { obs.listener.callback(obs, docID, sequence, obs.context); }
+        if ((obs != null) && (obs.listener != null)) { obs.listener.callback(obs, docID, sequence, obs.context); }
     }
 
     static native long create(long db, String docID);

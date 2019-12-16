@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -33,13 +34,11 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
 
     @SuppressWarnings("ConstantConditions")
     @SuppressFBWarnings("NP_NULL_PARAM_DEREF_NONVIRTUAL")
-    public DatabaseConfiguration() { this(null); }
+    public DatabaseConfiguration() { this(null, false); }
 
     public DatabaseConfiguration(@NonNull DatabaseConfiguration config) { this(config, false); }
 
-    protected DatabaseConfiguration(@NonNull DatabaseConfiguration config, boolean readOnly) {
-        super(config, readOnly);
-    }
+    DatabaseConfiguration(@Nullable DatabaseConfiguration config, boolean readOnly) { super(config, readOnly); }
 
     //---------------------------------------------
     // API - public methods

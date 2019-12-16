@@ -25,6 +25,7 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.support.Log;
 
 
+@SuppressWarnings("PMD.TooManyMethods")
 public class FLEncoder {
     //-------------------------------------------------------------------------
     // Member variables
@@ -80,7 +81,7 @@ public class FLEncoder {
 
     public boolean writeKey(String slice) { return writeKey(handle, slice); }
 
-    @SuppressWarnings("unchecked") /* Allow Unchecked Cast */
+    @SuppressWarnings({"unchecked", "PMD.NPathComplexity"})
     public boolean writeValue(Object value) {
         // null
         if (value == null) { return writeNull(handle); }

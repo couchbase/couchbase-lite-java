@@ -45,7 +45,7 @@ public class SelectResult {
          */
         @NonNull
         public SelectResult from(@NonNull String alias) {
-            Preconditions.checkArgNotNull(alias, "alias");
+            Preconditions.assertNotNull(alias, "alias");
             this.selectExpression = PropertyExpression.allFrom(alias);
             this.alias = alias;
             return this;
@@ -68,7 +68,7 @@ public class SelectResult {
          */
         @NonNull
         public SelectResult as(@NonNull String alias) {
-            Preconditions.checkArgNotNull(alias, "alias");
+            Preconditions.assertNotNull(alias, "alias");
             this.alias = alias;
             return this;
         }
@@ -82,7 +82,7 @@ public class SelectResult {
      */
     @NonNull
     public static SelectResult.As property(@NonNull String property) {
-        Preconditions.checkArgNotNull(property, "property");
+        Preconditions.assertNotNull(property, "property");
         return new SelectResult.As(PropertyExpression.property(property));
     }
 
@@ -94,7 +94,7 @@ public class SelectResult {
      */
     @NonNull
     public static SelectResult.As expression(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, "expression");
         return new SelectResult.As(expression);
     }
 

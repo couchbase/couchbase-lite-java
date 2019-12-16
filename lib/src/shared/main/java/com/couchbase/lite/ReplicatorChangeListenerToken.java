@@ -24,7 +24,7 @@ import com.couchbase.lite.internal.CouchbaseLiteInternal;
 
 final class ReplicatorChangeListenerToken implements ListenerToken {
     private final ReplicatorChangeListener listener;
-    private Executor executor;
+    private final Executor executor;
 
     ReplicatorChangeListenerToken(Executor executor, ReplicatorChangeListener listener) {
         if (listener == null) { throw new IllegalArgumentException("listener may not be null"); }
@@ -41,7 +41,7 @@ final class ReplicatorChangeListenerToken implements ListenerToken {
 
 final class DocumentReplicationListenerToken implements ListenerToken {
     private final DocumentReplicationListener listener;
-    private Executor executor;
+    private final Executor executor;
 
     DocumentReplicationListenerToken(Executor executor, DocumentReplicationListener listener) {
         if (listener == null) { throw new IllegalArgumentException("a listener parameter is null"); }

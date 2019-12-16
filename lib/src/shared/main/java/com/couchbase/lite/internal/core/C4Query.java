@@ -50,10 +50,10 @@ public class C4Query {
         final long hdl;
         synchronized (lock) {
             hdl = handle;
-            handle = 0L;
+            handle = 0;
         }
 
-        if (hdl != 0L) { free(handle); }
+        internalFree(hdl);
     }
 
     //////// RUNNING QUERIES:
@@ -83,6 +83,7 @@ public class C4Query {
         }
     }
 
+    @SuppressWarnings("PMD.MethodReturnsInternalArray")
     public byte[] getFullTextMatched(C4FullTextMatch match) throws LiteCoreException {
         synchronized (lock) { return (handle == 0L) ? null : getFullTextMatched(handle, match.handle); }
     }
@@ -94,7 +95,7 @@ public class C4Query {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        internalFree(handle);
         super.finalize();
     }
 
@@ -102,9 +103,17 @@ public class C4Query {
     // package protected methods
     //-------------------------------------------------------------------------
 
-
     int columnCount() {
         synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
+    }
+
+    //-------------------------------------------------------------------------
+    // private methods
+    //-------------------------------------------------------------------------
+
+    private void internalFree(long hdl) {
+        if (hdl == 0L) { return; }
+        free(hdl);
     }
 
     //-------------------------------------------------------------------------

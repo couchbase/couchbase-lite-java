@@ -58,7 +58,7 @@ public final class LogFileConfiguration {
      * @param directory The directory that the logs will be written to
      */
     public LogFileConfiguration(@NonNull String directory) {
-        Preconditions.checkArgNotNull(directory, "directory");
+        Preconditions.assertNotNull(directory, "directory");
 
         this.directory = directory;
         readonly = false;
@@ -71,7 +71,7 @@ public final class LogFileConfiguration {
      * @param config The other configuration to copy settings from
      */
     private LogFileConfiguration(@NonNull LogFileConfiguration config, boolean readonly) {
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(config, "config");
 
         directory = config.directory;
         maxRotateCount = config.maxRotateCount;

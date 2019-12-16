@@ -76,7 +76,7 @@ abstract class AbstractQuery implements Query {
     private Limit limit; // LIMIT expr
 
     // PARAMETERS
-    private Parameters parameters = null;
+    private Parameters parameters;
 
     // column names
     private Map<String, Integer> columnNames;
@@ -180,7 +180,7 @@ abstract class AbstractQuery implements Query {
     @NonNull
     @Override
     public ListenerToken addChangeListener(@NonNull QueryChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         return addChangeListener(null, listener);
     }
 
@@ -196,7 +196,7 @@ abstract class AbstractQuery implements Query {
     @NonNull
     @Override
     public ListenerToken addChangeListener(Executor executor, @NonNull QueryChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         return getLiveQuery().addChangeListener(executor, listener);
     }
 
@@ -207,7 +207,7 @@ abstract class AbstractQuery implements Query {
      */
     @Override
     public void removeChangeListener(@NonNull ListenerToken token) {
-        Preconditions.checkArgNotNull(token, "token");
+        Preconditions.assertNotNull(token, "token");
         getLiveQuery().removeChangeListener(token);
     }
 
@@ -330,7 +330,7 @@ abstract class AbstractQuery implements Query {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "PMD.NPathComplexity"})
     private Map<String, Object> asJson() {
         final Map<String, Object> json = new HashMap<>();
 
@@ -343,11 +343,11 @@ abstract class AbstractQuery implements Query {
         // JOIN:
         final List<Object> f = new ArrayList<>();
         final Map<String, Object> as = from.asJSON();
-        if (as.size() > 0) { f.add(as); }
+        if (!as.isEmpty()) { f.add(as); }
 
         if (joins != null) { f.addAll((List<Object>) joins.asJSON()); }
 
-        if (f.size() > 0) { json.put("FROM", f); }
+        if (!f.isEmpty()) { json.put("FROM", f); }
 
         if (where != null) { json.put("WHERE", where.asJSON()); }
 

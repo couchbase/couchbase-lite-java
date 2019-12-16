@@ -21,15 +21,12 @@ import java.util.Map;
 
 
 /**
- * Authenticator is an opaque based authenticator interface and not intended for application to
+ * Authenticator is an opaque authenticator interface and not intended for application to
  * implement a custom authenticator by subclassing Authenticator interface.
  * <p>
- * NOTE: Authenticator is intentionally defined as abstract class to make
- * the authenticate method accessable at the package level.
+ * NOTE: Authenticator is and abstract class (instead of an interface) so that
+ * the <code>authenticate</code> method is visible only in this package.
  */
 public abstract class Authenticator {
-    protected Authenticator() {
-    }
-
     abstract void authenticate(Map<String, Object> options);
 }

@@ -52,7 +52,7 @@ public final class URLEndpoint implements Endpoint {
      * @param url The url.
      */
     public URLEndpoint(@NonNull URI url) {
-        Preconditions.checkArgNotNull(url, "url");
+        Preconditions.assertNotNull(url, "url");
 
         final String scheme = url.getScheme();
         if (!(SCHEME_STD.equals(scheme) || SCHEME_TLS.equals(scheme))) {

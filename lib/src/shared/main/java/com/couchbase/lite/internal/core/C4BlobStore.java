@@ -66,7 +66,7 @@ public class C4BlobStore {
     C4BlobStore(long handle) throws LiteCoreException { this(getBlobStore(handle), true); }
 
     C4BlobStore(long handle, boolean managedByDatabase) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
         this.managedByDatabase = managedByDatabase;
     }

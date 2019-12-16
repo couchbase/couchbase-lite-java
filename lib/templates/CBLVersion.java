@@ -25,28 +25,26 @@ import java.util.concurrent.atomic.AtomicReference;
 // Edit the version in that directory!
 // Changes made to this file in the source directory will be lost.
 // See the "copyVersion" task in the build file.
-public class CBLVersion {
-    private static final String USER_AGENT
-        = "CouchbaseLite/@VERSION@ (%s) %s";
-    private static final String VERSION_INFO
-        = "CouchbaseLite Java v@VERSION@ (%s) %s";
-    private static final String LIB_INFO
-        = "@VARIANT@/@TYPE@ Build/@BUILD@ Commit/@COMMIT@ Core/%s";
-    private static final String SYS_INFO
-        = "Java; %s";
+public final class CBLVersion {
+    private CBLVersion() {}
 
-    private static final AtomicReference<String> userAgent = new AtomicReference<>();
-    private static final AtomicReference<String> versionInfo = new AtomicReference<>();
-    private static final AtomicReference<String> libInfo = new AtomicReference<>();
-    private static final AtomicReference<String> sysInfo = new AtomicReference<>();
+    private static final String USER_AGENT_TMPLT = "CouchbaseLite/@VERSION@ (%s) %s";
+    private static final String VERSION_INFO_TMPLT = "CouchbaseLite Java v@VERSION@ (%s) %s";
+    private static final String LIB_INFO_TMPLT = "@VARIANT@/@TYPE@ Build/@BUILD@ Commit/@COMMIT@ Core/%s";
+    private static final String SYS_INFO_TMPLT = "Java; %s";
+
+    private static final AtomicReference<String> USER_AGENT = new AtomicReference<>();
+    private static final AtomicReference<String> VERSION_INFO = new AtomicReference<>();
+    private static final AtomicReference<String> LIB_INFO = new AtomicReference<>();
+    private static final AtomicReference<String> SYS_INFO = new AtomicReference<>();
 
     public static String getUserAgent() {
-        String agent = userAgent.get();
+        String agent = USER_AGENT.get();
 
         if (agent == null) {
-            agent = String.format(Locale.ENGLISH, USER_AGENT, getSysInfo(), getLibInfo());
+            agent = String.format(Locale.ENGLISH, USER_AGENT_TMPLT, getSysInfo(), getLibInfo());
 
-            userAgent.compareAndSet(null, agent);
+            USER_AGENT.compareAndSet(null, agent);
         }
 
         return agent;
@@ -54,11 +52,11 @@ public class CBLVersion {
 
     // This is the full library build and environment information.
     public static String getVersionInfo() {
-        String info = versionInfo.get();
+        String info = VERSION_INFO.get();
         if (info == null) {
-            info = String.format(Locale.ENGLISH, VERSION_INFO, getLibInfo(), getSysInfo());
+            info = String.format(Locale.ENGLISH, VERSION_INFO_TMPLT, getLibInfo(), getSysInfo());
 
-            versionInfo.compareAndSet(null, info);
+            VERSION_INFO.compareAndSet(null, info);
         }
 
         return info;
@@ -66,11 +64,11 @@ public class CBLVersion {
 
     // This is the short library build information.
     public static String getLibInfo() {
-        String info = libInfo.get();
+        String info = LIB_INFO.get();
         if (info == null) {
-            info = String.format(Locale.ENGLISH, LIB_INFO, C4.getVersion());
+            info = String.format(Locale.ENGLISH, LIB_INFO_TMPLT, C4.getVersion());
 
-            libInfo.compareAndSet(null, info);
+            LIB_INFO.compareAndSet(null, info);
         }
 
         return info;
@@ -78,12 +76,12 @@ public class CBLVersion {
 
     // This is information about the system on which we are running.
     public static String getSysInfo() {
-        String info = sysInfo.get();
+        String info = SYS_INFO.get();
 
         if (info == null) {
-            info = String.format(Locale.ENGLISH, SYS_INFO, System.getProperty("os.name", "unknown"));
+            info = String.format(Locale.ENGLISH, SYS_INFO_TMPLT, System.getProperty("os.name", "unknown"));
 
-            sysInfo.compareAndSet(null, info);
+            SYS_INFO.compareAndSet(null, info);
         }
 
         return info;

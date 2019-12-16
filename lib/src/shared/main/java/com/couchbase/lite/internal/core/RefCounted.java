@@ -22,7 +22,7 @@ import com.couchbase.lite.internal.support.Log;
 
 
 abstract class RefCounted {
-    private int refCount = 0;
+    private int refCount;
 
     abstract void free();
 

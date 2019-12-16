@@ -29,6 +29,7 @@ import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
 
 
+@SuppressWarnings({"PMD.ExcessivePublicCount", "PMD.TooManyMethods", "PMD.ExcessiveParameterList"})
 public class C4Database {
     public static void copyDb(
         String sourcePath,

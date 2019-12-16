@@ -68,6 +68,7 @@ import com.couchbase.lite.utils.Fn;
  * or continuous. The replicator runs asynchronously, so observe the status property to
  * be notified of progress.
  */
+@SuppressWarnings({"PMD.GodClass", "PMD.CyclomaticComplexity", "PMD.TooManyMethods", "PMD.TooManyFields"})
 public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private static final LogDomain DOMAIN = LogDomain.REPLICATOR;
 
@@ -277,10 +278,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     private static int mkmode(boolean active, boolean continuous) {
-        if (!active) { return C4ReplicatorMode.C4_DISABLED; }
-        return (continuous) ? C4ReplicatorMode.C4_CONTINUOUS : C4ReplicatorMode.C4_ONE_SHOT;
+        final C4ReplicatorMode mode = (!active)
+            ? C4ReplicatorMode.C4_DISABLED
+            : ((continuous) ? C4ReplicatorMode.C4_CONTINUOUS : C4ReplicatorMode.C4_ONE_SHOT);
+        return mode.getVal();
     }
-
 
     //---------------------------------------------
     // member variables
@@ -327,7 +329,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      * @param config replicator configuration
      */
     public AbstractReplicator(@NonNull ReplicatorConfiguration config) {
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(config, "config");
         this.config = config.readonlyCopy();
         socketFactory = new SocketFactory(config);
     }
@@ -344,7 +346,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
                 return;
             }
 
-            if (pendingResolutions.size() > 0) {
+            if (!pendingResolutions.isEmpty()) {
                 Log.i(DOMAIN, "%s is already running", this);
                 return;
             }
@@ -422,7 +424,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(docId, "document ID");
+        Preconditions.assertNotNull(docId, "document ID");
 
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
@@ -459,7 +461,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addChangeListener(@NonNull ReplicatorChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         return addChangeListener(null, listener);
     }
 
@@ -473,7 +475,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addChangeListener(Executor executor, @NonNull ReplicatorChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         synchronized (lock) {
             final ReplicatorChangeListenerToken token = new ReplicatorChangeListenerToken(executor, listener);
             changeListenerTokens.add(token);
@@ -487,7 +489,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      * @param token returned by a previous call to addChangeListener or addDocumentListener.
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        Preconditions.checkArgNotNull(token, "token");
+        Preconditions.assertNotNull(token, "token");
 
         synchronized (lock) {
             if (token instanceof ReplicatorChangeListenerToken) {
@@ -497,7 +499,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
             if (token instanceof DocumentReplicationListenerToken) {
                 docEndedListenerTokens.remove(token);
-                if (docEndedListenerTokens.size() == 0) { setProgressLevel(ReplicatorProgressLevel.OVERALL); }
+                if (docEndedListenerTokens.isEmpty()) { setProgressLevel(ReplicatorProgressLevel.OVERALL); }
                 return;
             }
 
@@ -517,7 +519,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      */
     @NonNull
     public ListenerToken addDocumentReplicationListener(@NonNull DocumentReplicationListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
 
         return addDocumentReplicationListener(null, listener);
     }
@@ -534,7 +536,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public ListenerToken addDocumentReplicationListener(
         @Nullable Executor executor,
         @NonNull DocumentReplicationListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         synchronized (lock) {
             setProgressLevel(ReplicatorProgressLevel.PER_DOCUMENT);
             final DocumentReplicationListenerToken token = new DocumentReplicationListenerToken(executor, listener);
@@ -603,6 +605,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     ///// Notification
 
+    @SuppressWarnings("PMD.NPathComplexity")
     void c4StatusChanged(C4ReplicatorStatus c4Status) {
         final ReplicatorChange change;
         final List<ReplicatorChangeListenerToken> tokens;
@@ -668,7 +671,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         for (ReplicatorChangeListenerToken token : tokens) { token.notify(change); }
     }
 
-    void documentEnded(boolean pushing, C4DocumentEnded[] docEnds) {
+    void documentEnded(boolean pushing, C4DocumentEnded... docEnds) {
         final List<ReplicatedDocument> unconflictedDocs = new ArrayList<>();
 
         for (C4DocumentEnded docEnd : docEnds) {
@@ -689,7 +692,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             unconflictedDocs.add(new ReplicatedDocument(docId, docEnd.getFlags(), error, docEnd.errorIsTransient()));
         }
 
-        if (unconflictedDocs.size() > 0) { notifyDocumentEnded(pushing, unconflictedDocs); }
+        if (!unconflictedDocs.isEmpty()) { notifyDocumentEnded(pushing, unconflictedDocs); }
     }
 
     void queueConflictResolution(@NonNull String docId, int flags) {
@@ -716,7 +719,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         synchronized (lock) {
             pendingResolutions.remove(task);
             // if no more resolutions, deliver any outstanding status notifications
-            if (pendingResolutions.size() <= 0) {
+            if (pendingResolutions.isEmpty()) {
                 pendingNotifications = new ArrayList<>(pendingStatusNotifications);
                 pendingStatusNotifications.clear();
             }
@@ -724,7 +727,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
         notifyDocumentEnded(false, Arrays.asList(new ReplicatedDocument(docId, flags, err, false)));
 
-        if ((pendingNotifications != null) && (pendingNotifications.size() > 0)) {
+        if ((pendingNotifications != null) && (!pendingNotifications.isEmpty())) {
             for (C4ReplicatorStatus status : pendingNotifications) {
                 dispatcher.execute(() -> c4StatusChanged(status));
             }
@@ -844,7 +847,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         options.put(AbstractReplicatorConfiguration.REPLICATOR_OPTION_PROGRESS_LEVEL, progressLevel.value);
 
         byte[] optionsFleece = null;
-        if (options.size() > 0) {
+        if (!options.isEmpty()) {
             final FLEncoder enc = new FLEncoder();
             try {
                 enc.write(options);
@@ -1054,6 +1057,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private String description() { return baseDesc() + "," + config.getDatabase() + "," + config.getTarget() + "]"; }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private String simpleDesc() { return baseDesc() + "}"; }
 
     private String baseDesc() {

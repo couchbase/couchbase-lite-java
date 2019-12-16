@@ -32,6 +32,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 
 
+@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
 public class C4Document {
     public static boolean dictContainsBlobs(FLSliceResult dict, FLSharedKeys sk) {
         return dictContainsBlobs(dict.getHandle(), sk.getHandle());
@@ -57,7 +58,7 @@ public class C4Document {
     C4Document(long db, long sequence) throws LiteCoreException { this(getBySequence(db, sequence)); }
 
     C4Document(long handle) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
     }
 
@@ -210,8 +211,10 @@ public class C4Document {
 
     private boolean isFlags(int flag) { return (getFlags() & flag) == flag; }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private boolean conflicted() { return isFlags(C4Constants.DocumentFlags.CONFLICTED); }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private boolean accessRemoved() { return isSelectedRevFlags(C4Constants.RevisionFlags.PURGED); }
 
     private <T> T withHandle(Fn.Function<Long, T> fn, T def) {
@@ -266,6 +269,7 @@ public class C4Document {
 
     static native long create2(long db, String docID, long body, int flags) throws LiteCoreException;
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     static native long put(
         long db,
         byte[] body,
@@ -279,6 +283,7 @@ public class C4Document {
         int remoteDBID)
         throws LiteCoreException;
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     static native long put2(
         long db,
         long body, // C4Slice*

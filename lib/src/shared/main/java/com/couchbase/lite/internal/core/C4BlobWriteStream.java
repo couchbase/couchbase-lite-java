@@ -53,7 +53,7 @@ public class C4BlobWriteStream {
      * @throws LiteCoreException on write failure
      */
     public void write(@NonNull byte[] bytes) throws LiteCoreException {
-        Preconditions.checkArgNotNull(bytes, "bytes");
+        Preconditions.assertNotNull(bytes, "bytes");
         write(bytes, bytes.length);
     }
 
@@ -65,7 +65,7 @@ public class C4BlobWriteStream {
      * @throws LiteCoreException on write failure
      */
     public void write(@NonNull byte[] bytes, int len) throws LiteCoreException {
-        Preconditions.checkArgNotNull(bytes, "bytes");
+        Preconditions.assertNotNull(bytes, "bytes");
         if (len <= 0) { return; }
         write(handle, bytes, len);
     }

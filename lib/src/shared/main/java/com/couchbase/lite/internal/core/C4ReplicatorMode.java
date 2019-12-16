@@ -18,9 +18,15 @@
 package com.couchbase.lite.internal.core;
 
 // How to replicate, in either direction
-public interface C4ReplicatorMode {
-    int C4_DISABLED = 0;   // Do not allow this direction
-    int C4_PASSIVE = 1;    // Allow peer to initiate this direction
-    int C4_ONE_SHOT = 2;   // Replicate, then stop
-    int C4_CONTINUOUS = 3; // Keep replication active until stopped by application
+public enum  C4ReplicatorMode {
+    C4_DISABLED(0),   // Do not allow this direction
+    C4_PASSIVE(1),    // Allow peer to initiate this direction
+    C4_ONE_SHOT(2),   // Replicate, then stop
+    C4_CONTINUOUS(3); // Keep replication active until stopped by application
+
+    private final int val;
+
+    C4ReplicatorMode(int val) { this.val = val; }
+
+    public int getVal() { return val; }
 }

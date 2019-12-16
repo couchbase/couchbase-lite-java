@@ -65,7 +65,7 @@ public final class Parameters {
      */
     @Nullable
     public Object getValue(@NonNull String name) {
-        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.assertNotNull(name, "name");
         return map.get(name);
     }
 
@@ -200,7 +200,7 @@ public final class Parameters {
      */
     @NonNull
     public Parameters setValue(@NonNull String name, @Nullable Object value) {
-        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.assertNotNull(name, "name");
         if (readonly) { throw new IllegalStateException("Parameters is readonly mode."); }
         map.put(name, value);
         return this;

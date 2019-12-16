@@ -55,7 +55,7 @@ public class MValue implements Encodable {
     //-------------------------------------------------------------------------
 
     public static void registerDelegate(@NonNull Delegate delegate) {
-        Preconditions.checkArgNotNull(delegate, "delegate");
+        Preconditions.assertNotNull(delegate, "delegate");
         MValue.delegate = delegate;
     }
 
@@ -99,7 +99,7 @@ public class MValue implements Encodable {
     public FLValue getValue() { return value; }
 
     public void mutate() {
-        Preconditions.checkArgNotNull(nativeObject, "Native object");
+        Preconditions.assertNotNull(nativeObject, "Native object");
         value = null;
     }
 
@@ -136,18 +136,18 @@ public class MValue implements Encodable {
     //-------------------------------------------------------------------------
     @Nullable
     private Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt) {
-        Preconditions.checkArgNotNull(MValue.delegate, "delegate");
+        Preconditions.assertNotNull(MValue.delegate, "delegate");
         return delegate.toNative(mv, parent, cacheIt);
     }
 
     @Nullable
     private MCollection collectionFromNative(@Nullable Object obj) {
-        Preconditions.checkArgNotNull(MValue.delegate, "delegate");
+        Preconditions.assertNotNull(MValue.delegate, "delegate");
         return delegate.collectionFromNative(obj);
     }
 
     private void encodeNative(@NonNull FLEncoder encoder, @Nullable Object object) {
-        Preconditions.checkArgNotNull(MValue.delegate, "delegate");
+        Preconditions.assertNotNull(MValue.delegate, "delegate");
         delegate.encodeNative(encoder, object);
     }
 

@@ -21,33 +21,14 @@ import com.couchbase.lite.LiteCoreException;
 
 
 public class C4DocEnumerator {
-    static native void close(long e);
-
-    //-------------------------------------------------------------------------
-    // Constructor
-    //-------------------------------------------------------------------------
-
-    static native void free(long e);
-
-    static native long enumerateChanges(long db, long since, int flags)
-        throws LiteCoreException;
-
-    static native long enumerateAllDocs(long db, int flags) throws LiteCoreException;
-
-    static native boolean next(long e) throws LiteCoreException;
-
-    static native long getDocument(long e) throws LiteCoreException;
-
-    static native void getDocumentInfo(long e, Object[] outIDs, long[] outNumbers);
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
     private long handle; // hold pointer to C4DocEnumerator
 
     //-------------------------------------------------------------------------
-    // native methods
+    // Constructor
     //-------------------------------------------------------------------------
-
     C4DocEnumerator(long db, long since, int flags) throws LiteCoreException {
         handle = enumerateChanges(db, since, flags);
     }
@@ -59,24 +40,21 @@ public class C4DocEnumerator {
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public void close() {
-        close(handle);
-    }
 
-    public void free() {
-        if (handle != 0L) {
-            free(handle);
-            handle = 0L;
-        }
-    }
-
-    public boolean next() throws LiteCoreException {
-        return next(handle);
-    }
+    public boolean next() throws LiteCoreException { return next(handle); }
 
     public C4Document getDocument() throws LiteCoreException {
         final long doc = getDocument(handle);
         return doc != 0 ? new C4Document(doc) : null;
+    }
+
+    public void close() { close(handle); }
+
+    public void free() {
+        final long hdl = handle;
+        handle = 0L;
+
+        if (hdl != 0L) { free(hdl); }
     }
 
     //-------------------------------------------------------------------------
@@ -88,4 +66,22 @@ public class C4DocEnumerator {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+    private static native void close(long e);
+
+    private static native void free(long e);
+
+    private static native long enumerateChanges(long db, long since, int flags) throws LiteCoreException;
+
+    private static native long enumerateAllDocs(long db, int flags) throws LiteCoreException;
+
+    private static native boolean next(long e) throws LiteCoreException;
+
+    private static native long getDocument(long e) throws LiteCoreException;
+
+    @SuppressWarnings({"PMD.LinguisticNaming", "PMD.UnusedPrivateMethod"})
+    private static native void getDocumentInfo(long e, Object[] outIDs, long[] outNumbers);
 }

@@ -20,6 +20,7 @@ package com.couchbase.lite;
 /**
  * The flags enum describing the replicated document.
  */
+@SuppressWarnings("PMD.FieldNamingConventions")
 public enum DocumentFlag {
 
     /**

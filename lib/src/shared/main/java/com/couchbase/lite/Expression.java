@@ -37,7 +37,10 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * The expression used in constructing a query.
  */
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.FieldNamingConventions"})
 public abstract class Expression {
+    private static final String PARAM_EXPRESSION = "expression";
+
     //---------------------------------------------
     // Value Expression
     //---------------------------------------------
@@ -242,7 +245,7 @@ public abstract class Expression {
         private final List<Expression> subexpressions;
 
         CompoundExpression(@NonNull List<Expression> subexpressions, @NonNull OpType type) {
-            Preconditions.checkArgNotNull(subexpressions, "subexpressions");
+            Preconditions.assertNotNull(subexpressions, "subexpressions");
             this.type = type;
             this.subexpressions = subexpressions;
         }
@@ -281,7 +284,7 @@ public abstract class Expression {
         private final OpType type;
 
         UnaryExpression(@NonNull Expression operand, @NonNull OpType type) {
-            Preconditions.checkArgNotNull(operand, "operand");
+            Preconditions.assertNotNull(operand, "operand");
             this.operand = operand;
             this.type = type;
         }
@@ -501,7 +504,7 @@ public abstract class Expression {
      */
     @NonNull
     public static PropertyExpression property(@NonNull String property) {
-        Preconditions.checkArgNotNull(property, "property");
+        Preconditions.assertNotNull(property, "property");
         return new PropertyExpression(property);
     }
 
@@ -513,7 +516,7 @@ public abstract class Expression {
      */
     @NonNull
     public static Expression parameter(@NonNull String name) {
-        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.assertNotNull(name, "name");
         return new ParameterExpression(name);
     }
 
@@ -525,7 +528,7 @@ public abstract class Expression {
      */
     @NonNull
     public static Expression negated(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new CompoundExpression(Arrays.asList(expression), CompoundExpression.OpType.Not);
     }
 
@@ -537,7 +540,7 @@ public abstract class Expression {
      */
     @NonNull
     public static Expression not(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return negated(expression);
     }
 
@@ -556,7 +559,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression multiply(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Multiply);
     }
 
@@ -568,7 +571,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression divide(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Divide);
     }
 
@@ -580,7 +583,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression modulo(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Modulus);
     }
 
@@ -592,7 +595,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression add(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Add);
     }
 
@@ -604,7 +607,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression subtract(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Subtract);
     }
 
@@ -617,7 +620,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression lessThan(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.LessThan);
     }
 
@@ -630,7 +633,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression lessThanOrEqualTo(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.LessThanOrEqualTo);
     }
 
@@ -643,7 +646,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression greaterThan(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.GreaterThan);
     }
 
@@ -656,7 +659,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression greaterThanOrEqualTo(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.GreaterThanOrEqualTo);
     }
 
@@ -669,7 +672,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression equalTo(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.EqualTo);
     }
 
@@ -684,7 +687,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression notEqualTo(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.NotEqualTo);
     }
 
@@ -697,7 +700,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression and(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new CompoundExpression(Arrays.asList(this, expression), CompoundExpression.OpType.And);
     }
 
@@ -710,7 +713,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression or(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new CompoundExpression(Arrays.asList(this, expression), CompoundExpression.OpType.Or);
     }
 
@@ -723,7 +726,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression like(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Like);
     }
 
@@ -736,7 +739,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression regex(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.RegexLike);
     }
 
@@ -749,7 +752,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression is(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.Is);
     }
 
@@ -760,9 +763,10 @@ public abstract class Expression {
      * @param expression the expression to compare with the current expression.
      * @return an IS NOT expression.
      */
+    @SuppressWarnings("PMD.LinguisticNaming")
     @NonNull
     public Expression isNot(@NonNull Expression expression) {
-        Preconditions.checkArgNotNull(expression, "expression");
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new BinaryExpression(this, expression, BinaryExpression.OpType.IsNot);
     }
 
@@ -776,8 +780,8 @@ public abstract class Expression {
      */
     @NonNull
     public Expression between(@NonNull Expression expression1, @NonNull Expression expression2) {
-        Preconditions.checkArgNotNull(expression1, "lower bound");
-        Preconditions.checkArgNotNull(expression2, "upper bound");
+        Preconditions.assertNotNull(expression1, "lower bound");
+        Preconditions.assertNotNull(expression2, "upper bound");
         final Expression aggr = new AggregateExpression(Arrays.asList(expression1, expression2));
         return new BinaryExpression(this, aggr, BinaryExpression.OpType.Between);
     }
@@ -788,6 +792,7 @@ public abstract class Expression {
      *
      * @return An IS NULL expression.
      */
+    @SuppressWarnings("PMD.LinguisticNaming")
     @NonNull
     public Expression isNullOrMissing() {
         return new UnaryExpression(this, UnaryExpression.OpType.Null)
@@ -813,7 +818,7 @@ public abstract class Expression {
      */
     @NonNull
     public Expression collate(@NonNull Collation collation) {
-        Preconditions.checkArgNotNull(collation, "collation");
+        Preconditions.assertNotNull(collation, "collation");
         return new CollationExpression(this, collation);
     }
 

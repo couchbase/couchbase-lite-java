@@ -21,7 +21,7 @@ package com.couchbase.lite.internal;
  * exceptions that are resolved within the bindings code.
  */
 public class CBLInternalException extends Exception {
-    public static final int FAILED_SELECTING_CONFLICTING_REVISION = -101;
+     public static final int FAILED_SELECTING_CONFLICTING_REVISION = -101;
 
 
     private final int code;

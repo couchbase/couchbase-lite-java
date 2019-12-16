@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
 /**
  * Based IndexBuilder used for building database index objects.
  */
+@SuppressWarnings({"PMD.AbstractClassWithoutAbstractMethod"})
 abstract class AbstractIndexBuilder {
 
     /**

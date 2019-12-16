@@ -25,8 +25,9 @@ import java.util.List;
 
 /**
  * The Satisfies class represents the SATISFIES clause object in a quantified operator
- * (ANY/ANY AND EVERY/EVERY <variable name> IN <expr> SATISFIES <expr>). The SATISFIES clause
- * is used for specifying an expression that will be used to evaluate each item in the array.
+ * (ANY/ANY AND EVERY/EVERY &lt;variable name&gt; IN &lt;expr&gt; SATISFIES &lt;expr&gt;).
+ * The SATISFIES clause is used for specifying an expression that will be used to evaluate
+ * each item in the array.
  */
 public final class ArrayExpressionSatisfies {
     private static final class QuantifiedExpression extends Expression {

@@ -24,8 +24,10 @@ import android.support.annotation.NonNull;
  * Meta is a factory class for creating the expressions that refer to
  * the metadata properties of the document.
  */
-@SuppressWarnings("ConstantName")
-public class Meta {
+@SuppressWarnings({"ConstantName", "PMD.FieldNamingConventions"})
+public final class Meta {
+    private Meta() { }
+
     /**
      * A metadata expression referring to the ID of the document.
      */
@@ -51,9 +53,4 @@ public class Meta {
      */
     @NonNull
     public static final MetaExpression expiration = new MetaExpression("_expiration", "expiration", null);
-
-    //---------------------------------------------
-    // Constructor
-    //---------------------------------------------
-    private Meta() { }
 }

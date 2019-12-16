@@ -71,6 +71,7 @@ import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.support.Log;
 
 
+@SuppressWarnings("PMD.GodClass")
 public class AbstractCBLWebSocket extends C4Socket {
     private static final LogDomain TAG = LogDomain.NETWORK;
 
@@ -89,7 +90,7 @@ public class AbstractCBLWebSocket extends C4Socket {
      * When starting to support from API 20, we could remove the workaround.
      */
     private static class TLSSocketFactory extends SSLSocketFactory {
-        private SSLSocketFactory delegate;
+        private final SSLSocketFactory delegate;
 
         TLSSocketFactory(KeyManager[] keyManagers, TrustManager[] trustManagers, SecureRandom secureRandom)
             throws GeneralSecurityException {
@@ -99,14 +100,10 @@ public class AbstractCBLWebSocket extends C4Socket {
         }
 
         @Override
-        public String[] getDefaultCipherSuites() {
-            return delegate.getDefaultCipherSuites();
-        }
+        public String[] getDefaultCipherSuites() { return delegate.getDefaultCipherSuites(); }
 
         @Override
-        public String[] getSupportedCipherSuites() {
-            return delegate.getSupportedCipherSuites();
-        }
+        public String[] getSupportedCipherSuites() { return delegate.getSupportedCipherSuites(); }
 
         @Override
         public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
@@ -244,10 +241,10 @@ public class AbstractCBLWebSocket extends C4Socket {
     // Member Variables
     //-------------------------------------------------------------------------
 
-    private OkHttpClient httpClient;
-    private CBLWebSocketListener wsListener;
-    private URI uri;
-    private Map<String, Object> options;
+    private final OkHttpClient httpClient;
+    private final CBLWebSocketListener wsListener;
+    private final URI uri;
+    private final Map<String, Object> options;
     private WebSocket webSocket;
 
     //-------------------------------------------------------------------------

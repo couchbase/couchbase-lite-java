@@ -29,7 +29,7 @@ public class FLSliceResult implements AllocSlice {
 
     private long handle; // hold pointer to FLSliceResult
 
-    private boolean isMemoryManaged = false;
+    private boolean isMemoryManaged;
 
     //-------------------------------------------------------------------------
     // Public methods

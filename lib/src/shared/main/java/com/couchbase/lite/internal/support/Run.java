@@ -20,23 +20,21 @@ package com.couchbase.lite.internal.support;
 import android.support.annotation.NonNull;
 
 import java.util.HashSet;
+import java.util.Set;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public final class Run {
-    private static final HashSet<String> INSTANCES = new HashSet<>();
+    private Run() { }
+
+    private static final Set<String> INSTANCES = new HashSet<>();
 
     public static synchronized void once(@NonNull String tag, @NonNull Runnable action) {
-        if (tag == null) {
-            throw new IllegalArgumentException("tag cannot be null");
-        }
+        Preconditions.assertNotNull(tag, "tag");
+        Preconditions.assertNotNull(action, "action");
 
-        if (action == null) {
-            throw new IllegalArgumentException("action cannot be null");
-        }
-
-        if (INSTANCES.contains(tag)) {
-            return;
-        }
+        if (INSTANCES.contains(tag)) { return; }
 
         INSTANCES.add(tag);
         action.run();

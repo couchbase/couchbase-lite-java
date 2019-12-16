@@ -18,6 +18,9 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -32,22 +35,25 @@ import com.couchbase.lite.internal.support.Log;
 public final class CBLStatus {
     private CBLStatus() {}
 
+    @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION")
     @NonNull
-    public static CouchbaseLiteException convertError(@NonNull C4Error c4err) {
+    public static CouchbaseLiteException convertError(@Nullable C4Error c4err) {
         return (c4err == null)
-            ? new CouchbaseLiteException((String) null)
+            ? new CouchbaseLiteException()
             : convertException(c4err.getDomain(), c4err.getCode(), c4err.getInternalInfo());
     }
 
+    // CouchbaseLiteException can, actually, deal with a null message
+    @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION")
     @NonNull
-    public static CouchbaseLiteException convertException(@NonNull LiteCoreException e) {
+    public static CouchbaseLiteException convertException(@Nullable LiteCoreException e) {
         return (e == null)
-            ? new CouchbaseLiteException((String) null)
+            ? new CouchbaseLiteException()
             : convertException(e.domain, e.code, null, e);
     }
 
     @NonNull
-    public static CouchbaseLiteException convertException(@NonNull LiteCoreException e, String msg) {
+    public static CouchbaseLiteException convertException(@Nullable LiteCoreException e, @NonNull String msg) {
         return (e == null)
             ? new CouchbaseLiteException(msg)
             : convertException(e.domain, e.code, msg, e);
@@ -59,7 +65,11 @@ public final class CBLStatus {
             : convertException(domainCode, statusCode, C4Base.getMessage(domainCode, statusCode, internalInfo), null);
     }
 
-    public static CouchbaseLiteException convertException(int domainCode, int statusCode, String msg, Exception e) {
+    public static CouchbaseLiteException convertException(
+        int domainCode,
+        int statusCode,
+        @Nullable String msg,
+        @Nullable Exception e) {
         int code = statusCode;
 
         String domain = CBLError.Domain.CBLITE;
@@ -87,8 +97,9 @@ public final class CBLStatus {
                     "Unable to map C4Error(%d,%d) to an CouchbaseLiteException",
                     domainCode,
                     statusCode);
+                break;
         }
 
-        return new CouchbaseLiteException(msg, e, domain, code);
+        return new CouchbaseLiteException(msg, e, domain, code, null);
     }
 }

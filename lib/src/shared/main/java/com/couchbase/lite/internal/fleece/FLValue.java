@@ -28,6 +28,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 
 
+@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
 public class FLValue {
 
     //-------------------------------------------------------------------------
@@ -69,7 +70,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
 
     public FLValue(long handle) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
     }
 

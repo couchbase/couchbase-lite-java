@@ -55,7 +55,7 @@ public final class CouchbaseLiteInternal {
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
-    private static final Object lock = new Object();
+    private static final Object LOCK = new Object();
 
     @GuardedBy("lock")
     private static String dbDirPath;
@@ -63,7 +63,7 @@ public final class CouchbaseLiteInternal {
     private static String tmpDirPath;
 
     public static void init(@NonNull MValue.Delegate mValueDelegate, @Nullable String rootDirectoryPath) {
-        Preconditions.checkArgNotNull(mValueDelegate, "mValueDelegate");
+        Preconditions.assertNotNull(mValueDelegate, "mValueDelegate");
 
         if (INITIALIZED.getAndSet(true)) { return; }
 
@@ -116,7 +116,7 @@ public final class CouchbaseLiteInternal {
     public static void setupDirectories(@Nullable String rootDirPath) {
         requireInit("Can't set root directory");
 
-        synchronized (lock) {
+        synchronized (LOCK) {
             // remember the current tmp dir
             final String tmpPath = tmpDirPath;
 
@@ -130,13 +130,13 @@ public final class CouchbaseLiteInternal {
     @NonNull
     public static String getDbDirectoryPath() {
         requireInit("Database directory not initialized");
-        synchronized (lock) { return dbDirPath; }
+        synchronized (LOCK) { return dbDirPath; }
     }
 
     @NonNull
     public static String getTmpDirectoryPath() {
         requireInit("Database directory not initialized");
-        synchronized (lock) { return tmpDirPath; }
+        synchronized (LOCK) { return tmpDirPath; }
     }
 
     @VisibleForTesting
@@ -167,7 +167,7 @@ public final class CouchbaseLiteInternal {
             return path;
         }
         catch (IOException e) {
-            throw new IllegalStateException("Cannot create or access temp directory at " + path);
+            throw new IllegalStateException("Cannot create or access temp directory at " + path, e);
         }
     }
 
@@ -175,13 +175,13 @@ public final class CouchbaseLiteInternal {
         final String dbPath = makeDbPath(rootDirPath);
         final String tmpPath = makeTmpPath(rootDirPath);
 
-        synchronized (lock) {
+        synchronized (LOCK) {
             tmpDirPath = tmpPath;
             dbDirPath = dbPath;
         }
     }
 
     private static void setC4TmpDirPath() {
-        synchronized (lock) { C4Base.setTempDir(tmpDirPath); }
+        synchronized (LOCK) { C4Base.setTempDir(tmpDirPath); }
     }
 }

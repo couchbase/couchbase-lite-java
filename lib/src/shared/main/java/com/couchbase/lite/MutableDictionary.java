@@ -92,7 +92,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
     @NonNull
     @Override
     public MutableDictionary setValue(@NonNull String key, Object value) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             final MValue oldValue = internalDict.get(key);
             value = Fleece.toCBLObject(value);
@@ -231,7 +231,7 @@ public final class MutableDictionary extends Dictionary implements MutableDictio
     @NonNull
     @Override
     public MutableDictionary remove(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             internalDict.remove(key);
             return this;

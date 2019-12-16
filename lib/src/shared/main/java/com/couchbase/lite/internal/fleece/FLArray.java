@@ -32,7 +32,7 @@ public class FLArray {
     //-------------------------------------------------------------------------
 
     public FLArray(long handle) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
     }
 

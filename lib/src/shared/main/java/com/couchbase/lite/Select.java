@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Select represents the SELECT clause of the query for specifying the returning properties in each
@@ -59,9 +61,7 @@ public final class Select extends AbstractQuery implements FromRouter {
     @NonNull
     @Override
     public From from(@NonNull DataSource dataSource) {
-        if (dataSource == null) {
-            throw new IllegalArgumentException("dataSource cannot be null.");
-        }
+        Preconditions.assertNotNull(dataSource, "dataSource");
         return new From(this, dataSource);
     }
 
@@ -69,17 +69,11 @@ public final class Select extends AbstractQuery implements FromRouter {
     // Package level access
     //---------------------------------------------
 
-    List<SelectResult> getSelectResults() {
-        return selectResults;
-    }
+    List<SelectResult> getSelectResults() { return selectResults; }
 
-    boolean isDistinct() {
-        return distinct;
-    }
+    boolean isDistinct() { return distinct; }
 
-    boolean hasSelectResults() {
-        return selectResults.size() > 0;
-    }
+    boolean hasSelectResults() { return !selectResults.isEmpty(); }
 
     Object asJSON() {
         final List<Object> json = new ArrayList<>();

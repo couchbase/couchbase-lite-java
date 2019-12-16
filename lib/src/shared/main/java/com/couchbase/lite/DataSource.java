@@ -37,7 +37,7 @@ public class DataSource {
         //---------------------------------------------
         // Constructors
         //---------------------------------------------
-        private As(com.couchbase.lite.Database source) { super(source); }
+        private As(Database source) { super(source); }
 
         //---------------------------------------------
         // API - public methods
@@ -51,7 +51,7 @@ public class DataSource {
          */
         @NonNull
         public DataSource as(@NonNull String alias) {
-            Preconditions.checkArgNotNull(alias, "alias");
+            Preconditions.assertNotNull(alias, "alias");
             super.alias = alias;
             return this;
         }
@@ -64,8 +64,8 @@ public class DataSource {
      * @return {@code DataSource.Database} object.
      */
     @NonNull
-    public static As database(@NonNull com.couchbase.lite.Database database) {
-        Preconditions.checkArgNotNull(database, "database");
+    public static As database(@NonNull Database database) {
+        Preconditions.assertNotNull(database, "database");
         return new As(database);
     }
 

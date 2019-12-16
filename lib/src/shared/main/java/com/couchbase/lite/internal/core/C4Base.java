@@ -18,7 +18,8 @@
 package com.couchbase.lite.internal.core;
 
 
-public class C4Base {
+public final class C4Base {
+    private C4Base() { }
 
     //-------------------------------------------------------------------------
     // native methods

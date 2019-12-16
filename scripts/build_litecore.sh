@@ -1,9 +1,10 @@
 #!/bin/bash
 
 function usage() {
-    echo "usage: build_litecore -e <VAL> [-l <VAL>]"
+    echo "usage: build_litecore -e <VAL> [-l <VAL>] [-d]"
     echo "  -e|--edition CE|EE   LiteCore edition: CE or EE."
     echo "  -l|--lib <VAL>       The library to build:  LiteCore (LiteCore + mbedcrypto) or mbedcrypto (mbedcrypto only). The default is LiteCore."
+    echo "  -d|--debug           Use build type 'Debug' instead of 'RelWithDebInfo'"
     echo
 }
 
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
         shift
         shift
         ;;
+        -d|--debug)
+        DEBUG=1
+        shift
+        ;;
         *)
         echo >&2 "Unrecognized option $key, aborting..."
         usage
@@ -43,6 +48,12 @@ if [ -z "$EDITION" ]; then
   echo >&2 "Missing --edition option, aborting..."
   usage
   exit 1
+fi
+
+if [ -z "$DEBUG" ]; then
+  BUILD_TYPE="RelWithDebInfo"
+else
+  BUILD_TYPE="Debug"
 fi
 
 echo "LiteCore Edition: $EDITION"
@@ -74,7 +85,7 @@ mkdir -p $OUTPUT_DIR
 
 if [[ $OS == linux ]]; then
   if [[ $LIB == LiteCore ]]; then
-    CC=clang CXX=clang++ cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
+    CC=clang CXX=clang++ cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
 
     make -j `expr $CORE_COUNT + 1` LiteCore
     cp -f libLiteCore.so $OUTPUT_DIR
@@ -84,7 +95,7 @@ if [[ $OS == linux ]]; then
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
+    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
     make -j `expr $CORE_COUNT + 1`
     cp -f $MBEDTLS_LIB $OUTPUT_DIR
   fi
@@ -92,7 +103,7 @@ fi
 
 if [[ $OS == macos ]]; then
   if [[ $LIB == LiteCore ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
     make -j `expr $CORE_COUNT + 1` LiteCore
     strip -x libLiteCore.dylib
@@ -103,7 +114,7 @@ if [[ $OS == macos ]]; then
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
     make -j `expr $CORE_COUNT + 1`
     cp -f $MBEDTLS_LIB $OUTPUT_DIR
   fi

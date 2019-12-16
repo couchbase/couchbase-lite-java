@@ -69,7 +69,7 @@ final class LiveQuery implements DatabaseChangeListener {
     //---------------------------------------------
 
     LiveQuery(@NonNull AbstractQuery query) {
-        Preconditions.checkArgNotNull(query, "query");
+        Preconditions.assertNotNull(query, "query");
         this.query = query;
     }
 
@@ -175,6 +175,7 @@ final class LiveQuery implements DatabaseChangeListener {
 
     // Runs on the query.database.queryExecutor
     // Assumes that call to `previousResults.refresh` is safe, even if previousResults has been freed.
+    @SuppressWarnings("PMD.CloseResource")
     private void refreshResults() {
         try {
             final ResultSet prevResults;

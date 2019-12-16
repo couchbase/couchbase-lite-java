@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
@@ -41,6 +43,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * Readonly version of the Document.
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public class Document implements DictionaryInterface, Iterable<String> {
     // !!! This code is from v1.x. Replace with c4rev_getGeneration().
     private static long generationFromRevID(String revID) {
@@ -64,11 +67,11 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     @NonNull
     private final String id;
+    private final boolean mutable;
 
     // note that while internalDict is guarded by lock, the content of the Dictionary is not.
     @SuppressWarnings("NullableProblems")
     @GuardedBy("lock")
-    @NonNull
     private Dictionary internalDict;
 
     @GuardedBy("lock")
@@ -83,6 +86,9 @@ public class Document implements DictionaryInterface, Iterable<String> {
     @Nullable
     private FLDict data;
 
+    // keep a ref to prevent GC
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
+    @SuppressWarnings("PMD.UnusedPrivateField")
     @GuardedBy("lock")
     @Nullable
     private MRoot root;
@@ -99,22 +105,24 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // Constructors
     //---------------------------------------------
 
-    protected Document(@Nullable Database database, @NonNull String id, @Nullable C4Document c4doc) {
+    // This is the only constructor that child classes should call
+    protected Document(@Nullable Database database, @NonNull String id, @Nullable C4Document c4doc, boolean mutable) {
         this.database = database;
+        this.mutable = mutable;
         this.id = id;
-        setC4Document(c4doc);
+        setC4Document(c4doc, mutable);
     }
 
     Document(@NonNull Database database, @NonNull String id, @Nullable String revId, @Nullable FLDict body) {
-        this(database, id, null);
+        this(database, id, null, false);
         this.data = body;
         this.revId = revId;
-        updateDictionaryLocked();
+        updateDictionaryLocked(false);
     }
 
     Document(@NonNull Database database, @NonNull String id, boolean includeDeleted) throws CouchbaseLiteException {
-        this(database, id, null);
-        Preconditions.checkArgNotNull(database, "database");
+        this(database, id, null, false);
+        Preconditions.assertNotNull(database, "database");
 
         final C4Document doc;
         try {
@@ -129,7 +137,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
 
         // NOTE: c4doc should not be null.
-        setC4Document(doc);
+        setC4Document(doc, false);
     }
 
     //---------------------------------------------
@@ -415,23 +423,24 @@ public class Document implements DictionaryInterface, Iterable<String> {
         return result;
     }
 
+    @SuppressWarnings("PMD.ConsecutiveLiteralAppends")
     @NonNull
     @Override
     public String toString() {
         final StringBuilder buf = new StringBuilder("Document")
-            .append(isMutable() ? "+" : ".")
-            .append(isDeleted() ? "?" : ".")
-            .append("{").append(id).append("@").append(getRevisionID()).append(":");
+            .append(isMutable() ? '+' : '.')
+            .append(isDeleted() ? '?' : '.')
+            .append('{').append(id).append('@').append(getRevisionID()).append(':');
 
         boolean first = true;
         for (String key : getKeys()) {
             if (first) { first = false; }
-            else { buf.append(","); }
+            else { buf.append(','); }
 
             buf.append(key).append("=>").append(getValue(key));
         }
 
-        return buf.append("}").toString();
+        return buf.append('}').toString();
     }
 
     @NonNull
@@ -447,9 +456,9 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // Package level access
     //---------------------------------------------
 
-    boolean isMutable() { return false; }
+    final boolean isMutable() { return mutable; }
 
-    // TODO: c4rev_getGeneration
+    // !!! should use c4rev_getGeneration
     long generation() { return generationFromRevID(getRevisionID()); }
 
     final boolean isEmpty() { return getContent().isEmpty(); }
@@ -507,7 +516,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
                 foundConflict = c4Document.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
             }
 
-            if (foundConflict) { setC4Document(c4Document); }
+            if (foundConflict) { setC4Document(c4Document, isMutable()); }
         }
 
         return foundConflict;
@@ -530,16 +539,17 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
     }
 
+
     //---------------------------------------------
     // Private access
     //---------------------------------------------
 
     // Sets c4doc and updates the root dictionary
-    private void setC4Document(@Nullable C4Document c4doc) {
+    private void setC4Document(@Nullable C4Document c4doc, boolean mutable) {
         synchronized (lock) {
             updateC4DocumentLocked(c4doc);
             data = ((c4doc == null) || c4doc.deleted()) ? null : c4doc.getSelectedBody2();
-            updateDictionaryLocked();
+            updateDictionaryLocked(mutable);
         }
     }
 
@@ -553,17 +563,18 @@ public class Document implements DictionaryInterface, Iterable<String> {
     }
 
     @GuardedBy("lock")
-    private void updateDictionaryLocked() {
+    private void updateDictionaryLocked(boolean mutable) {
         if (data == null) {
             root = null;
-            internalDict = isMutable() ? new MutableDictionary() : new Dictionary();
+            internalDict = mutable ? new MutableDictionary() : new Dictionary();
             return;
         }
 
         final Database db = getDatabase();
         if (db == null) { throw new IllegalStateException(""); }
 
-        root = new MRoot(new DocContext(db, c4Document), data.toFLValue(), isMutable());
-        synchronized (db.getLock()) { internalDict = (Dictionary) root.asNative(); }
+        final MRoot newRoot = new MRoot(new DocContext(db, c4Document), data.toFLValue(), isMutable());
+        root = newRoot;
+        synchronized (db.getLock()) { internalDict = (Dictionary) newRoot.asNative(); }
     }
 }

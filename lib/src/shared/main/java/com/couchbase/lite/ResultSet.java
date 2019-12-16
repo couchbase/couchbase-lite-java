@@ -79,7 +79,7 @@ public class ResultSet implements Iterable<Result> {
      * if there are no more rows, or ResultSet is freed already.
      */
     public Result next() {
-        Preconditions.checkArgNotNull(query, "query");
+        Preconditions.assertNotNull(query, "query");
         if (!isAlive.get()) { return null; }
 
         synchronized (getDbLock()) {
@@ -107,7 +107,7 @@ public class ResultSet implements Iterable<Result> {
 
     /**
      * Return List of Results. List is unmodifiable and only supports
-     * int get(int index), int size(), boolean isEmpty() and Iterator<Result> iterator() methods.
+     * int get(int index), int size(), boolean isEmpty() and Iterator&lt;Result&gt; iterator() methods.
      * Once called allResults(), next() method return null. Don't call next() and allResults()
      * together.
      *
@@ -168,7 +168,7 @@ public class ResultSet implements Iterable<Result> {
     // or it has seized the lock and execution of the `free` method cannot actually free this object until
     // this method exits.
     ResultSet refresh() throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(query, "query");
+        Preconditions.assertNotNull(query, "query");
 
         synchronized (getDbLock()) {
             if (!isAlive.get()) { return null; }
