@@ -420,7 +420,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        Log.i(LogDomain.DATABASE, "[PS] !! Document %s is finalized and freed !!", this);
+        Log.i(LogDomain.DATABASE, "[PS] !! Document %s is finalized and freed (%d) !!", this, System.nanoTime());
         free();
         super.finalize();
     }

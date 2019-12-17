@@ -1359,17 +1359,17 @@ abstract class AbstractDatabase {
             final C4Document rawDoc = localDoc.getC4doc();
             // The remote branch has to win so that the doc revision history matches the server's.
             final long size = mergedBody != null ? mergedBody.getSize() : 0L;
-            Log.i(DOMAIN, "%s: [PS] 1. RawDoc=%s is resolving conflict for docid='%s'", this, rawDoc, docID);
+            Log.i(DOMAIN, "%s: [PS] 1. RawDoc=%s is resolving conflict for docid='%s' (%d)", this, rawDoc, docID, System.nanoTime());
 
             rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
 
-            Log.i(DOMAIN, "%s: [PS] 3. RawDoc=%s is saving conflict for docid='%s'", this, rawDoc, docID);
+            Log.i(DOMAIN, "%s: [PS] 2. RawDoc=%s is saving conflict for docid='%s' (%d)", this, rawDoc, docID, System.nanoTime());
 
             rawDoc.save(0);
 
-            Log.i(DOMAIN, "%s: [PS] 4. DONE resolving conflict for docid='%s'", this, docID);
+            Log.i(DOMAIN, "%s: [PS] 3. DONE resolving conflict for docid='%s' (%d)", this, docID, System.nanoTime());
 
-            Log.i(DOMAIN, "%s: [PS] 5. RawDoc=%s is DONE saving conflict for docid='%s'", this, rawDoc, docID);
+            Log.i(DOMAIN, "%s: [PS] 4. RawDoc=%s is DONE saving conflict for docid='%s' (%d)", this, rawDoc, docID, System.nanoTime());
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);

@@ -182,7 +182,7 @@ public class C4Document extends RefCounted {
     @Override
     void free() {
         if (handle != 0L) {
-            Log.i(LogDomain.DATABASE, "[PS] ** %s, id=%s is freed **", this, getDocID());
+            Log.i(LogDomain.DATABASE, "[PS] ** %s, id=%s is freed (%d) **", this, getDocID(), System.nanoTime());
             free(handle);
             handle = 0L;
         }
