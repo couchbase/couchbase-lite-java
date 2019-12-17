@@ -30,8 +30,6 @@ public class ConsoleLogger extends AbstractConsoleLogger {
     @Override
     public void doLog(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
         final PrintStream ps = (level == LogLevel.ERROR) ? System.err : System.out;
-        synchronized (this) {
-            ps.println(level + "/CouchbaseLite/" + domain + ":" + message);
-        }
+        ps.println(level + "/CouchbaseLite/" + domain + ":" + message);
     }
 }
