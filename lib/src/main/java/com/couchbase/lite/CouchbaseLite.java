@@ -46,6 +46,8 @@ public final class CouchbaseLite {
 
     private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
 
+    public static final List<Object> REF_HOLDERS = new ArrayList<>();
+
     /**
      * Initialize CouchbaseLite library. This method MUST be called before
      * using CouchbaseLite.

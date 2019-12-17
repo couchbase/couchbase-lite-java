@@ -329,6 +329,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         Preconditions.checkArgNotNull(config, "config");
         this.config = config.readonlyCopy();
         socketFactory = new SocketFactory(config);
+        CouchbaseLite.REF_HOLDERS.add(this);
     }
 
     /**
