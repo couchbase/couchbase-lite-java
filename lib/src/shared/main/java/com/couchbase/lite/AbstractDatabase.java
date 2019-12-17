@@ -1218,6 +1218,8 @@ abstract class AbstractDatabase {
         }
     }
 
+    private List<Document> localDocs = new ArrayList<>();
+
     //////// RESOLVE REPLICATED CONFLICTS:
     private void resolveConflictOnce(@Nullable ConflictResolver resolver, @NonNull String docID)
         throws CouchbaseLiteException, CBLInternalException {
@@ -1247,11 +1249,15 @@ abstract class AbstractDatabase {
             beginTransaction();
             try {
                 Log.i(DOMAIN, "%s: [PS] +++++ <BEGIN> +++++", this);
+                localDocs.add(localDoc);
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                Log.i(DOMAIN, "%s: [PS] ----- <END> -----", this);
+                Log.i(DOMAIN, "%s: [PS] ----- <END : %s> -----", this);
                 commit = true;
             }
-            finally { endTransaction(commit); }
+            finally {
+                endTransaction(commit);
+                localDocs.remove(localDoc);
+            }
         }
     }
 
