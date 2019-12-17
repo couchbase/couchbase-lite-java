@@ -335,11 +335,6 @@ public class C4Document extends RefCounted {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        if (handle != 0L) {
-            Log.i(LogDomain.DATABASE, "[PS] ** %s, id=%s is finalized and freed **", this, getDocID());
-            free(handle);
-            handle = 0L;
-        }
         free();
         super.finalize();
     }

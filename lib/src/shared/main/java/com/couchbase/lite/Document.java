@@ -412,7 +412,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
         final StringBuilder buf = new StringBuilder("Document")
             .append("@" + Integer.toHexString(System.identityHashCode(this)) + " ")
             .append("{ id: ").append(id)
-            .append(", revid: ").append(c4doc != null && c4doc.getHandle() != 0 ? getRevisionID() : "?")
             .append(", c4doc: ").append(c4doc != null ? c4doc.toString() : "NULL")
             .append(" }");
         return buf.toString();
@@ -421,7 +420,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        Log.i(LogDomain.DATABASE, "[PS] !! Document %s is finalized and freed %s !!", this);
+        Log.i(LogDomain.DATABASE, "[PS] !! Document %s is finalized and freed !!", this);
         free();
         super.finalize();
     }

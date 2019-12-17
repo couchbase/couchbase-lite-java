@@ -1228,7 +1228,6 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             localDoc = new Document((Database) this, docID, true);
             remoteDoc = getConflictingRevision(docID);
-            CouchbaseLite.LOCAL_DOCS.add(localDoc);
         }
 
         Document resolvedDoc = null;
