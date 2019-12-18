@@ -704,13 +704,19 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         };
 
         synchronized (lock) {
-            executor.execute(() -> {
-                try {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
                     db.resolveReplicationConflict(resolver, docId, task);
-                } catch (Throwable th) {
-                    Log.i(DOMAIN, "%s: !!!!!! GOT UNEXPECTED EXCEPTION: " + th, this);
                 }
             });
+//            executor.execute(() -> {
+//                try {
+//                    db.resolveReplicationConflict(resolver, docId, task);
+//                } catch (Throwable th) {
+//                    Log.i(DOMAIN, "%s: !!!!!! GOT UNEXPECTED EXCEPTION: " + th, this);
+//                }
+//            });
             pendingResolutions.add(task);
         }
     }
