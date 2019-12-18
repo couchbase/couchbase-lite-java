@@ -1255,6 +1255,8 @@ abstract class AbstractDatabase {
                 endTransaction(commit);
             }
         }
+        
+        Log.i(DOMAIN, "%s: [PS] Resolve Conflict is done for local doc = " + localDoc, this);
     }
 
     private Document getConflictingRevision(@NonNull String docID)
