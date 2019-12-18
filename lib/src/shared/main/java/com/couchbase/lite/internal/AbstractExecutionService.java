@@ -94,6 +94,9 @@ public abstract class AbstractExecutionService implements ExecutionService {
                 task.run();
                 finishedAt = System.currentTimeMillis();
             }
+            catch (Throwable th) {
+                Log.i(LogDomain.DATABASE, "!!!!!!! INSTUMENTED TASK GOT UNEXPECTED ERROR: " + th);
+            }
             finally {
                 onComplete.run();
             }
