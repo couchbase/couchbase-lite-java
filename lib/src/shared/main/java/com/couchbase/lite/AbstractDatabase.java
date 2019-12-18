@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -28,7 +29,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -160,8 +160,9 @@ abstract class AbstractDatabase {
         String toPath = getDatabasePath(new File(config.getDirectory()), name).getPath();
         if (toPath.charAt(toPath.length() - 1) != File.separatorChar) { toPath += File.separator; }
 
-        // Set the temp directory based on Database Configuration:
-        config.setTempDir();
+        // Setting the temp directory from the Database Configuration is deprecated and will go away:
+
+        CouchbaseLiteInternal.setupDirectories(config.getRootDirectory());
 
         try {
             C4Database.copyDb(
@@ -204,9 +205,7 @@ abstract class AbstractDatabase {
     }
 
     private static File getDatabasePath(File dir, String name) {
-        name = name.replaceAll("/", ":");
-        name = String.format(Locale.ENGLISH, "%s.%s", name, DB_EXTENSION);
-        return new File(dir, name);
+        return new File(dir, name.replaceAll("/", ":") + "." + DB_EXTENSION);
     }
 
     //---------------------------------------------
@@ -221,7 +220,7 @@ abstract class AbstractDatabase {
     @NonNull
     private final Object lock = new Object();     // Main database lock object for thread-safety
 
-    // guarded by 'lock'
+    @GuardedBy("lock")
     private final Set<Replicator> activeReplications;
 
     // Executor for purge and posting Database/Document changes.
@@ -266,7 +265,7 @@ abstract class AbstractDatabase {
         this.name = name;
 
         // Copy configuration
-        this.config = config.readonlyCopy();
+        this.config = config.readOnlyCopy();
 
         this.shellMode = false;
         this.postExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
@@ -276,8 +275,8 @@ abstract class AbstractDatabase {
         // synchronized on 'lock'
         this.activeReplications = new HashSet<>();
 
-        // Set the temp directory based on Database Configuration:
-        config.setTempDir();
+        // Setting the temp directory from the Database Configuration is deprecated and will go away:
+        CouchbaseLiteInternal.setupDirectories(config.getRootDirectory());
 
         // Open the database:
         open();
@@ -295,6 +294,8 @@ abstract class AbstractDatabase {
      * Dictionary as an input of the predict() method of the PredictiveModel.
      */
     protected AbstractDatabase(C4Database c4db) {
+        CouchbaseLiteInternal.requireInit("Cannot create database");
+
         this.c4db = c4db;
         this.config = null;
         this.shellMode = true;
@@ -345,7 +346,7 @@ abstract class AbstractDatabase {
      * @return the READONLY copied config object
      */
     @NonNull
-    public DatabaseConfiguration getConfig() { return config.readonlyCopy(); }
+    public DatabaseConfiguration getConfig() { return config.readOnlyCopy(); }
 
     /**
      * Gets an existing Document object with the given ID. If the document with the given ID doesn't

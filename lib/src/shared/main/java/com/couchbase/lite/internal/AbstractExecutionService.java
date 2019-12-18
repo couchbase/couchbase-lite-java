@@ -286,7 +286,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
                 running++;
             }
             catch (RejectedExecutionException e) {
-                dumpExecutorState(e, newTask);
+                dumpExecutorState(newTask, e);
                 throw e;
             }
         }
@@ -296,7 +296,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
 
         // This shouldn't happen.  Checking `spaceAvailable` should guarantee that the
         // underlying executor always has resources when we attempt to execute something.
-        private void dumpExecutorState(@NonNull RejectedExecutionException ex, @Nullable InstrumentedTask current) {
+        private void dumpExecutorState(@Nullable InstrumentedTask current, @Nullable RejectedExecutionException ex) {
             if (throttled()) { return; }
 
             dumpServiceState(executor, "size: " + running, ex);
@@ -499,5 +499,13 @@ public abstract class AbstractExecutionService implements ExecutionService {
     @NonNull
     @Override
     public CloseableExecutor getConcurrentExecutor() { return concurrentExecutor; }
+
+
+    //---------------------------------------------
+    // Package-private methods
+    //---------------------------------------------
+
+    @VisibleForTesting
+    void dumpExecutorState() { concurrentExecutor.dumpExecutorState(null, new RejectedExecutionException()); }
 }
 

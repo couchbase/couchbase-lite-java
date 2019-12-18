@@ -31,12 +31,19 @@ public class PreInitTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetTmpDirectoryBeforeInit() {
-        CouchbaseLiteInternal.getTmpDirectory("fail");
+    public void testGetConsoleBeforeInit() {
+        new Log().getConsole();
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetDbDirectoryBeforeInit() {
-        CouchbaseLiteInternal.getDbDirectoryPath();
+    public void testGetFileBeforeInit() {
+        new Log().getFile();
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCreateDBConfigBeforeInit() {
+        new DatabaseConfiguration();
+    }
+
+
 }

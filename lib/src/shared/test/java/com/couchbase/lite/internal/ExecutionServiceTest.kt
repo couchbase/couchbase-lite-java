@@ -24,6 +24,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
+import java.lang.AssertionError
 import java.util.Stack
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CountDownLatch
@@ -138,54 +139,60 @@ class ExecutionServiceTest : PlatformBaseTest() {
 
         val executor = tinyService.serialExecutor
 
-        // block the executor: it has a single thread so no tasks can run
-        val blockLatch = CountDownLatch(1)
-        executor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
+        try {
+            // block the executor: it has a single thread so no tasks can run
+            val blockLatch = CountDownLatch(1)
+            executor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
 
-        val nTasks = 10
-        val startLatch = CountDownLatch(1)
-        val firstStartedLatch = CountDownLatch(1)
-        val firstFinishedLatch = CountDownLatch(1)
-        val finishLatch = CountDownLatch(nTasks)
-        // put some tasks into the serial queue.
-        // the first of these should be scheduled (but not run)
-        for (i in 0 until nTasks - 1) {
-            executor.execute {
-                try {
-                    firstStartedLatch.countDown()
-                    startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
-                } catch (ignore: InterruptedException) {
-                } finally {
-                    firstFinishedLatch.countDown()
-                    finishLatch.countDown()
+            val nTasks = 10
+            val startLatch = CountDownLatch(1)
+            val firstStartedLatch = CountDownLatch(1)
+            val firstFinishedLatch = CountDownLatch(1)
+            val finishLatch = CountDownLatch(nTasks)
+            // put some tasks into the serial queue.
+            // the first of these should be scheduled (but not run)
+            for (i in 0 until nTasks - 1) {
+                executor.execute {
+                    try {
+                        firstStartedLatch.countDown()
+                        startLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS)
+                    } catch (ignore: InterruptedException) {
+                    } finally {
+                        firstFinishedLatch.countDown()
+                        finishLatch.countDown()
+                    }
                 }
             }
+
+            // clear the block and wait for the first of nTasks to start running
+            blockLatch.countDown()
+            assertTrue(firstStartedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+            // the first of the nTasks is now blocking the queue.
+
+            // fill the executor
+            val swampLatch = CountDownLatch(1)
+            val clearSwampLatch = swamp(tinyExecutor, swampLatch)
+
+            startLatch.countDown()
+            assertTrue(firstFinishedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+            // the executing task completes but fails to restart the queue:
+
+            swampLatch.countDown()
+            assertTrue(clearSwampLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+            // the swamp is now drained
+
+            // should be stalled.
+            assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
+            assertEquals(nTasks - 1L, finishLatch.count);
+
+            executor.execute { finishLatch.countDown() }
+
+            assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         }
-
-        // clear the block and wait for the first of nTasks to start running
-        blockLatch.countDown()
-        assertTrue(firstStartedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
-        // the first of the nTasks is now blocking the queue.
-
-        // fill the executor
-        val swampLatch = CountDownLatch(1)
-        val clearSwampLatch = swamp(tinyExecutor, swampLatch)
-
-        startLatch.countDown()
-        assertTrue(firstFinishedLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
-        // the executing task completes but fails to restart the queue:
-
-        swampLatch.countDown()
-        assertTrue(clearSwampLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
-        // the swamp is now drained
-
-        // should be stalled.
-        assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
-        assertEquals(nTasks - 1L, finishLatch.count);
-
-        executor.execute { finishLatch.countDown() }
-
-        assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
+        catch (e: AssertionError) {
+            tinyService.dumpExecutorState();
+            throw e;
+        }
     }
 
     // A stopped serial executor throws on further attempts to schedule

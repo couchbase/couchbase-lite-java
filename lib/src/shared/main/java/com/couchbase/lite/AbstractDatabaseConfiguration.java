@@ -17,40 +17,37 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
-import com.couchbase.lite.internal.core.C4Base;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 abstract class AbstractDatabaseConfiguration {
-    private static final String TEMP_DIR_NAME = "CouchbaseLiteTemp";
-
-    private static String tempDir;
 
     //---------------------------------------------
     // member variables
     //---------------------------------------------
 
-    private boolean readonly;
-    private boolean customDir;
-    private String directory;
+    private final boolean readOnly;
+
+    private String rootDirectory;
+    private String dbDirectory;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
-    protected AbstractDatabaseConfiguration() {
-        this(false, CouchbaseLiteInternal.getDbDirectoryPath());
+    protected AbstractDatabaseConfiguration() { this((String) null, false); }
+
+    protected AbstractDatabaseConfiguration(@NonNull AbstractDatabaseConfiguration config, boolean readOnly) {
+        this(config.rootDirectory, readOnly);
     }
 
-    protected AbstractDatabaseConfiguration(@NonNull AbstractDatabaseConfiguration config) {
-        this(config.customDir, config.directory);
-    }
-
-    private AbstractDatabaseConfiguration(boolean customDir, String directory) {
-        this.readonly = false;
-        this.customDir = customDir;
-        this.directory = directory;
+    private AbstractDatabaseConfiguration(@Nullable String dir, boolean readOnly) {
+        CouchbaseLiteInternal.requireInit("Cannot create database configuration");
+        this.readOnly = readOnly;
+        setRootDirectory(dir);
     }
 
     //---------------------------------------------
@@ -58,71 +55,43 @@ abstract class AbstractDatabaseConfiguration {
     //---------------------------------------------
 
     /**
-     * Returns the path to the directory to store the database in.
+     * Returns the path to the directory that contains the database.
+     * If this path has not been set explicitly (see: <code>setDirectory</code> below),
+     * then it is the system default.  If it has been set explicitly, then it also contains
+     * the temporary directory that Couchbase uses as a scratch pad.
      *
-     * @return the directory
+     * @return the database directory
      */
     @NonNull
-    public String getDirectory() {
-        return directory;
-    }
+    public String getDirectory() { return dbDirectory; }
 
     //---------------------------------------------
     // Protected level access
     //---------------------------------------------
 
-    protected AbstractDatabaseConfiguration setDirectory(@NonNull String directory) {
-        if (directory == null) { throw new IllegalArgumentException("directory cannot be null."); }
-        if (readonly) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
-        this.directory = directory;
-        this.customDir = true;
+    protected abstract DatabaseConfiguration getDatabaseConfiguration();
+
+    protected AbstractDatabaseConfiguration setDirectory(@NonNull String dir) {
+        Preconditions.checkArgNotNull(dbDirectory, "directory");
+        if (readOnly) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
+
+        setRootDirectory(dir);
+
         return this;
     }
 
-    protected abstract DatabaseConfiguration getDatabaseConfiguration();
-
-    protected boolean isReadonly() {
-        return readonly;
-    }
-
-    protected void setReadonly(boolean readonly) {
-        this.readonly = readonly;
-    }
+    protected boolean isReadOnly() { return readOnly; }
 
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
 
-    /**
-     * Set the temp directory based on Database Configuration.
-     * The default temp directory is APP_CACHE_DIR/Couchbase/tmp.
-     * If a custom database directory is set, the temp directory will be
-     * CUSTOM_DATABASE_DIR/Couchbase/tmp.
-     */
-    void setTempDir() {
-        synchronized (AbstractDatabaseConfiguration.class) {
-            final String tempDir = getTempDir();
-            if ((tempDir == null) || (!tempDir.equals(AbstractDatabaseConfiguration.tempDir))) {
-                AbstractDatabaseConfiguration.tempDir = tempDir;
-                C4Base.setTempDir(AbstractDatabaseConfiguration.tempDir);
-            }
-        }
-    }
+    DatabaseConfiguration readOnlyCopy() { return new DatabaseConfiguration(getDatabaseConfiguration(), true); }
 
-    DatabaseConfiguration readonlyCopy() {
-        final DatabaseConfiguration config = new DatabaseConfiguration(getDatabaseConfiguration());
-        config.setReadonly(true);
-        return config;
-    }
+    String getRootDirectory() { return rootDirectory; }
 
-    /**
-     * Returns the temp directory. The default temp directory is APP_CACHE_DIR/Couchbase/tmp.
-     * If a custom database directory is set, the temp directory will be
-     * CUSTOM_DATABASE_DIR/Couchbase/tmp.
-     */
-    private String getTempDir() {
-        return (!customDir)
-            ? CouchbaseLiteInternal.getTmpDirectory(TEMP_DIR_NAME)
-            : CouchbaseLiteInternal.getTmpDirectory(directory, TEMP_DIR_NAME);
+    private void setRootDirectory(@Nullable String dir) {
+        dbDirectory = CouchbaseLiteInternal.makeDbPath(dir);
+        rootDirectory = dir;
     }
 }
