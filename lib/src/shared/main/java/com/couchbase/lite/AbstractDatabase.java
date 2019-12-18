@@ -1249,6 +1249,7 @@ abstract class AbstractDatabase {
             beginTransaction();
             try {
                 Log.i(DOMAIN, "%s: [PS] +++++ <BEGIN> +++++", this);
+                Log.i(DOMAIN, "%s: [PS] local docs size = %d", this, localDocs.size());
                 localDocs.add(localDoc);
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                 Log.i(DOMAIN, "%s: [PS] ----- <END : %s> -----", this);
