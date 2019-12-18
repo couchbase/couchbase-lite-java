@@ -26,6 +26,7 @@ import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLSharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.ExceptionUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 
@@ -44,6 +45,8 @@ public class C4Document extends RefCounted {
 
     @GuardedBy("lock")
     private long handle; // hold pointer to C4Document
+
+    private long savedHandle = 0;
 
     //-------------------------------------------------------------------------
     // Constructor
@@ -175,10 +178,14 @@ public class C4Document extends RefCounted {
         final long hdl;
         synchronized (lock) {
             hdl = handle;
+            savedHandle = hdl;
             handle = 0;
         }
 
-        if (hdl != 0L) { free(hdl); }
+        if (hdl != 0L) {
+            Log.i(LogDomain.DATABASE, "C4Document is free (%d) %s", savedHandle, ExceptionUtils.getStackTrace(new Exception()));
+            free(hdl);
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -194,7 +201,8 @@ public class C4Document extends RefCounted {
     private <T> T withHandle(Fn.Function<Long, T> fn, T def) {
         synchronized (lock) {
             if (handle != 0) { return fn.apply(handle); }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed object (%d) : %s",
+                savedHandle, ExceptionUtils.getStackTrace(new Exception()));
             return def;
         }
     }
@@ -202,7 +210,8 @@ public class C4Document extends RefCounted {
     private <T> T withHandleThrows(Fn.FunctionThrows<Long, T, LiteCoreException> fn, T def) throws LiteCoreException {
         synchronized (lock) {
             if (handle != 0) { return fn.apply(handle); }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed object (%d) : %s",
+                savedHandle, ExceptionUtils.getStackTrace(new Exception()));
             return def;
         }
     }
@@ -213,7 +222,8 @@ public class C4Document extends RefCounted {
                 fn.accept(handle);
                 return;
             }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed object (%d) : %s",
+                savedHandle, ExceptionUtils.getStackTrace(new Exception()));
         }
     }
 
