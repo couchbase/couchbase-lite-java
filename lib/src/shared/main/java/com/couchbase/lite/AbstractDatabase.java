@@ -1347,7 +1347,8 @@ abstract class AbstractDatabase {
             rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
             rawDoc.save(0);
 
-            Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", rawDoc.getDocID(), rawDoc.getRevID());
+            // CBL-583: Keep localDoc object to be alive until the end by using localDoc to get the doc id.
+            Log.i(DOMAIN, "Conflict resolved as doc '%s' rev %s", localDoc.getId(), rawDoc.getRevID());
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
