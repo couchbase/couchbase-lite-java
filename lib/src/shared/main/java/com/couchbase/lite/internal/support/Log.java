@@ -392,7 +392,7 @@ public final class Log {
         if ((args != null) && (args.length > 0)) { message = formatMessage(message, args); }
 
         if (err != null) {
-            StringWriter sw = new StringWriter();
+            final StringWriter sw = new StringWriter();
             err.printStackTrace(new PrintWriter(sw));
             message += System.lineSeparator() + sw.toString();
         }
