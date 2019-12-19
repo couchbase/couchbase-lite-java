@@ -1240,7 +1240,10 @@ abstract class AbstractDatabase {
                 saveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                 commit = true;
             }
-            finally { endTransaction(commit); }
+            finally {
+                endTransaction(commit);
+                if (commit) { Log.w(DOMAIN, "Resolve the conflict for %s is done.", localDoc.getId()); }
+            }
         }
     }
 
