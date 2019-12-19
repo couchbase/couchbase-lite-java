@@ -18,6 +18,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Base;
 
 
@@ -39,7 +40,7 @@ abstract class AbstractDatabaseConfiguration {
     //---------------------------------------------
 
     protected AbstractDatabaseConfiguration() {
-        this(false, CouchbaseLite.getDbDirectoryPath());
+        this(false, CouchbaseLiteInternal.getDbDirectoryPath());
     }
 
     protected AbstractDatabaseConfiguration(@NonNull AbstractDatabaseConfiguration config) {
@@ -121,7 +122,7 @@ abstract class AbstractDatabaseConfiguration {
      */
     private String getTempDir() {
         return (!customDir)
-            ? CouchbaseLite.getTmpDirectory(TEMP_DIR_NAME)
-            : CouchbaseLite.getTmpDirectory(directory, TEMP_DIR_NAME);
+            ? CouchbaseLiteInternal.getTmpDirectory(TEMP_DIR_NAME)
+            : CouchbaseLiteInternal.getTmpDirectory(directory, TEMP_DIR_NAME);
     }
 }

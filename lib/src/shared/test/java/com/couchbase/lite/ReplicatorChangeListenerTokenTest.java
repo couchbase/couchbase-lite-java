@@ -21,6 +21,8 @@ import java.util.concurrent.Executor;
 
 import org.junit.Test;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -55,6 +57,6 @@ public class ReplicatorChangeListenerTokenTest {
 
         // UI thread Executor
         token = new ReplicatorChangeListenerToken(null, listener);
-        assertEquals(CouchbaseLite.getExecutionService().getMainExecutor(), token.getExecutor());
+        assertEquals(CouchbaseLiteInternal.getExecutionService().getMainExecutor(), token.getExecutor());
     }
 }

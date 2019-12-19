@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 import com.couchbase.lite.internal.CBLStatus;
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.ExecutionService.Cancellable;
 import com.couchbase.lite.internal.SocketFactory;
@@ -295,7 +296,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     @GuardedBy("lock")
     private final Set<DocumentReplicationListenerToken> docEndedListenerTokens = new HashSet<>();
 
-    private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
+    private final Executor dispatcher = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
     private final Set<Fn.Consumer> pendingResolutions = new HashSet<>();
     private final Deque<C4ReplicatorStatus> pendingStatusNotifications = new LinkedList<>();
@@ -694,7 +695,8 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     void queueConflictResolution(@NonNull String docId, int flags) {
         Log.i(DOMAIN, "%s: pulled conflicting version of '%s'", this, docId);
 
-        final ExecutionService.CloseableExecutor executor = CouchbaseLite.getExecutionService().getConcurrentExecutor();
+        final ExecutionService.CloseableExecutor executor
+            = CouchbaseLiteInternal.getExecutionService().getConcurrentExecutor();
         final Database db = config.getDatabase();
         final ConflictResolver resolver = config.getConflictResolver();
         final Fn.Consumer<CouchbaseLiteException> task = new Fn.Consumer<CouchbaseLiteException>() {
@@ -931,14 +933,14 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     private void scheduleRetry(int delaySec) {
         cancelScheduledRetry();
-        final ExecutionService exec = CouchbaseLite.getExecutionService();
+        final ExecutionService exec = CouchbaseLiteInternal.getExecutionService();
         retryTask = exec.postDelayedOnExecutor(delaySec * 1000, dispatcher, this::retry);
     }
 
     private void cancelScheduledRetry() {
         if (retryTask != null) {
             Log.v(DOMAIN, "%s Cancel the pending scheduled retry", this);
-            final ExecutionService exec = CouchbaseLite.getExecutionService();
+            final ExecutionService exec = CouchbaseLiteInternal.getExecutionService();
             exec.cancelDelayedTask(retryTask);
             retryTask = null;
         }

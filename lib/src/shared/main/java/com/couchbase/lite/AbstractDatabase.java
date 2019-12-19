@@ -39,6 +39,7 @@ import org.json.JSONException;
 
 import com.couchbase.lite.internal.CBLInternalException;
 import com.couchbase.lite.internal.CBLStatus;
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.core.C4BlobStore;
@@ -259,7 +260,7 @@ abstract class AbstractDatabase {
         if (StringUtils.isEmpty(name)) { throw new IllegalArgumentException("db name may not be empty"); }
         Preconditions.checkArgNotNull(config, "config");
 
-        CouchbaseLite.requireInit("Cannot create database");
+        CouchbaseLiteInternal.requireInit("Cannot create database");
 
         // Name:
         this.name = name;
@@ -268,8 +269,8 @@ abstract class AbstractDatabase {
         this.config = config.readonlyCopy();
 
         this.shellMode = false;
-        this.postExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
-        this.queryExecutor = CouchbaseLite.getExecutionService().getSerialExecutor();
+        this.postExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
+        this.queryExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
         this.activeLiveQueries = Collections.synchronizedSet(new HashSet<>());
 
         // synchronized on 'lock'
@@ -998,11 +999,11 @@ abstract class AbstractDatabase {
     //////// Execution:
 
     void scheduleOnPostNotificationExecutor(@NonNull Runnable task, long delayMs) {
-        CouchbaseLite.getExecutionService().postDelayedOnExecutor(delayMs, postExecutor, task);
+        CouchbaseLiteInternal.getExecutionService().postDelayedOnExecutor(delayMs, postExecutor, task);
     }
 
     void scheduleOnQueryExecutor(@NonNull Runnable task, long delayMs) {
-        CouchbaseLite.getExecutionService().postDelayedOnExecutor(delayMs, queryExecutor, task);
+        CouchbaseLiteInternal.getExecutionService().postDelayedOnExecutor(delayMs, queryExecutor, task);
     }
 
     abstract int getEncryptionAlgorithm();

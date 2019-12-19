@@ -19,8 +19,10 @@ import android.support.annotation.NonNull;
 
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService.Cancellable;
 import com.couchbase.lite.internal.support.Log;
+
 
 /**
  * Expire documents at a regular interval, once started.
@@ -52,7 +54,7 @@ class DocumentExpirationStrategy {
         final long delayMs = Math.max(nextExpiration - System.currentTimeMillis(), minDelayMs);
         synchronized (this) {
             if (expirationCancelled || (expirationTask != null)) { return; }
-            expirationTask = CouchbaseLite.getExecutionService()
+            expirationTask = CouchbaseLiteInternal.getExecutionService()
                 .postDelayedOnExecutor(delayMs, expirationExecutor, this::purgeExpiredDocuments);
         }
 
@@ -68,7 +70,7 @@ class DocumentExpirationStrategy {
 
         if (task == null) { return; }
 
-        CouchbaseLite.getExecutionService().cancelDelayedTask(task);
+        CouchbaseLiteInternal.getExecutionService().cancelDelayedTask(task);
     }
 
     // Aligning with database/document change notification to avoid race condition

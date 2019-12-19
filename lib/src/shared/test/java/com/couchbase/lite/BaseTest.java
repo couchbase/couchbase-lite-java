@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.utils.FileUtils;
@@ -53,11 +54,17 @@ public abstract class BaseTest extends PlatformBaseTest {
     private static final int BUSY_WAIT_MS = 100;
     private static final int BUSY_RETRIES = 5;
 
-    interface Execution { void run() throws CouchbaseLiteException; }
+    interface Execution {
+        void run() throws CouchbaseLiteException;
+    }
 
-    interface DocValidator { void validate(final Document doc); }
+    interface DocValidator {
+        void validate(final Document doc);
+    }
 
-    interface QueryResult { void check(int n, Result result) throws Exception; }
+    interface QueryResult {
+        void check(int n, Result result) throws Exception;
+    }
 
 
     protected Database db;
@@ -77,7 +84,7 @@ public abstract class BaseTest extends PlatformBaseTest {
         Database.log.getConsole().setLevel(LogLevel.DEBUG);
         //setupFileLogging(); // if needed
 
-        executor = CouchbaseLite.getExecutionService().getSerialExecutor();
+        executor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
         dbDir = new File(getDatabaseDirectory(), "CBLTestDb");

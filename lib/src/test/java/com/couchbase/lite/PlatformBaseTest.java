@@ -19,6 +19,7 @@ package com.couchbase.lite;
 
 import java.io.InputStream;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.support.Log;
 
@@ -42,12 +43,12 @@ public abstract class PlatformBaseTest implements PlatformTest {
 
     @Override
     public String getDatabaseDirectory() {
-        return CouchbaseLite.getDbDirectoryPath();
+        return CouchbaseLiteInternal.getDbDirectoryPath();
     }
 
     @Override
     public String getTempDirectory(String name) {
-        return CouchbaseLite.getTmpDirectory(name);
+        return CouchbaseLiteInternal.getTmpDirectory(name);
     }
 
     @Override
@@ -57,12 +58,12 @@ public abstract class PlatformBaseTest implements PlatformTest {
 
     @Override
     public void executeAsync(long delayMs, Runnable task) {
-        ExecutionService executionService = CouchbaseLite.getExecutionService();
+        ExecutionService executionService = CouchbaseLiteInternal.getExecutionService();
         executionService.postDelayedOnExecutor(delayMs, executionService.getMainExecutor(), task);
     }
 
     @Override
     public void reloadStandardErrorMessages() {
-        Log.initLogging(CouchbaseLite.loadErrorMessages());
+        Log.initLogging(CouchbaseLiteInternal.loadErrorMessages());
     }
 }

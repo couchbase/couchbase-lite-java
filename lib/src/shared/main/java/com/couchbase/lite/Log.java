@@ -20,6 +20,8 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
+
 
 /**
  * Gets the log controller for Couchbase Lite, which stores the
@@ -46,7 +48,7 @@ public final class Log {
      */
     @NonNull
     public ConsoleLogger getConsole() {
-        CouchbaseLite.requireInit("Console logging not initialized");
+        CouchbaseLiteInternal.requireInit("Console logging not initialized");
         return consoleLogger;
     }
 
@@ -57,7 +59,7 @@ public final class Log {
      */
     @NonNull
     public FileLogger getFile() {
-        CouchbaseLite.requireInit("File logging not initialized");
+        CouchbaseLiteInternal.requireInit("File logging not initialized");
         return fileLogger;
     }
 
