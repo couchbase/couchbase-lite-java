@@ -17,10 +17,16 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.GuardedBy;
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLSharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.utils.Fn;
 
 
 public class C4Document extends RefCounted {
@@ -150,9 +156,14 @@ public class C4Document extends RefCounted {
     //-------------------------------------------------------------------------
 
     static native String bodyAsJSON(long doc, boolean canonical) throws LiteCoreException;
+
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+    @NonNull
+    private final Object lock = new Object(); // lock for thread-safety
+
+    @GuardedBy("lock")
     private long handle; // hold pointer to C4Document
 
     C4Document(long db, String docID, boolean mustExist) throws LiteCoreException {
@@ -175,116 +186,123 @@ public class C4Document extends RefCounted {
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
+
     @Override
     void free() {
-        if (handle != 0L) {
-            free(handle);
-            handle = 0L;
+        final long hdl;
+        synchronized (lock) {
+            hdl = handle;
+            handle = 0;
         }
+
+        if (hdl != 0L) { free(hdl); }
     }
 
     // - C4Document
     public int getFlags() {
-        return getFlags(handle);
+        return withHandle(C4Document::getFlags, 0);
     }
 
     // - C4Revision
 
     public String getDocID() {
-        return getDocID(handle);
+        return withHandle(C4Document::getDocID, null);
     }
 
     public String getRevID() {
-        return getRevID(handle);
+        return withHandle(C4Document::getRevID, null);
     }
 
     public long getSequence() {
-        return getSequence(handle);
+        return withHandle(C4Document::getSequence, 0L);
     }
 
     public String getSelectedRevID() {
-        return getSelectedRevID(handle);
+        return withHandle(C4Document::getSelectedRevID, null);
     }
 
     public int getSelectedFlags() {
-        return getSelectedFlags(handle);
+        return withHandle(C4Document::getSelectedFlags, 0);
     }
 
     // - Lifecycle
 
     public long getSelectedSequence() {
-        return getSelectedSequence(handle);
+        return withHandle(C4Document::getSelectedSequence, 0L);
     }
 
     public byte[] getSelectedBody() {
-        return getSelectedBody(handle);
+        return withHandle(C4Document::getSelectedBody, null);
     }
 
     public FLDict getSelectedBody2() {
-        final long value = getSelectedBody2(handle);
+        final long value = withHandle(C4Document::getSelectedBody2, null);
         return value == 0 ? null : new FLDict(value);
     }
 
     public void save(int maxRevTreeDepth) throws LiteCoreException {
-        save(handle, maxRevTreeDepth);
+        withHandleVoid(h -> save(h, maxRevTreeDepth));
     }
 
     // - Revisions
 
     public boolean selectCurrentRevision() {
-        return selectCurrentRevision(handle);
+        return withHandle(C4Document::selectCurrentRevision, false);
     }
 
     public void loadRevisionBody() throws LiteCoreException {
-        loadRevisionBody(handle);
+        withHandleVoid(C4Document::loadRevisionBody);
     }
 
     public boolean hasRevisionBody() {
-        return hasRevisionBody(handle);
+        return withHandle(C4Document::hasRevisionBody, false);
     }
 
     public boolean selectParentRevision() {
-        return selectParentRevision(handle);
+        return withHandle(C4Document::selectParentRevision, false);
     }
 
     public boolean selectNextRevision() {
-        return selectNextRevision(handle);
+        return withHandle(C4Document::selectNextRevision, false);
     }
 
     public void selectNextLeafRevision(boolean includeDeleted, boolean withBody)
         throws LiteCoreException {
-        selectNextLeafRevision(handle, includeDeleted, withBody);
+        withHandleVoid(h -> selectNextLeafRevision(h, includeDeleted, withBody));
     }
 
     public boolean selectFirstPossibleAncestorOf(String revID) throws LiteCoreException {
-        return selectFirstPossibleAncestorOf(handle, revID);
+        return withHandle(h -> selectFirstPossibleAncestorOf(h, revID), false);
     }
 
     public boolean selectNextPossibleAncestorOf(String revID) {
-        return selectNextPossibleAncestorOf(handle, revID);
+        return withHandle(h -> selectNextPossibleAncestorOf(h, revID), false);
     }
 
     public boolean selectCommonAncestorRevision(String revID1, String revID2) {
-        return selectCommonAncestorRevision(handle, revID1, revID2);
+        return withHandle(h -> selectCommonAncestorRevision(h, revID1, revID2), false);
     }
 
     public int purgeRevision(String revID) throws LiteCoreException {
-        return purgeRevision(handle, revID);
+        return withHandleThrows(h -> purgeRevision(h, revID), 0);
     }
 
     public void resolveConflict(String winningRevID, String losingRevID, byte[] mergeBody, int mergedFlags)
         throws LiteCoreException {
-        resolveConflict(handle, winningRevID, losingRevID, mergeBody, mergedFlags);
+        withHandleVoid(h -> resolveConflict(h, winningRevID, losingRevID, mergeBody, mergedFlags));
     }
 
     // - Purging and Expiration
 
     public C4Document update(byte[] body, int flags) throws LiteCoreException {
-        return new C4Document(update(handle, body, flags));
+        final long newDoc = withHandleThrows(h -> update(h, body, flags), 0L);
+        return (newDoc == 0) ? null : new C4Document(newDoc);
     }
 
     public C4Document update(FLSliceResult body, int flags) throws LiteCoreException {
-        return new C4Document(update2(handle, body != null ? body.getHandle() : 0, flags));
+        final long bodyHandle = (body != null) ? body.getHandle() : 0;
+        final long newDoc = withHandleThrows(h -> update2(h, bodyHandle, flags), 0L);
+        return (newDoc == 0) ? null : new C4Document(newDoc);
     }
 
     // - Creating and Updating Documents
@@ -307,11 +325,11 @@ public class C4Document extends RefCounted {
     }
 
     private boolean isFlags(int flag) {
-        return (getFlags(handle) & flag) == flag;
+        return (getFlags() & flag) == flag;
     }
 
     public boolean isSelectedRevFlags(int flag) {
-        return (getSelectedFlags(handle) & flag) == flag;
+        return (getSelectedFlags() & flag) == flag;
     }
 
     ////////////////////////////////
@@ -321,7 +339,7 @@ public class C4Document extends RefCounted {
     // -- Fleece-related
 
     public String bodyAsJSON(boolean canonical) throws LiteCoreException {
-        return bodyAsJSON(handle, canonical);
+        return withHandleThrows(h -> bodyAsJSON(h, canonical), null);
     }
 
     //-------------------------------------------------------------------------
@@ -334,4 +352,32 @@ public class C4Document extends RefCounted {
         super.finalize();
     }
     // doc -> pointer to C4Document
+
+
+    private <T> T withHandle(Fn.Function<Long, T> fn, T def) {
+        synchronized (lock) {
+            if (handle != 0) { return fn.apply(handle); }
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document");
+            return def;
+        }
+    }
+
+    private <T> T withHandleThrows(Fn.FunctionThrows<Long, T, LiteCoreException> fn, T def) throws LiteCoreException {
+        synchronized (lock) {
+            if (handle != 0) { return fn.apply(handle); }
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document");
+            return def;
+        }
+    }
+
+
+    private void withHandleVoid(Fn.ConsumerThrows<Long, LiteCoreException> fn) throws LiteCoreException {
+        synchronized (lock) {
+            if (handle != 0) {
+                fn.accept(handle);
+                return;
+            }
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document");
+        }
+    }
 }

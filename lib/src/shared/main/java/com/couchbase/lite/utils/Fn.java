@@ -26,5 +26,7 @@ public interface Fn {
     @FunctionalInterface
     interface Provider<T> { T get(); }
     @FunctionalInterface
+    interface ConsumerThrows<T, E extends Throwable> { void accept(T x) throws E; }
+    @FunctionalInterface
     interface Consumer<T> { void accept(T x); }
 }
