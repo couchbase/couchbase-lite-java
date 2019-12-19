@@ -91,14 +91,14 @@ public class C4Document extends RefCounted {
     public boolean selectNextRevision() { return withHandle(C4Document::selectNextRevision, false); }
 
     public void selectNextLeafRevision(boolean includeDeleted, boolean withBody) throws LiteCoreException {
-        withHandleVoid(h -> selectNextLeafRevision(handle, includeDeleted, withBody));
+        withHandleVoid(h -> selectNextLeafRevision(h, includeDeleted, withBody));
     }
 
     // - Purging and Expiration
 
     public void resolveConflict(String winningRevID, String losingRevID, byte[] mergeBody, int mergedFlags)
         throws LiteCoreException {
-        withHandleVoid(h -> resolveConflict(handle, winningRevID, losingRevID, mergeBody, mergedFlags));
+        withHandleVoid(h -> resolveConflict(h, winningRevID, losingRevID, mergeBody, mergedFlags));
     }
 
     // - Creating and Updating Documents
@@ -117,7 +117,7 @@ public class C4Document extends RefCounted {
     // -- Fleece-related
 
     public String bodyAsJSON(boolean canonical) throws LiteCoreException {
-        return withHandleThrows(h -> bodyAsJSON(handle, canonical), null);
+        return withHandleThrows(h -> bodyAsJSON(h, canonical), null);
     }
 
     // helper methods for Document
@@ -194,7 +194,7 @@ public class C4Document extends RefCounted {
     private <T> T withHandle(Fn.Function<Long, T> fn, T def) {
         synchronized (lock) {
             if (handle != 0) { return fn.apply(handle); }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document", new Exception());
             return def;
         }
     }
@@ -202,7 +202,7 @@ public class C4Document extends RefCounted {
     private <T> T withHandleThrows(Fn.FunctionThrows<Long, T, LiteCoreException> fn, T def) throws LiteCoreException {
         synchronized (lock) {
             if (handle != 0) { return fn.apply(handle); }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document", new Exception());
             return def;
         }
     }
@@ -213,7 +213,7 @@ public class C4Document extends RefCounted {
                 fn.accept(handle);
                 return;
             }
-            Log.w(LogDomain.DATABASE, "Function called on freed object", new Exception());
+            Log.w(LogDomain.DATABASE, "Function called on freed C4Document", new Exception());
         }
     }
 
