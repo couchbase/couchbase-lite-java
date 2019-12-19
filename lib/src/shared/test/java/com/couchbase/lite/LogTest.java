@@ -313,6 +313,8 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testBasicLogFormatting() {
+        String nl = System.lineSeparator();
+
         BasicLogger logger = new BasicLogger();
         Database.log.setCustom(logger);
 
@@ -320,14 +322,16 @@ public class LogTest extends BaseTest {
         assertEquals("TEST DEBUG", logger.getMessage());
 
         Log.d(LogDomain.DATABASE, "TEST DEBUG", new Exception("whoops"));
-        assertEquals("TEST DEBUG (java.lang.Exception: whoops)", logger.getMessage());
+        assertTrue(logger.getMessage().startsWith(
+            "TEST DEBUG" + nl + "java.lang.Exception: whoops" + System.lineSeparator()));
 
         // test formatting, including argument ordering
         Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", 1, "arg", 3.0F);
         assertEquals("TEST DEBUG arg 1 3.00", logger.getMessage());
 
         Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", new Exception("whoops"), 1, "arg", 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
+        assertTrue(logger.getMessage().startsWith(
+            "TEST DEBUG arg 1 3.00" + nl + "java.lang.Exception: whoops" + nl));
     }
 
     @Test
@@ -467,6 +471,8 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testLogStandardErrorWithFormatting() {
+        String nl = System.lineSeparator();
+
         Map<String, String> stdErr = new HashMap<>();
         stdErr.put("FOO", "TEST DEBUG %2$s %1$d %3$.2f");
         try {
@@ -476,7 +482,8 @@ public class LogTest extends BaseTest {
             Database.log.setCustom(logger);
 
             Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
-            assertEquals("TEST DEBUG arg 1 3.00 (java.lang.Exception: whoops)", logger.getMessage());
+            assertTrue(logger.getMessage().startsWith(
+                "TEST DEBUG arg 1 3.00" + nl + "java.lang.Exception: whoops" + nl));
         }
         finally {
             reloadStandardErrorMessages();

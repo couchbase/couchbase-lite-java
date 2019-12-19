@@ -20,6 +20,8 @@ package com.couchbase.lite.internal.support;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.FormatterClosedException;
@@ -389,7 +391,11 @@ public final class Log {
 
         if ((args != null) && (args.length > 0)) { message = formatMessage(message, args); }
 
-        if (err != null) { message = message + " (" + err + ")"; }
+        if (err != null) {
+            final StringWriter sw = new StringWriter();
+            err.printStackTrace(new PrintWriter(sw));
+            message += System.lineSeparator() + sw.toString();
+        }
 
         sendToLoggers(level, domain, message);
     }
