@@ -320,19 +320,16 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("dict", dict);
-        save(doc, new DocValidator() {
-            @Override
-            public void validate(Document doc) {
-                Map<String, Object> result = new HashMap<>();
-                int count = 0;
-                Dictionary dictObj = doc.getDictionary("dict");
-                for (String key : dictObj) {
-                    result.put(key, dict.getValue(key));
-                    count++;
-                }
-                assertEquals(finalContent.size(), count);
-                assertEquals(finalContent, result);
+        save(doc, doc1 -> {
+            Map<String, Object> result1 = new HashMap<>();
+            int count1 = 0;
+            Dictionary dictObj = doc1.getDictionary("dict");
+            for (String key : dictObj) {
+                result1.put(key, dict.getValue(key));
+                count1++;
             }
+            assertEquals(finalContent.size(), count1);
+            assertEquals(finalContent, result1);
         });
     }
 
@@ -417,27 +414,24 @@ public class DictionaryTest extends BaseTest {
         mDict.setArray("array-null", null);
         mDict.setDictionary("dict-null", null);
         mDoc.setDictionary("dict", mDict);
-        save(mDoc, new DocValidator() {
-            @Override
-            public void validate(Document doc) {
-                assertEquals(1, doc.count());
-                assertTrue(doc.contains("dict"));
-                Dictionary d = doc.getDictionary("dict");
-                assertNotNull(d);
-                assertEquals(6, d.count());
-                assertTrue(d.contains("obj-null"));
-                assertTrue(d.contains("string-null"));
-                assertTrue(d.contains("number-null"));
-                assertTrue(d.contains("date-null"));
-                assertTrue(d.contains("array-null"));
-                assertTrue(d.contains("dict-null"));
-                assertNull(d.getValue("obj-null"));
-                assertNull(d.getValue("string-null"));
-                assertNull(d.getValue("number-null"));
-                assertNull(d.getValue("date-null"));
-                assertNull(d.getValue("array-null"));
-                assertNull(d.getValue("dict-null"));
-            }
+        save(mDoc, doc -> {
+            assertEquals(1, doc.count());
+            assertTrue(doc.contains("dict"));
+            Dictionary d = doc.getDictionary("dict");
+            assertNotNull(d);
+            assertEquals(6, d.count());
+            assertTrue(d.contains("obj-null"));
+            assertTrue(d.contains("string-null"));
+            assertTrue(d.contains("number-null"));
+            assertTrue(d.contains("date-null"));
+            assertTrue(d.contains("array-null"));
+            assertTrue(d.contains("dict-null"));
+            assertNull(d.getValue("obj-null"));
+            assertNull(d.getValue("string-null"));
+            assertNull(d.getValue("number-null"));
+            assertNull(d.getValue("date-null"));
+            assertNull(d.getValue("array-null"));
+            assertNull(d.getValue("dict-null"));
         });
     }
 

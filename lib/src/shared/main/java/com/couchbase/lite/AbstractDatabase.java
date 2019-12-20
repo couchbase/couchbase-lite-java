@@ -175,7 +175,7 @@ abstract class AbstractDatabase {
                 encryptionKey);
         }
         catch (LiteCoreException e) {
-            FileUtils.deleteRecursive(toPath);
+            FileUtils.eraseFileOrDir(toPath);
             throw CBLStatus.convertException(e);
         }
     }

@@ -130,13 +130,12 @@ public class C4ObserverTest extends C4BaseTest {
     // - Multi-DBs Observer
     @Test
     public void testMultiDBsObserver() throws LiteCoreException {
-        dbObserver = this.db.createDatabaseObserver(new C4DatabaseObserverListener() {
-            @Override
-            public void callback(C4DatabaseObserver observer, Object context) {
+        dbObserver = this.db.createDatabaseObserver(
+            (observer, context) -> {
                 assertEquals(C4ObserverTest.this, context);
                 dbCallbackCalls.incrementAndGet();
-            }
-        }, this);
+            },
+            this);
         assertEquals(0, dbCallbackCalls.get());
 
         createRev("A", "1-aa", kFleeceBody);

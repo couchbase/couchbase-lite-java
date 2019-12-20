@@ -29,4 +29,6 @@ public interface Fn {
     interface ConsumerThrows<T, E extends Throwable> { void accept(T x) throws E; }
     @FunctionalInterface
     interface Consumer<T> { void accept(T x); }
+    @FunctionalInterface
+    interface TaskThrows<E extends Throwable> { void run() throws E; }
 }

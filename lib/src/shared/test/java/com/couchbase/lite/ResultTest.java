@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class ResultTest extends BaseTest {
+public class ResultTest extends BaseQueryTest {
     final static String kDocumentTestDate = "2017-01-01T00:00:00.000Z";
     final static String kDocumentTestBlob = "i'm blob";
 

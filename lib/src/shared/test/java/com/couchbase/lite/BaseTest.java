@@ -21,8 +21,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -39,6 +37,7 @@ import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.utils.FileUtils;
+import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
@@ -54,23 +53,13 @@ public abstract class BaseTest extends PlatformBaseTest {
     private static final int BUSY_WAIT_MS = 100;
     private static final int BUSY_RETRIES = 5;
 
-    interface Execution {
-        void run() throws CouchbaseLiteException;
-    }
+    @FunctionalInterface
+    interface DocValidator extends Fn.ConsumerThrows<Document, CouchbaseLiteException> {}
 
-    interface DocValidator {
-        void validate(final Document doc);
-    }
-
-    interface QueryResult {
-        void check(int n, Result result) throws Exception;
-    }
-
+    private AtomicReference<AssertionError> testFailure;
 
     protected Database db;
     protected ExecutionService.CloseableExecutor executor;
-
-    private AtomicReference<AssertionError> testFailure;
 
     private File dbDir;
 
@@ -87,14 +76,14 @@ public abstract class BaseTest extends PlatformBaseTest {
         executor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
         testFailure = new AtomicReference<>();
 
-        dbDir = new File(getDatabaseDirectory(), "CBLTestDb");
+        dbDir = new File(getDatabaseDirectoryPath());
         assertNotNull(dbDir);
 
         // if database exist, delete it
         deleteDatabase(TEST_DB);
 
         // clean dbDir
-        FileUtils.cleanDirectory(dbDir);
+        FileUtils.eraseFileOrDir(dbDir);
 
         openDB();
     }
@@ -109,7 +98,7 @@ public abstract class BaseTest extends PlatformBaseTest {
             throw new RuntimeException("Failed closing database: " + TEST_DB, e);
         }
         finally {
-            FileUtils.cleanDirectory(dbDir);
+            if (dbDir != null) { FileUtils.eraseFileOrDir(dbDir); }
 
             ExecutionService.CloseableExecutor exec = executor;
             executor = null;
@@ -117,65 +106,8 @@ public abstract class BaseTest extends PlatformBaseTest {
         }
     }
 
-    protected Document save(MutableDocument doc) throws CouchbaseLiteException {
-        db.save(doc);
-        Document savedDoc = db.getDocument(doc.getId());
-        assertNotNull(savedDoc);
-        assertEquals(doc.getId(), savedDoc.getId());
-        return savedDoc;
-    }
-
-    protected Document save(MutableDocument doc, DocValidator validator) throws CouchbaseLiteException {
-        validator.validate(doc);
-        db.save(doc);
-        Document savedDoc = db.getDocument(doc.getId());
-        validator.validate(doc);
-        validator.validate(savedDoc);
-        return savedDoc;
-    }
-
-    // helper method to save document
-    protected Document generateDocument(String docID) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument(docID);
-        doc.setValue("key", 1);
-        save(doc);
-        Document savedDoc = db.getDocument(docID);
-        assertTrue(db.getCount() > 0);
-        assertEquals(1, savedDoc.getSequence());
-        return savedDoc;
-    }
-
-    protected File getDbDir() { return dbDir; }
-
-    protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
-        // database exist, delete it
-        if ((dbDir == null) || !Database.exists(dbName, dbDir)) { return; }
-
-        // If a test involves a replicator or a live query,
-        // it may take a while for the db to close
-        int i = 0;
-        while (true) {
-            try {
-                Database.delete(dbName, dbDir);
-                Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
-                break;
-            }
-            catch (CouchbaseLiteException ex) {
-                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
-
-                if (i++ >= BUSY_RETRIES) { fail("Failed closing DB"); }
-
-                Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is BUSY ...");
-                try { Thread.sleep(BUSY_WAIT_MS); }
-                catch (InterruptedException ignore) { }
-            }
-        }
-    }
-
     protected Database openDB(String name) throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(dbDir.getAbsolutePath());
-        return new Database(name, config);
+        return new Database(name);
     }
 
     protected void openDB() throws CouchbaseLiteException {
@@ -220,6 +152,78 @@ public abstract class BaseTest extends PlatformBaseTest {
         openDB();
     }
 
+    protected void eraseDatabase(Database db) throws CouchbaseLiteException {
+        final String dbName = db.getName();
+        final File dbDir = db.getFilePath();
+        if (db.isOpen()) { closeDatabase(db); }
+        if (!deleteDatabase(dbName, dbDir.getParentFile())) {
+            Report.log(LogLevel.ERROR, "Failed to delete db: " + dbName + " @" + dbDir);
+        }
+        FileUtils.deleteContents(dbDir);
+    }
+
+    protected void deleteDatabase(Database db) throws CouchbaseLiteException {
+        deleteDatabase(db.getName(), db.getFilePath().getParentFile());
+    }
+
+    protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
+        deleteDatabase(dbName, dbDir);
+    }
+
+    protected boolean deleteDatabase(String dbName, File dbDir) throws CouchbaseLiteException {
+        // database exist, delete it
+        if ((dbDir == null) || !dbDir.exists() || !Database.exists(dbName, dbDir)) { return true; }
+
+        // If a test involves a replicator or a live query,
+        // it may take a while for the db to close
+        int i = 0;
+        while (true) {
+            try {
+                Database.delete(dbName, dbDir);
+                Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
+                return true;
+            }
+            catch (CouchbaseLiteException ex) {
+                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+
+                if (i++ >= BUSY_RETRIES) { return false; }
+
+                Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is BUSY ...");
+                try { Thread.sleep(BUSY_WAIT_MS); }
+                catch (InterruptedException ignore) { }
+            }
+        }
+    }
+
+    protected Document save(MutableDocument doc) throws CouchbaseLiteException {
+        db.save(doc);
+        Document savedDoc = db.getDocument(doc.getId());
+        assertNotNull(savedDoc);
+        assertEquals(doc.getId(), savedDoc.getId());
+        return savedDoc;
+    }
+
+    protected Document save(MutableDocument doc, DocValidator validator)
+        throws CouchbaseLiteException {
+        validator.accept(doc);
+        db.save(doc);
+        Document savedDoc = db.getDocument(doc.getId());
+        validator.accept(doc);
+        validator.accept(savedDoc);
+        return savedDoc;
+    }
+
+    // helper method to save document
+    protected Document generateDocument(String docID) throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument(docID);
+        doc.setValue("key", 1);
+        save(doc);
+        Document savedDoc = db.getDocument(docID);
+        assertTrue(db.getCount() > 0);
+        assertEquals(1, savedDoc.getSequence());
+        return savedDoc;
+    }
+
     protected void loadJSONResource(String name) throws Exception {
         InputStream is = getAsset(name);
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -235,32 +239,6 @@ public abstract class BaseTest extends PlatformBaseTest {
             doc.setData(props);
             save(doc);
         }
-    }
-
-    protected String createDocNumbered(int i, int num) throws CouchbaseLiteException {
-        String docID = String.format(Locale.ENGLISH, "doc%d", i);
-        MutableDocument doc = new MutableDocument(docID);
-        doc.setValue("number1", i);
-        doc.setValue("number2", num - i);
-        save(doc);
-        return docID;
-    }
-
-    protected List<Map<String, Object>> loadNumbers(final int num) throws Exception {
-        return loadNumbers(1, num);
-    }
-
-    protected List<Map<String, Object>> loadNumbers(final int from, final int to) throws Exception {
-        final List<Map<String, Object>> numbers = new ArrayList<>();
-        db.inBatch(() -> {
-            for (int i = from; i <= to; i++) {
-                String docID;
-                try { docID = createDocNumbered(i, to); }
-                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
-                numbers.add(db.getDocument(docID).toMap());
-            }
-        });
-        return numbers;
     }
 
     protected void runSafely(Runnable test) {
@@ -287,48 +265,14 @@ public abstract class BaseTest extends PlatformBaseTest {
         if (failure != null) { throw new AssertionError(failure); }
     }
 
-    protected static void expectError(String domain, int code, Execution execution) {
+    protected static void expectError(String domain, int code, Fn.TaskThrows<CouchbaseLiteException> task) {
         try {
-            execution.run();
+            task.run();
             fail();
         }
         catch (CouchbaseLiteException e) {
             assertEquals(domain, e.getDomain());
             assertEquals(code, e.getCode());
         }
-    }
-
-    protected int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
-        int counter1 = verifyQueryWithEnumerator(query, result);
-        if (runBoth) {
-            int counter2 = verifyQueryWithIterable(query, result);
-            assertEquals(counter1, counter2);
-        }
-        return counter1;
-    }
-
-    protected int verifyQuery(Query query, QueryResult result) throws Exception {
-        return verifyQuery(query, true, result);
-    }
-
-    private int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        Result result;
-        while ((result = rs.next()) != null) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
-    }
-
-    private int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
-        int n = 0;
-        ResultSet rs = query.execute();
-        for (Result result : rs) {
-            n += 1;
-            queryResult.check(n, result);
-        }
-        return n;
     }
 }

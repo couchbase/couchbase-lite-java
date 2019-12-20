@@ -78,13 +78,13 @@ public class LogTest extends BaseTest {
     }
 
 
-    private String tempDirPath;
+    private String scratchDirPath;
 
     @Before
     public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
-        tempDirPath = getTempDirectory("logtest-" + System.currentTimeMillis());
+        scratchDirPath = getScratchDirectoryPath("logtest-" + System.currentTimeMillis());
 
         Database.log.reset();
     }
@@ -139,7 +139,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingLevels() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath)
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath)
             .setUsePlaintext(true)
             .setMaxRotateCount(0);
 
@@ -173,7 +173,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingDefaultBinaryFormat() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath);
 
         testWithConfiguration(
             LogLevel.INFO,
@@ -199,7 +199,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingUsePlainText() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.INFO,
@@ -218,7 +218,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingLogFilename() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath);
 
         testWithConfiguration(
             LogLevel.DEBUG,
@@ -236,7 +236,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingMaxSize() throws Exception {
-        final LogFileConfiguration config = new LogFileConfiguration(tempDirPath)
+        final LogFileConfiguration config = new LogFileConfiguration(scratchDirPath)
             .setUsePlaintext(true)
             .setMaxSize(1024);
 
@@ -254,7 +254,7 @@ public class LogTest extends BaseTest {
     public void testFileLoggingDisableLogging() throws Exception {
         String uuidString = UUID.randomUUID().toString();
 
-        final LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        final LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.NONE,
@@ -269,7 +269,7 @@ public class LogTest extends BaseTest {
     public void testFileLoggingReEnableLogging() throws Exception {
         String uuidString = UUID.randomUUID().toString();
 
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.NONE,
@@ -292,7 +292,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testFileLoggingHeader() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.VERBOSE,
@@ -340,7 +340,7 @@ public class LogTest extends BaseTest {
         String uuid = UUID.randomUUID().toString();
         CouchbaseLiteException error = new CouchbaseLiteException(uuid);
 
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.DEBUG,
@@ -363,7 +363,7 @@ public class LogTest extends BaseTest {
         String message = "test message %s";
         CouchbaseLiteException error = new CouchbaseLiteException(uuid1);
 
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath).setUsePlaintext(true);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath).setUsePlaintext(true);
 
         testWithConfiguration(
             LogLevel.DEBUG,
@@ -394,16 +394,16 @@ public class LogTest extends BaseTest {
 
         assertThrows(IllegalArgumentException.class, () -> new LogFileConfiguration((LogFileConfiguration) null));
 
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath)
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath)
             .setMaxRotateCount(rotateCount)
             .setMaxSize(maxSize)
             .setUsePlaintext(usePlainText);
         assertEquals(config.getMaxRotateCount(), rotateCount);
         assertEquals(config.getMaxSize(), maxSize);
         assertEquals(config.usesPlaintext(), usePlainText);
-        assertEquals(config.getDirectory(), tempDirPath);
+        assertEquals(config.getDirectory(), scratchDirPath);
 
-        final String tempDir2 = getTempDirectory("logtest2");
+        final String tempDir2 = getScratchDirectoryPath("logtest2");
         LogFileConfiguration newConfig = new LogFileConfiguration(tempDir2, config);
         assertEquals(newConfig.getMaxRotateCount(), rotateCount);
         assertEquals(newConfig.getMaxSize(), maxSize);
@@ -413,7 +413,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testEditReadOnlyLogFileConfiguration() throws Exception {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath);
 
         testWithConfiguration(
             LogLevel.DEBUG,
@@ -433,7 +433,7 @@ public class LogTest extends BaseTest {
 
     @Test
     public void testSetNewLogFileConfiguration() {
-        LogFileConfiguration config = new LogFileConfiguration(tempDirPath);
+        LogFileConfiguration config = new LogFileConfiguration(scratchDirPath);
 
         final FileLogger fileLogger = Database.log.getFile();
         fileLogger.setConfig(config);
@@ -446,8 +446,8 @@ public class LogTest extends BaseTest {
         assertNull(fileLogger.getConfig());
         fileLogger.setConfig(config);
         assertEquals(fileLogger.getConfig(), config);
-        fileLogger.setConfig(new LogFileConfiguration(tempDirPath + "/foo"));
-        assertEquals(fileLogger.getConfig(), new LogFileConfiguration(tempDirPath + "/foo"));
+        fileLogger.setConfig(new LogFileConfiguration(scratchDirPath + "/foo"));
+        assertEquals(fileLogger.getConfig(), new LogFileConfiguration(scratchDirPath + "/foo"));
     }
 
     @Test
@@ -604,7 +604,7 @@ public class LogTest extends BaseTest {
     }
 
     @Nullable
-    private File getTempDir() { return (tempDirPath == null) ? null : new File(tempDirPath); }
+    private File getTempDir() { return (scratchDirPath == null) ? null : new File(scratchDirPath); }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void recursiveDelete(@Nullable File root) {

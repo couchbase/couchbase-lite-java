@@ -22,16 +22,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import com.couchbase.lite.LogLevel;
-import com.couchbase.lite.utils.Report;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.utils.Utils;
+import com.couchbase.lite.utils.Report;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -44,24 +45,25 @@ public class C4BlobStoreTest extends C4BaseTest {
     // NOTE: JNI binding does not supports `c4blob_openStore()` with `C4EncryptionKey`
     //
 
-    File blobDir;
-    C4BlobStore blobStore;
-    C4BlobKey bogusKey;
-    boolean encrypted = false;
+    private File blobDir;
+    private C4BlobStore blobStore;
+    private C4BlobKey bogusKey;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        assertNotNull(blobDir = new File(getDatabaseDirectory(), "cbl_blob_test" + File.separatorChar));
-        assertNotNull(blobStore = C4BlobStore.open(blobDir.getPath(), C4Constants.DatabaseFlags.CREATE));
+        blobDir = new File(getScratchDirectoryPath("cbl_blob_test"));
+        blobStore = C4BlobStore.open(blobDir.getCanonicalPath(), C4Constants.DatabaseFlags.CREATE);
         bogusKey = new C4BlobKey("sha1-VVVVVVVVVVVVVVVVVVVVVVVVVVU=");
     }
 
     @After
     public void tearDown() throws Exception {
-        if (blobStore != null) { blobStore.delete(); }
-        if (blobStore != null) { blobStore.free(); }
-        if (blobDir != null && blobDir.exists()) { Utils.deleteRecursive(blobDir); }
+        if (blobStore != null) {
+            blobStore.delete();
+            blobStore.free();
+        }
+        if ((blobDir != null) && (blobDir.exists())) { Utils.deleteRecursive(blobDir); }
         super.tearDown();
     }
 
@@ -81,15 +83,6 @@ public class C4BlobStoreTest extends C4BaseTest {
         parseInvalidBlobKeys("sha1-");
         parseInvalidBlobKeys("sha1-VVVVVVVVVVVVVVVVVVVVVV");
         parseInvalidBlobKeys("sha1-VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU");
-    }
-
-    private void parseInvalidBlobKeys(String str) {
-        try {
-            new C4BlobKey(str);
-            fail();
-        }
-        catch (LiteCoreException e) {
-        }
     }
 
     // - missing blobs
@@ -131,7 +124,7 @@ public class C4BlobStoreTest extends C4BaseTest {
 
         FLSliceResult res = blobStore.getContents(key);
         assertNotNull(res);
-        assertTrue(Arrays.equals(blobToStore.getBytes(), res.getBuf()));
+        assertArrayEquals(blobToStore.getBytes(), res.getBuf());
         assertEquals(blobToStore.getBytes().length, res.getBuf().length);
         res.free();
 
@@ -199,7 +192,7 @@ public class C4BlobStoreTest extends C4BaseTest {
         assertEquals(blob.getBytes().length, stream.getLength());
 
         // Read it back, 6 bytes at a time:
-        StringBuffer readBack = new StringBuffer();
+        StringBuilder readBack = new StringBuilder();
         byte[] bytes;
         do {
             bytes = stream.read(6);
@@ -247,13 +240,13 @@ public class C4BlobStoreTest extends C4BaseTest {
         int line = increment;
         for (int i = 0; i < 1000; i++) {
             line = (line + increment) % 1000;
-            Report.log(LogLevel.INFO, "Reading line " + line + " at offset " + (18 * line));
+            Report.log(LogLevel.VERBOSE, "Reading line " + line + " at offset " + (18 * line));
             String buf = String.format(Locale.ENGLISH, "This is line %03d.\n", line);
             reader.seek(18 * line);
             byte[] readBuf = reader.read(18);
             assertNotNull(readBuf);
             assertEquals(18, readBuf.length);
-            assertTrue(Arrays.equals(readBuf, buf.getBytes()));
+            assertArrayEquals(readBuf, buf.getBytes());
         }
         stream.close();
         reader.close();
@@ -311,5 +304,13 @@ public class C4BlobStoreTest extends C4BaseTest {
         stream.write(buf.getBytes());
 
         stream.close();
+    }
+
+    private void parseInvalidBlobKeys(String str) {
+        try {
+            new C4BlobKey(str);
+            fail();
+        }
+        catch (LiteCoreException ignore) { }
     }
 }

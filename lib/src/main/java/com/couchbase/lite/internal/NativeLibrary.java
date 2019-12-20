@@ -48,7 +48,10 @@ final class NativeLibrary {
      * Extracts and loads native libraries.
      */
     static void load() {
+        CouchbaseLiteInternal.requireInit("Cannot load native libraries");
+
         if (LOADED.getAndSet(true)) { return; }
+
         try {
             final String[] libPaths = Arrays.stream(LIBRARIES).map(lib -> getResourcePath(lib)).toArray(String[]::new);
             final String targetDir = getTargetDirectory(libPaths);
@@ -88,7 +91,7 @@ final class NativeLibrary {
             }
         }
         final String md5 = String.format("%032x", new BigInteger(1, md.digest()));
-        return new File(CouchbaseLiteInternal.getTmpDirectory(TARGET_BASE_DIR), md5).getAbsolutePath();
+        return new File(CouchbaseLiteInternal.getTmpDirectoryPath(), md5).getAbsolutePath();
     }
 
     /**

@@ -26,7 +26,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class QueryChangeTest  extends BaseTest{
+public class QueryChangeTest  extends BaseQueryTest{
     @Test
     public void testQueryChangeTest() {
         QueryChange change = new QueryChange(null, null, null);
@@ -39,7 +39,7 @@ public class QueryChangeTest  extends BaseTest{
     // https://github.com/couchbase/couchbase-lite-android/issues/1615
     @Test
     public void testRemoveQueryChangeListenerInCallback() throws Exception {
-        loadNumbers(10);
+        loadNumberedDocs(10);
 
         final Query query = QueryBuilder
                 .select(SelectResult.expression(Meta.id))

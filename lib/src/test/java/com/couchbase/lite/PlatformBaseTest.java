@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
@@ -31,24 +33,30 @@ public abstract class PlatformBaseTest implements PlatformTest {
     public static final String PRODUCT = "Java";
     public static final String LEGAL_FILE_NAME_CHARS = "`~@#$%&'()_+{}][=-.,;'ABCDEabcde";
 
+    private String tmpDirPath;
 
     @Override
-    public void initCouchbaseLite() {
-        CouchbaseLite.init();
-    }
+    public void initCouchbaseLite() { CouchbaseLite.init(); }
 
     // set up the file logger...
     @Override
     public void setupFileLogging() { }
 
     @Override
-    public String getDatabaseDirectory() {
-        return CouchbaseLiteInternal.getDbDirectoryPath();
-    }
+    public String getDatabaseDirectoryPath() { return CouchbaseLiteInternal.getDbDirectoryPath(); }
 
     @Override
-    public String getTempDirectory(String name) {
-        return CouchbaseLiteInternal.getTmpDirectory(name);
+    public String getScratchDirectoryPath(String name) {
+        if (tmpDirPath == null) { tmpDirPath = CouchbaseLiteInternal.getTmpDirectoryPath(); }
+
+        try {
+            final File tmpDir = new File(tmpDirPath, name);
+            if (tmpDir.exists() || tmpDir.mkdirs()) { return tmpDir.getCanonicalPath(); }
+            throw new IOException("Could create tmp directory: " + name);
+        }
+        catch (IOException e) {
+            throw new RuntimeException("Failed creating temp directory");
+        }
     }
 
     @Override

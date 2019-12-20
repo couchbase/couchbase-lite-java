@@ -47,28 +47,38 @@ import static org.junit.Assert.fail;
 
 
 public class C4BaseTest extends PlatformBaseTest {
-    protected static final String DOC_ID = "mydoc";
-    protected static final String REV_ID_1 = "1-abcd";
-    protected static final String REV_ID_2 = "2-c001d00d";
-    protected static final String REV_ID_3 = "3-deadbeef";
+    public static final String DOC_ID = "mydoc";
+    public static final String REV_ID_1 = "1-abcd";
+    public static final String REV_ID_2 = "2-c001d00d";
+    public static final String REV_ID_3 = "3-deadbeef";
 
     protected File dir;
     protected C4Database db;
 
     protected byte[] kFleeceBody;
 
-    private final int versioning = C4Constants.DocumentVersioning.REVISION_TREES;
+    private String tmpDir;
+    private File rootDir;
 
     @Before
     public void setUp() throws Exception {
         initCouchbaseLite();
-        String tempdir = getTempDirectory("C4Test");
-        if (tempdir != null) { C4.setenv("TMPDIR", tempdir, 1); }
-        String dbFilename = "cbl_core_test.sqlite3";
-        deleteDatabaseFile(dbFilename);
-        dir = new File(getDatabaseDirectory(), dbFilename);
-        FileUtils.cleanDirectory(dir);
-        db = new C4Database(dir.getPath(), getFlags(), null, getVersioning(), encryptionAlgorithm(), encryptionKey());
+
+        tmpDir = getScratchDirectoryPath("C4Test");
+        C4.setenv("TMPDIR", tmpDir, 1);
+
+        rootDir = new File(getDatabaseDirectoryPath(), "C4Test");
+        FileUtils.eraseFileOrDir(rootDir);
+        if (!rootDir.mkdirs()) { throw new IOException("Can't create directory: " + rootDir); }
+
+        dir = new File(rootDir, "cbl_core_test.sqlite3");
+        db = new C4Database(
+            dir.getCanonicalPath(),
+            getFlags(),
+            null,
+            getVersioning(),
+            encryptionAlgorithm(),
+            encryptionKey());
 
         Map<String, Object> body = new HashMap<>();
         body.put("ans*wer", 42);
@@ -82,7 +92,8 @@ public class C4BaseTest extends PlatformBaseTest {
             db.free();
             db = null;
         }
-        if (dir != null) { FileUtils.cleanDirectory(dir); }
+        if (rootDir != null) { FileUtils.eraseFileOrDir(rootDir); }
+        if (tmpDir != null) { FileUtils.eraseFileOrDir(tmpDir); }
     }
 
     protected void createRev(String docID, String revID, byte[] body) throws LiteCoreException {
@@ -91,13 +102,11 @@ public class C4BaseTest extends PlatformBaseTest {
 
     protected int getFlags() { return C4Constants.DatabaseFlags.CREATE | C4Constants.DatabaseFlags.SHARED_KEYS; }
 
-    protected int getVersioning() { return versioning; }
+    protected int getVersioning() { return C4Constants.DocumentVersioning.REVISION_TREES; }
 
     protected int encryptionAlgorithm() { return C4Constants.EncryptionAlgorithm.NONE; }
 
     protected byte[] encryptionKey() { return null; }
-
-    private void deleteDatabaseFile(String dbFileName) { deleteFile(dbFileName); }
 
     protected long importJSONLines(String name) throws LiteCoreException, IOException {
         return importJSONLines(getAsset(name));
@@ -197,7 +206,16 @@ public class C4BaseTest extends PlatformBaseTest {
 
         // Save document:
         C4Document doc
-            = db.put(body, docID, C4Constants.RevisionFlags.HAS_ATTACHMENTS, false, false, new String[0], true, 0, 0);
+            = db.put(
+            body,
+            docID,
+            C4Constants.RevisionFlags.HAS_ATTACHMENTS,
+            false,
+            false,
+            new String[0],
+            true,
+            0,
+            0);
         assertNotNull(doc);
         body.free();
         doc.free();
@@ -293,15 +311,6 @@ public class C4BaseTest extends PlatformBaseTest {
         }
 
         return numDocs;
-    }
-
-    private void deleteFile(String filename) {
-        File file = new File(getDatabaseDirectory(), filename);
-        if (file.exists()) {
-            if (!file.delete()) {
-                Report.log(LogLevel.ERROR, "ERROR failed to delete: dbFile=" + file);
-            }
-        }
     }
 
     private byte[] createFleeceBody(Map<String, Object> body) throws LiteCoreException {

@@ -394,8 +394,18 @@ project.afterEvaluate {
 // Testing
 // ----------------------------------------------------------------
 
-if (TEST_FILTER != null) {
-    test { exclude "${TEST_FILTER}" }
+test {
+    if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
+
+    testLogging {
+        events = [
+            "failed",
+//            "passed",
+//            "skipped"
+        ]
+        // showStandardStreams = true
+        exceptionFormat = 'full'
+    }
 }
 
 // ----------------------------------------------------------------

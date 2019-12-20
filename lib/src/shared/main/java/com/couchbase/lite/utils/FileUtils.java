@@ -17,41 +17,39 @@
 //
 package com.couchbase.lite.utils;
 
+import android.support.annotation.NonNull;
+
 import java.io.File;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 public class FileUtils {
-    public static boolean removeItemIfExists(String path) {
-        final File f = new File(path);
-        return !f.exists() || f.delete();
+    public static boolean eraseFileOrDir(@NonNull String fileOrDirectory) {
+        Preconditions.checkArgNotNull(fileOrDirectory, "file or directory");
+        return eraseFileOrDir(new File(fileOrDirectory));
+    }
+
+    public static boolean eraseFileOrDir(File fileOrDirectory) {
+        Preconditions.checkArgNotNull(fileOrDirectory, "file or directory");
+        return deleteRecursive(fileOrDirectory);
     }
 
     @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"})
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static boolean cleanDirectory(File dir) {
-        if ((dir == null) || !dir.isDirectory()) { return false; }
+    public static boolean deleteContents(File fileOrDirectory) {
+        if ((fileOrDirectory == null) || (!fileOrDirectory.isDirectory())) { return true; }
 
-        for (File file : dir.listFiles()) {
+        final File[] contents = fileOrDirectory.listFiles();
+        if (contents == null) { return true; }
+
+        for (File file : contents) {
             if (!deleteRecursive(file)) { return false; }
         }
-        dir.delete();
+
         return true;
-    }
-
-    public static boolean deleteRecursive(String fileOrDirectory) {
-        return deleteRecursive(new File(fileOrDirectory));
-    }
-
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public static boolean deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory.isDirectory()) {
-            for (File child : fileOrDirectory.listFiles()) {
-                deleteRecursive(child);
-            }
-        }
-        return fileOrDirectory.delete() || !fileOrDirectory.exists();
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
@@ -60,5 +58,9 @@ public class FileUtils {
             for (File child : fileOrDirectory.listFiles()) { setPermissionRecursive(child, readable, writable); }
         }
         return fileOrDirectory.setReadable(readable) && fileOrDirectory.setWritable(writable);
+    }
+
+    private static boolean deleteRecursive(File fileOrDirectory) {
+        return deleteContents(fileOrDirectory) && (!fileOrDirectory.exists() || fileOrDirectory.delete());
     }
 }

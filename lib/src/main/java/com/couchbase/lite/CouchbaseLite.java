@@ -17,22 +17,38 @@
 //
 package com.couchbase.lite;
 
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
-import com.couchbase.lite.internal.fleece.MValue;
 
 
 public final class CouchbaseLite {
     // Utility class
     private CouchbaseLite() {}
 
-    public static void init() { init(new MValueDelegate(), false, null); }
+    /**
+     * Initialize CouchbaseLite library. This method MUST be called before using CouchbaseLite.
+     */
+    public static void init() { init(null); }
 
-    private static void init(@NonNull MValue.Delegate mValueDelegate, boolean debugging, @Nullable File rootDirectory) {
-        CouchbaseLiteInternal.init(mValueDelegate, debugging, rootDirectory);
+    /**
+     * Initialize CouchbaseLite library.
+     * This method allows specifying a root directory for CBL files.
+     *
+     * @param rootDirectory the root directory for CBL files
+     */
+    public static void init(@Nullable File rootDirectory) {
+        String rootDirPath = null;
+        if (rootDirectory != null) {
+            try { rootDirPath = rootDirectory.getCanonicalPath(); }
+            catch (IOException e) {
+                throw new IllegalArgumentException("Could not get path for directory: " + rootDirectory, e);
+            }
+        }
+
+        CouchbaseLiteInternal.init(new MValueDelegate(), rootDirPath);
     }
 }

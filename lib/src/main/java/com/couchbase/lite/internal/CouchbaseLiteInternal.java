@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
@@ -23,33 +24,57 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.core.C4Base;
 import com.couchbase.lite.internal.fleece.MValue;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
+/**
+ * Among the other things that this class attempts to abstract away, is access to the file system.
+ * On both Android, and in a Web Container, file system access is pretty problematic.
+ * Among other things, some code make the tacit assumption that there is a single root directory
+ * that contains both a scratch (temp) directory and the database directory.  The scratch directory
+ * is also used, occasionally, as the home for log files.
+ */
 public final class CouchbaseLiteInternal {
     // Utility class
     private CouchbaseLiteInternal() {}
 
     private static final String ERRORS_PROPERTIES_PATH = "/errors.properties";
+    private static final String TEMP_DIR_NAME = "CouchbaseLiteTemp";
+    private static final String DEFAULT_ROOT_DIR_NAME = "couchbase";
 
     private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
-    /**
-     * Initialize CouchbaseLite library. This method MUST be called before
-     * using CouchbaseLite.
-     */
-    public static void init(@NonNull MValue.Delegate mValueDelegate, boolean debugging, @Nullable File rootDirectory) {
+    private static final Object lock = new Object();
+
+    @GuardedBy("lock")
+    private static String dbDirPath;
+    @GuardedBy("lock")
+    private static String tmpDirPath;
+
+    public static void init(@NonNull MValue.Delegate mValueDelegate, @Nullable String rootDirectoryPath) {
+        Preconditions.checkArgNotNull(mValueDelegate, "mValueDelegate");
+
         if (INITIALIZED.getAndSet(true)) { return; }
 
+        // This is complicated by the fact that we need the temp directory
+        // in order to load the native libraries, but that the native libraries
+        // need to know where the temp directory is...
+        initDirectories(rootDirectoryPath);
+
         NativeLibrary.load();
+
+        setC4TmpDirPath();
 
         MValue.registerDelegate(mValueDelegate);
 
@@ -76,19 +101,42 @@ public final class CouchbaseLiteInternal {
         }
     }
 
+    @NonNull
+    public static String makeDbPath(@Nullable String rootDir) {
+        requireInit("Can't create DB path");
+        return verifyDir(new File((rootDir == null) ? DEFAULT_ROOT_DIR_NAME : rootDir));
+    }
+
+    @NonNull
+    public static String makeTmpPath(@Nullable String rootDir) {
+        requireInit("Can't create tmp dir path");
+        return verifyDir(new File((rootDir != null) ? rootDir : System.getProperty("java.io.tmpdir"), TEMP_DIR_NAME));
+    }
+
+    public static void setupDirectories(@Nullable String rootDirPath) {
+        requireInit("Can't set root directory");
+
+        synchronized (lock) {
+            // remember the current tmp dir
+            final String tmpPath = tmpDirPath;
+
+            initDirectories(rootDirPath);
+
+            // if the temp dir has changed, tell C4Base
+            if (!Objects.equals(tmpPath, tmpDirPath)) { setC4TmpDirPath(); }
+        }
+    }
+
+    @NonNull
     public static String getDbDirectoryPath() {
         requireInit("Database directory not initialized");
-        return verifyDir(new File("").getAbsoluteFile());
+        synchronized (lock) { return dbDirPath; }
     }
 
-    public static String getTmpDirectory(@NonNull String name) {
-        requireInit("Temp directory not initialized");
-        return getTmpDirectory(new File(System.getProperty("java.io.tmpdir")).getAbsolutePath(), name);
-    }
-
-    public static String getTmpDirectory(String root, String name) {
-        requireInit("Temp directory not initialized");
-        return verifyDir(new File(root, name));
+    @NonNull
+    public static String getTmpDirectoryPath() {
+        requireInit("Database directory not initialized");
+        synchronized (lock) { return tmpDirPath; }
     }
 
     @VisibleForTesting
@@ -109,8 +157,23 @@ public final class CouchbaseLiteInternal {
     @NonNull
     private static String verifyDir(@NonNull File dir) {
         final String path = dir.getAbsolutePath();
+
         if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
 
         throw new IllegalStateException("Cannot create or access temp directory at " + path);
+    }
+
+    private static void initDirectories(@Nullable String rootDirPath) {
+        final String dbPath = makeDbPath(rootDirPath);
+        final String tmpPath = makeTmpPath(rootDirPath);
+
+        synchronized (lock) {
+            tmpDirPath = tmpPath;
+            dbDirPath = dbPath;
+        }
+    }
+
+    private static void setC4TmpDirPath() {
+        synchronized (lock) { C4Base.setTempDir(tmpDirPath); }
     }
 }

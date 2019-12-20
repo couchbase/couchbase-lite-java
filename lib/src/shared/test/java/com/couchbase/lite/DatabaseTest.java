@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.utils.FileUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
@@ -50,27 +52,19 @@ public class DatabaseTest extends BaseTest {
 
     // helper method to open database
     private Database openDatabase(String dbName) throws CouchbaseLiteException {
-        return openDatabase(dbName, true);
+        return openDatabase(dbName, 0);
     }
 
-    private Database openDatabase(String dbName, boolean countCheck) throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(getDbDir().getAbsolutePath());
-        Database db = new Database(dbName, config);
+    private Database openDatabase(String dbName, int count) throws CouchbaseLiteException {
+        Database db = new Database(dbName);
         assertEquals(dbName, db.getName());
-        assertTrue(new File(db.getPath()).getAbsolutePath().endsWith(".cblite2"));
-        if (countCheck) { assertEquals(0, db.getCount()); }
-        return db;
-    }
 
-    // helper method to delete database
-    void deleteDatabase(Database db) throws CouchbaseLiteException {
-        File path = db.getPath() != null ? new File(db.getPath()) : null;
-        // if path is null, db is already closed
-        if (path != null) { assertTrue(path.exists()); }
-        db.delete();
-        // if path is null, db is already closed before db.delete()
-        if (path != null) { assertFalse(path.exists()); }
+        try { assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2")); }
+        catch (IOException e) { throw new RuntimeException("Unable to get db path", e); }
+
+        if (count >= 0) { assertEquals(count, db.getCount()); }
+
+        return db;
     }
 
     // helper methods to verify getDoc
@@ -130,14 +124,14 @@ public class DatabaseTest extends BaseTest {
     public void testCreateConfiguration() {
         // Default:
         DatabaseConfiguration config1 = new DatabaseConfiguration();
-        config1.setDirectory("/tmp");
         assertNotNull(config1.getDirectory());
-        assertTrue(config1.getDirectory().length() > 0);
+        assertFalse(config1.getDirectory().isEmpty());
 
         // Custom
         DatabaseConfiguration config2 = new DatabaseConfiguration();
-        config2.setDirectory("/tmp/mydb");
-        assertEquals("/tmp/mydb", config2.getDirectory());
+        String dbDir = getScratchDirectoryPath("tmp");
+        config2.setDirectory(dbDir);
+        assertEquals(dbDir, config2.getDirectory());
     }
 
     @Test
@@ -170,17 +164,15 @@ public class DatabaseTest extends BaseTest {
     }
 
     @Test
-    public void testDatabaseConfigurationWithAndroidContect() throws CouchbaseLiteException {
-        String expectedPath = getDatabaseDirectory();
+    public void testDatabaseConfigurationDefaultDirectory() throws CouchbaseLiteException, IOException {
         DatabaseConfiguration config = new DatabaseConfiguration();
+
+        String expectedPath = CouchbaseLiteInternal.makeDbPath(null);
         assertEquals(config.getDirectory(), expectedPath);
+
         Database db = new Database("db", config);
-        try {
-            assertTrue(new File(db.getPath()).getAbsolutePath().contains(expectedPath));
-        }
-        finally {
-            db.delete();
-        }
+        try { assertTrue(new File(db.getPath()).getCanonicalPath().contains(expectedPath)); }
+        finally { db.delete(); }
     }
 
     //---------------------------------------------
@@ -197,7 +189,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // delete database
-            deleteDatabase(db);
+            eraseDatabase(db);
         }
     }
 
@@ -211,7 +203,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // delete database
-            deleteDatabase(db);
+            eraseDatabase(db);
         }
     }
 
@@ -225,7 +217,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // delete database
-            deleteDatabase(db);
+            eraseDatabase(db);
         }
     }
 
@@ -244,28 +236,27 @@ public class DatabaseTest extends BaseTest {
     }
 
     @Test
-    public void testCreateWithCustomDirectory() throws CouchbaseLiteException {
+    public void testCreateWithCustomDirectory() throws CouchbaseLiteException, IOException {
         final String dbName = "db";
 
-        File dir = new File(getDatabaseDirectory(), "CouchbaseLite");
-        try { Database.delete(dbName, dir); } catch (CouchbaseLiteException ignored) { }
+        File dir = new File(getScratchDirectoryPath("CouchbaseLite"));
+        deleteDatabase(dbName, dir);
         assertFalse(Database.exists(dbName, dir));
 
         // create db with custom directory
-        DatabaseConfiguration config = new DatabaseConfiguration()
-            .setDirectory(dir.getAbsolutePath());
+        DatabaseConfiguration config = new DatabaseConfiguration().setDirectory(dir.getCanonicalPath());
         Database db = new Database(dbName, config);
         try {
             assertNotNull(db);
             assertEquals(dbName, db.getName());
-            assertTrue(new File(db.getPath()).getAbsolutePath().endsWith(".cblite2"));
-            assertTrue(new File(db.getPath()).getAbsolutePath().contains(dir.getPath()));
+            assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2"));
+            assertTrue(new File(db.getPath()).getCanonicalPath().contains(dir.getPath()));
             assertTrue(Database.exists(dbName, dir));
             assertEquals(0, db.getCount());
         }
         finally {
-            deleteDatabase(db);
-            FileUtils.cleanDirectory(dir);
+            eraseDatabase(db);
+            FileUtils.eraseFileOrDir(dir);
         }
     }
 
@@ -294,7 +285,7 @@ public class DatabaseTest extends BaseTest {
         generateDocument(docID);
 
         // open db with same db name and default option
-        Database otherDB = openDatabase(db.getName(), false);
+        Database otherDB = openDatabase(db.getName(), -1);
         assertNotNull(otherDB);
         assertNotSame(db, otherDB);
 
@@ -339,7 +330,7 @@ public class DatabaseTest extends BaseTest {
         generateDocument("doc1");
 
         // Close db:
-        deleteDatabase(db);
+        eraseDatabase(db);
         try {
             Document doc = db.getDocument("doc1");
             fail();
@@ -412,7 +403,7 @@ public class DatabaseTest extends BaseTest {
         MutableDocument doc = generateDocument(docID).toMutable();
 
         // Create db with default
-        Database otherDB = openDatabase(db.getName(), false);
+        Database otherDB = openDatabase(db.getName(), -1);
         assertNotNull(otherDB);
         assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
@@ -459,8 +450,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // delete otherDb
-            deleteDatabase(otherDB);
-            deleteDatabase("otherDB");
+            eraseDatabase(otherDB);
         }
     }
 
@@ -501,21 +491,15 @@ public class DatabaseTest extends BaseTest {
         }
     }
 
-    @Test
+    @Test(expected = CouchbaseLiteException.class)
     public void testSaveDocToDeletedDB() throws CouchbaseLiteException {
         // Delete db:
-        deleteDatabase(db);
+        Database.delete(db.getName(), db.getFilePath().getParentFile());
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("key", 1);
 
-        try {
-            save(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        save(doc);
     }
 
     //---------------------------------------------
@@ -551,7 +535,7 @@ public class DatabaseTest extends BaseTest {
 
         // Create db with same name:
         // Create db with default
-        Database otherDB = openDatabase(db.getName(), false);
+        Database otherDB = openDatabase(db.getName(), -1);
         assertNotNull(otherDB);
         assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
@@ -594,8 +578,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // close otherDb
-            deleteDatabase(otherDB);
-            deleteDatabase("otherDB");
+            eraseDatabase(otherDB);
         }
     }
 
@@ -620,7 +603,7 @@ public class DatabaseTest extends BaseTest {
         assertEquals(0, db.getCount());
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnClosedDB() throws CouchbaseLiteException {
         // Store doc:
         Document doc = generateDocument("doc1");
@@ -629,31 +612,18 @@ public class DatabaseTest extends BaseTest {
         db.close();
 
         // Delete doc from db:
-        try {
-            db.delete(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        db.delete(doc);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnDeletedDB() throws CouchbaseLiteException {
         // Store doc:
         Document doc = generateDocument("doc1");
 
-        // Delete db:
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         // Delete doc from db:
-        try {
-            db.delete(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        db.delete(doc);
     }
 
     //---------------------------------------------
@@ -689,7 +659,7 @@ public class DatabaseTest extends BaseTest {
         Document doc = generateDocument(docID);
 
         // Create db with default:
-        Database otherDB = openDatabase(db.getName(), false);
+        Database otherDB = openDatabase(db.getName(), -1);
         assertNotNull(otherDB);
         assertNotSame(otherDB, db);
         assertEquals(1, otherDB.getCount());
@@ -732,8 +702,7 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             // close otherDb
-            deleteDatabase(otherDB);
-            deleteDatabase("otherDB");
+            eraseDatabase(otherDB);
         }
     }
 
@@ -798,7 +767,7 @@ public class DatabaseTest extends BaseTest {
         Document doc = generateDocument("doc1");
 
         // Close db:
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         // Purge doc:
         try {
@@ -901,16 +870,10 @@ public class DatabaseTest extends BaseTest {
         assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, err[0].getCode()); // 26
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testCloseThenDeleteDatabase() throws CouchbaseLiteException {
         db.close();
-        try {
-            deleteDatabase(db);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should come here!
-        }
+        db.delete();
     }
 
     //---------------------------------------------
@@ -918,7 +881,7 @@ public class DatabaseTest extends BaseTest {
     //---------------------------------------------
     @Test
     public void testDelete() throws CouchbaseLiteException {
-        deleteDatabase(db);
+        eraseDatabase(db);
     }
 
     @Test
@@ -944,7 +907,7 @@ public class DatabaseTest extends BaseTest {
         MutableDocument doc = generateDocument(docID).toMutable();
 
         // Delete db:
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         // Content should be accessible & modifiable without error:
         assertEquals(docID, doc.getId());
@@ -962,7 +925,7 @@ public class DatabaseTest extends BaseTest {
         save(doc);
 
         // Delete db:
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         // content should be accessible & modifiable without error
         Object obj = doc.getValue("blob");
@@ -977,7 +940,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testDeleteThenGetDatabaseName() throws CouchbaseLiteException {
         // delete db
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         assertEquals("testdb", db.getName());
     }
@@ -985,7 +948,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testDeleteThenGetDatabasePath() throws CouchbaseLiteException {
         // delete db
-        deleteDatabase(db);
+        eraseDatabase(db);
 
         assertNull(db.getPath());
     }
@@ -1032,25 +995,25 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testDeleteWithDefaultDirDB() throws CouchbaseLiteException {
-        String dbName = "db";
+        final String dbName = "db";
+        final Database database = openDB(dbName);
+        final File dbDir = new File(database.getPath());
         try {
-            Database database = openDB(dbName);
-            File path = new File(database.getPath());
-            assertNotNull(path);
-            assertTrue(path.exists());
+            assertNotNull(dbDir);
+            assertTrue(dbDir.exists());
             // close db before delete
             database.close();
 
-            // Java/Android does not allow null as directory parameter
+            // Java/Android should not allow null as directory parameter
             try {
                 Database.delete(dbName, null);
                 fail();
             }
             catch (IllegalArgumentException expected) { }
-            assertTrue(path.exists());
+            assertTrue(dbDir.exists());
         }
         finally {
-            Database.delete(dbName, getDbDir());
+            Database.delete(dbName, dbDir.getParentFile());
         }
     }
 
@@ -1078,23 +1041,32 @@ public class DatabaseTest extends BaseTest {
     public void testDeleteByStaticMethod() throws CouchbaseLiteException {
         String dbName = "db";
 
-        // create db with custom directory
-        Database db = openDatabase(dbName);
+        String dbDirPath = getScratchDirectoryPath("testing");
+        File dbDirFile = new File(dbDirPath);
+        FileUtils.deleteContents(dbDirFile);
+
+        // create db in a custom directory
+        DatabaseConfiguration config = new DatabaseConfiguration();
+        config.setDirectory(dbDirPath);
+
+        Database db = new Database(dbName, config);
         File path = new File(db.getPath());
 
         // close db before delete
         db.close();
 
-        Database.delete(dbName, getDbDir());
+        Database.delete(dbName, dbDirFile);
+
         assertFalse(path.exists());
     }
 
     @Test
     public void testDeleteOpeningDBByStaticMethod() throws CouchbaseLiteException {
         Database db = openDatabase("db");
+        File dbDir = db.getFilePath().getParentFile();
         try {
             try {
-                Database.delete("db", getDbDir());
+                Database.delete("db", dbDir);
                 fail();
             }
             catch (CouchbaseLiteException e) {
@@ -1103,7 +1075,7 @@ public class DatabaseTest extends BaseTest {
             }
         }
         finally {
-            deleteDatabase(db);
+            eraseDatabase(db);
         }
     }
 
@@ -1117,7 +1089,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testDeleteNonExistingDB() {
         try {
-            Database.delete("notexistdb", getDbDir());
+            Database.delete("notexistdb", new File(getScratchDirectoryPath("nowhere")));
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -1141,22 +1113,25 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testDatabaseExistsWithDir() throws CouchbaseLiteException {
-        assertFalse(Database.exists("db", getDbDir()));
+        String dbDirPath = getScratchDirectoryPath("test");
+        File dbDir = new File(dbDirPath);
+        dbDir.mkdirs();
+        assertTrue(dbDir.exists());
+
+        assertFalse(Database.exists("db", dbDir));
 
         // create db with custom directory
-        Database db = openDatabase("db");
-        File path = new File(db.getPath());
+        Database db = new Database("db", new DatabaseConfiguration().setDirectory(dbDirPath));
+        String dbPath = db.getPath();
 
-        assertTrue(Database.exists("db", getDbDir()));
+        assertTrue(Database.exists("db", dbDir));
 
         db.close();
+        assertTrue(Database.exists("db", dbDir));
 
-        assertTrue(Database.exists("db", getDbDir()));
-
-        Database.delete("db", getDbDir());
-        assertFalse(path.exists());
-
-        assertFalse(Database.exists("db", getDbDir()));
+        Database.delete("db", dbDir);
+        assertFalse(new File(dbPath).exists());
+        assertFalse(Database.exists("db", dbDir));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -1166,7 +1141,7 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testDatabaseExistsAgainstNonExistDB() {
-        assertFalse(Database.exists("nonexist", getDbDir()));
+        assertFalse(Database.exists("nonexist", new File(getScratchDirectoryPath("nowhere"))));
     }
 
     @Test
@@ -1417,7 +1392,6 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testDeleteAndOpenDB() throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(getDbDir().toString());
 
         // open "application" database
         final Database database1 = new Database("application", config);

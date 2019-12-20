@@ -38,16 +38,10 @@ abstract class AbstractDatabaseConfiguration {
     // Constructors
     //---------------------------------------------
 
-    protected AbstractDatabaseConfiguration() { this((String) null, false); }
-
-    protected AbstractDatabaseConfiguration(@NonNull AbstractDatabaseConfiguration config, boolean readOnly) {
-        this(config.rootDirectory, readOnly);
-    }
-
-    private AbstractDatabaseConfiguration(@Nullable String dir, boolean readOnly) {
+    protected AbstractDatabaseConfiguration(@Nullable AbstractDatabaseConfiguration config, boolean readOnly) {
         CouchbaseLiteInternal.requireInit("Cannot create database configuration");
         this.readOnly = readOnly;
-        setRootDirectory(dir);
+        setRootDirectory((config == null) ? null : config.rootDirectory);
     }
 
     //---------------------------------------------
@@ -71,6 +65,8 @@ abstract class AbstractDatabaseConfiguration {
 
     protected abstract DatabaseConfiguration getDatabaseConfiguration();
 
+    protected boolean isReadOnly() { return readOnly; }
+
     protected AbstractDatabaseConfiguration setDirectory(@NonNull String dir) {
         Preconditions.checkArgNotNull(dbDirectory, "directory");
         if (readOnly) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
@@ -79,8 +75,6 @@ abstract class AbstractDatabaseConfiguration {
 
         return this;
     }
-
-    protected boolean isReadOnly() { return readOnly; }
 
     //---------------------------------------------
     // Package level access

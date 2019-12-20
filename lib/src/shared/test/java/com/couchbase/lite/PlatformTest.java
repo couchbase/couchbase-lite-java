@@ -34,10 +34,10 @@ public interface PlatformTest {
     void setupFileLogging();
 
     /* Gets the directory for storing test databases. */
-    String getDatabaseDirectory();
+    String getDatabaseDirectoryPath();
 
     /* Gets the platform specific temp directory. */
-    String getTempDirectory(String name);
+    String getScratchDirectoryPath(String name);
 
     /* Gets the assert as InputStream  by asset's name */
     InputStream getAsset(String asset) throws IOException;

@@ -49,7 +49,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class QueryTest extends BaseTest {
+public class QueryTest extends BaseQueryTest {
     private static Expression EXPR_NUMBER1 = Expression.property("number1");
     private static Expression EXPR_NUMBER2 = Expression.property("number2");
 
@@ -245,7 +245,7 @@ public class QueryTest extends BaseTest {
             {EXPR_NUMBER1.equalTo(Expression.intValue(7)), docids(7)},
             {EXPR_NUMBER1.notEqualTo(Expression.intValue(7)), docids(1, 2, 3, 4, 5, 6, 8, 9, 10)}
         };
-        List<Map<String, Object>> numbers = loadNumbers(10);
+        List<Map<String, Object>> numbers = loadNumberedDocs(10);
         runTestWithNumbers(numbers, cases);
     }
 
@@ -293,7 +293,7 @@ public class QueryTest extends BaseTest {
                 docids(6, 7, 8, 9, 10)
             }
         };
-        List<Map<String, Object>> numbers = loadNumbers(10);
+        List<Map<String, Object>> numbers = loadNumberedDocs(10);
         runTestWithNumbers(numbers, cases);
     }
 
@@ -309,7 +309,7 @@ public class QueryTest extends BaseTest {
                 docids(1, 2, 8, 9, 10)
             }
         };
-        List<Map<String, Object>> numbers = loadNumbers(10);
+        List<Map<String, Object>> numbers = loadNumberedDocs(10);
         runTestWithNumbers(numbers, cases);
     }
 
@@ -402,7 +402,7 @@ public class QueryTest extends BaseTest {
         Object[][] cases = {
             {EXPR_NUMBER1.between(Expression.intValue(3), Expression.intValue(7)), docids(3, 4, 5, 6, 7)}
         };
-        List<Map<String, Object>> numbers = loadNumbers(10);
+        List<Map<String, Object>> numbers = loadNumberedDocs(10);
         runTestWithNumbers(numbers, cases);
     }
 
@@ -560,7 +560,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testJoin() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
@@ -588,7 +588,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testLeftJoin() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument joinme = new MutableDocument("joinme");
         joinme.setValue("theone", 42);
@@ -622,7 +622,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testCrossJoin() throws Exception {
-        loadNumbers(10);
+        loadNumberedDocs(10);
 
         DataSource mainDS = DataSource.database(this.db).as("main");
         DataSource secondaryDS = DataSource.database(this.db).as("secondary");
@@ -715,7 +715,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testParameters() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource dataSource = DataSource.database(this.db);
 
@@ -745,7 +745,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testMeta() throws Exception {
-        loadNumbers(5);
+        loadNumberedDocs(5);
 
         DataSource dataSource = DataSource.database(this.db);
 
@@ -788,7 +788,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testLimit() throws Exception {
-        loadNumbers(10);
+        loadNumberedDocs(10);
 
         DataSource dataSource = DataSource.database(this.db);
 
@@ -824,7 +824,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testLimitOffset() throws Exception {
-        loadNumbers(10);
+        loadNumberedDocs(10);
 
         DataSource dataSource = DataSource.database(this.db);
 
@@ -888,7 +888,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testQueryProjectingKeys() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource DS = DataSource.database(db);
 
@@ -973,7 +973,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testAggregateFunctions() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource ds = DataSource.database(this.db);
 
@@ -1179,7 +1179,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testSelectAll() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource.As ds = DataSource.database(db);
 
@@ -1416,7 +1416,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testLiveQuery() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         Query query = QueryBuilder
             .select(SR_DOCID)
@@ -1479,7 +1479,7 @@ public class QueryTest extends BaseTest {
     }
 
     private void _testLiveQueryNoUpdate(final boolean consumeAll) throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         Query query = QueryBuilder
             .select()
@@ -1523,7 +1523,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1356
     @Test
     public void testCountFunctions() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource ds = DataSource.database(this.db);
         Expression cnt = Function.count(EXPR_NUMBER1);
@@ -1752,7 +1752,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1413
     @Test
     public void testJoinAll() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
@@ -1789,7 +1789,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1413
     @Test
     public void testJoinByDocID() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
@@ -1957,7 +1957,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testFunctionCount() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument doc = new MutableDocument();
         doc.setValue("string", "STRING");
@@ -1999,7 +1999,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testFunctionCountAll() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         DataSource.As ds = DataSource.database(db);
 
@@ -2027,7 +2027,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testResultSetEnumeration() throws Exception {
-        loadNumbers(5);
+        loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
@@ -2085,7 +2085,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testGetAllResults() throws Exception {
-        loadNumbers(5);
+        loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
@@ -2136,7 +2136,7 @@ public class QueryTest extends BaseTest {
 
     @Test
     public void testResultSetEnumerationZeroResults() throws Exception {
-        loadNumbers(5);
+        loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db))
@@ -2228,7 +2228,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1603
     @Test
     public void testExpressionNot() throws Exception {
-        loadNumbers(10);
+        loadNumberedDocs(10);
 
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
@@ -2247,7 +2247,7 @@ public class QueryTest extends BaseTest {
     @Test
     public void testLimitValueIsLargerThanResult() throws Exception {
         final int N = 4;
-        loadNumbers(N);
+        loadNumberedDocs(N);
 
         Query query = QueryBuilder
             .select(SelectResult.all())
@@ -2490,7 +2490,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1628
     @Test
     public void testLiveQueryResultsCount() throws Exception {
-        loadNumbers(50);
+        loadNumberedDocs(50);
 
         Query query = QueryBuilder
             .select()
@@ -2512,7 +2512,7 @@ public class QueryTest extends BaseTest {
             final CountDownLatch latchAdd = new CountDownLatch(1);
             executeAsync(500, () -> {
                 try {
-                    loadNumbers(51, 100);
+                    loadNumberedDocs(51, 100);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -2639,7 +2639,7 @@ public class QueryTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-core/issues/497
     @Test
     public void testQueryJoinAndSelectAll() throws Exception {
-        loadNumbers(100);
+        loadNumberedDocs(100);
 
         final MutableDocument joinme = new MutableDocument("joinme");
         joinme.setValue("theone", 42);

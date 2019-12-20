@@ -44,6 +44,4 @@ public class PreInitTest {
     public void testCreateDBConfigBeforeInit() {
         new DatabaseConfiguration();
     }
-
-
 }

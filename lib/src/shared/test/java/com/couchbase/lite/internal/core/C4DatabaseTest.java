@@ -18,6 +18,7 @@
 package com.couchbase.lite.internal.core;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -142,34 +143,45 @@ public class C4DatabaseTest extends C4BaseTest {
 
     // - "Database OpenBundle"
     @Test
-    public void testDatabaseOpenBundle() throws LiteCoreException {
+    public void testDatabaseOpenBundle() throws LiteCoreException, IOException {
         int flags = getFlags();
-        File bundlePath = new File(getDatabaseDirectory(), "cbl_core_test_bundle");
-
+        File bundlePath = new File(getScratchDirectoryPath("cbl_core_test_bundle"));
         if (bundlePath.exists()) { C4Database.deleteDbAtPath(bundlePath.getPath()); }
-        C4Database bundle = new C4Database(bundlePath.getPath(), flags, null, getVersioning(),
-            encryptionAlgorithm(), encryptionKey());
+
+        C4Database bundle = new C4Database(
+            bundlePath.getPath(),
+            flags,
+            null,
+            getVersioning(),
+            encryptionAlgorithm(),
+            encryptionKey());
+
         assertNotNull(bundle);
         bundle.close();
         bundle.free();
 
         // Reopen without 'create' flag:
         flags &= ~C4Constants.DatabaseFlags.CREATE;
-        bundle = new C4Database(bundlePath.getPath(), flags, null, getVersioning(),
-            encryptionAlgorithm(), encryptionKey());
+        bundle = new C4Database(
+            bundlePath.getPath(),
+            flags,
+            null,
+            getVersioning(),
+            encryptionAlgorithm(),
+            encryptionKey());
         assertNotNull(bundle);
         bundle.close();
         bundle.free();
 
-        if (bundlePath != null) { FileUtils.cleanDirectory(bundlePath); }
+        FileUtils.eraseFileOrDir(bundlePath);
 
         // Reopen with wrong storage type:
         // NOTE: Not supported
 
         // Open nonexistent bundle:
         try {
-            File notExist = new File(getDatabaseDirectory(), "no_such_bundle");
-            new C4Database(notExist.getPath(), flags, null, getVersioning(), encryptionAlgorithm(), encryptionKey());
+            String notExist = new File(getScratchDirectoryPath("bogus"), "no_such_bundle").getCanonicalPath();
+            new C4Database(notExist, flags, null, getVersioning(), encryptionAlgorithm(), encryptionKey());
             fail();
         }
         catch (LiteCoreException e) {
@@ -524,7 +536,7 @@ public class C4DatabaseTest extends C4BaseTest {
 
     // - "Database copy"
     @Test
-    public void testDatabaseCopy() throws LiteCoreException {
+    public void testDatabaseCopy() throws LiteCoreException, IOException {
         String doc1ID = "doc001";
         String doc2ID = "doc002";
 
@@ -533,14 +545,9 @@ public class C4DatabaseTest extends C4BaseTest {
 
         String srcPath = db.getPath();
 
-        File nuPath = new File(getDatabaseDirectory(), "nudb.cblite2");
-
-        try {
-            C4Database.deleteDbAtPath(nuPath.getAbsolutePath());
-        }
-        catch (LiteCoreException e) {
-            assertEquals(0, e.code);
-        }
+        File nuPath = new File(getScratchDirectoryPath("nudb.cblite2"));
+        try { C4Database.deleteDbAtPath(nuPath.getAbsolutePath()); }
+        catch (LiteCoreException e) { assertEquals(0, e.code); }
 
         C4Database.copyDb(
             srcPath,
@@ -575,16 +582,18 @@ public class C4DatabaseTest extends C4BaseTest {
         nudb.close();
 
         String originalDest = nuPath.getAbsolutePath();
-        nuPath = new File(getDatabaseDirectory(), "bogus" + File.separator + "nunudb.cblite2" + File.separator);
+
+        nuPath = new File(new File(getScratchDirectoryPath("bogus"), "zqx3"), "nunudb.cblite2");
         try {
-            // call to c4db_copy will internally throw an exception
-            C4Database.copyDb(srcPath, nuPath.getAbsolutePath(),
+            C4Database.copyDb(
+                srcPath,
+                nuPath.getCanonicalPath(),
                 getFlags(),
                 null,
                 C4Constants.DocumentVersioning.REVISION_TREES,
                 C4Constants.EncryptionAlgorithm.NONE,
                 null);
-            fail();
+            fail("expected call to c4db_copy to throw an exception");
         }
         catch (LiteCoreException ex) {
             assertEquals(C4Constants.LiteCoreError.NOT_FOUND, ex.code);

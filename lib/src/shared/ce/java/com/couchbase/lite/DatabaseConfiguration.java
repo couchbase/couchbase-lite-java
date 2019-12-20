@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 /**
  * Configuration for opening a database.
@@ -29,12 +31,14 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     // Constructors
     //---------------------------------------------
 
-    public DatabaseConfiguration() {
-        super();
-    }
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings("NP_NULL_PARAM_DEREF_NONVIRTUAL")
+    public DatabaseConfiguration() { this(null); }
 
-    public DatabaseConfiguration(@NonNull DatabaseConfiguration config) {
-        super(config);
+    public DatabaseConfiguration(@NonNull DatabaseConfiguration config) { this(config, false); }
+
+    protected DatabaseConfiguration(@NonNull DatabaseConfiguration config, boolean readOnly) {
+        super(config, readOnly);
     }
 
     //---------------------------------------------

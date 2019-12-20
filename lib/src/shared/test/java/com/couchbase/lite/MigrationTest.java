@@ -17,157 +17,89 @@
 //
 package com.couchbase.lite;
 
-import com.couchbase.lite.utils.ZipUtils;
-
-import org.junit.Test;
-
 import java.io.File;
-import java.util.Arrays;
 import java.util.Locale;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.couchbase.lite.utils.ZipUtils;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class MigrationTest extends BaseTest {
-    //---------------------------------------------
-    //  setUp/tearDown
-    //---------------------------------------------
 
-    /**
-     * Tool to generate test db
-     */
-    //NOTE: @Test
-    public void testPrepareDB() throws CouchbaseLiteException {
-        Database db = new Database("android-sqlite", new DatabaseConfiguration());
-        try {
-            for (int i = 1; i <= 2; i++) {
-                MutableDocument doc = new MutableDocument("doc" + i);
-                doc.setValue("key", String.valueOf(i));
-                byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
-                Blob blob = new Blob("text/plain", attach);
-                doc.setValue("attach" + i, blob);
-                db.save(doc);
-            }
-        } finally {
-            db.close();
-        }
+public class MigrationTest extends BaseTest {
+    private static final String DB_NAME = "android-sqlite";
+
+
+    private File dbDir;
+    private Database db;
+
+    @Before
+    public void setUp() throws CouchbaseLiteException {
+        dbDir = new File(getDatabaseDirectoryPath());
+        deleteDatabase(DB_NAME, dbDir);
     }
 
-    // TODO: 1.x DB's attachment is not automatically ditected as blob
+    @After
+    public void cleanUp() throws CouchbaseLiteException { eraseDatabase(db);}
+
+    // TODO: 1.x DB's attachment is not automatically detected as blob
+    // https://github.com/couchbase/couchbase-lite-android/issues/1237
     @Test
     public void testOpenExsitingDBv1x() throws Exception {
-        // https://github.com/couchbase/couchbase-lite-android/issues/1237
-
-        File dbDir = new File(getDatabaseDirectory());
-
-        // If db exist, delete it:
-        deleteDB("android-sqlite", dbDir);
-
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite.cblite2.zip"), dbDir);
 
-        Database db = new Database("android-sqlite", new DatabaseConfiguration());
-        try {
-            assertEquals(2, db.getCount());
-            for (int i = 1; i <= 2; i++) {
-                Document doc = db.getDocument("doc" + i);
-                assertNotNull(doc);
-                assertEquals(String.valueOf(i), doc.getString("key"));
+        db = new Database(DB_NAME);
+        assertEquals(2, db.getCount());
+        for (int i = 1; i <= 2; i++) {
+            Document doc = db.getDocument("doc" + i);
+            assertNotNull(doc);
+            assertEquals(String.valueOf(i), doc.getString("key"));
 
-                Dictionary attachments = doc.getDictionary("_attachments");
-                assertNotNull(attachments);
-                String key = "attach" + i;
+            Dictionary attachments = doc.getDictionary("_attachments");
+            assertNotNull(attachments);
+            String key = "attach" + i;
 
-                Blob blob = attachments.getBlob(key);
-                assertNotNull(blob);
-                byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
-                Arrays.equals(attach, blob.getContent());
-            }
-        } finally {
-            // close db
-            db.close();
-            // if db exist, delete it
-            deleteDB("android-sqlite", dbDir);
+            Blob blob = attachments.getBlob(key);
+            assertNotNull(blob);
+            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
+            assertArrayEquals(attach, blob.getContent());
         }
     }
 
+    // https://github.com/couchbase/couchbase-lite-android/issues/1237
     @Test
     public void testOpenExsitingDBv1xNoAttachment() throws Exception {
-        // https://github.com/couchbase/couchbase-lite-android/issues/1237
-
-        File dbDir = new File(getDatabaseDirectory());
-
-        // If db exist, delete it:
-        deleteDB("android-sqlite", dbDir);
-
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"), dbDir);
 
-        Database db = new Database("android-sqlite", new DatabaseConfiguration());
-        try {
-            assertEquals(2, db.getCount());
-            for (int i = 1; i <= 2; i++) {
-                Document doc = db.getDocument("doc" + i);
-                assertNotNull(doc);
-                assertEquals(String.valueOf(i), doc.getString("key"));
-            }
-        } finally {
-            // close db
-            db.close();
-            // if db exist, delete it
-            deleteDB("android-sqlite", dbDir);
+        db = new Database(DB_NAME);
+        assertEquals(2, db.getCount());
+        for (int i = 1; i <= 2; i++) {
+            Document doc = db.getDocument("doc" + i);
+            assertNotNull(doc);
+            assertEquals(String.valueOf(i), doc.getString("key"));
         }
     }
 
     @Test
     public void testOpenExsitingDB() throws Exception {
-        File dbDir = new File(getDatabaseDirectory());
-
-        // If db exist, delete it:
-        deleteDB("android-sqlite", dbDir);
-
         ZipUtils.unzip(getAsset("replacedb/android200-sqlite.cblite2.zip"), dbDir);
 
-        Database db = new Database("android-sqlite", new DatabaseConfiguration());
-        try {
-            assertEquals(2, db.getCount());
-            for (int i = 1; i <= 2; i++) {
-                Document doc = db.getDocument("doc" + i);
-                assertNotNull(doc);
-                assertEquals(String.valueOf(i), doc.getString("key"));
-                Blob blob = doc.getBlob("attach" + i);
-                assertNotNull(blob);
-                byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
-                Arrays.equals(attach, blob.getContent());
-            }
-        } finally {
-            // close db
-            db.close();
-            // if db exist, delete it
-            deleteDB("android-sqlite", dbDir);
-        }
-    }
+        db = new Database(DB_NAME);
 
-    // if db exist, delete it
-    private void deleteDB(String name, File dir) throws CouchbaseLiteException {
-        File dbDir = new File(getDatabaseDirectory());
-
-        // database exist, delete it
-        if (Database.exists(name, dbDir)) {
-            // sometimes, db is still in used, wait for a while. Maximum 3 sec
-            for (int i = 0; i < 10; i++) {
-                try {
-                    Database.delete(name, dir);
-                    break;
-                } catch (CouchbaseLiteException ex) {
-                    if (ex.getCode() == CBLError.Code.BUSY) {
-                        try {
-                            Thread.sleep(300);
-                        } catch (Exception e) {
-                        }
-                    } else {
-                        throw ex;
-                    }
-                }
-            }
+        assertEquals(2, db.getCount());
+        for (int i = 1; i <= 2; i++) {
+            Document doc = db.getDocument("doc" + i);
+            assertNotNull(doc);
+            assertEquals(String.valueOf(i), doc.getString("key"));
+            Blob blob = doc.getBlob("attach" + i);
+            assertNotNull(blob);
+            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
+            assertArrayEquals(attach, blob.getContent());
         }
     }
 }
