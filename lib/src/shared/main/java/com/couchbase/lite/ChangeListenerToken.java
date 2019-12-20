@@ -22,6 +22,8 @@ import android.support.annotation.Nullable;
 
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
+
 
 class ChangeListenerToken<T> implements ListenerToken {
     @NonNull
@@ -41,7 +43,9 @@ class ChangeListenerToken<T> implements ListenerToken {
     public void setKey(Object key) { this.key = key; }
 
     void postChange(final T change) {
-        final Executor exec = (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+        final Executor exec = (executor != null)
+            ? executor
+            : CouchbaseLiteInternal.getExecutionService().getMainExecutor();
         exec.execute(() -> listener.changed(change));
     }
 }

@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite.internal
 
-import com.couchbase.lite.CouchbaseLite
 import com.couchbase.lite.LogDomain
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.support.Log
@@ -65,7 +64,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
     @Before
     fun setUp() {
         initCouchbaseLite()
-        cblService = CouchbaseLite.getExecutionService()
+        cblService = CouchbaseLiteInternal.getExecutionService()
     }
 
 

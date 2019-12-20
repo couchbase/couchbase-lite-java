@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite;
+package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
 
@@ -31,11 +31,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+
 /**
  * For extracting and loading native libraries for couchbase-lite-java.
  */
 final class NativeLibrary {
-    private static final String[] LIBRARIES = { "LiteCore", "LiteCoreJNI" };
+    private static final String[] LIBRARIES = {"LiteCore", "LiteCoreJNI"};
 
     private static final String LIBS_RES_BASE_DIR = "/libs";
 
@@ -66,7 +67,8 @@ final class NativeLibrary {
      * directory will be <System Temp Directory>/com.couchbase.lite.java/native/<MD5-Hash>.
      * The MD5-Hash is the combined MD5 hash of the hashes of all native libraries.
      */
-    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
+    @NonNull
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private static String getTargetDirectory(@NonNull String[] libPaths)
         throws NoSuchAlgorithmException, IOException {
         final MessageDigest md = MessageDigest.getInstance("MD5");
@@ -85,15 +87,16 @@ final class NativeLibrary {
                 if (in != null) { try { in.close(); } catch (IOException e) { } }
             }
         }
-        final String md5 =  String.format("%032x", new BigInteger(1, md.digest()));
-        return new File(CouchbaseLite.getTmpDirectory(TARGET_BASE_DIR), md5).getAbsolutePath();
+        final String md5 = String.format("%032x", new BigInteger(1, md.digest()));
+        return new File(CouchbaseLiteInternal.getTmpDirectory(TARGET_BASE_DIR), md5).getAbsolutePath();
     }
 
     /**
      * Extracts the given path to the native library in the resource directory into the target directory.
      * If the native library already exists in the target library, the existing native library will be used.
      */
-    @NonNull @SuppressFBWarnings("DE_MIGHT_IGNORE")
+    @NonNull
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private static File extract(@NonNull String libResPath, @NonNull String targetDir)
         throws IOException, InterruptedException {
         final File targetFile = new File(targetDir, new File(libResPath).getName());
@@ -146,7 +149,7 @@ final class NativeLibrary {
         else { path += "/" + osName; }
 
         // Arch:
-        final String archName  = "x86_64";
+        final String archName = "x86_64";
         path += '/' + archName;
 
         // Platform specific name part of path.

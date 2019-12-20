@@ -18,10 +18,12 @@ package com.couchbase.lite;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
+
 
 public class PreInitTest {
     @Before
-    public void setup() { CouchbaseLite.reset(); }
+    public void setup() { CouchbaseLiteInternal.reset(); }
 
     @Test(expected = IllegalStateException.class)
     public void testCreateDatabaseBeforeInit() throws CouchbaseLiteException {
@@ -30,11 +32,11 @@ public class PreInitTest {
 
     @Test(expected = IllegalStateException.class)
     public void testGetTmpDirectoryBeforeInit() {
-        CouchbaseLite.getTmpDirectory("fail");
+        CouchbaseLiteInternal.getTmpDirectory("fail");
     }
 
     @Test(expected = IllegalStateException.class)
     public void testGetDbDirectoryBeforeInit() {
-        CouchbaseLite.getDbDirectoryPath();
+        CouchbaseLiteInternal.getDbDirectoryPath();
     }
 }

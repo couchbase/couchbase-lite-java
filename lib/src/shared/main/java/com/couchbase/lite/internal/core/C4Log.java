@@ -21,11 +21,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.couchbase.lite.ConsoleLogger;
-import com.couchbase.lite.CouchbaseLite;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Logger;
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.support.Log;
 
 
@@ -71,7 +71,7 @@ public final class C4Log {
         // This cannot be done synchronously because it will deadlock
         // on the same mutex that is being held for this callback
         final int level = logLevel.getValue();
-        CouchbaseLite.getExecutionService().getMainExecutor().execute(() -> setCallbackLevel(level));
+        CouchbaseLiteInternal.getExecutionService().getMainExecutor().execute(() -> setCallbackLevel(level));
     }
 
     //-------------------------------------------------------------------------

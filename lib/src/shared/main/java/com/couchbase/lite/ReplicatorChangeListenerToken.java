@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
+
 
 final class ReplicatorChangeListenerToken implements ListenerToken {
     private final ReplicatorChangeListener listener;
@@ -33,7 +35,7 @@ final class ReplicatorChangeListenerToken implements ListenerToken {
     void notify(final ReplicatorChange change) { getExecutor().execute(() -> listener.changed(change)); }
 
     Executor getExecutor() {
-        return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+        return (executor != null) ? executor : CouchbaseLiteInternal.getExecutionService().getMainExecutor();
     }
 }
 
@@ -50,6 +52,6 @@ final class DocumentReplicationListenerToken implements ListenerToken {
     void notify(final DocumentReplication update) { getExecutor().execute(() -> listener.replication(update)); }
 
     Executor getExecutor() {
-        return (executor != null) ? executor : CouchbaseLite.getExecutionService().getMainExecutor();
+        return (executor != null) ? executor : CouchbaseLiteInternal.getExecutionService().getMainExecutor();
     }
 }
