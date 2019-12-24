@@ -82,9 +82,7 @@ abstract class AbstractQuery implements Query {
      * Returns a copies of the current parameters.
      */
     @Override
-    public Parameters getParameters() {
-        return parameters;
-    }
+    public Parameters getParameters() { return parameters; }
 
     //---------------------------------------------
     // API - public methods
@@ -231,37 +229,21 @@ abstract class AbstractQuery implements Query {
         return database;
     }
 
-    void setSelect(Select select) {
-        this.select = select;
-    }
+    void setSelect(Select select) { this.select = select; }
 
-    void setFrom(DataSource from) {
-        this.from = from;
-    }
+    void setFrom(DataSource from) { this.from = from; }
 
-    void setJoins(Joins joins) {
-        this.joins = joins;
-    }
+    void setJoins(Joins joins) { this.joins = joins; }
 
-    void setWhere(Expression where) {
-        this.where = where;
-    }
+    void setWhere(Expression where) { this.where = where; }
 
-    void setGroupBy(GroupBy groupBy) {
-        this.groupBy = groupBy;
-    }
+    void setGroupBy(GroupBy groupBy) { this.groupBy = groupBy; }
 
-    void setHaving(Having having) {
-        this.having = having;
-    }
+    void setHaving(Having having) { this.having = having; }
 
-    void setOrderBy(OrderBy orderBy) {
-        this.orderBy = orderBy;
-    }
+    void setOrderBy(OrderBy orderBy) { this.orderBy = orderBy; }
 
-    void setLimit(Limit limit) {
-        this.limit = limit;
-    }
+    void setLimit(Limit limit) { this.limit = limit; }
 
     void copy(AbstractQuery query) {
         this.select = query.select;
@@ -323,9 +305,7 @@ abstract class AbstractQuery implements Query {
     }
 
     private String encodeAsJson() {
-        try {
-            return JsonUtils.toJson(asJson()).toString();
-        }
+        try { return JsonUtils.toJson(asJson()).toString(); }
         catch (JSONException e) {
             Log.w(DOMAIN, "Error when encoding the query as a json string", e);
         }
@@ -378,13 +358,21 @@ abstract class AbstractQuery implements Query {
     }
 
     private void free() {
+        Object dblock = null;
+        C4Query query = null;
+
         synchronized (lock) {
-            if (c4query != null && getDatabase() != null) {
-                synchronized (getDatabase().getLock()) {
-                    c4query.free();
-                }
+            if (c4query == null) { return; }
+
+            if (getDatabase() != null) {
+                dblock = getDatabase().getLock();
+                query = c4query;
                 c4query = null;
             }
+        }
+
+        if ((query != null) && (dblock != null)) {
+            synchronized (dblock) { c4query.free(); }
         }
     }
 }

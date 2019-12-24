@@ -161,7 +161,7 @@ public class LogTest extends BaseTest {
                     int lineCount = 0;
                     while ((fin.readLine()) != null) { lineCount++; }
 
-                    String logPath = log.getAbsolutePath();
+                    String logPath = log.getCanonicalPath();
                     // One meta line per log, so the actual logging lines is X + 1
                     if (logPath.contains("verbose")) { assertEquals(3, lineCount); }
                     else if (logPath.contains("info")) { assertEquals(4, lineCount); }

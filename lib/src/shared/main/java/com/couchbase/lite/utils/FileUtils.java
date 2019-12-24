@@ -61,6 +61,6 @@ public class FileUtils {
     }
 
     private static boolean deleteRecursive(File fileOrDirectory) {
-        return deleteContents(fileOrDirectory) && (!fileOrDirectory.exists() || fileOrDirectory.delete());
+        return (!fileOrDirectory.exists()) || (deleteContents(fileOrDirectory) && fileOrDirectory.delete());
     }
 }

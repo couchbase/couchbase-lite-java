@@ -112,7 +112,7 @@ public class C4DatabaseTest extends C4BaseTest {
 
     // - Database deletion lock
     @Test
-    public void testDatabaseDeletionLock() {
+    public void testDatabaseDeletionLock() throws IOException {
         try {
             C4Database.deleteDbAtPath(db.getPath());
             fail();
@@ -123,7 +123,7 @@ public class C4DatabaseTest extends C4BaseTest {
         }
 
         try {
-            C4Database.deleteDbAtPath(dir.getAbsolutePath());
+            C4Database.deleteDbAtPath(dir.getCanonicalPath());
             fail();
         }
         catch (LiteCoreException e) {
@@ -546,12 +546,12 @@ public class C4DatabaseTest extends C4BaseTest {
         String srcPath = db.getPath();
 
         File nuPath = new File(getScratchDirectoryPath("nudb.cblite2"));
-        try { C4Database.deleteDbAtPath(nuPath.getAbsolutePath()); }
+        try { C4Database.deleteDbAtPath(nuPath.getCanonicalPath()); }
         catch (LiteCoreException e) { assertEquals(0, e.code); }
 
         C4Database.copyDb(
             srcPath,
-            nuPath.getAbsolutePath(),
+            nuPath.getCanonicalPath(),
             getFlags(),
             null,
             C4Constants.DocumentVersioning.REVISION_TREES,
@@ -559,7 +559,7 @@ public class C4DatabaseTest extends C4BaseTest {
             null);
 
         C4Database nudb = new C4Database(
-            nuPath.getAbsolutePath(),
+            nuPath.getCanonicalPath(),
             getFlags(),
             null,
             C4Constants.DocumentVersioning.REVISION_TREES,
@@ -570,7 +570,7 @@ public class C4DatabaseTest extends C4BaseTest {
         nudb.delete();
 
         nudb = new C4Database(
-            nuPath.getAbsolutePath(),
+            nuPath.getCanonicalPath(),
             getFlags(),
             null,
             C4Constants.DocumentVersioning.REVISION_TREES,
@@ -581,7 +581,7 @@ public class C4DatabaseTest extends C4BaseTest {
         assertEquals(1, nudb.getDocumentCount());
         nudb.close();
 
-        String originalDest = nuPath.getAbsolutePath();
+        String originalDest = nuPath.getCanonicalPath();
 
         nuPath = new File(new File(getScratchDirectoryPath("bogus"), "zqx3"), "nunudb.cblite2");
         try {
@@ -615,7 +615,7 @@ public class C4DatabaseTest extends C4BaseTest {
         nuPath = new File(originalDest);
         try {
             // call to c4db_copy will internally throw an exception
-            C4Database.copyDb(srcPath, nuPath.getAbsolutePath(),
+            C4Database.copyDb(srcPath, nuPath.getCanonicalPath(),
                 getFlags(),
                 null,
                 C4Constants.DocumentVersioning.REVISION_TREES,

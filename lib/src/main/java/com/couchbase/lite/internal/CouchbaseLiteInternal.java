@@ -156,11 +156,19 @@ public final class CouchbaseLiteInternal {
 
     @NonNull
     private static String verifyDir(@NonNull File dir) {
-        final String path = dir.getAbsolutePath();
+        String path = dir.getAbsolutePath();
+        try {
+            path = dir.getCanonicalPath();
 
-        if ((dir.exists() || dir.mkdirs()) && dir.isDirectory()) { return path; }
+            if (!((dir.exists() || dir.mkdirs()) && dir.isDirectory())) {
+                throw new IOException("Cannot create directory: " + path);
+            }
 
-        throw new IllegalStateException("Cannot create or access temp directory at " + path);
+            return path;
+        }
+        catch (IOException e) {
+            throw new IllegalStateException("Cannot create or access temp directory at " + path);
+        }
     }
 
     private static void initDirectories(@Nullable String rootDirPath) {

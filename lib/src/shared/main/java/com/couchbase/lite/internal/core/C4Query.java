@@ -17,115 +17,53 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.GuardedBy;
+
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 
 
 public class C4Query {
-    /**
-     * @param db
-     * @param expression
-     * @return C4Query*
-     * @throws LiteCoreException
-     */
-    static native long init(long db, String expression) throws LiteCoreException;
+    private final Object lock = new Object();
+
+    //-------------------------------------------------------------------------
+    // Member Variables
+    //-------------------------------------------------------------------------
+
+    @GuardedBy("lock")
+    private long handle; // hold pointer to C4Query
+
 
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
-
-    /**
-     * Free C4Query* instance
-     *
-     * @param handle (C4Query*)
-     */
-    static native void free(long handle);
+    C4Query(long db, String expression) throws LiteCoreException {
+        handle = init(db, expression);
+    }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
-    /**
-     * @param handle (C4Query*)
-     * @return C4StringResult
-     */
-    static native String explain(long handle);
-
-    /**
-     * Returns the number of columns (the values specified in the WHAT clause) in each row.
-     *
-     * @param handle (C4Query*)
-     * @return the number of columns
-     */
-    static native int columnCount(long handle);
-
-    /**
-     * @param handle
-     * @param rankFullText
-     * @param parameters
-     * @return C4QueryEnumerator*
-     * @throws LiteCoreException
-     */
-    static native long run(long handle, boolean rankFullText, /*FLSliceResult*/ long parameters)
-        throws LiteCoreException;
-
-    /**
-     * Given a docID and sequence number from the enumerator, returns the text that was emitted
-     * during indexing.
-     */
-    static native byte[] getFullTextMatched(long handle, long fullTextMatch) throws LiteCoreException;
-
-    static native boolean createIndex(
-        long db,
-        String name,
-        String expressionsJSON,
-        int indexType,
-        String language,
-        boolean ignoreDiacritics)
-        throws LiteCoreException;
-
-    static native void deleteIndex(long db, String name) throws LiteCoreException;
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
-
-    //////// DATABASE QUERIES:
-
-    /**
-     * Gets a fleece encoded array of indexes in the given database
-     * that were created by `c4db_createIndex`
-     *
-     * @param db
-     * @return pointer to FLValue
-     * @throws LiteCoreException
-     */
-    static native long getIndexes(long db) throws LiteCoreException;
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private long handle; // hold pointer to C4Query
-
-    C4Query(long db, String expression) throws LiteCoreException {
-        handle = init(db, expression);
-    }
-
     public void free() {
-        if (handle != 0L) {
-            free(handle);
+        final long hdl;
+        synchronized (lock) {
+            hdl = handle;
             handle = 0L;
         }
+
+        if (hdl != 0L) { free(handle); }
     }
 
     //////// RUNNING QUERIES:
 
     public String explain() {
-        return explain(handle);
+        synchronized (lock) { return (handle == 0L) ? null : explain(handle); }
     }
 
     public int columnCount() {
-        return columnCount(handle);
+        synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
     }
 
     //////// INDEXES:
@@ -137,13 +75,22 @@ public class C4Query {
         try {
             params = parameters;
             if (params == null) { params = new FLSliceResult(); }
-            return new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
+
+            final long ret;
+            synchronized (lock) {
+                return (handle == 0)
+                    ? null
+                    : new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
+            }
+
         }
-        finally { if (params != parameters) { params.free(); } }
+        finally {
+            if (params != parameters) { params.free(); }
+        }
     }
 
     public byte[] getFullTextMatched(C4FullTextMatch match) throws LiteCoreException {
-        return getFullTextMatched(handle, match.handle);
+        synchronized (lock) { return (handle == 0L) ? null : getFullTextMatched(handle, match.handle); }
     }
 
     //-------------------------------------------------------------------------
@@ -156,4 +103,76 @@ public class C4Query {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // Native methods
+    //-------------------------------------------------------------------------
+
+    /**
+     * @param db
+     * @param expression
+     * @return C4Query*
+     * @throws LiteCoreException
+     */
+    private static native long init(long db, String expression) throws LiteCoreException;
+
+    /**
+     * Free C4Query* instance
+     *
+     * @param handle (C4Query*)
+     */
+    static native void free(long handle);
+
+    /**
+     * @param handle (C4Query*)
+     * @return C4StringResult
+     */
+    private static native String explain(long handle);
+
+    /**
+     * Returns the number of columns (the values specified in the WHAT clause) in each row.
+     *
+     * @param handle (C4Query*)
+     * @return the number of columns
+     */
+    private static native int columnCount(long handle);
+
+    /**
+     * @param handle
+     * @param rankFullText
+     * @param parameters
+     * @return C4QueryEnumerator*
+     * @throws LiteCoreException
+     */
+    private static native long run(long handle, boolean rankFullText, /*FLSliceResult*/ long parameters)
+        throws LiteCoreException;
+
+    /**
+     * Given a docID and sequence number from the enumerator, returns the text that was emitted
+     * during indexing.
+     */
+    private static native byte[] getFullTextMatched(long handle, long fullTextMatch) throws LiteCoreException;
+
+    private static native boolean createIndex(
+        long db,
+        String name,
+        String expressionsJSON,
+        int indexType,
+        String language,
+        boolean ignoreDiacritics)
+        throws LiteCoreException;
+
+    private static native void deleteIndex(long db, String name) throws LiteCoreException;
+
+    //////// DATABASE QUERIES:
+
+    /**
+     * Gets a fleece encoded array of indexes in the given database
+     * that were created by `c4db_createIndex`
+     *
+     * @param db
+     * @return pointer to FLValue
+     * @throws LiteCoreException
+     */
+    private static native long getIndexes(long db) throws LiteCoreException;
 }

@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * SelectResult represents a single return value of the query statement.
@@ -26,16 +28,14 @@ import android.support.annotation.NonNull;
 public class SelectResult {
 
     //---------------------------------------------
-    // Inner public Class
+    // Public Inner Classes
     //---------------------------------------------
 
     /**
      * SelectResult.From is a SelectResult that you can specify the data source alias name.
      */
     public static final class From extends SelectResult {
-        private From(Expression expression) {
-            super(expression);
-        }
+        private From(Expression expression) { super(expression); }
 
         /**
          * Species the data source alias name to the SelectResult object.
@@ -45,9 +45,7 @@ public class SelectResult {
          */
         @NonNull
         public SelectResult from(@NonNull String alias) {
-            if (alias == null) {
-                throw new IllegalArgumentException("alias cannot be null.");
-            }
+            Preconditions.checkArgNotNull(alias, "alias");
             this.selectExpression = PropertyExpression.allFrom(alias);
             this.alias = alias;
             return this;
@@ -60,9 +58,7 @@ public class SelectResult {
      * object.
      */
     public static final class As extends SelectResult {
-        private As(Expression expression) {
-            super(expression);
-        }
+        private As(Expression expression) { super(expression); }
 
         /**
          * Specifies the alias name to the SelectResult object.
@@ -72,9 +68,7 @@ public class SelectResult {
          */
         @NonNull
         public SelectResult as(@NonNull String alias) {
-            if (alias == null) {
-                throw new IllegalArgumentException("alias cannot be null.");
-            }
+            Preconditions.checkArgNotNull(alias, "alias");
             this.alias = alias;
             return this;
         }
@@ -88,9 +82,7 @@ public class SelectResult {
      */
     @NonNull
     public static SelectResult.As property(@NonNull String property) {
-        if (property == null) {
-            throw new IllegalArgumentException("property cannot be null.");
-        }
+        Preconditions.checkArgNotNull(property, "property");
         return new SelectResult.As(PropertyExpression.property(property));
     }
 
@@ -102,9 +94,7 @@ public class SelectResult {
      */
     @NonNull
     public static SelectResult.As expression(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.checkArgNotNull(expression, "expression");
         return new SelectResult.As(expression);
     }
 
@@ -115,25 +105,14 @@ public class SelectResult {
      * @return The SelectResult.From object that you can specify the data source alias name.
      */
     @NonNull
-    public static SelectResult.From all() {
-        return new SelectResult.From(PropertyExpression.allFrom(null));
-    }
+    public static SelectResult.From all() { return new SelectResult.From(PropertyExpression.allFrom(null)); }
 
-    //---------------------------------------------
-    // API - public static methods
-    //---------------------------------------------
+
     //---------------------------------------------
     // member variables
     //---------------------------------------------
     Expression selectExpression;
     String alias;
-
-    //---------------------------------------------
-    // Constructors
-    //---------------------------------------------
-    private SelectResult(Expression expression) {
-        this.selectExpression = expression;
-    }
 
     //---------------------------------------------
     // Package level access
@@ -152,7 +131,7 @@ public class SelectResult {
         return null;
     }
 
-    Object asJSON() {
-        return selectExpression.asJSON();
-    }
+    Object asJSON() { return selectExpression.asJSON(); }
+
+    private SelectResult(Expression expression) { this.selectExpression = expression; }
 }

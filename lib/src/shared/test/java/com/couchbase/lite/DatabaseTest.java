@@ -50,73 +50,6 @@ public class DatabaseTest extends BaseTest {
     //  Helper methods
     //---------------------------------------------
 
-    // helper method to open database
-    private Database openDatabase(String dbName) throws CouchbaseLiteException {
-        return openDatabase(dbName, 0);
-    }
-
-    private Database openDatabase(String dbName, int count) throws CouchbaseLiteException {
-        Database db = new Database(dbName);
-        assertEquals(dbName, db.getName());
-
-        try { assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2")); }
-        catch (IOException e) { throw new RuntimeException("Unable to get db path", e); }
-
-        if (count >= 0) { assertEquals(count, db.getCount()); }
-
-        return db;
-    }
-
-    // helper methods to verify getDoc
-    void verifyGetDocument(String docID) {
-        verifyGetDocument(docID, 1);
-    }
-
-    // helper methods to verify getDoc
-    void verifyGetDocument(String docID, int value) {
-        verifyGetDocument(db, docID, value);
-    }
-
-    // helper methods to verify getDoc
-    void verifyGetDocument(Database db, String docID) {
-        verifyGetDocument(db, docID, 1);
-    }
-
-    // helper methods to verify getDoc
-    void verifyGetDocument(Database db, String docID, int value) {
-        Document doc = db.getDocument(docID);
-        assertNotNull(doc);
-        assertEquals(docID, doc.getId());
-        assertEquals(value, ((Number) doc.getValue("key")).intValue());
-    }
-
-    // helper method to purge doc and verify doc.
-    void purgeDocAndVerify(Document doc) throws CouchbaseLiteException {
-        String docID = doc.getId();
-        db.purge(doc);
-        assertNull(db.getDocument(docID));
-    }
-
-    // helper method to save n number of docs
-    List<String> createDocs(int n) throws CouchbaseLiteException {
-        List<String> docs = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
-            doc.setValue("key", i);
-            Document savedDoc = save(doc);
-            docs.add(savedDoc.getId());
-        }
-        assertEquals(n, db.getCount());
-        return docs;
-    }
-
-    // helper method to verify n number of docs
-    void validateDocs(int n) {
-        for (int i = 0; i < n; i++) {
-            verifyGetDocument(String.format(Locale.US, "doc_%03d", i), i);
-        }
-    }
-
     //---------------------------------------------
     //  DatabaseConfiguration
     //---------------------------------------------
@@ -996,7 +929,7 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testDeleteWithDefaultDirDB() throws CouchbaseLiteException {
         final String dbName = "db";
-        final Database database = openDB(dbName);
+        final Database database = new Database(dbName);
         final File dbDir = new File(database.getPath());
         try {
             assertNotNull(dbDir);
@@ -1492,7 +1425,7 @@ public class DatabaseTest extends BaseTest {
             assertEquals(3, savedDoc.getSequence());
         }
 
-        cleanDB();
+        recreateDB();
     }
 
     @Test
@@ -1527,7 +1460,7 @@ public class DatabaseTest extends BaseTest {
             assertEquals(1, savedDoc.getSequence());
         }
 
-        cleanDB();
+        recreateDB();
     }
 
     @Test
@@ -1564,7 +1497,7 @@ public class DatabaseTest extends BaseTest {
             assertNull(db.getDocument(doc.getId()));
         }
 
-        cleanDB();
+        recreateDB();
     }
 
     @Test
@@ -1654,7 +1587,7 @@ public class DatabaseTest extends BaseTest {
             assertEquals(2, savedDoc.getSequence());
         }
 
-        cleanDB();
+        recreateDB();
     }
 
     @Test
@@ -1697,5 +1630,72 @@ public class DatabaseTest extends BaseTest {
         // 3. delete by previously retrived document
         db.delete(doc);
         assertNull(db.getDocument("doc"));
+    }
+
+    // helper method to open database
+    private Database openDatabase(String dbName) throws CouchbaseLiteException {
+        return openDatabase(dbName, 0);
+    }
+
+    private Database openDatabase(String dbName, int count) throws CouchbaseLiteException {
+        Database db = new Database(dbName);
+        assertEquals(dbName, db.getName());
+
+        try { assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2")); }
+        catch (IOException e) { throw new RuntimeException("Unable to get db path", e); }
+
+        if (count >= 0) { assertEquals(count, db.getCount()); }
+
+        return db;
+    }
+
+    // helper methods to verify getDoc
+    private void verifyGetDocument(String docID) {
+        verifyGetDocument(docID, 1);
+    }
+
+    // helper methods to verify getDoc
+    private void verifyGetDocument(String docID, int value) {
+        verifyGetDocument(db, docID, value);
+    }
+
+    // helper methods to verify getDoc
+    private void verifyGetDocument(Database db, String docID) {
+        verifyGetDocument(db, docID, 1);
+    }
+
+    // helper methods to verify getDoc
+    private void verifyGetDocument(Database db, String docID, int value) {
+        Document doc = db.getDocument(docID);
+        assertNotNull(doc);
+        assertEquals(docID, doc.getId());
+        assertEquals(value, ((Number) doc.getValue("key")).intValue());
+    }
+
+    // helper method to purge doc and verify doc.
+    private void purgeDocAndVerify(Document doc) throws CouchbaseLiteException {
+        String docID = doc.getId();
+        db.purge(doc);
+        assertNull(db.getDocument(docID));
+    }
+
+    // helper method to save n number of docs
+    private List<String> createDocs(int n) throws CouchbaseLiteException {
+        List<String> docs = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
+            doc.setValue("key", i);
+            Document savedDoc = save(doc);
+            docs.add(savedDoc.getId());
+        }
+        assertEquals(n, db.getCount());
+        return docs;
+    }
+
+    // helper method to verify n number of docs
+    private void validateDocs(int n) {
+        for (int i = 0; i < n; i++) {
+            verifyGetDocument(String.format(Locale.US, "doc_%03d", i), i);
+        }
     }
 }

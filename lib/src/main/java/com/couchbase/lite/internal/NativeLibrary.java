@@ -56,7 +56,7 @@ final class NativeLibrary {
             final String[] libPaths = Arrays.stream(LIBRARIES).map(lib -> getResourcePath(lib)).toArray(String[]::new);
             final String targetDir = getTargetDirectory(libPaths);
             for (String path : libPaths) {
-                System.load(extract(path, targetDir).getAbsolutePath());
+                System.load(extract(path, targetDir).getCanonicalPath());
             }
         }
         catch (Throwable th) {
@@ -91,7 +91,7 @@ final class NativeLibrary {
             }
         }
         final String md5 = String.format("%032x", new BigInteger(1, md.digest()));
-        return new File(CouchbaseLiteInternal.getTmpDirectoryPath(), md5).getAbsolutePath();
+        return new File(CouchbaseLiteInternal.getTmpDirectoryPath(), md5).getCanonicalPath();
     }
 
     /**
@@ -107,7 +107,7 @@ final class NativeLibrary {
 
         final File dir = new File(targetDir);
         if (!dir.mkdirs() && !dir.exists()) {
-            throw new IOException("Cannot create target directory: " + dir.getAbsolutePath());
+            throw new IOException("Cannot create target directory: " + dir.getCanonicalPath());
         }
 
         // Extract the library to the target directory:
@@ -131,7 +131,7 @@ final class NativeLibrary {
 
         // On non-windows systems set up permissions for the extracted native library.
         if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
-            Runtime.getRuntime().exec(new String[] {"chmod", "755", targetFile.getAbsolutePath()}).waitFor();
+            Runtime.getRuntime().exec(new String[] {"chmod", "755", targetFile.getCanonicalPath()}).waitFor();
         }
         return targetFile;
     }

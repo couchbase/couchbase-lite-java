@@ -60,69 +60,6 @@ public class QueryTest extends BaseQueryTest {
     private static SelectResult SR_ALL = SelectResult.all();
     private static SelectResult SR_NUMBER1 = SelectResult.property("number1");
 
-    private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases)
-        throws Exception {
-        for (Object[] c : cases) {
-            Expression w = (Expression) c[0];
-            String[] documentIDs = (String[]) c[1];
-            final List<String> docIDList = new ArrayList<String>(Arrays.asList(documentIDs));
-            Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(w);
-            int numRows = verifyQuery(q, (n, result) -> {
-                String docID = result.getString(0);
-                if (docIDList.contains(docID)) { docIDList.remove(docID); }
-            });
-            assertEquals(0, docIDList.size());
-            assertEquals(documentIDs.length, numRows);
-        }
-    }
-
-    private String[] docids(int... numbers) {
-        String[] documentIDs = new String[numbers.length];
-        for (int i = 0; i < numbers.length; i++) { documentIDs[i] = "doc" + numbers[i]; }
-        return documentIDs;
-    }
-
-    private void createDateDocs() throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument();
-        doc.setString("local", "1985-10-26");
-        db.save(doc);
-
-        ArrayList<String> dateTimeFormats = new ArrayList<>();
-        dateTimeFormats.add("1985-10-26 01:21");
-        dateTimeFormats.add("1985-10-26 01:21:30");
-        dateTimeFormats.add("1985-10-26 01:21:30.5");
-        dateTimeFormats.add("1985-10-26 01:21:30.55");
-        dateTimeFormats.add("1985-10-26 01:21:30.555");
-
-        for (String format : dateTimeFormats) {
-            doc = new MutableDocument();
-            doc.setString("local", format);
-            doc.setString("JST", format + "+09:00");
-            doc.setString("JST2", format + "+0900");
-            doc.setString("PST", format + "-08:00");
-            doc.setString("PST2", format + "-0800");
-            doc.setString("UTC", format + "Z");
-            db.save(doc);
-        }
-    }
-
-    private String LocalToUTC(String format, String dateStr) throws ParseException {
-        TimeZone tz = TimeZone.getDefault();
-        SimpleDateFormat df = new SimpleDateFormat(format);
-        df.setTimeZone(tz);
-        Date date = df.parse(dateStr);
-        df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return df.format(date).replace(".000", "");
-    }
-
-    private String ToLocal(long timestamp) throws ParseException {
-        TimeZone tz = TimeZone.getDefault();
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        df.setTimeZone(tz);
-        return df.format(new Date(timestamp)).replace(".000", "");
-    }
-
     @Test
     public void testQueryDocumentExpiration() throws Exception {
         long now = System.currentTimeMillis();
@@ -1951,7 +1888,6 @@ public class QueryTest extends BaseQueryTest {
         }
         finally {
             query.removeChangeListener(token);
-            closeDB();
         }
     }
 
@@ -2879,12 +2815,12 @@ public class QueryTest extends BaseQueryTest {
         expectedUTC.add("1985-10-26T01:21:30.555Z");
 
         ArrayList<String> expectedLocal = new ArrayList<>();
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd", "1985-10-26"));
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm", "1985-10-26 01:21"));
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss", "1985-10-26 01:21:30"));
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.500"));
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.550"));
-        expectedLocal.add(LocalToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.555"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd", "1985-10-26"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm", "1985-10-26 01:21"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm:ss", "1985-10-26 01:21:30"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.500"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.550"));
+        expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.555"));
 
         Query query = QueryBuilder.select(selections)
             .from(DataSource.database(db))
@@ -2915,7 +2851,7 @@ public class QueryTest extends BaseQueryTest {
             MutableDocument doc = new MutableDocument();
             doc.setNumber("timestamp", millis);
             db.save(doc);
-            expectedLocal.add(ToLocal((long) millis));
+            expectedLocal.add(toLocal((long) millis));
         }
 
         ArrayList<String> expectedUTC = new ArrayList<>();
@@ -2938,5 +2874,68 @@ public class QueryTest extends BaseQueryTest {
             assertEquals(expectedLocal.get(n - 1), result.getString(0));
             assertEquals(expectedUTC.get(n - 1), result.getString(1));
         });
+    }
+
+    private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases)
+        throws Exception {
+        for (Object[] c : cases) {
+            Expression w = (Expression) c[0];
+            String[] documentIDs = (String[]) c[1];
+            final List<String> docIDList = new ArrayList<String>(Arrays.asList(documentIDs));
+            Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(w);
+            int numRows = verifyQuery(q, (n, result) -> {
+                String docID = result.getString(0);
+                if (docIDList.contains(docID)) { docIDList.remove(docID); }
+            });
+            assertEquals(0, docIDList.size());
+            assertEquals(documentIDs.length, numRows);
+        }
+    }
+
+    private String[] docids(int... numbers) {
+        String[] documentIDs = new String[numbers.length];
+        for (int i = 0; i < numbers.length; i++) { documentIDs[i] = "doc" + numbers[i]; }
+        return documentIDs;
+    }
+
+    private void createDateDocs() throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument();
+        doc.setString("local", "1985-10-26");
+        db.save(doc);
+
+        ArrayList<String> dateTimeFormats = new ArrayList<>();
+        dateTimeFormats.add("1985-10-26 01:21");
+        dateTimeFormats.add("1985-10-26 01:21:30");
+        dateTimeFormats.add("1985-10-26 01:21:30.5");
+        dateTimeFormats.add("1985-10-26 01:21:30.55");
+        dateTimeFormats.add("1985-10-26 01:21:30.555");
+
+        for (String format : dateTimeFormats) {
+            doc = new MutableDocument();
+            doc.setString("local", format);
+            doc.setString("JST", format + "+09:00");
+            doc.setString("JST2", format + "+0900");
+            doc.setString("PST", format + "-08:00");
+            doc.setString("PST2", format + "-0800");
+            doc.setString("UTC", format + "Z");
+            db.save(doc);
+        }
+    }
+
+    private String localToUTC(String format, String dateStr) throws ParseException {
+        TimeZone tz = TimeZone.getDefault();
+        SimpleDateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(tz);
+        Date date = df.parse(dateStr);
+        df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return df.format(date).replace(".000", "");
+    }
+
+    private String toLocal(long timestamp) throws ParseException {
+        TimeZone tz = TimeZone.getDefault();
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        df.setTimeZone(tz);
+        return df.format(new Date(timestamp)).replace(".000", "");
     }
 }
