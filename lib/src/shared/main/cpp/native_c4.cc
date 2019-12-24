@@ -175,6 +175,11 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
         return;
     }
 
+    if (env->ExceptionCheck() == JNI_TRUE) {
+        C4Warn("logCallback(): Cannot log while an exception is outstanding");
+        return;
+    }
+
     jstring message = UTF8ToJstring(env, const_cast<char *>(fmt), strlen(fmt));
     const char* domainNameRaw = c4log_getDomainName(domain);
     jstring domainName = env->NewStringUTF(domainNameRaw);
