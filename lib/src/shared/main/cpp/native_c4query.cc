@@ -77,12 +77,12 @@ Java_com_couchbase_lite_internal_core_C4Query_columnCount(JNIEnv *env, jclass cl
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Query
- * Method:    columnCount
- * Signature: (J)I
+ * Method:    columnTitle
+ * Signature: (JI)Ljava/lang/String;
  */
-JNIEXPORT jint JNICALL
-Java_com_couchbase_lite_internal_core_C4Query_columnCount(JNIEnv *env, jclass clazz, jlong jquery) {
-    return c4query_columnTitle(C4Query *) jquery);
+JNIEXPORT jstring JNICALL
+Java_com_couchbase_lite_internal_core_C4Query_columnTitle (JNIEnv *env, jclass clazz, jlong jquery, jint index) {
+    return NULL;
 }
 
 /*
@@ -153,8 +153,8 @@ Java_com_couchbase_lite_internal_core_C4Query_createIndex(JNIEnv *env, jclass cl
  * Signature: (JLjava/lang/String;)V
  */
 JNIEXPORT void JNICALL
-Java_com_couchbase_lite_internal_core_C4Query_deleteIndex(JNIEnv *env, jclass clazz, jlong jdb,
-                                                jstring jname) {
+Java_com_couchbase_lite_internal_core_C4Query_deleteIndex(JNIEnv *env, jclass clazz,
+        jlong jdb, jstring jname) {
     jstringSlice name(env, jname);
     C4Error error = {};
     bool res = c4db_deleteIndex((C4Database *) jdb, name, &error);

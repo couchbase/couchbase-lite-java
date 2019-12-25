@@ -82,7 +82,6 @@ public class C4Query {
                     ? null
                     : new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
             }
-
         }
         finally {
             if (params != parameters) { params.free(); }
@@ -107,6 +106,29 @@ public class C4Query {
     //-------------------------------------------------------------------------
     // Native methods
     //-------------------------------------------------------------------------
+
+    //////// DATABASE QUERIES:
+
+    /**
+     * Gets a fleece encoded array of indexes in the given database
+     * that were created by `c4db_createIndex`
+     *
+     * @param db
+     * @return pointer to FLValue
+     * @throws LiteCoreException
+     */
+    static native long getIndexes(long db) throws LiteCoreException;
+
+    static native void deleteIndex(long db, String name) throws LiteCoreException;
+
+    static native boolean createIndex(
+        long db,
+        String name,
+        String expressionsJSON,
+        int indexType,
+        String language,
+        boolean ignoreDiacritics)
+        throws LiteCoreException;
 
     /**
      * @param db
@@ -138,6 +160,15 @@ public class C4Query {
     private static native int columnCount(long handle);
 
     /**
+     * Returns the title for the column at columnIndex.
+     *
+     * @param handle      (C4Query*)
+     * @param columnIndex the integer column index
+     * @return the name of column columnIndex
+     */
+    private static native String columnTitle(long handle, int columnIndex);
+
+    /**
      * @param handle
      * @param rankFullText
      * @param parameters
@@ -152,27 +183,4 @@ public class C4Query {
      * during indexing.
      */
     private static native byte[] getFullTextMatched(long handle, long fullTextMatch) throws LiteCoreException;
-
-    private static native boolean createIndex(
-        long db,
-        String name,
-        String expressionsJSON,
-        int indexType,
-        String language,
-        boolean ignoreDiacritics)
-        throws LiteCoreException;
-
-    private static native void deleteIndex(long db, String name) throws LiteCoreException;
-
-    //////// DATABASE QUERIES:
-
-    /**
-     * Gets a fleece encoded array of indexes in the given database
-     * that were created by `c4db_createIndex`
-     *
-     * @param db
-     * @return pointer to FLValue
-     * @throws LiteCoreException
-     */
-    private static native long getIndexes(long db) throws LiteCoreException;
 }
