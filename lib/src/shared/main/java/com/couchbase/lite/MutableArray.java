@@ -30,6 +30,7 @@ import com.couchbase.lite.internal.fleece.MValue;
 
 /**
  * MutableArray provides access to array data.
+ * This class and its constructor are referenced by name, from native code.
  */
 public final class MutableArray extends Array implements MutableArrayInterface {
     //---------------------------------------------

@@ -20,6 +20,7 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 
 
+// This class and its static method referenced by name, from native code.
 public class LiteCoreException extends Exception {
     // NOTE called to throw LiteCoreException from native code to Java
     public static void throwException(int domain, int code, String msg) throws LiteCoreException {

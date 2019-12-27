@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.fleece;
 
+import android.support.annotation.NonNull;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -24,163 +26,19 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 
+// This class and its constructor are referenced by name, from native code.
 public class FleeceArray implements List<Object>, Encodable {
-    private MArray _array;
-
-    private FleeceArray() {
-        _array = new MArray();
-    }
-
-    // Call from native method
-    FleeceArray(MValue mv, MCollection parent) {
-        this();
-        _array.initInSlot(mv, parent);
-    }
-
-    public boolean isMutated() {
-        return _array.isMutated();
-    }
-
-    @Override
-    public int size() {
-        return (int) _array.count();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return size() == 0;
-    }
-
-    @Override
-    public boolean contains(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return new Itr();
-    }
-
-    @Override
-    public Object[] toArray() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <T> T[] toArray(T[] ts) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean add(Object o) {
-        _array.append(o);
-        return true;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean addAll(Collection<?> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean addAll(int i, Collection<?> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void clear() {
-        _array.clear();
-    }
-
-    @Override
-    public Object get(int i) {
-        MValue val = _array.get(i);
-        if (val.isEmpty()) { throw new IndexOutOfBoundsException(); }
-        return val.asNative(_array);
-    }
-
-    @Override
-    public Object set(int i, Object o) {
-        Object prev = get(i);
-        _array.set(i, o);
-        return prev;
-    }
-
-    @Override
-    public void add(int i, Object o) {
-        _array.insert(i, o);
-    }
-
-    @Override
-    public Object remove(int i) {
-        Object prev = get(i);
-        _array.remove(i);
-        return prev;
-    }
-
-    @Override
-    public int indexOf(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int lastIndexOf(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ListIterator<Object> listIterator() {
-        return new ListItr(0);
-    }
-
-    @Override
-    public ListIterator<Object> listIterator(int index) {
-        if (index < 0 || index > size()) { throw new IndexOutOfBoundsException("Index: " + index); }
-        return new ListItr(index);
-    }
-
-    @Override
-    public List<Object> subList(int i, int i1) {
-        throw new UnsupportedOperationException();
-    }
-
-    private void requireMutable() {
-        if (!_array.isMutable()) { throw new IllegalStateException(); }
-    }
-
-    // Implementation of FLEncodable
-    @Override
-    public void encodeTo(FLEncoder enc) {
-        _array.encodeTo(enc);
-    }
+    //---------------------------------------------
+    // Internal classes
+    //---------------------------------------------
 
     private class Itr implements Iterator<Object> {
-        int cursor = 0;       // index of next element to return
+        protected int cursor = 0;       // index of next element to return
+
+        protected Itr() {}
 
         @Override
-        public boolean hasNext() {
-            return cursor != size();
-        }
+        public boolean hasNext() { return cursor != size(); }
 
         @Override
         public Object next() {
@@ -191,9 +49,7 @@ public class FleeceArray implements List<Object>, Encodable {
         }
 
         @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
+        public void remove() { throw new UnsupportedOperationException(); }
     }
 
     private class ListItr extends Itr implements ListIterator<Object> {
@@ -202,18 +58,16 @@ public class FleeceArray implements List<Object>, Encodable {
             cursor = index;
         }
 
-        public boolean hasPrevious() {
-            return cursor != 0;
-        }
+        @Override
+        public boolean hasPrevious() { return cursor != 0; }
 
-        public int nextIndex() {
-            return cursor;
-        }
+        @Override
+        public int nextIndex() { return cursor; }
 
-        public int previousIndex() {
-            return cursor - 1;
-        }
+        @Override
+        public int previousIndex() { return cursor - 1; }
 
+        @Override
         public Object previous() {
             int i = cursor - 1;
             if (i < 0) { throw new NoSuchElementException(); }
@@ -221,18 +75,142 @@ public class FleeceArray implements List<Object>, Encodable {
             return get(i);
         }
 
-        public void set(Object e) {
-            throw new UnsupportedOperationException();
-        }
+        @Override
+        public void set(Object e) { throw new UnsupportedOperationException(); }
 
-        public void add(Object e) {
-            throw new UnsupportedOperationException();
-        }
+        @Override
+        public void add(Object e) { throw new UnsupportedOperationException(); }
     }
 
-    // For MValue
+    //---------------------------------------------
+    // Data members
+    //---------------------------------------------
 
-    MCollection toMCollection() {
-        return _array;
+    private MArray mArray;
+
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
+
+    private FleeceArray() { mArray = new MArray(); }
+
+    // Call from native method
+    FleeceArray(MValue mv, MCollection parent) {
+        this();
+        mArray.initInSlot(mv, parent);
+    }
+
+    //---------------------------------------------
+    // Public methods
+    //---------------------------------------------
+
+    @Override
+    public int size() { return (int) mArray.count(); }
+
+    @Override
+    public boolean isEmpty() { return size() == 0; }
+
+    @Override
+    @NonNull
+    public Iterator<Object> iterator() { return new Itr(); }
+
+    @Override
+    public boolean add(Object o) {
+        mArray.append(o);
+        return true;
+    }
+
+    @Override
+    public void clear() { mArray.clear(); }
+
+    @Override
+    public Object get(int i) {
+        MValue val = mArray.get(i);
+        if (val.isEmpty()) { throw new IndexOutOfBoundsException(); }
+        return val.asNative(mArray);
+    }
+
+    @Override
+    public Object set(int i, Object o) {
+        Object prev = get(i);
+        mArray.set(i, o);
+        return prev;
+    }
+
+    @Override
+    public void add(int i, Object o) { mArray.insert(i, o); }
+
+    @Override
+    public Object remove(int i) {
+        Object prev = get(i);
+        mArray.remove(i);
+        return prev;
+    }
+
+    @Override
+    @NonNull
+    public ListIterator<Object> listIterator() { return new ListItr(0); }
+
+    @Override
+    @NonNull
+    public ListIterator<Object> listIterator(int index) {
+        if (index < 0 || index > size()) { throw new IndexOutOfBoundsException("Index: " + index); }
+        return new ListItr(index);
+    }
+
+    @Override
+    public boolean contains(Object o) { throw new UnsupportedOperationException(); }
+
+    @Override
+    @NonNull
+    public Object[] toArray() { throw new UnsupportedOperationException(); }
+
+    @Override
+    @NonNull
+    public <T> T[] toArray(@NonNull T[] ts) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public int indexOf(Object o) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public int lastIndexOf(Object o) { throw new UnsupportedOperationException(); }
+
+    @Override
+    @NonNull
+    public List<Object> subList(int i, int i1) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean remove(Object o) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean containsAll(    @NonNull Collection<?> collection) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean addAll(@NonNull Collection<?> collection) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean addAll(int i, @NonNull Collection<?> collection) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean removeAll(@NonNull Collection<?> collection) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean retainAll(@NonNull Collection<?> collection) { throw new UnsupportedOperationException(); }
+
+    // Implementation of FLEncodable
+    @Override
+    public void encodeTo(FLEncoder enc) { mArray.encodeTo(enc); }
+
+    public boolean isMutated() { return mArray.isMutated(); }
+
+    //---------------------------------------------
+    // Package and private methods
+    //---------------------------------------------
+
+    // For MValue
+    MCollection toMCollection() { return mArray; }
+
+    private void requireMutable() {
+        if (!mArray.isMutable()) { throw new IllegalStateException(); }
     }
 }

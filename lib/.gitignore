@@ -1,3 +1,5 @@
 /build
 /CBLTestDB
 /*sqlite3
+/.couchbase
+

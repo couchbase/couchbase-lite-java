@@ -24,6 +24,10 @@ import android.support.annotation.NonNull;
  * The logging interface for Couchbase Lite.  If an application wants
  * to receive log messages to an arbitrary endpoint, then it can by
  * implementing this interface.
+ *
+ * !!! There is, currently, no way to tell when the log level changes
+ * for a custom logger.  Setting a more verbose log level will not
+ * have any effect until the logger is polled for its level.
  */
 public interface Logger {
     /**

@@ -49,7 +49,7 @@ public final class CouchbaseLiteInternal {
 
     private static final String ERRORS_PROPERTIES_PATH = "/errors.properties";
     private static final String TEMP_DIR_NAME = "CouchbaseLiteTemp";
-    private static final String DEFAULT_ROOT_DIR_NAME = "couchbase";
+    private static final String DEFAULT_ROOT_DIR_NAME = ".couchbase";
 
     private static final AtomicReference<ExecutionService> EXECUTION_SERVICE = new AtomicReference<>();
 

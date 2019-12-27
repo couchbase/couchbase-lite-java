@@ -241,9 +241,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Override
     public List<Object> toList() {
         final List<Object> array = new ArrayList<>();
-        for (int i = 0; i < count(); i++) {
-            array.add(values.get(i).asObject());
-        }
+        for (int i = 0; i < count(); i++) { array.add(values.get(i).asObject()); }
         return array;
     }
 
@@ -498,8 +496,8 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     }
 
     private List<FLValue> extractColumns(FLArrayIterator columns) {
-        final int count = rs.getColumnCount();
         final List<FLValue> values = new ArrayList<>();
+        final int count = rs.getColumnCount();
         for (int i = 0; i < count; i++) { values.add(columns.getValueAt(i)); }
         return values;
     }

@@ -84,10 +84,11 @@ final class MValueDelegate implements MValue.Delegate {
     private Object mValueToDictionary(@NonNull MValue mv, @NonNull MCollection parent) {
         final FLDict flDict = mv.getValue().asFLDict();
         final DocContext context = (DocContext) parent.getContext();
+
         final FLValue flType = flDict.get(Blob.META_PROP_TYPE);
         final String type = (flType == null) ? null : flType.asString();
         if (type == null) {
-            if (isOldAttachment(flDict)) { return createBlob(flDict, context); }
+            if (isOldAttachment(parent, flDict)) { return createBlob(flDict, context); }
         }
         else {
             final Object obj = createSpecialObjectOfType(type, flDict, context);
@@ -98,11 +99,16 @@ final class MValueDelegate implements MValue.Delegate {
         else { return new Dictionary(mv, parent); }
     }
 
-    private boolean isOldAttachment(@NonNull FLDict flDict) {
-        return (flDict.get("digest") != null)
-            && (flDict.get("length") != null)
-            && (flDict.get("stub") != null)
-            && (flDict.get("revpos") != null);
+    // At some point in the past, attachemnts were dictionaries in a top-level
+    // element named "_attachments". Those dictionaries contained at least the
+    // properties listed here.
+    // Unfortunately, at this point, we don't know the name of the parent element.
+    // Heuristically, we just look for the properties and cross our fingers.
+    private boolean isOldAttachment(@NonNull MCollection parent, @NonNull FLDict flDict) {
+        return (flDict.get(Blob.PROP_DIGEST) != null)
+            && (flDict.get(Blob.PROP_LENGTH) != null)
+            && (flDict.get(Blob.PROP_STUB) != null)
+            && (flDict.get(Blob.PROP_REVPOS) != null);
     }
 
     @Nullable

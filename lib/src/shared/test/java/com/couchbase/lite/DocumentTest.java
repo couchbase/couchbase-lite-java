@@ -2515,10 +2515,8 @@ public class DocumentTest extends BaseTest {
         assertFalse(doc3.equals(new MutableArray()));
     }
 
-    // TODO: this test causes native crash in case of running on Android API 19
     @Test
     public void testHashCode() throws CouchbaseLiteException {
-
         // mDoc1 and mDoc2 have exactly same data
         // mDoc3 is different
         // mDoc4 is different

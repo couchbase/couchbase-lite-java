@@ -1585,7 +1585,7 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument exam1 = new MutableDocument("exam1");
         exam1.setString("exam type", "final");
         exam1.setString("question", "There are 45 states in the US.");
-        exam1.setBoolean("answer", false);
+        exam1.setBoolean("answer", true);
 
         db.save(exam1);
 
@@ -1598,10 +1598,7 @@ public class QueryTest extends BaseQueryTest {
             .from(DataSource.database(db))
             .where(Meta.id.equalTo(Expression.string("exam1")));
 
-        verifyQuery(query, (n, result) -> {
-            Map<String, Object> map = result.toMap();
-            assertFalse((Boolean) map.get("answer"));
-        });
+        verifyQuery(query, (n, result) -> { assertTrue((Boolean) result.toMap().get("answer")); });
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1385

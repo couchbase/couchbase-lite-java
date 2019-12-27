@@ -24,12 +24,18 @@ import java.util.Map;
 import java.util.Set;
 
 
+// This class and its constructor are referenced by name, from native code.
 public class FleeceDict implements Map<String, Object>, Encodable {
+    //---------------------------------------------
+    // Data members
+    //---------------------------------------------
     private MDict dict;
 
-    private FleeceDict() {
-        dict = new MDict();
-    }
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
+
+    private FleeceDict() { dict = new MDict(); }
 
     // Call from native method
     FleeceDict(MValue mv, MCollection parent) {
@@ -37,29 +43,27 @@ public class FleeceDict implements Map<String, Object>, Encodable {
         dict.initInSlot(mv, parent);
     }
 
-    public boolean isMutated() {
-        return dict.isMutated();
-    }
+    //---------------------------------------------
+    // Public methods
+    //---------------------------------------------
+
+    // FLEncodable
 
     @Override
-    public int size() {
-        return (int) dict.count();
-    }
+    public void encodeTo(FLEncoder enc) { dict.encodeTo(enc); }
+
+    // Map
 
     @Override
-    public boolean isEmpty() {
-        return size() == 0;
-    }
+    public int size() { return (int) dict.count(); }
+
+    @Override
+    public boolean isEmpty() { return size() == 0; }
 
     @Override
     public boolean containsKey(Object o) {
         if (!(o instanceof String)) { return false; }
         return dict.contains((String) o);
-    }
-
-    @Override
-    public boolean containsValue(Object o) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -86,24 +90,10 @@ public class FleeceDict implements Map<String, Object>, Encodable {
     }
 
     @Override
-    public void putAll(Map<? extends String, ?> map) {
-        throw new UnsupportedOperationException();
-    }
+    public void clear() { dict.clear(); }
 
     @Override
-    public void clear() {
-        dict.clear();
-    }
-
-    @Override
-    public Set<String> keySet() {
-        return new HashSet<String>(dict.getKeys());
-    }
-
-    @Override
-    public Collection<Object> values() {
-        throw new UnsupportedOperationException();
-    }
+    public Set<String> keySet() { return new HashSet<String>(dict.getKeys()); }
 
     @Override
     public Set<Entry<String, Object>> entrySet() {
@@ -114,16 +104,21 @@ public class FleeceDict implements Map<String, Object>, Encodable {
         return entrySet;
     }
 
-    // FLEncodable
+    @Override
+    public boolean containsValue(Object o) { throw new UnsupportedOperationException(); }
 
     @Override
-    public void encodeTo(FLEncoder enc) {
-        dict.encodeTo(enc);
-    }
+    public void putAll(Map<? extends String, ?> map) { throw new UnsupportedOperationException(); }
+
+    @Override
+    public Collection<Object> values() { throw new UnsupportedOperationException(); }
+
+    public boolean isMutated() { return dict.isMutated(); }
+
+    //---------------------------------------------
+    // Package protected methods
+    //---------------------------------------------
 
     // MValue
-
-    MCollection toMCollection() {
-        return dict;
-    }
+    MCollection toMCollection() { return dict; }
 }

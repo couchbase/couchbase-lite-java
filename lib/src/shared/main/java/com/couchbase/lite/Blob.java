@@ -65,10 +65,13 @@ public final class Blob implements FLEncodable {
     static final String META_PROP_TYPE = "@type";
     static final String TYPE_BLOB = "blob";
 
-    private static final String PROP_DIGEST = "digest";
-    private static final String PROP_LENGTH = "length";
-    private static final String PROP_CONTENT_TYPE = "content_type";
-    private static final String PROP_DATA = "data";
+    static final String PROP_DIGEST = "digest";
+    static final String PROP_LENGTH = "length";
+    static final String PROP_CONTENT_TYPE = "content_type";
+    static final String PROP_DATA = "data";
+    static final String PROP_STUB = "stub";
+    static final String PROP_REVPOS = "revpos";
+
 
     // Max size of data that will be cached in memory with the CBLBlob
     private static final int MAX_CACHED_CONTENT_LENGTH = 8 * 1024;
@@ -308,10 +311,10 @@ public final class Blob implements FLEncodable {
         this.properties.remove(META_PROP_TYPE);
 
         // NOTE: length field might not be set if length is unknown.
-        final Object len = properties.get("length");
+        final Object len = properties.get(PROP_LENGTH);
         if (len instanceof Number) { this.blobLength = ((Number) len).longValue(); }
-        this.blobDigest = (String) properties.get("digest");
-        this.contentType = (String) properties.get("content_type");
+        this.blobDigest = (String) properties.get(PROP_DIGEST);
+        this.contentType = (String) properties.get(PROP_CONTENT_TYPE);
 
         final Object data = properties.get(PROP_DATA);
         if (data instanceof byte[]) { blobContent = (byte[]) data; }

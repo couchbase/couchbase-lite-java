@@ -21,9 +21,15 @@ import com.couchbase.lite.LiteCoreException;
 
 
 public class MRoot extends MCollection {
+    //---------------------------------------------
+    // Data members
+    //---------------------------------------------
+
     private final MValue slot;
 
-    /* Constructors */
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
 
     public MRoot(MContext context, FLValue value, boolean isMutable) {
         super(context, isMutable);
@@ -34,25 +40,20 @@ public class MRoot extends MCollection {
         this(context, FLValue.fromData(context.getData()), isMutable);
     }
 
-    public MRoot(AllocSlice fleeceData, boolean isMutable) {
-        this(new MContext(fleeceData), isMutable);
-    }
+    public MRoot(AllocSlice fleeceData, boolean isMutable) { this(new MContext(fleeceData), isMutable); }
 
-    public MRoot(AllocSlice fleeceData) {
-        this(new MContext(fleeceData), true);
-    }
+    public MRoot(AllocSlice fleeceData) { this(new MContext(fleeceData), true); }
 
-    /* Properties */
+    //---------------------------------------------
+    // Public Methods
+    //---------------------------------------------
 
-    public boolean isMutated() {
-        return slot.isMutated();
-    }
+    @Override
+    public void encodeTo(FLEncoder enc) { slot.encodeTo(enc); }
 
-    /* Public Methods */
+    public boolean isMutated() { return slot.isMutated(); }
 
-    public Object asNative() {
-        return slot.asNative(this);
-    }
+    public Object asNative() { return slot.asNative(this); }
 
     public AllocSlice encode() throws LiteCoreException {
         final FLEncoder encoder = new FLEncoder();
@@ -63,12 +64,5 @@ public class MRoot extends MCollection {
         finally {
             encoder.free();
         }
-    }
-
-    /* Encodable */
-
-    @Override
-    public void encodeTo(FLEncoder enc) {
-        slot.encodeTo(enc);
     }
 }

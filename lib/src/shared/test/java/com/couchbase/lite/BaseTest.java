@@ -82,18 +82,18 @@ public abstract class BaseTest extends PlatformBaseTest {
 
     @After
     public void tearDown() {
-//        try { eraseDatabase(db); }
-//        catch (CouchbaseLiteException e) {
-//            throw new RuntimeException("Failed closing database: " + TEST_DB, e);
-//        }
-//        finally {
-//            try {
-//                if (dbDir != null) { FileUtils.eraseFileOrDir(dbDir); }
-//            }
-//            finally {
-//                stopExecutor();
-//            }
-//        }
+        try { eraseDatabase(db); }
+        catch (CouchbaseLiteException e) {
+            throw new RuntimeException("Failed closing database: " + TEST_DB, e);
+        }
+        finally {
+            try {
+                if (dbDir != null) { FileUtils.eraseFileOrDir(dbDir); }
+            }
+            finally {
+                stopExecutor();
+            }
+        }
     }
 
     protected void reopenDB() throws CouchbaseLiteException {

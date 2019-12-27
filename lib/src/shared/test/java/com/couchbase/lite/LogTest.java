@@ -458,6 +458,9 @@ public class LogTest extends BaseTest {
         customLogger.setLevel(LogLevel.VERBOSE);
         Database.log.setCustom(customLogger);
 
+        // hack: The console logger sets the C4 callback level
+        Database.log.getConsole().setLevel(LogLevel.VERBOSE);
+
         MutableDocument doc = new MutableDocument();
         doc.setString("hebrew", hebrew);
         save(doc);
