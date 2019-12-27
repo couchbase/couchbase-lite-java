@@ -82,7 +82,7 @@ public class ResultSet implements Iterable<Result> {
         Preconditions.checkArgNotNull(query, "query");
         if (!isAlive.get()) { return null; }
 
-        synchronized (getDatabase().getLock()) {
+        synchronized (getDbLock()) {
             try {
                 if (c4enum == null) { return null; }
                 else if (isAllEnumerated) {
@@ -95,7 +95,7 @@ public class ResultSet implements Iterable<Result> {
                     return null;
                 }
                 else {
-                    return currentObject();
+                    return new Result(this, c4enum, context);
                 }
             }
             catch (LiteCoreException e) {
@@ -170,7 +170,7 @@ public class ResultSet implements Iterable<Result> {
     ResultSet refresh() throws CouchbaseLiteException {
         Preconditions.checkArgNotNull(query, "query");
 
-        synchronized (getDatabase().getLock()) {
+        synchronized (getDbLock()) {
             if (!isAlive.get()) { return null; }
             try {
                 final C4QueryEnumerator newEnum = c4enum.refresh();
@@ -183,11 +183,11 @@ public class ResultSet implements Iterable<Result> {
     }
 
     // Please see the `refresh` method if changing this one.
-    void free() {
+    private void free() {
         if (!isAlive.getAndSet(false)) { return; }
 
         if (c4enum != null) {
-            synchronized (getDatabase().getLock()) { c4enum.close(); }
+            synchronized (getDbLock()) { c4enum.close(); }
             c4enum.free();
             c4enum = null;
         }
@@ -196,8 +196,6 @@ public class ResultSet implements Iterable<Result> {
     //---------------------------------------------
     // Private level access
     //---------------------------------------------
-    private Database getDatabase() { return query.getDatabase(); }
-
-    private Result currentObject() { return new Result(this, c4enum, context); }
+    private Object getDbLock() { return query.getDatabase().getLock(); }
 }
 

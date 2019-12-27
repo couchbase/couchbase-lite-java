@@ -1549,7 +1549,6 @@ public class QueryTest extends BaseQueryTest {
     //https://github.com/couchbase/couchbase-lite-android/issues/1785
     @Test
     public void testResultToMapWithBoolean() throws Exception {
-
         MutableDocument exam1 = new MutableDocument("exam1");
         exam1.setString("exam type", "final");
         exam1.setString("question", "There are 45 states in the US.");
@@ -1576,6 +1575,32 @@ public class QueryTest extends BaseQueryTest {
             if ("There are 100 senators in the US.".equals(map.get("question"))) {
                 assertTrue((Boolean) map.get("answer"));
             }
+        });
+    }
+
+    @Ignore("Fails! CBL-609")
+    //https://github.com/couchbase/couchbase-lite-android-ce/issues/34
+    @Test
+    public void testResultToMapWithBoolean2() throws Exception {
+        MutableDocument exam1 = new MutableDocument("exam1");
+        exam1.setString("exam type", "final");
+        exam1.setString("question", "There are 45 states in the US.");
+        exam1.setBoolean("answer", false);
+
+        db.save(exam1);
+
+        Query query = QueryBuilder
+            .select(
+                SelectResult.property("exam type"),
+                SelectResult.property("question"),
+                SelectResult.property("answer")
+            )
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(Expression.string("exam1")));
+
+        verifyQuery(query, (n, result) -> {
+            Map<String, Object> map = result.toMap();
+            assertFalse((Boolean) map.get("answer"));
         });
     }
 

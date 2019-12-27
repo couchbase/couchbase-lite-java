@@ -113,7 +113,7 @@ public class C4QueryBaseTest extends C4BaseTest {
         assertNotNull(e);
         while (e.next()) {
             List<List<Long>> match = new ArrayList<>();
-            for (int i = 0; i < e.getFullTextMatchCount(); i++) { match.add(e.getFullTextMatchs(i).toList()); }
+            for (int i = 0; i < e.getFullTextMatchCount(); i++) { match.add(e.getFullTextMatches(i).toList()); }
             matches.add(match);
         }
         if (e != null) { e.free(); }

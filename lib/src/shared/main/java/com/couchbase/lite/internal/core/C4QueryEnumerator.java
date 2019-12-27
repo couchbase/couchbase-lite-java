@@ -17,98 +17,69 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.GuardedBy;
+
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.FLArrayIterator;
 
 
 public class C4QueryEnumerator {
-    static native boolean next(long handle) throws LiteCoreException;
+    //-------------------------------------------------------------------------
+    // Member Variables
+    //-------------------------------------------------------------------------
+    private final Object lock = new Object();
 
-    static native long getRowCount(long handle) throws LiteCoreException;
+    @GuardedBy("lock")
+    private long handle; // hold pointer to C4QueryEnumerator
+
+    //-------------------------------------------------------------------------
+    // Constructor
+    /*-------------------------------------------------------------------------*/
+    C4QueryEnumerator(long handle) { this.handle = handle; }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
-    static native boolean seek(long handle, long rowIndex) throws LiteCoreException;
-
-    static native long refresh(long handle) throws LiteCoreException;
-
-    static native void close(long handle);
-
-    static native void free(long handle);
-
-    // FLArrayIterator columns
-    // The columns of this result, in the same order as in the query's `WHAT` clause.
-    static native long getColumns(long handle);
-
-    // uint64_t missingColumns
-    // A bitmap where a 1 bit represents a column whose value is MISSING.
-    // This is how you tell a missing property value from a value that's JSON 'null',
-    // since the value in the `columns` array will be a Fleece `null` either way.
-    static native long getMissingColumns(long handle);
-
-    // -- Accessor methods to C4QueryEnumerator --
-
-    // uint32_t fullTextMatchCount
-    // The number of full-text matches (i.e. the number of items in `fullTextMatches`)
-    static native long getFullTextMatchCount(long handle);
-
-    // const C4FullTextMatch *fullTextMatches
-    // Array with details of each full-text match
-    static native long getFullTextMatch(long handle, int idx);
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private long handle; // hold pointer to C4QueryEnumerator
-
-    //-------------------------------------------------------------------------
-    // Constructor
-    //-------------------------------------------------------------------------
-    C4QueryEnumerator(long handle) {
-        this.handle = handle;
-    }
-
     public boolean next() throws LiteCoreException {
-        final boolean ok = next(handle);
-        // NOTE: Please keep the following lines of code for a while.
-        //if (!ok) { handle = 0; }
-        return ok;
+        synchronized (lock) { return (handle != 0) && next(handle); }
     }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
 
     public long getRowCount() throws LiteCoreException {
-        return getRowCount(handle);
+        synchronized (lock) { return (handle == 0) ? 0L : getRowCount(handle); }
     }
 
     public boolean seek(long rowIndex) throws LiteCoreException {
-        return seek(handle, rowIndex);
+        synchronized (lock) { return (handle != 0) && seek(handle, rowIndex); }
     }
 
     public C4QueryEnumerator refresh() throws LiteCoreException {
-        // handle is closed or reached end.
-        if (handle == 0) { return null; }
-        final long newHandle = refresh(handle);
-         return (newHandle == 0) ? null : new C4QueryEnumerator(newHandle);
+        synchronized (lock) {
+            if (handle == 0) { return null; }
+            final long newHandle = refresh(handle);
+            return (newHandle == 0) ? null : new C4QueryEnumerator(newHandle);
+        }
     }
 
     public void close() {
-        if (handle != 0) { close(handle); }
+        synchronized (lock) {
+            if (handle != 0) { close(handle); }
+        }
     }
 
     public void free() {
-        if (handle != 0L) {
-            free(handle);
+        final long hdl;
+        synchronized (lock) {
+            hdl = handle;
             handle = 0L;
         }
+
+        if (hdl != 0L) { free(hdl); }
     }
 
     // NOTE: FLArrayIterator is member variable of C4QueryEnumerator. Not necessary to release.
     public FLArrayIterator getColumns() {
-        return new FLArrayIterator(getColumns(handle));
+        synchronized (lock) { return (handle == 0) ? null : new FLArrayIterator(getColumns(handle)); }
     }
 
     // -- Accessor methods to C4QueryEnumerator --
@@ -119,15 +90,15 @@ public class C4QueryEnumerator {
     // next call to c4queryenum_next or c4queryenum_free.
 
     public long getMissingColumns() {
-        return getMissingColumns(handle);
+        synchronized (lock) { return (handle == 0) ? 0L : getMissingColumns(handle); }
     }
 
-    public long getFullTextMatchCount() {
-        return getFullTextMatchCount(handle);
+    long getFullTextMatchCount() {
+        synchronized (lock) { return (handle == 0) ? 0L : getFullTextMatchCount(handle); }
     }
 
-    public C4FullTextMatch getFullTextMatchs(int idx) {
-        return new C4FullTextMatch(getFullTextMatch(handle, idx));
+    C4FullTextMatch getFullTextMatches(int idx) {
+        synchronized (lock) { return (handle == 0) ? null : new C4FullTextMatch(getFullTextMatch(handle, idx)); }
     }
 
     //-------------------------------------------------------------------------
@@ -139,4 +110,40 @@ public class C4QueryEnumerator {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    private static native boolean next(long handle) throws LiteCoreException;
+
+    private static native long getRowCount(long handle) throws LiteCoreException;
+
+    private static native boolean seek(long handle, long rowIndex) throws LiteCoreException;
+
+    private static native long refresh(long handle) throws LiteCoreException;
+
+    private static native void close(long handle);
+
+    private static native void free(long handle);
+
+    // FLArrayIterator columns
+    // The columns of this result, in the same order as in the query's `WHAT` clause.
+    private static native long getColumns(long handle);
+
+    // uint64_t missingColumns
+    // A bitmap where a 1 bit represents a column whose value is MISSING.
+    // This is how you tell a missing property value from a value that's JSON 'null',
+    // since the value in the `columns` array will be a Fleece `null` either way.
+    private static native long getMissingColumns(long handle);
+
+    // -- Accessor methods to C4QueryEnumerator --
+
+    // uint32_t fullTextMatchCount
+    // The number of full-text matches (i.e. the number of items in `fullTextMatches`)
+    private static native long getFullTextMatchCount(long handle);
+
+    // const C4FullTextMatch *fullTextMatches
+    // Array with details of each full-text match
+    private static native long getFullTextMatch(long handle, int idx);
 }
