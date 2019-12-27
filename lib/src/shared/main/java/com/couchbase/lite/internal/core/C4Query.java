@@ -66,6 +66,10 @@ public class C4Query {
         synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
     }
 
+    public String columnTitle(int index) {
+        synchronized (lock) { return (handle == 0L) ? null : columnTitle(handle, index); }
+    }
+
     //////// INDEXES:
 
     // - Creates a database index, to speed up subsequent queries.

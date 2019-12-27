@@ -17,12 +17,12 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
@@ -35,6 +35,7 @@ import com.couchbase.lite.internal.core.C4QueryOptions;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.JsonUtils;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 abstract class AbstractQuery implements Query {
@@ -46,10 +47,18 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    // !!! Get rid of this.
+    private boolean useJava = true;
+
     private final Object lock = new Object();
 
-    private Database database;
+    @GuardedBy("lock")
     private C4Query c4query;
+
+    @GuardedBy("lock")
+    private LiveQuery liveQuery;
+
+    private Database database;
 
     // NOTE:
     // https://sqlite.org/lang_select.html
@@ -75,18 +84,15 @@ abstract class AbstractQuery implements Query {
     // column names
     private Map<String, Integer> columnNames;
 
-    // Live Query!!
-    private LiveQuery liveQuery;
+    //---------------------------------------------
+    // API - public methods
+    //---------------------------------------------
 
     /**
      * Returns a copies of the current parameters.
      */
     @Override
     public Parameters getParameters() { return parameters; }
-
-    //---------------------------------------------
-    // API - public methods
-    //---------------------------------------------
 
     /**
      * Set parameters should copy the given parameters. Set a new parameter will
@@ -128,8 +134,10 @@ abstract class AbstractQuery implements Query {
             params = parameters.encode();
             final C4QueryEnumerator c4enum;
             synchronized (getDatabase().getLock()) {
-                check();
-                c4enum = c4query.run(options, params);
+                synchronized (lock) {
+                    if (c4query == null) { c4query = prepQueryLocked(); }
+                    c4enum = c4query.run(options, params);
+                }
             }
             return new ResultSet(this, c4enum, columnNames);
         }
@@ -159,8 +167,10 @@ abstract class AbstractQuery implements Query {
     @Override
     public String explain() throws CouchbaseLiteException {
         synchronized (getDatabase().getLock()) {
-            check();
-            return c4query.explain();
+            synchronized (lock) {
+                if (c4query == null) { c4query = prepQueryLocked(); }
+                return c4query.explain();
+            }
         }
     }
 
@@ -173,7 +183,7 @@ abstract class AbstractQuery implements Query {
     @NonNull
     @Override
     public ListenerToken addChangeListener(@NonNull QueryChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
         return addChangeListener(null, listener);
     }
 
@@ -189,7 +199,7 @@ abstract class AbstractQuery implements Query {
     @NonNull
     @Override
     public ListenerToken addChangeListener(Executor executor, @NonNull QueryChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
         return getLiveQuery().addChangeListener(executor, listener);
     }
 
@@ -200,14 +210,14 @@ abstract class AbstractQuery implements Query {
      */
     @Override
     public void removeChangeListener(@NonNull ListenerToken token) {
-        if (token == null) { throw new IllegalArgumentException("token cannot be null."); }
+        Preconditions.checkArgNotNull(token, "token");
         getLiveQuery().removeChangeListener(token);
     }
 
     @NonNull
     @Override
     public String toString() {
-        return String.format(Locale.ENGLISH, "%s[json=%s]", this.getClass().getSimpleName(), asJson());
+        return getClass().getSimpleName() + "[json=" + asJson() + "]";
     }
 
     //---------------------------------------------
@@ -224,6 +234,7 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
+
     Database getDatabase() {
         if (database == null) { database = (Database) from.getSource(); }
         return database;
@@ -254,38 +265,61 @@ abstract class AbstractQuery implements Query {
         this.having = query.having;
         this.orderBy = query.orderBy;
         this.limit = query.limit;
-
         this.parameters = query.parameters;
     }
 
     //---------------------------------------------
     // Private methods
     //---------------------------------------------
-    private void check() throws CouchbaseLiteException {
+
+    private void free() {
+        C4Query query;
+
         synchronized (lock) {
-            if (c4query != null) { return; }
+            query = c4query;
+            c4query = null;
+        }
 
-            database = (Database) from.getSource();
-            final String json = encodeAsJson();
-            Log.v(DOMAIN, "Query encoded as %s", json);
-            if (json == null) { throw new CouchbaseLiteException("Failed to generate JSON query."); }
+        if (query == null) { return; }
 
-            if (columnNames == null) { columnNames = generateColumnNames(); }
-
-            try {
-                c4query = database.getC4Database().createQuery(json);
-            }
-            catch (LiteCoreException e) {
-                throw CBLStatus.convertException(e);
-            }
+        final Database db = getDatabase();
+        if (db != null) {
+            synchronized (db.getLock()) { query.free(); }
         }
     }
 
-    private Map<String, Integer> generateColumnNames() throws CouchbaseLiteException {
+    @GuardedBy("lock")
+    private C4Query prepQueryLocked() throws CouchbaseLiteException {
+        database = (Database) from.getSource();
+
+        final String json = encodeAsJson();
+        Log.v(DOMAIN, "Encoded query: %s", json);
+        if (json == null) { throw new CouchbaseLiteException("Failed to generate JSON query."); }
+
+        final C4Query query;
+        try { query = database.getC4Database().createQuery(json); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+
+        // !!! Should be using native version
+        if (columnNames == null) {
+            columnNames = (useJava) ? getColumnNamesJava() : getColumnNames();
+        }
+
+        return query;
+    }
+
+    private Map<String, Integer> getColumnNames() {
+        final Map<String, Integer> map = new HashMap<>();
+        int n = c4query.columnCount();
+        for (int i = 0; i < n; i++) { map.put(c4query.columnTitle(i), i); }
+        return map;
+    }
+
+    private Map<String, Integer> getColumnNamesJava() throws CouchbaseLiteException {
         final Map<String, Integer> map = new HashMap<>();
         int index = 0;
         int provisionKeyIndex = 0;
-        for (SelectResult selectResult : this.select.getSelectResults()) {
+        for (SelectResult selectResult : select.getSelectResults()) {
             String name = selectResult.getColumnName();
 
             if (name != null && name.equals(PropertyExpression.PROPS_ALL)) { name = from.getColumnName(); }
@@ -343,10 +377,11 @@ abstract class AbstractQuery implements Query {
         if (orderBy != null) { json.put("ORDER_BY", orderBy.asJSON()); }
 
         if (limit != null) {
-            @SuppressWarnings("unchecked") final List<Object> list = (List<Object>) limit.asJSON();
+            final List<Object> list = (List<Object>) limit.asJSON();
             json.put("LIMIT", list.get(0));
             if (list.size() > 1) { json.put("OFFSET", list.get(1)); }
         }
+
         return json;
     }
 
@@ -354,25 +389,6 @@ abstract class AbstractQuery implements Query {
         synchronized (lock) {
             if (liveQuery == null) { liveQuery = new LiveQuery(this); }
             return liveQuery;
-        }
-    }
-
-    private void free() {
-        Object dblock = null;
-        C4Query query = null;
-
-        synchronized (lock) {
-            if (c4query == null) { return; }
-
-            if (getDatabase() != null) {
-                dblock = getDatabase().getLock();
-                query = c4query;
-                c4query = null;
-            }
-        }
-
-        if ((query != null) && (dblock != null)) {
-            synchronized (dblock) { c4query.free(); }
         }
     }
 }

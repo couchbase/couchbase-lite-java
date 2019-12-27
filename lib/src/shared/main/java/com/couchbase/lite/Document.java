@@ -72,7 +72,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     @GuardedBy("lock")
     @Nullable
-    private C4Document c4doc;
+    private C4Document c4Document;
 
     @Nullable
     private Database database;
@@ -103,7 +103,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         this(database, id, null);
         this.data = body;
         this.revId = revId;
-        synchronized (lock) { updateDictionaryLocked(); }
+        updateDictionaryLocked();
     }
 
     Document(@NonNull Database database, @NonNull String id, boolean includeDeleted) throws CouchbaseLiteException {
@@ -114,7 +114,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         try {
             final C4Database c4db = database.getC4Database();
             if (c4db == null) { throw new IllegalStateException(Log.lookupStandardMessage("DBClosed")); }
-            doc = c4db.get(getId(), true);
+            doc = c4db.get(id, true);
         }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
@@ -151,7 +151,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     public String getRevisionID() {
-        synchronized (lock) { return (c4doc == null) ? revId : c4doc.getSelectedRevID(); }
+        synchronized (lock) { return (c4Document == null) ? revId : c4Document.getSelectedRevID(); }
     }
 
     /**
@@ -166,7 +166,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the sequence number of the document in the database.
      */
     public long getSequence() {
-        synchronized (lock) { return (c4doc == null) ? 0 : c4doc.getSelectedSequence(); }
+        synchronized (lock) { return (c4Document == null) ? 0 : c4Document.getSelectedSequence(); }
     }
 
     /**
@@ -450,7 +450,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return true if exists, false otherwise.
      */
     final boolean exists() {
-        synchronized (lock) { return (c4doc != null) && c4doc.exists(); }
+        synchronized (lock) { return (c4Document != null) && c4Document.exists(); }
     }
 
     /**
@@ -459,10 +459,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return true if deleted, false otherwise
      */
     final boolean isDeleted() {
-        synchronized (lock) { return (c4doc != null) && c4doc.deleted(); }
+        synchronized (lock) { return (c4Document != null) && c4Document.deleted(); }
     }
-
-    final void setId(@NonNull String id) { this.id = id; }
 
     @Nullable
     final Database getDatabase() { return database; }
@@ -474,10 +472,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     final void setContent(@NonNull Dictionary content) { internalDict = content; }
 
-    // This seems pretty worrisome: we are returning a reference to the thing that lock protects.
+    // !!! This is insane: we are returning a reference to something that we are gonna free...
     @Nullable
     final C4Document getC4doc() {
-        synchronized (lock) { return c4doc; }
+        synchronized (lock) { return c4Document; }
     }
 
     final void replaceC4Document(@Nullable C4Document c4doc) {
@@ -487,19 +485,19 @@ public class Document implements DictionaryInterface, Iterable<String> {
     final boolean selectConflictingRevision() throws LiteCoreException {
         boolean foundConflict = false;
         synchronized (lock) {
-            if (c4doc == null) { return false; }
+            if (c4Document == null) { return false; }
 
             while (!foundConflict) {
-                try { c4doc.selectNextLeafRevision(true, true); }
+                try { c4Document.selectNextLeafRevision(true, true); }
                 catch (LiteCoreException e) {
                     // NOTE: other platforms checks if return value from c4doc_selectNextLeafRevision() is false
                     if (e.code == 0) { break; }
                     else { throw e; }
                 }
-                foundConflict = c4doc.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
+                foundConflict = c4Document.isSelectedRevFlags(C4Constants.RevisionFlags.IS_CONFLICT);
             }
 
-            if (foundConflict) { setC4Document(c4doc); }
+            if (foundConflict) { setC4Document(c4Document); }
         }
 
         return foundConflict;
@@ -523,6 +521,19 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // Private access
     //---------------------------------------------
 
+    private void free() {
+        root = null;
+
+        final C4Document c4Doc;
+        synchronized (lock) {
+            c4Doc = c4Document;
+            c4Document = null;
+        }
+
+        // c4doc should be retained.
+        if (c4Doc != null) { c4Doc.release(); }
+    }
+
     // Sets c4doc and updates the root dictionary
     private void setC4Document(@Nullable C4Document c4doc) {
         synchronized (lock) {
@@ -532,20 +543,22 @@ public class Document implements DictionaryInterface, Iterable<String> {
         }
     }
 
-    private void updateC4DocumentLocked(@Nullable C4Document c4doc) {
-        if (this.c4doc == c4doc) { return; }
+    @GuardedBy("lock")
+    private void updateC4DocumentLocked(@Nullable C4Document c4Doc) {
+        if (c4Document == c4Doc) { return; }
 
         // current c4doc should have been retained.
-        if (this.c4doc != null) { this.c4doc.release(); }
+        if (c4Document != null) { c4Document.release(); }
 
-        if (c4doc != null) {
-            c4doc.retain();
+        if (c4Doc != null) {
+            c4Doc.retain();
             revId = null;
         }
 
-        this.c4doc = c4doc;
+        c4Document = c4Doc;
     }
 
+    @GuardedBy("lock")
     private void updateDictionaryLocked() {
         if (data == null) {
             root = null;
@@ -553,22 +566,11 @@ public class Document implements DictionaryInterface, Iterable<String> {
             return;
         }
 
-        root = new MRoot(new DocContext(database, c4doc), data.toFLValue(), isMutable());
+        root = new MRoot(new DocContext(database, c4Document), data.toFLValue(), isMutable());
 
         final Dictionary dict;
         synchronized (database.getLock()) { dict = (Dictionary) root.asNative(); }
 
         internalDict = dict;
-    }
-
-    private void free() {
-        root = null;
-
-        synchronized (lock) {
-            if (c4doc != null) {
-                c4doc.release(); // c4doc should be retained.
-                c4doc = null;
-            }
-        }
     }
 }

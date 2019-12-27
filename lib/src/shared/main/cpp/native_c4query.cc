@@ -82,7 +82,8 @@ Java_com_couchbase_lite_internal_core_C4Query_columnCount(JNIEnv *env, jclass cl
  */
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_core_C4Query_columnTitle (JNIEnv *env, jclass clazz, jlong jquery, jint index) {
-    return NULL;
+    auto title = c4query_columnTitle((C4Query *) jquery, (unsigned) index);
+    return toJString(env, title);
 }
 
 /*

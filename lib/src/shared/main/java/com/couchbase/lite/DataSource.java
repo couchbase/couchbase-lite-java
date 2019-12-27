@@ -22,11 +22,14 @@ import android.support.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * A query data source, used for specifying the source of data for a query.
  */
 public class DataSource {
+
     /**
      * Database as a data source for query.
      */
@@ -34,9 +37,7 @@ public class DataSource {
         //---------------------------------------------
         // Constructors
         //---------------------------------------------
-        private As(com.couchbase.lite.Database source) {
-            super(source);
-        }
+        private As(com.couchbase.lite.Database source) { super(source); }
 
         //---------------------------------------------
         // API - public methods
@@ -50,9 +51,7 @@ public class DataSource {
          */
         @NonNull
         public DataSource as(@NonNull String alias) {
-            if (alias == null) {
-                throw new IllegalArgumentException("alias cannot be null.");
-            }
+            Preconditions.checkArgNotNull(alias, "alias");
             super.alias = alias;
             return this;
         }
@@ -66,15 +65,17 @@ public class DataSource {
      */
     @NonNull
     public static As database(@NonNull com.couchbase.lite.Database database) {
-        if (database == null) {
-            throw new IllegalArgumentException("database cannot be null.");
-        }
+        Preconditions.checkArgNotNull(database, "database");
         return new As(database);
     }
 
 
     private final Object source;
     private String alias;
+
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
 
     private DataSource(Object source) {
         this.source = source;
@@ -85,13 +86,9 @@ public class DataSource {
     // Package level access
     //---------------------------------------------
 
-    Object getSource() {
-        return this.source;
-    }
+    Object getSource() { return this.source; }
 
-    String getAlias() {
-        return alias;
-    }
+    String getAlias() { return alias; }
 
     String getColumnName() {
         if (alias != null) { return alias; }
