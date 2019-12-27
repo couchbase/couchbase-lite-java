@@ -406,6 +406,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         return result;
     }
 
+    @NonNull
     @Override
     public String toString() {
         final StringBuilder buf = new StringBuilder("Document")
@@ -505,7 +506,8 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     @NonNull
     final FLSliceResult encode() throws LiteCoreException {
-        final FLEncoder encoder = getDatabase().getC4Database().getSharedFleeceEncoder();
+        if (database == null) { throw new IllegalStateException("encode called with null database"); }
+        final FLEncoder encoder = database.getC4Database().getSharedFleeceEncoder();
         try {
             encoder.setExtraInfo(this);
             internalDict.encodeTo(encoder);
@@ -566,11 +568,9 @@ public class Document implements DictionaryInterface, Iterable<String> {
             return;
         }
 
+        if (database == null) { throw new IllegalStateException(""); }
+
         root = new MRoot(new DocContext(database, c4Document), data.toFLValue(), isMutable());
-
-        final Dictionary dict;
-        synchronized (database.getLock()) { dict = (Dictionary) root.asNative(); }
-
-        internalDict = dict;
+        synchronized (database.getLock()) { internalDict = (Dictionary) root.asNative(); }
     }
 }

@@ -36,9 +36,7 @@ class DocContext extends MContext {
         if (this.doc != null) { this.doc.retain(); }
     }
 
-    Database getDatabase() {
-        return db;
-    }
+    Database getDatabase() { return db; }
 
     @SuppressWarnings("NoFinalizer")
     @Override

@@ -47,9 +47,6 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    // !!! Get rid of this.
-    private boolean useJava = true;
-
     private final Object lock = new Object();
 
     @GuardedBy("lock")
@@ -273,7 +270,7 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
 
     private void free() {
-        C4Query query;
+        final C4Query query;
 
         synchronized (lock) {
             query = c4query;
@@ -296,26 +293,13 @@ abstract class AbstractQuery implements Query {
         Log.v(DOMAIN, "Encoded query: %s", json);
         if (json == null) { throw new CouchbaseLiteException("Failed to generate JSON query."); }
 
-        final C4Query query;
-        try { query = database.getC4Database().createQuery(json); }
+        if (columnNames == null) { columnNames = getColumnNames(); }
+
+        try { return database.getC4Database().createQuery(json); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
-
-        // !!! Should be using native version
-        if (columnNames == null) {
-            columnNames = (useJava) ? getColumnNamesJava() : getColumnNames();
-        }
-
-        return query;
     }
 
-    private Map<String, Integer> getColumnNames() {
-        final Map<String, Integer> map = new HashMap<>();
-        int n = c4query.columnCount();
-        for (int i = 0; i < n; i++) { map.put(c4query.columnTitle(i), i); }
-        return map;
-    }
-
-    private Map<String, Integer> getColumnNamesJava() throws CouchbaseLiteException {
+    private Map<String, Integer> getColumnNames() throws CouchbaseLiteException {
         final Map<String, Integer> map = new HashMap<>();
         int index = 0;
         int provisionKeyIndex = 0;

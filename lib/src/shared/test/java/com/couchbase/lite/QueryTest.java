@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,13 +34,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -51,15 +50,16 @@ import static org.junit.Assert.fail;
 
 
 public class QueryTest extends BaseQueryTest {
-    private static Expression EXPR_NUMBER1 = Expression.property("number1");
-    private static Expression EXPR_NUMBER2 = Expression.property("number2");
+    private static final Expression EXPR_NUMBER1 = Expression.property("number1");
+    private static final Expression EXPR_NUMBER2 = Expression.property("number2");
 
-    private static SelectResult SR_DOCID = SelectResult.expression(Meta.id);
-    private static SelectResult SR_SEQUENCE = SelectResult.expression(Meta.sequence);
-    private static SelectResult SR_DELETED = SelectResult.expression(Meta.deleted);
-    private static SelectResult SR_EXPIRATION = SelectResult.expression(Meta.expiration);
-    private static SelectResult SR_ALL = SelectResult.all();
-    private static SelectResult SR_NUMBER1 = SelectResult.property("number1");
+    private static final SelectResult SR_DOCID = SelectResult.expression(Meta.id);
+    private static final SelectResult SR_SEQUENCE = SelectResult.expression(Meta.sequence);
+    private static final SelectResult SR_DELETED = SelectResult.expression(Meta.deleted);
+    private static final SelectResult SR_EXPIRATION = SelectResult.expression(Meta.expiration);
+    private static final SelectResult SR_ALL = SelectResult.all();
+    private static final SelectResult SR_NUMBER1 = SelectResult.property("number1");
+
 
     @Test
     public void testQueryDocumentExpiration() throws Exception {
@@ -287,7 +287,7 @@ public class QueryTest extends BaseQueryTest {
             Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(exp);
             int numRows = verifyQuery(query, true, (n, result) -> {
                 if (n < documentIDs.length) {
-                    String docID = documentIDs[(int) n - 1];
+                    String docID = documentIDs[n - 1];
                     assertEquals(docID, result.getString(0));
                 }
             });
@@ -387,12 +387,8 @@ public class QueryTest extends BaseQueryTest {
             String docID = result.getString(0);
             Document doc = db.getDocument(docID);
             Map<String, Object> name = doc.getDictionary("name").toMap();
-            if (name != null) {
-                String firstName = (String) name.get("first");
-                if (firstName != null) {
-                    firstNames.add(firstName);
-                }
-            }
+            String firstName = (String) name.get("first");
+            if (firstName != null) { firstNames.add(firstName); }
         });
         assertEquals(5, numRows);
         assertEquals(5, firstNames.size());
@@ -414,12 +410,8 @@ public class QueryTest extends BaseQueryTest {
             String docID = result.getString(0);
             Document doc = db.getDocument(docID);
             Map<String, Object> name = doc.getDictionary("name").toMap();
-            if (name != null) {
-                String firstName = (String) name.get("first");
-                if (firstName != null) {
-                    firstNames.add(firstName);
-                }
-            }
+            String firstName = (String) name.get("first");
+            if (firstName != null) { firstNames.add(firstName); }
         });
         assertEquals(5, numRows);
         assertEquals(5, firstNames.size());
@@ -458,7 +450,7 @@ public class QueryTest extends BaseQueryTest {
             else { o = Ordering.expression(Expression.property("name.first")).descending(); }
 
             Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).orderBy(o);
-            final List<String> firstNames = new ArrayList<String>();
+            final List<String> firstNames = new ArrayList<>();
 
             int numRows = verifyQuery(query, (n, result) -> {
                 String docID = result.getString(0);
@@ -473,7 +465,7 @@ public class QueryTest extends BaseQueryTest {
             Collections.sort(sorted, (o1, o2) -> ascending ? o1.compareTo(o2) : o2.compareTo(o1));
             String[] array1 = firstNames.toArray(new String[firstNames.size()]);
             String[] array2 = firstNames.toArray(new String[sorted.size()]);
-            assertTrue(Arrays.equals(array1, array2));
+            assertArrayEquals(array1, array2);
         }
     }
 
@@ -601,14 +593,13 @@ public class QueryTest extends BaseQueryTest {
         SelectResult rsCount = SelectResult.expression(count);
         SelectResult rsMaxZip = SelectResult.expression(maxZip);
 
-        Expression groupByExpr = state;
         Ordering ordering = Ordering.expression(state);
 
         Query query = QueryBuilder
             .select(rsState, rsCount, rsMaxZip)
             .from(ds)
             .where(gender.equalTo(Expression.string("female")))
-            .groupBy(groupByExpr)
+            .groupBy(state)
             .orderBy(ordering);
 
         int numRows = verifyQuery(query, (n, result) -> {
@@ -634,7 +625,7 @@ public class QueryTest extends BaseQueryTest {
             .select(rsState, rsCount, rsMaxZip)
             .from(ds)
             .where(gender.equalTo(Expression.string("female")))
-            .groupBy(groupByExpr)
+            .groupBy(state)
             .having(havingExpr)
             .orderBy(ordering);
 
@@ -877,9 +868,10 @@ public class QueryTest extends BaseQueryTest {
 
         final AtomicInteger i = new AtomicInteger(0);
         final String[] expected = {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
-        int numRows = verifyQuery(query, false, (n, result) -> {
-            assertEquals(expected[i.getAndIncrement()], result.getString(0));
-        });
+        int numRows = verifyQuery(
+            query,
+            false,
+            (n, result) -> assertEquals(expected[i.getAndIncrement()], result.getString(0)));
         assertEquals(expected.length, numRows);
 
         // EVERY:
@@ -965,14 +957,14 @@ public class QueryTest extends BaseQueryTest {
         query = QueryBuilder.select(srArrayContains1, srArrayContains2).from(ds);
 
         numRows = verifyQuery(query, (n, result) -> {
-            assertEquals(true, result.getBoolean(0));
-            assertEquals(false, result.getBoolean(1));
+            assertTrue(result.getBoolean(0));
+            assertFalse(result.getBoolean(1));
         });
         assertEquals(1, numRows);
     }
 
     @Test
-    public void testArrayFunctionsEmptyArgs() throws Exception {
+    public void testArrayFunctionsEmptyArgs() {
         Expression exprArray = Expression.property("array");
 
         assertThrows(
@@ -1336,7 +1328,7 @@ public class QueryTest extends BaseQueryTest {
             Document doc = save(mDoc);
 
             Expression VALUE = Expression.property("value");
-            Expression comparison = (Boolean) data.get(2) == true ?
+            Expression comparison = (Boolean) data.get(2) ?
                 VALUE.collate((Collation) data.get(3)).equalTo(Expression.value(data.get(1))) :
                 VALUE.collate((Collation) data.get(3)).lessThan(Expression.value(data.get(1)));
 
@@ -1387,15 +1379,12 @@ public class QueryTest extends BaseQueryTest {
         ListenerToken token = query.addChangeListener(executor, listener);
         try {
             // create one doc
-            executeAsync(500, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        createDocNumbered(-1, 100);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        throw new RuntimeException(e);
-                    }
+            executeAsync(500, () -> {
+                try {
+                    createDocNumbered(-1, 100);
+                }
+                catch (CouchbaseLiteException e) {
+                    throw new RuntimeException(e);
                 }
             });
             // wait till listener is called
@@ -1429,7 +1418,7 @@ public class QueryTest extends BaseQueryTest {
         QueryChangeListener listener = change -> {
             ResultSet rs = change.getResults();
             if (consumeAll) {
-                while (rs.next() != null) { ; }
+                while (rs.next() != null) { }
             }
             latch.countDown();
             // should come only once!
@@ -1437,15 +1426,12 @@ public class QueryTest extends BaseQueryTest {
         ListenerToken token = query.addChangeListener(executor, listener);
         try {
             // create one doc
-            executeAsync(500, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        createDocNumbered(111, 100);
-                    }
-                    catch (CouchbaseLiteException e) {
-                        throw new RuntimeException(e);
-                    }
+            executeAsync(500, () -> {
+                try {
+                    createDocNumbered(111, 100);
+                }
+                catch (CouchbaseLiteException e) {
+                    throw new RuntimeException(e);
                 }
             });
 
@@ -1584,10 +1570,10 @@ public class QueryTest extends BaseQueryTest {
         verifyQuery(query, (n, result) -> {
             Map<String, Object> maps = result.toMap();
             Map<String, Object> map = (Map<String, Object>) maps.get("testdb");
-            if (map.get("question").equals("There are 45 states in the US.")) {
+            if ("There are 45 states in the US.".equals(map.get("question"))) {
                 assertFalse((Boolean) map.get("answer"));
             }
-            if (map.get("question").equals("There are 100 senators in the US.")) {
+            if ("There are 100 senators in the US.".equals(map.get("question"))) {
                 assertTrue((Boolean) map.get("answer"));
             }
         });
@@ -1871,7 +1857,7 @@ public class QueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testCloseDatabaseWithActiveLiveQuery() throws CouchbaseLiteException, InterruptedException {
+    public void testCloseDatabaseWithActiveLiveQuery() throws InterruptedException {
         final CountDownLatch latch1 = new CountDownLatch(1);
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
             .from(DataSource.database(db));
@@ -2009,9 +1995,7 @@ public class QueryTest extends BaseQueryTest {
         // Type 4: Enumeration by ResultSet.allResults().iterator()
         i = 0;
         rs = query.execute();
-        Iterator<Result> itr = rs.allResults().iterator();
-        while (itr.hasNext()) {
-            Result r = itr.next();
+        for (Result r : rs.allResults()) {
             assertEquals(String.format(Locale.ENGLISH, "doc%d", i + 1), r.getString(0));
             i++;
         }
@@ -2082,11 +2066,8 @@ public class QueryTest extends BaseQueryTest {
 
         // Type 1: Enumeration by ResultSet.next()
         int i = 0;
-        Result result;
         ResultSet rs = query.execute();
-        while ((result = rs.next()) != null) {
-            i++;
-        }
+        while (rs.next() != null) { i++; }
         assertEquals(0, i);
         assertNull(rs.next());
         assertEquals(0, rs.allResults().size());
@@ -2106,7 +2087,7 @@ public class QueryTest extends BaseQueryTest {
         rs = query.execute();
         List<Result> list = rs.allResults();
         for (int j = 0; j < list.size(); j++) {
-            Result r = list.get(j);
+            list.get(j);
             i++;
         }
         assertEquals(0, i);
@@ -2116,9 +2097,7 @@ public class QueryTest extends BaseQueryTest {
         // Type 4: Enumeration by ResultSet.allResults().iterator()
         i = 0;
         rs = query.execute();
-        Iterator<Result> itr = rs.allResults().iterator();
-        while (itr.hasNext()) {
-            Result r = itr.next();
+        for (Result r : rs.allResults()) {
             i++;
         }
         assertEquals(0, i);
@@ -2863,7 +2842,7 @@ public class QueryTest extends BaseQueryTest {
         expectedUTC.add("1985-10-26T01:21:30.550Z");
         expectedUTC.add("1985-10-26T01:21:30.555Z");
 
-        SelectResult selections[] = new SelectResult[2];
+        SelectResult[] selections = new SelectResult[2];
         selections[0] = SelectResult.expression(Function.millisToString(Expression.property("timestamp")));
         selections[1] = SelectResult.expression(Function.millisToUTC(Expression.property("timestamp")));
 
@@ -2877,17 +2856,18 @@ public class QueryTest extends BaseQueryTest {
         });
     }
 
-    private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases)
-        throws Exception {
+    private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases) throws Exception {
         for (Object[] c : cases) {
             Expression w = (Expression) c[0];
             String[] documentIDs = (String[]) c[1];
-            final List<String> docIDList = new ArrayList<String>(Arrays.asList(documentIDs));
+            final List<String> docIDList = new ArrayList<>(Arrays.asList(documentIDs));
             Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(w);
-            int numRows = verifyQuery(q, (n, result) -> {
-                String docID = result.getString(0);
-                if (docIDList.contains(docID)) { docIDList.remove(docID); }
-            });
+            int numRows = verifyQuery(
+                q,
+                (n, result) -> {
+                    String docID = result.getString(0);
+                    docIDList.remove(docID);
+                });
             assertEquals(0, docIDList.size());
             assertEquals(documentIDs.length, numRows);
         }
@@ -2933,7 +2913,7 @@ public class QueryTest extends BaseQueryTest {
         return df.format(date).replace(".000", "");
     }
 
-    private String toLocal(long timestamp) throws ParseException {
+    private String toLocal(long timestamp) {
         TimeZone tz = TimeZone.getDefault();
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
         df.setTimeZone(tz);

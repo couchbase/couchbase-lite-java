@@ -70,17 +70,18 @@ public class DataSource {
     }
 
 
+    //---------------------------------------------
+    // Data members
+    //---------------------------------------------
+
     private final Object source;
-    private String alias;
+    String alias;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
-    private DataSource(Object source) {
-        this.source = source;
-        this.alias = null;
-    }
+    private DataSource(Object source) { this.source = source; }
 
     //---------------------------------------------
     // Package level access
@@ -88,14 +89,10 @@ public class DataSource {
 
     Object getSource() { return this.source; }
 
-    String getAlias() { return alias; }
-
     String getColumnName() {
         if (alias != null) { return alias; }
-        else {
-            if (source instanceof Database) { return ((Database) source).getName(); }
-        }
-        return null;
+
+        return (!(source instanceof Database)) ? null : ((Database) source).getName();
     }
 
     Map<String, Object> asJSON() {

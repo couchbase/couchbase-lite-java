@@ -62,14 +62,6 @@ public class C4Query {
         synchronized (lock) { return (handle == 0L) ? null : explain(handle); }
     }
 
-    public int columnCount() {
-        synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
-    }
-
-    public String columnTitle(int index) {
-        synchronized (lock) { return (handle == 0L) ? null : columnTitle(handle, index); }
-    }
-
     //////// INDEXES:
 
     // - Creates a database index, to speed up subsequent queries.
@@ -80,7 +72,6 @@ public class C4Query {
             params = parameters;
             if (params == null) { params = new FLSliceResult(); }
 
-            final long ret;
             synchronized (lock) {
                 return (handle == 0)
                     ? null
@@ -108,6 +99,15 @@ public class C4Query {
     }
 
     //-------------------------------------------------------------------------
+    // package protected methods
+    //-------------------------------------------------------------------------
+
+
+    int columnCount() {
+        synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
+    }
+
+    //-------------------------------------------------------------------------
     // Native methods
     //-------------------------------------------------------------------------
 
@@ -116,10 +116,6 @@ public class C4Query {
     /**
      * Gets a fleece encoded array of indexes in the given database
      * that were created by `c4db_createIndex`
-     *
-     * @param db
-     * @return pointer to FLValue
-     * @throws LiteCoreException
      */
     static native long getIndexes(long db) throws LiteCoreException;
 
@@ -134,12 +130,6 @@ public class C4Query {
         boolean ignoreDiacritics)
         throws LiteCoreException;
 
-    /**
-     * @param db
-     * @param expression
-     * @return C4Query*
-     * @throws LiteCoreException
-     */
     private static native long init(long db, String expression) throws LiteCoreException;
 
     /**
@@ -147,7 +137,7 @@ public class C4Query {
      *
      * @param handle (C4Query*)
      */
-    static native void free(long handle);
+    private static native void free(long handle);
 
     /**
      * @param handle (C4Query*)
@@ -163,22 +153,6 @@ public class C4Query {
      */
     private static native int columnCount(long handle);
 
-    /**
-     * Returns the title for the column at columnIndex.
-     *
-     * @param handle      (C4Query*)
-     * @param columnIndex the integer column index
-     * @return the name of column columnIndex
-     */
-    private static native String columnTitle(long handle, int columnIndex);
-
-    /**
-     * @param handle
-     * @param rankFullText
-     * @param parameters
-     * @return C4QueryEnumerator*
-     * @throws LiteCoreException
-     */
     private static native long run(long handle, boolean rankFullText, /*FLSliceResult*/ long parameters)
         throws LiteCoreException;
 
