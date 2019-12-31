@@ -75,7 +75,6 @@ public final class Log {
     }
 
     public static final Map<Integer, LogLevel> LOG_LEVEL_FROM_C4;
-
     static {
         final Map<Integer, LogLevel> m = new HashMap<>();
         for (LogLevel level : LogLevel.values()) { m.put(level.getValue(), level); }
@@ -88,6 +87,7 @@ public final class Log {
      * Setup logging.
      */
     public static void initLogging(@NonNull Map<String, String> errorMessages) {
+        C4Log.setCallbackLevel(Database.log.getConsole().getLevel());
         setC4LogLevel(LogDomain.ALL_DOMAINS, LogLevel.DEBUG);
 
         Log.errorMessages = Collections.unmodifiableMap(errorMessages);
