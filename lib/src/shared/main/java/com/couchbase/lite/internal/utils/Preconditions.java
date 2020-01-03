@@ -29,6 +29,10 @@ public class Preconditions {
         if (n == 0) { throw new IllegalArgumentException(name + " cannot be 0"); }
     }
 
+    public static void checkArgNotEmpty(String str, String name) {
+        if (StringUtils.isEmpty(str)) { throw new IllegalArgumentException(name + " cannot be empty"); }
+    }
+
     public static <T> void testArg(T obj, String msg, Fn.Predicate<T> predicate) {
         if (!predicate.test(obj)) { throw new IllegalArgumentException(msg); }
     }

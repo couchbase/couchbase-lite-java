@@ -30,18 +30,12 @@ public final class SharedKeys {
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-    public SharedKeys(final C4Database c4db) {
-        flSharedKeys = c4db.getFLSharedKeys();
-    }
+    public SharedKeys(final C4Database c4db) { flSharedKeys = c4db.getFLSharedKeys(); }
 
-    public SharedKeys(final FLSharedKeys flSharedKeys) {
-        this.flSharedKeys = flSharedKeys;
-    }
+    public SharedKeys(final FLSharedKeys flSharedKeys) { this.flSharedKeys = flSharedKeys; }
 
     //---------------------------------------------
     // Public level methods
     //---------------------------------------------
-    public FLSharedKeys getFLSharedKeys() {
-        return flSharedKeys;
-    }
+    public FLSharedKeys getFLSharedKeys() { return flSharedKeys; }
 }

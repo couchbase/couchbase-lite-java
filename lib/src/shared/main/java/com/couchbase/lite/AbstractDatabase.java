@@ -57,7 +57,6 @@ import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
-import com.couchbase.lite.internal.utils.StringUtils;
 import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Fn;
 
@@ -124,7 +123,7 @@ abstract class AbstractDatabase {
                 CBLError.Code.NOT_FOUND);
         }
 
-        final File path = getDatabasePath(directory, name);
+        final File path = getDatabaseFile(directory, name);
         try {
             Log.i(DOMAIN, "delete(): path=%s", path.toString());
             C4Database.deleteDbAtPath(path.getPath());
@@ -144,7 +143,7 @@ abstract class AbstractDatabase {
     public static boolean exists(@NonNull String name, @NonNull File directory) {
         Preconditions.checkArgNotNull(name, "name");
         Preconditions.checkArgNotNull(directory, "directory");
-        return getDatabasePath(directory, name).exists();
+        return getDatabaseFile(directory, name).exists();
     }
 
     protected static void copy(
@@ -157,7 +156,7 @@ abstract class AbstractDatabase {
 
         String fromPath = path.getPath();
         if (fromPath.charAt(fromPath.length() - 1) != File.separatorChar) { fromPath += File.separator; }
-        String toPath = getDatabasePath(new File(config.getDirectory()), name).getPath();
+        String toPath = getDatabaseFile(new File(config.getDirectory()), name).getPath();
         if (toPath.charAt(toPath.length() - 1) != File.separatorChar) { toPath += File.separator; }
 
         // Setting the temp directory from the Database Configuration is deprecated and will go away:
@@ -204,7 +203,7 @@ abstract class AbstractDatabase {
         logger.setLevel(level);
     }
 
-    private static File getDatabasePath(File dir, String name) {
+    private static File getDatabaseFile(File dir, String name) {
         return new File(dir, name.replaceAll("/", ":") + "." + DB_EXTENSION);
     }
 
@@ -215,32 +214,31 @@ abstract class AbstractDatabase {
     protected C4Database c4db;
 
     @NonNull
-    final DatabaseConfiguration config;
+    final Object lock = new Object();     // Main database lock object for thread-safety
 
     @NonNull
-    private final Object lock = new Object();     // Main database lock object for thread-safety
+    final DatabaseConfiguration config;
+
+    private final String name;
 
     @GuardedBy("lock")
+    private final Set<LiveQuery> activeLiveQueries;
     private final Set<Replicator> activeReplications;
+    private final Map<String, DocumentChangeNotifier> docChangeNotifiers;
 
     // Executor for purge and posting Database/Document changes.
     private final ExecutionService.CloseableExecutor postExecutor;
     // Executor for LiveQuery.
     private final ExecutionService.CloseableExecutor queryExecutor;
 
-    private final Set<LiveQuery> activeLiveQueries;
-
-    private final SharedKeys sharedKeys;
     private final boolean shellMode;
+    private final SharedKeys sharedKeys;
+
+    private final DocumentExpirationStrategy purgeStrategy;
 
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
-    private Map<String, DocumentChangeNotifier> docChangeNotifiers;
-
-    private DocumentExpirationStrategy purgeStrategy;
-
-    private String name;
 
     //---------------------------------------------
     // Constructors
@@ -256,7 +254,7 @@ abstract class AbstractDatabase {
      */
     protected AbstractDatabase(@NonNull String name, @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        if (StringUtils.isEmpty(name)) { throw new IllegalArgumentException("db name may not be empty"); }
+        Preconditions.checkArgNotEmpty(name, "db name");
         Preconditions.checkArgNotNull(config, "config");
 
         CouchbaseLiteInternal.requireInit("Cannot create database");
@@ -268,21 +266,28 @@ abstract class AbstractDatabase {
         this.config = config.readOnlyCopy();
 
         this.shellMode = false;
+
         this.postExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
         this.queryExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
-        this.activeLiveQueries = Collections.synchronizedSet(new HashSet<>());
 
         // synchronized on 'lock'
         this.activeReplications = new HashSet<>();
+        this.activeLiveQueries = Collections.synchronizedSet(new HashSet<>());
+        this.docChangeNotifiers = new HashMap<>();
 
-        // Setting the temp directory from the Database Configuration is deprecated and will go away:
+        // !!! Remove this code.
+        // Setting the temp directory from the Database Configuration is a bad idea and should be deprecated.
+        // Directories should be set in the CouchbaseLite.init method
         CouchbaseLiteInternal.setupDirectories(config.getRootDirectory());
 
-        // Open the database:
-        open();
+        // Can't open the DB until the file system is set up.
+        this.c4db = openC4Db();
 
         // Initialize a shared keys:
         this.sharedKeys = new SharedKeys(c4db);
+
+        this.purgeStrategy = new DocumentExpirationStrategy(this, STANDARD_PURGE_INTERVAL_MS, postExecutor);
+        this.purgeStrategy.schedulePurge(OPENING_PURGE_DELAY_MS);
 
         // warn if logging has not been turned on
         Log.warn();
@@ -293,18 +298,28 @@ abstract class AbstractDatabase {
      * C4Database object will be managed by the caller. This is currently used for creating a
      * Dictionary as an input of the predict() method of the PredictiveModel.
      */
-    protected AbstractDatabase(C4Database c4db) {
+    protected AbstractDatabase(@NonNull C4Database c4db) {
+        Preconditions.checkArgNotNull(c4db, "c4db");
+
         CouchbaseLiteInternal.requireInit("Cannot create database");
 
         this.c4db = c4db;
+
+        this.name = null;
+
         this.config = null;
         this.shellMode = true;
-        this.sharedKeys = null;
 
         this.postExecutor = null;
         this.queryExecutor = null;
+
         this.activeReplications = null;
         this.activeLiveQueries = null;
+        this.docChangeNotifiers = null;
+
+        this.sharedKeys = null;
+
+        this.purgeStrategy = null;
     }
 
     //---------------------------------------------
@@ -508,10 +523,15 @@ abstract class AbstractDatabase {
     public void setDocumentExpiration(@NonNull String id, Date expiration) throws CouchbaseLiteException {
         Preconditions.checkArgNotNull(id, "id");
 
+        if (purgeStrategy == null) {
+            Log.w(LogDomain.DATABASE, "Attempt to set document expiration without a purge strategy");
+            return;
+        }
+
         synchronized (lock) {
             try {
                 getC4Database().setExpiration(id, (expiration == null) ? 0 : expiration.getTime());
-                getPurgeStrategy().schedulePurge(0);
+                purgeStrategy.schedulePurge(0);
             }
             catch (LiteCoreException e) {
                 throw CBLStatus.convertException(e);
@@ -709,7 +729,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            if (purgeStrategy != null) { getPurgeStrategy().cancelPurges(); }
+            if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
 
             // close db
             closeC4DB();
@@ -749,7 +769,7 @@ abstract class AbstractDatabase {
             }
 
             // cancel purge
-            if (purgeStrategy != null) { getPurgeStrategy().cancelPurges(); }
+            if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
 
             // delete db
             deleteC4DB();
@@ -1026,25 +1046,20 @@ abstract class AbstractDatabase {
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
     }
 
-    private void open() throws CouchbaseLiteException {
-        if (c4db != null) { return; }
-
-        final File dir = config.getDirectory() != null ? new File(config.getDirectory()) : getDefaultDirectory();
-        setupDirectory(dir);
-
-        final File dbFile = getDatabasePath(dir, this.name);
-        final int databaseFlags = getDatabaseFlags();
-
+    private C4Database openC4Db() throws CouchbaseLiteException {
+        final File dbFile = getDatabaseFile(new File(config.getDirectory()), this.name);
         Log.i(DOMAIN, "Opening %s at path %s", this, dbFile.getPath());
 
         try {
-            c4db = new C4Database(
+            C4Database db =  new C4Database(
                 dbFile.getPath(),
-                databaseFlags,
+                getDatabaseFlags(),
                 null,
                 C4Constants.DocumentVersioning.REVISION_TREES,
                 getEncryptionAlgorithm(),
                 getEncryptionKey());
+            db.setLock((Database) this, lock); // ??? Testing
+            return db;
         }
         catch (LiteCoreException e) {
             if (e.code == CBLError.Code.NOT_A_DATABSE_FILE) {
@@ -1061,26 +1076,9 @@ abstract class AbstractDatabase {
 
             throw CBLStatus.convertException(e);
         }
-
-        c4DbObserver = null;
-        dbChangeNotifier = null;
-        docChangeNotifiers = new HashMap<>();
-
-        getPurgeStrategy().schedulePurge(OPENING_PURGE_DELAY_MS);
     }
 
     private int getDatabaseFlags() { return DEFAULT_DATABASE_FLAGS; }
-
-    private File getDefaultDirectory() {
-        throw new UnsupportedOperationException("getDefaultDirectory() is not supported.");
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-    private void setupDirectory(File dir) throws CouchbaseLiteException {
-        if (!dir.exists()) { dir.mkdirs(); }
-        if (!dir.isDirectory()) { throw new CouchbaseLiteException("CreateDBDirectoryFailed"); }
-    }
 
     // --- C4Database
     private void closeC4DB() throws CouchbaseLiteException {
@@ -1545,13 +1543,6 @@ abstract class AbstractDatabase {
     private void shutdownExecutorService() {
         postExecutor.stop(60, TimeUnit.SECONDS);
         queryExecutor.stop(60, TimeUnit.SECONDS);
-    }
-
-    private DocumentExpirationStrategy getPurgeStrategy() {
-        if (purgeStrategy == null) {
-            purgeStrategy = new DocumentExpirationStrategy(this, STANDARD_PURGE_INTERVAL_MS, postExecutor);
-        }
-        return purgeStrategy;
     }
 }
 

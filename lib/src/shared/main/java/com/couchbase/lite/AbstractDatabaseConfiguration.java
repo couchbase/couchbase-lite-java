@@ -68,7 +68,7 @@ abstract class AbstractDatabaseConfiguration {
     protected boolean isReadOnly() { return readOnly; }
 
     protected AbstractDatabaseConfiguration setDirectory(@NonNull String dir) {
-        Preconditions.checkArgNotNull(dbDirectory, "directory");
+        Preconditions.checkArgNotNull(dir, "directory");
         if (readOnly) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
 
         setRootDirectory(dir);

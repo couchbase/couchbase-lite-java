@@ -58,8 +58,11 @@ public class C4Database {
     //-------------------------------------------------------------------------
     public C4Database(
         String path,
-        int flags, String storageEngine, int versioning,
-        int algorithm, byte[] encryptionKey)
+        int flags,
+        String storageEngine,
+        int versioning,
+        int algorithm,
+        byte[] encryptionKey)
         throws LiteCoreException {
         this.handle = open(path, flags, storageEngine, versioning, algorithm, encryptionKey);
     }
@@ -135,7 +138,7 @@ public class C4Database {
     // c4Document+Fleece.h
 
     // - Fleece-related
-
+    // !!! This needs to hold both the document and the database locks
     public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle)).managed(); }
 
     // NOTE: Should param be String instead of byte[]?
