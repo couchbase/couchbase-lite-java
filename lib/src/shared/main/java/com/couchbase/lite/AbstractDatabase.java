@@ -1051,15 +1051,13 @@ abstract class AbstractDatabase {
         Log.i(DOMAIN, "Opening %s at path %s", this, dbFile.getPath());
 
         try {
-            C4Database db =  new C4Database(
+            return new C4Database(
                 dbFile.getPath(),
                 getDatabaseFlags(),
                 null,
                 C4Constants.DocumentVersioning.REVISION_TREES,
                 getEncryptionAlgorithm(),
                 getEncryptionKey());
-            db.setLock((Database) this, lock); // ??? Testing
-            return db;
         }
         catch (LiteCoreException e) {
             if (e.code == CBLError.Code.NOT_A_DATABSE_FILE) {

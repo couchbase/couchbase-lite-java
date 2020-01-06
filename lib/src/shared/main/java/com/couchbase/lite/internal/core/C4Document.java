@@ -19,6 +19,7 @@ package com.couchbase.lite.internal.core;
 
 import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
@@ -70,15 +71,13 @@ public class C4Document extends RefCounted {
 
     public String getDocID() { return withHandle(C4Document::getDocID, null); }
 
-    // - C4Revision
-
     public String getRevID() { return withHandle(C4Document::getRevID, null); }
 
     public long getSequence() { return withHandle(C4Document::getSequence, 0L); }
 
-    public String getSelectedRevID() { return withHandle(C4Document::getSelectedRevID, null); }
+    // - C4Revision
 
-    // - Lifecycle
+    public String getSelectedRevID() { return withHandle(C4Document::getSelectedRevID, null); }
 
     public long getSelectedSequence() { return withHandle(C4Document::getSelectedSequence, 0L); }
 
@@ -86,6 +85,8 @@ public class C4Document extends RefCounted {
         final long value = withHandle(C4Document::getSelectedBody2, null);
         return value == 0 ? null : new FLDict(value);
     }
+
+    // - Lifecycle
 
     public void save(int maxRevTreeDepth) throws LiteCoreException { withHandleVoid(h -> save(h, maxRevTreeDepth)); }
 
@@ -106,22 +107,19 @@ public class C4Document extends RefCounted {
 
     // - Creating and Updating Documents
 
-    public C4Document update(byte[] body, int flags) throws LiteCoreException {
-        final long newDoc = withHandleThrows(h -> update(h, body, flags), 0L);
-        return (newDoc == 0) ? null : new C4Document(newDoc);
-    }
-
     public C4Document update(FLSliceResult body, int flags) throws LiteCoreException {
         final long bodyHandle = (body != null) ? body.getHandle() : 0;
         final long newDoc = withHandleThrows(h -> update2(h, bodyHandle, flags), 0L);
         return (newDoc == 0) ? null : new C4Document(newDoc);
     }
 
-    // -- Fleece-related
-
-    public String bodyAsJSON(boolean canonical) throws LiteCoreException {
-        return withHandleThrows(h -> bodyAsJSON(h, canonical), null);
+    @VisibleForTesting
+    public C4Document update(byte[] body, int flags) throws LiteCoreException {
+        final long newDoc = withHandleThrows(h -> update(h, body, flags), 0L);
+        return (newDoc == 0) ? null : new C4Document(newDoc);
     }
+
+    // - Helper methods
 
     // helper methods for Document
     public boolean deleted() { return isSelectedRevFlags(C4Constants.RevisionFlags.DELETED); }
@@ -129,6 +127,12 @@ public class C4Document extends RefCounted {
     public boolean exists() { return isFlags(C4Constants.DocumentFlags.EXISTS); }
 
     public boolean isSelectedRevFlags(int flag) { return (getSelectedFlags() & flag) == flag; }
+
+    // - Fleece
+
+    public String bodyAsJSON(boolean canonical) throws LiteCoreException {
+        return withHandleThrows(h -> bodyAsJSON(h, canonical), null);
+    }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -145,33 +149,11 @@ public class C4Document extends RefCounted {
     // package protected methods
     //-------------------------------------------------------------------------
 
+    // - Lifecycle
+
     int getSelectedFlags() { return withHandle(C4Document::getSelectedFlags, 0); }
 
     byte[] getSelectedBody() { return withHandle(C4Document::getSelectedBody, null); }
-
-    boolean selectCurrentRevision() { return withHandle(C4Document::selectCurrentRevision, false); }
-
-    void loadRevisionBody() throws LiteCoreException { withHandleVoid(C4Document::loadRevisionBody); }
-
-    boolean hasRevisionBody() { return withHandle(C4Document::hasRevisionBody, false); }
-
-    boolean selectParentRevision() { return withHandle(C4Document::selectParentRevision, false); }
-
-    boolean selectFirstPossibleAncestorOf(String revID) {
-        return withHandle(h -> selectFirstPossibleAncestorOf(h, revID), false);
-    }
-
-    boolean selectNextPossibleAncestorOf(String revID) {
-        return withHandle(h -> selectNextPossibleAncestorOf(h, revID), false);
-    }
-
-    boolean selectCommonAncestorRevision(String revID1, String revID2) {
-        return withHandle(h -> selectCommonAncestorRevision(h, revID1, revID2), false);
-    }
-
-    int purgeRevision(String revID) throws LiteCoreException {
-        return withHandleThrows(h -> purgeRevision(h, revID), 0);
-    }
 
     @Override
     void free() {
@@ -185,6 +167,42 @@ public class C4Document extends RefCounted {
             free(hdl);
             if (CouchbaseLiteInternal.isDebugging()) { freedAt = new Exception(); }
         }
+    }
+
+    // - Revisions
+
+    @VisibleForTesting
+    boolean selectCurrentRevision() { return withHandle(C4Document::selectCurrentRevision, false); }
+
+    @VisibleForTesting
+    void loadRevisionBody() throws LiteCoreException { withHandleVoid(C4Document::loadRevisionBody); }
+
+    @VisibleForTesting
+    boolean hasRevisionBody() { return withHandle(C4Document::hasRevisionBody, false); }
+
+    @VisibleForTesting
+    boolean selectParentRevision() { return withHandle(C4Document::selectParentRevision, false); }
+
+    @VisibleForTesting
+    boolean selectFirstPossibleAncestorOf(String revID) {
+        return withHandle(h -> selectFirstPossibleAncestorOf(h, revID), false);
+    }
+
+    @VisibleForTesting
+    boolean selectNextPossibleAncestorOf(String revID) {
+        return withHandle(h -> selectNextPossibleAncestorOf(h, revID), false);
+    }
+
+    @VisibleForTesting
+    boolean selectCommonAncestorRevision(String revID1, String revID2) {
+        return withHandle(h -> selectCommonAncestorRevision(h, revID1, revID2), false);
+    }
+
+    // - Purging and Expiration
+
+    @VisibleForTesting
+    int purgeRevision(String revID) throws LiteCoreException {
+        return withHandleThrows(h -> purgeRevision(h, revID), 0);
     }
 
     //-------------------------------------------------------------------------
@@ -232,12 +250,17 @@ public class C4Document extends RefCounted {
     // native methods
     //-------------------------------------------------------------------------
 
-
-    // - helper methods
+    // - Purging and Expiration
 
     static native void setExpiration(long db, String docID, long timestamp) throws LiteCoreException;
 
     static native long getExpiration(long db, String docID) throws LiteCoreException;
+
+    // - Creating and Updating Documents
+
+    static native long create(long db, String docID, byte[] body, int flags) throws LiteCoreException;
+
+    static native long create2(long db, String docID, long body, int flags) throws LiteCoreException;
 
     static native long put(
         long db,
@@ -265,27 +288,21 @@ public class C4Document extends RefCounted {
         int remoteDBID)
         throws LiteCoreException;
 
-    static native long create(long db, String docID, byte[] body, int flags) throws LiteCoreException;
-
-    static native long create2(long db, String docID, long body, int flags) throws LiteCoreException;
-
     // - C4Document
 
     private static native int getFlags(long doc);
 
     private static native String getDocID(long doc);
 
-    // - C4Revision
-
     private static native String getRevID(long doc);
 
     private static native long getSequence(long doc);
 
+    // - C4Revision
+
     private static native String getSelectedRevID(long doc);
 
     private static native int getSelectedFlags(long doc);
-
-    // - Lifecycle
 
     private static native long getSelectedSequence(long doc);
 
@@ -293,6 +310,8 @@ public class C4Document extends RefCounted {
 
     // return pointer to FLValue
     private static native long getSelectedBody2(long doc);
+
+    // - Lifecycle
 
     private static native long get(long db, String docID, boolean mustExist) throws LiteCoreException;
 
@@ -326,6 +345,8 @@ public class C4Document extends RefCounted {
 
     private static native boolean selectCommonAncestorRevision(long doc, String revID1, String revID2);
 
+    // - Purging and Expiration
+
     private static native int purgeRevision(long doc, String revID) throws LiteCoreException;
 
     private static native void resolveConflict(
@@ -336,7 +357,7 @@ public class C4Document extends RefCounted {
         int mergedFlags)
         throws LiteCoreException;
 
-    // - Purging and Expiration
+    // - Creating and Updating Documents
 
     private static native long update(long doc, byte[] body, int flags) throws LiteCoreException;
 
@@ -344,6 +365,7 @@ public class C4Document extends RefCounted {
 
     // - Fleece-related
 
+    // doc -> pointer to C4Document
     private static native String bodyAsJSON(long doc, boolean canonical) throws LiteCoreException;
 
     private static native boolean dictContainsBlobs(long dict, long sk); // dict -> FLSliceResult

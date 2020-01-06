@@ -99,6 +99,7 @@ public class C4Database {
 
     public long getDocumentCount() { return getDocumentCount(handle); }
 
+    @VisibleForTesting
     public long getLastSequence() { return getLastSequence(handle); }
 
     public long nextDocExpiration() { return nextDocExpiration(handle); }
@@ -107,12 +108,16 @@ public class C4Database {
 
     public void purgeDoc(String docID) throws LiteCoreException { purgeDoc(handle, docID); }
 
+    @VisibleForTesting
     public int getMaxRevTreeDepth() { return getMaxRevTreeDepth(handle); }
 
+    @VisibleForTesting
     public void setMaxRevTreeDepth(int maxRevTreeDepth) { setMaxRevTreeDepth(handle, maxRevTreeDepth); }
 
+    @VisibleForTesting
     public byte[] getPublicUUID() throws LiteCoreException { return getPublicUUID(handle); }
 
+    @VisibleForTesting
     public byte[] getPrivateUUID() throws LiteCoreException { return getPrivateUUID(handle); }
 
     // - Compaction
@@ -127,10 +132,12 @@ public class C4Database {
 
     // - RawDocs Raw Documents
 
+    @VisibleForTesting
     public C4RawDocument rawGet(String storeName, String docID) throws LiteCoreException {
         return new C4RawDocument(rawGet(handle, storeName, docID));
     }
 
+    @VisibleForTesting
     public void rawPut(String storeName, String key, String meta, byte[] body) throws LiteCoreException {
         rawPut(handle, storeName, key, meta, body);
     }
@@ -142,6 +149,7 @@ public class C4Database {
     public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle)).managed(); }
 
     // NOTE: Should param be String instead of byte[]?
+    @VisibleForTesting
     public FLSliceResult encodeJSON(byte[] jsonData) throws LiteCoreException {
         return new FLSliceResult(encodeJSON(handle, jsonData));
     }
@@ -168,6 +176,7 @@ public class C4Database {
         return new C4Document(handle, docID, mustExist);
     }
 
+    @VisibleForTesting
     public C4Document getBySequence(long sequence) throws LiteCoreException {
         return new C4Document(handle, sequence);
     }
@@ -208,6 +217,7 @@ public class C4Database {
             remoteDBID));
     }
 
+    @VisibleForTesting
     public C4Document put(
         FLSliceResult body, // C4Slice*
         String docID,
@@ -232,6 +242,7 @@ public class C4Database {
             remoteDBID));
     }
 
+    @VisibleForTesting
     @NonNull
     public C4Document create(String docID, byte[] body, int revisionFlags) throws LiteCoreException {
         return new C4Document(C4Document.create(handle, docID, body, revisionFlags));
@@ -349,7 +360,6 @@ public class C4Database {
     // package access
     //-------------------------------------------------------------------------
 
-    @VisibleForTesting
     long getHandle() { return handle; }
 
     //-------------------------------------------------------------------------
