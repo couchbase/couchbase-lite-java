@@ -1313,10 +1313,15 @@ abstract class AbstractDatabase {
             else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
         }
 
-        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
+        int mergedFlags = 0x00;
+
+        if (resolvedDoc != null) {
+            if (resolvedDoc != localDoc) { resolvedDoc.setDatabase((Database) this); }
+            final C4Document c4Doc = resolvedDoc.getC4doc();
+            if (c4Doc != null) { mergedFlags = c4Doc.getSelectedFlags(); }
+        }
 
         FLSliceResult mergedBody = null;
-        int mergedFlags = 0x00;
         try {
             // Unless the remote revision is being used as-is, we need a new revision:
             if (resolvedDoc != remoteDoc) {

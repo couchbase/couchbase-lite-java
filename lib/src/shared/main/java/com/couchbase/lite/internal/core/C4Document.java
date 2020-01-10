@@ -88,6 +88,8 @@ public class C4Document extends RefCounted {
 
     // - Lifecycle
 
+    public int getSelectedFlags() { return withHandle(C4Document::getSelectedFlags, 0); }
+
     public void save(int maxRevTreeDepth) throws LiteCoreException { withHandleVoid(h -> save(h, maxRevTreeDepth)); }
 
     // - Revisions
@@ -150,8 +152,6 @@ public class C4Document extends RefCounted {
     //-------------------------------------------------------------------------
 
     // - Lifecycle
-
-    int getSelectedFlags() { return withHandle(C4Document::getSelectedFlags, 0); }
 
     byte[] getSelectedBody() { return withHandle(C4Document::getSelectedBody, null); }
 
