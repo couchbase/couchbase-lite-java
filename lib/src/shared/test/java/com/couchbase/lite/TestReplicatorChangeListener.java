@@ -12,7 +12,7 @@ import static org.junit.Assert.assertNull;
 public class TestReplicatorChangeListener implements ReplicatorChangeListener {
     private static final String[] ACTIVITY_NAMES = {"stopped", "offline", "connecting", "idle", "busy"};
 
-    private final AtomicReference<AssertionError> testFailureReason = new AtomicReference<>();
+    private final AtomicReference<Throwable> testFailureReason = new AtomicReference<>();
     private final CountDownLatch latch = new CountDownLatch(1);
 
     private final Replicator replicator;
@@ -29,7 +29,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
         this.ignoreErrorAtStopped = ignoreErrorAtStopped;
     }
 
-    public AssertionError getFailureReason() { return testFailureReason.get(); }
+    public Throwable getFailureReason() { return testFailureReason.get(); }
 
     public boolean awaitCompletion(long timeout, TimeUnit unit) {
         try { return latch.await(timeout, unit); }
@@ -48,7 +48,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
             if (!continuous) {
                 if (state == Replicator.ActivityLevel.STOPPED) {
                     if (code == 0) {
-                        if (!ignoreErrorAtStopped) { assertNull(error); }
+                        if ((!ignoreErrorAtStopped) && (error != null)) { throw error; }
                     }
                     else {
                         assertNotNull(error);
@@ -61,7 +61,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
             else {
                 if ((state == Replicator.ActivityLevel.IDLE)
                     && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
-                    if (code == 0) { assertNull(error); }
+                    if (code == 0) { throw error; }
                     else {
                         assertEquals(code, error.getCode());
                         if (domain != null) { assertEquals(domain, error.getDomain()); }
@@ -81,9 +81,8 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
                 }
             }
         }
-        catch (AssertionError e) {
+        catch (RuntimeException | CouchbaseLiteException | AssertionError e) {
             testFailureReason.compareAndSet(null, e);
         }
-
     }
 }
