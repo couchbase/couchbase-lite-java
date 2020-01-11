@@ -1308,23 +1308,27 @@ abstract class AbstractDatabase {
         @NonNull Document localDoc,
         @NonNull Document remoteDoc)
         throws CouchbaseLiteException {
+        FLSliceResult mergedBody = null;
+        int mergedFlags = 0x00;
+
         if (resolvedDoc == null) {
             if (remoteDoc.isDeleted()) { resolvedDoc = remoteDoc; }
             else if (localDoc.isDeleted()) { resolvedDoc = localDoc; }
         }
 
-        if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
+        if (resolvedDoc != null) {
+            if (resolvedDoc != localDoc) { resolvedDoc.setDatabase((Database) this); }
 
-        FLSliceResult mergedBody = null;
-        int mergedFlags = 0x00;
+            final C4Document c4Doc = resolvedDoc.getC4doc();
+            if (c4Doc != null) { mergedFlags = c4Doc.getSelectedFlags(); }
+        }
+
         try {
             // Unless the remote revision is being used as-is, we need a new revision:
             if (resolvedDoc != remoteDoc) {
-                if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) {
-                    mergedBody = resolvedDoc.encode();
-                }
+                if ((resolvedDoc != null) && !resolvedDoc.isDeleted()) { mergedBody = resolvedDoc.encode(); }
                 else {
-                    mergedFlags = C4Constants.RevisionFlags.DELETED;
+                    mergedFlags |= C4Constants.RevisionFlags.DELETED;
                     final FLEncoder enc = getC4Database().getSharedFleeceEncoder();
                     try {
                         enc.writeValue(new HashMap<>()); // Need an empty dictionary body

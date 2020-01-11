@@ -6,13 +6,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 
 public class TestReplicatorChangeListener implements ReplicatorChangeListener {
     private static final String[] ACTIVITY_NAMES = {"stopped", "offline", "connecting", "idle", "busy"};
 
-    private final AtomicReference<AssertionError> testFailureReason = new AtomicReference<>();
+    private final AtomicReference<Throwable> testFailureReason = new AtomicReference<>();
     private final CountDownLatch latch = new CountDownLatch(1);
 
     private final Replicator replicator;
@@ -29,7 +28,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
         this.ignoreErrorAtStopped = ignoreErrorAtStopped;
     }
 
-    public AssertionError getFailureReason() { return testFailureReason.get(); }
+    public Throwable getFailureReason() { return testFailureReason.get(); }
 
     public boolean awaitCompletion(long timeout, TimeUnit unit) {
         try { return latch.await(timeout, unit); }
@@ -40,50 +39,68 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
     @Override
     public void changed(ReplicatorChange change) {
         final Replicator.Status status = change.getStatus();
+        try {
+            if (continuous) { checkContinuousStatus(status); }
+            else { checkOneShotStatus(status); }
+        }
+        catch (RuntimeException | CouchbaseLiteException | AssertionError e) {
+            testFailureReason.compareAndSet(null, e);
+        }
+    }
+
+    private void checkOneShotStatus(AbstractReplicator.Status status) throws CouchbaseLiteException {
+        final CouchbaseLiteException error = status.getError();
+        final AbstractReplicator.ActivityLevel state = status.getActivityLevel();
+
+        if (state != Replicator.ActivityLevel.STOPPED) { return; }
+
+        try {
+            if (code != 0) { checkError(error); }
+            else {
+                if ((!ignoreErrorAtStopped) && (error != null)) { throw error; }
+            }
+        }
+        finally {
+            latch.countDown();
+        }
+    }
+
+
+    private void checkContinuousStatus(AbstractReplicator.Status status) throws CouchbaseLiteException {
         final Replicator.Progress progress = status.getProgress();
         final CouchbaseLiteException error = status.getError();
         final AbstractReplicator.ActivityLevel state = status.getActivityLevel();
 
-        try {
-            if (!continuous) {
-                if (state == Replicator.ActivityLevel.STOPPED) {
-                    if (code == 0) {
-                        if (!ignoreErrorAtStopped) { assertNull(error); }
-                    }
+        switch (state) {
+            case OFFLINE:
+                try {
+                    if (code != 0) { checkError(error); }
                     else {
-                        assertNotNull(error);
-                        assertEquals(code, error.getCode());
-                        if (domain != null) { assertEquals(domain, error.getDomain()); }
-                    }
-                    latch.countDown();
-                }
-            }
-            else {
-                if ((state == Replicator.ActivityLevel.IDLE)
-                    && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
-                    if (code == 0) { assertNull(error); }
-                    else {
-                        assertEquals(code, error.getCode());
-                        if (domain != null) { assertEquals(domain, error.getDomain()); }
-                    }
-                    latch.countDown();
-                }
-                else if (state == Replicator.ActivityLevel.OFFLINE) {
-                    if (code == 0) {
                         // TBD
                     }
+                }
+                finally {
+                    latch.countDown();
+                }
+            case IDLE:
+                try {
+                    assertEquals(status.getProgress().getTotal(), (status.getProgress().getCompleted()));
+                    if (code != 0) { checkError(error); }
                     else {
-                        assertNotNull(error);
-                        assertEquals(code, error.getCode());
-                        assertEquals(domain, error.getDomain());
-                        latch.countDown();
+                        if (error != null) { throw error; }
                     }
                 }
-            }
+                finally {
+                    latch.countDown();
+                }
+            default:
         }
-        catch (AssertionError e) {
-            testFailureReason.compareAndSet(null, e);
-        }
+    }
 
+    private void checkError(CouchbaseLiteException error) {
+        assertNotNull(error);
+        assertEquals(code, error.getCode());
+        if (domain != null) { assertEquals(domain, error.getDomain()); }
     }
 }
+
