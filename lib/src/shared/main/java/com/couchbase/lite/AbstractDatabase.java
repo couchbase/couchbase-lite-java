@@ -1318,7 +1318,9 @@ abstract class AbstractDatabase {
         if ((resolvedDoc != null) && (resolvedDoc != localDoc)) { resolvedDoc.setDatabase((Database) this); }
 
         FLSliceResult mergedBody = null;
-        int mergedFlags = 0x00;
+        int mergedFlags = ((resolvedDoc == null) || resolvedDoc.getC4doc() == null)
+            ? 0x00
+            : resolvedDoc.getC4doc().getSelectedFlags();
         try {
             // Unless the remote revision is being used as-is, we need a new revision:
             if (resolvedDoc != remoteDoc) {
@@ -1326,7 +1328,7 @@ abstract class AbstractDatabase {
                     mergedBody = resolvedDoc.encode();
                 }
                 else {
-                    mergedFlags = C4Constants.RevisionFlags.DELETED;
+                    mergedFlags |= C4Constants.RevisionFlags.DELETED;
                     final FLEncoder enc = getC4Database().getSharedFleeceEncoder();
                     try {
                         enc.writeValue(new HashMap<>()); // Need an empty dictionary body
