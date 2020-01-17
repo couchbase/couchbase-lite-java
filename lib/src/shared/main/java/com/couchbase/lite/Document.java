@@ -55,7 +55,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
         return 0;
     }
 
-
     //---------------------------------------------
     // member variables
     //---------------------------------------------
@@ -64,9 +63,11 @@ public class Document implements DictionaryInterface, Iterable<String> {
     private final Object lock = new Object(); // lock for thread-safety
 
     @NonNull
-    private String id;
+    private final String id;
 
+    // note that while internalDict is guarded by lock, the content of the Dictionary is not.
     @SuppressWarnings("NullableProblems")
+    @GuardedBy("lock")
     @NonNull
     private Dictionary internalDict;
 
@@ -74,11 +75,15 @@ public class Document implements DictionaryInterface, Iterable<String> {
     @Nullable
     private C4Document c4Document;
 
+    @GuardedBy("lock")
     @Nullable
     private Database database;
 
+    @GuardedBy("lock")
     @Nullable
     private FLDict data;
+
+    @GuardedBy("lock")
     @Nullable
     private MRoot root;
 
@@ -86,6 +91,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // without a c4doc.  Since that is the only place it is set, it is *also* used
     // in toMutable, as a flag meaning that this document was obtained from a replication filter,
     // to prevent modification of a doc while the replication is running.
+    @GuardedBy("lock")
     @Nullable
     private String revId;
 
@@ -119,8 +125,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
         if (!includeDeleted && (doc.getFlags() & C4Constants.DocumentFlags.DELETED) != 0) {
-            doc.retain();
-            doc.release(); // doc is not retained before set.
             throw new CouchbaseLiteException("DocumentNotFound", CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
         }
 
@@ -176,8 +180,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     public MutableDocument toMutable() {
-        if (revId != null) {
-            throw new UnsupportedOperationException("Documents from a replication filter may not be edited.");
+        synchronized (lock) {
+            if (revId != null) {
+                throw new UnsupportedOperationException("Documents from a replication filter may not be edited.");
+            }
         }
         return new MutableDocument(this);
     }
@@ -188,7 +194,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the number of entries in the dictionary.
      */
     @Override
-    public int count() { return internalDict.count(); }
+    public int count() { return getContent().count(); }
 
     //---------------------------------------------
     // API - Implements ReadOnlyDictionaryInterface
@@ -201,7 +207,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     @Override
-    public List<String> getKeys() { return internalDict.getKeys(); }
+    public List<String> getKeys() { return getContent().getKeys(); }
 
     /**
      * Gets a property's value as an object. The object types are Blob, Array,
@@ -213,7 +219,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Object getValue(@NonNull String key) { return internalDict.getValue(key); }
+    public Object getValue(@NonNull String key) { return getContent().getValue(key); }
 
     /**
      * Gets a property's value as a String.
@@ -224,7 +230,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public String getString(@NonNull String key) { return internalDict.getString(key); }
+    public String getString(@NonNull String key) { return getContent().getString(key); }
 
     /**
      * Gets a property's value as a Number.
@@ -235,7 +241,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Number getNumber(@NonNull String key) { return internalDict.getNumber(key); }
+    public Number getNumber(@NonNull String key) { return getContent().getNumber(key); }
 
     /**
      * Gets a property's value as an int.
@@ -246,7 +252,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the int value.
      */
     @Override
-    public int getInt(@NonNull String key) { return internalDict.getInt(key); }
+    public int getInt(@NonNull String key) { return getContent().getInt(key); }
 
     /**
      * Gets a property's value as an long.
@@ -257,7 +263,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the long value.
      */
     @Override
-    public long getLong(@NonNull String key) { return internalDict.getLong(key); }
+    public long getLong(@NonNull String key) { return getContent().getLong(key); }
 
     /**
      * Gets a property's value as an float.
@@ -268,7 +274,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the float value.
      */
     @Override
-    public float getFloat(@NonNull String key) { return internalDict.getFloat(key); }
+    public float getFloat(@NonNull String key) { return getContent().getFloat(key); }
 
     /**
      * Gets a property's value as an double.
@@ -279,7 +285,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the double value.
      */
     @Override
-    public double getDouble(@NonNull String key) { return internalDict.getDouble(key); }
+    public double getDouble(@NonNull String key) { return getContent().getDouble(key); }
 
     /**
      * Gets a property's value as a boolean. Returns true if the value exists, and is either `true`
@@ -289,7 +295,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the boolean value.
      */
     @Override
-    public boolean getBoolean(@NonNull String key) { return internalDict.getBoolean(key); }
+    public boolean getBoolean(@NonNull String key) { return getContent().getBoolean(key); }
 
     /**
      * Gets a property's value as a Blob.
@@ -300,7 +306,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Blob getBlob(@NonNull String key) { return internalDict.getBlob(key); }
+    public Blob getBlob(@NonNull String key) { return getContent().getBlob(key); }
 
     /**
      * Gets a property's value as a Date.
@@ -315,7 +321,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Date getDate(@NonNull String key) { return internalDict.getDate(key); }
+    public Date getDate(@NonNull String key) { return getContent().getDate(key); }
 
     /**
      * Get a property's value as a Array, which is a mapping object of an array value.
@@ -326,7 +332,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Array getArray(@NonNull String key) { return internalDict.getArray(key); }
+    public Array getArray(@NonNull String key) { return getContent().getArray(key); }
 
     /**
      * Get a property's value as a Dictionary, which is a mapping object of
@@ -338,7 +344,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @Nullable
     @Override
-    public Dictionary getDictionary(@NonNull String key) { return internalDict.getDictionary(key); }
+    public Dictionary getDictionary(@NonNull String key) { return getContent().getDictionary(key); }
 
     /**
      * Gets content of the current object as an Map. The values contained in the returned
@@ -348,7 +354,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      */
     @NonNull
     @Override
-    public Map<String, Object> toMap() { return internalDict.toMap(); }
+    public Map<String, Object> toMap() { return getContent().toMap(); }
 
     /**
      * Tests whether a property exists or not.
@@ -359,7 +365,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
      * @return the boolean value representing whether a property exists or not.
      */
     @Override
-    public boolean contains(@NonNull String key) { return internalDict.contains(key); }
+    public boolean contains(@NonNull String key) { return getContent().contains(key); }
 
     //---------------------------------------------
     // Iterator implementation
@@ -385,8 +391,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
         final Document doc = (Document) o;
 
+        final Database db = getDatabase();
+        final Database otherDb = doc.getDatabase();
         // Step 1: Check Database
-        if (database != null ? !database.equalsWithPath(doc.database) : doc.database != null) { return false; }
+        if ((db == null) ? otherDb != null : !db.equalsWithPath(otherDb)) { return false; }
 
         // Step 2: Check document ID
         // NOTE id never null?
@@ -394,15 +402,16 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
         // Step 3: Check content
         // NOTE: internalDict never null??
-        return internalDict.equals(doc.internalDict);
+        return getContent().equals(doc.getContent());
     }
 
     @Override
     public int hashCode() {
         // NOTE id and internalDict never null
-        int result = database != null && database.getPath() != null ? database.getPath().hashCode() : 0;
+        final Database db = getDatabase();
+        int result = db != null && db.getPath() != null ? db.getPath().hashCode() : 0;
         result = 31 * result + id.hashCode();
-        result = 31 * result + internalDict.hashCode();
+        result = 31 * result + getContent().hashCode();
         return result;
     }
 
@@ -425,11 +434,13 @@ public class Document implements DictionaryInterface, Iterable<String> {
         return buf.append("}").toString();
     }
 
-    @SuppressWarnings("NoFinalizer")
-    @Override
-    protected void finalize() throws Throwable {
-        free();
-        super.finalize();
+    @NonNull
+    protected final Dictionary getContent() {
+        synchronized (lock) { return internalDict; }
+    }
+
+    protected final void setContent(@NonNull Dictionary content) {
+        synchronized (lock) { internalDict = content; }
     }
 
     //---------------------------------------------
@@ -441,7 +452,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     // TODO: c4rev_getGeneration
     long generation() { return generationFromRevID(getRevisionID()); }
 
-    final boolean isEmpty() { return internalDict.isEmpty(); }
+    final boolean isEmpty() { return getContent().isEmpty(); }
 
     final boolean isNewDocument() { return getRevisionID() == null; }
 
@@ -464,16 +475,14 @@ public class Document implements DictionaryInterface, Iterable<String> {
     }
 
     @Nullable
-    final Database getDatabase() { return database; }
+    final Database getDatabase() {
+        synchronized (lock) { return database; }
+    }
 
-    void setDatabase(@Nullable Database database) { this.database = database; }
+    void setDatabase(@Nullable Database database) {
+        synchronized (lock) { this.database = database; }
+    }
 
-    @NonNull
-    final Dictionary getContent() { return internalDict; }
-
-    final void setContent(@NonNull Dictionary content) { internalDict = content; }
-
-    // !!! This is insane: we are returning a reference to something that we are gonna free...
     @Nullable
     final C4Document getC4doc() {
         synchronized (lock) { return c4Document; }
@@ -506,11 +515,13 @@ public class Document implements DictionaryInterface, Iterable<String> {
 
     @NonNull
     final FLSliceResult encode() throws LiteCoreException {
-        if (database == null) { throw new IllegalStateException("encode called with null database"); }
-        final FLEncoder encoder = database.getC4Database().getSharedFleeceEncoder();
+        final Database db = getDatabase();
+        if (db == null) { throw new IllegalStateException("encode called with null database"); }
+
+        final FLEncoder encoder = db.getC4Database().getSharedFleeceEncoder();
         try {
             encoder.setExtraInfo(this);
-            internalDict.encodeTo(encoder);
+            getContent().encodeTo(encoder);
             return encoder.finish2();
         }
         finally {
@@ -522,19 +533,6 @@ public class Document implements DictionaryInterface, Iterable<String> {
     //---------------------------------------------
     // Private access
     //---------------------------------------------
-
-    private void free() {
-        root = null;
-
-        final C4Document c4Doc;
-        synchronized (lock) {
-            c4Doc = c4Document;
-            c4Document = null;
-        }
-
-        // c4doc should be retained.
-        if (c4Doc != null) { c4Doc.release(); }
-    }
 
     // Sets c4doc and updates the root dictionary
     private void setC4Document(@Nullable C4Document c4doc) {
@@ -549,13 +547,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     private void updateC4DocumentLocked(@Nullable C4Document c4Doc) {
         if (c4Document == c4Doc) { return; }
 
-        // current c4doc should have been retained.
-        if (c4Document != null) { c4Document.release(); }
-
-        if (c4Doc != null) {
-            c4Doc.retain();
-            revId = null;
-        }
+        if (c4Doc != null) { revId = null; }
 
         c4Document = c4Doc;
     }
@@ -568,9 +560,10 @@ public class Document implements DictionaryInterface, Iterable<String> {
             return;
         }
 
-        if (database == null) { throw new IllegalStateException(""); }
+        final Database db = getDatabase();
+        if (db == null) { throw new IllegalStateException(""); }
 
-        root = new MRoot(new DocContext(database, c4Document), data.toFLValue(), isMutable());
-        synchronized (database.getLock()) { internalDict = (Dictionary) root.asNative(); }
+        root = new MRoot(new DocContext(db, c4Document), data.toFLValue(), isMutable());
+        synchronized (db.getLock()) { internalDict = (Dictionary) root.asNative(); }
     }
 }

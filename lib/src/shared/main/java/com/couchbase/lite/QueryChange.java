@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 
 /**
@@ -28,14 +29,17 @@ public final class QueryChange {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    @NonNull
     private final Query query;
+    @Nullable
     private final ResultSet rs;
+    @Nullable
     private final Throwable error;
 
     //---------------------------------------------
     // constructors
     //---------------------------------------------
-    QueryChange(Query query, ResultSet rs, Throwable error) {
+    QueryChange(@NonNull Query query, @Nullable ResultSet rs, @Nullable Throwable error) {
         this.query = query;
         this.rs = rs;
         this.error = error;
@@ -49,22 +53,17 @@ public final class QueryChange {
      * Return the source live query object.
      */
     @NonNull
-    public Query getQuery() {
-        return query;
-    }
+    public Query getQuery() { return query; }
 
     /**
      * Return the new query result.
      */
-    @NonNull
-    public ResultSet getResults() {
-        return rs;
-    }
+    @Nullable
+    public ResultSet getResults() { return rs; }
 
     /**
      * Return the error occurred when running the query.
      */
-    public Throwable getError() {
-        return error;
-    }
+    @Nullable
+    public Throwable getError() { return error; }
 }

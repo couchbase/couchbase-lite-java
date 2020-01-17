@@ -29,19 +29,13 @@ class DocContext extends MContext {
     private final Database db;
     private final C4Document doc;
 
+    DocContext(Database db) { this(db, null); }
+
     DocContext(Database db, C4Document doc) {
         super(null);
         this.db = db;
         this.doc = doc;
-        if (this.doc != null) { this.doc.retain(); }
     }
 
     Database getDatabase() { return db; }
-
-    @SuppressWarnings("NoFinalizer")
-    @Override
-    protected void finalize() throws Throwable {
-        if (doc != null) { doc.release(); }
-        super.finalize();
-    }
 }

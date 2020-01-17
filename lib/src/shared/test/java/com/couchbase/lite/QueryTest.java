@@ -1578,7 +1578,6 @@ public class QueryTest extends BaseQueryTest {
         });
     }
 
-    @Ignore("Fails! CBL-609")
     //https://github.com/couchbase/couchbase-lite-android-ce/issues/34
     @Test
     public void testResultToMapWithBoolean2() throws Exception {
