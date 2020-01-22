@@ -51,7 +51,7 @@ for %%l in (%libs%) do (
   )
 
   if "%%l" == "mbedcrypto" (
-    copy /y %liteCoreBuildDir%\x64\vendor\mbedtls\library\RelWithDebInfo\mbedcrypto.lib %outputDir%
+    copy /y %liteCoreBuildDir%\x64\vendor\mbedtls\crypto\library\RelWithDebInfo\mbedcrypto.lib %outputDir%
   )
 )
 

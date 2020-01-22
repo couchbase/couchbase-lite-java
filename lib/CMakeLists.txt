@@ -25,11 +25,9 @@ set(LITE_CORE_ROOT ${PROJECT_SOURCE_DIR}/../../couchbase-lite-core)
 find_package(Java COMPONENTS Development)
 include (UseJava)
 
-# Android does not work with FindJNI
+# This script is only for Android
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    MESSAGE( STATUS "!!!!!!!CMAKE_SYSTEM_NAME: "     ${CMAKE_SYSTEM_NAME} )
-    MESSAGE( STATUS "!!!!!!!ANDROID: "               ${ANDROID} )
-    find_package(JNI)
+    MESSAGE( FATAL_ERROR "!!!UNEXPECTED SYSTEM (expecting 'Android': "     ${CMAKE_SYSTEM_NAME} )
 endif()
 
 MESSAGE( STATUS "Java_FOUND: "            ${Java_FOUND} )
@@ -84,14 +82,6 @@ create_javah(TARGET JNIHeaders
 # JNI for litecore - shared library including litecore static library
 #
 
-# jni.h and jni_md.h for non-Android
-if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    include_directories(
-        ${JAVA_INCLUDE_PATH}
-        ${JAVA_INCLUDE_PATH2}
-)
-endif()
-
 include_directories(
     ${LITE_CORE_ROOT}/C/include/
     ${LITE_CORE_ROOT}/LiteCore/Storage/
@@ -108,7 +98,8 @@ include_directories(
     ${LITE_CORE_ROOT}/vendor/BLIP-Cpp/include/blip_cpp
     ${LITE_CORE_ROOT}/vendor/BLIP-Cpp/src/util
     ${LITE_CORE_ROOT}/vendor/civetweb/include
-    ${LITE_CORE_ROOT}/vendor/mbedtls/include)
+    ${LITE_CORE_ROOT}/vendor/mbedtls/include
+    ${LITE_CORE_ROOT}/vendor/mbedtls/crypto/include)
 
 if(BUILD_ENTERPRISE)
     add_definitions(-DCOUCHBASE_ENTERPRISE      # Tells LiteCore it's an EE build
@@ -123,35 +114,19 @@ add_dependencies(LiteCoreJNI JNIHeaders)
 
 add_subdirectory(${LITE_CORE_ROOT} ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    #find_library(log-lib log)
-    target_link_libraries(  LiteCoreJNI
-                            LiteCoreStatic
-                            BLIPStatic
-                            FleeceStatic
-                            Support
-                            SQLite3_UnicodeSN
-                            CivetWeb
-                            mbedcrypto
-                            "atomic"
-                            "log"
-                            zlibstatic)
-    if (REST)
-        target_link_libraries(  LiteCoreJNI 
-                                LiteCoreREST_Static)
-    endif()
-else()
-    target_link_libraries(  LiteCoreJNI
-                            LiteCoreStatic
-                            BLIPStatic
-                            FleeceStatic
-                            Support
-                            SQLite3_UnicodeSN
-                            CivetWeb
-                            mbedcrypto)
-    if (REST)
-        target_link_libraries(  LiteCoreJNI 
-                                LiteCoreREST_Static)
-    endif()
+target_link_libraries(  LiteCoreJNI
+                        LiteCoreStatic
+                        FleeceStatic
+                        Support
+                        SQLite3_UnicodeSN
+                        BLIPStatic
+                        mbedcrypto
+                        mbedtls
+                        mbedx509
+                        "atomic"
+                        "log"
+                        zlibstatic)
+if (REST)
+    target_link_libraries(  LiteCoreJNI 
+                            LiteCoreREST_Static)
 endif()
-

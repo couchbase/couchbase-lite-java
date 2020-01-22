@@ -1,13 +1,18 @@
-#!/bin/bash -ex
+#!/bin/bash
 
 function usage() {
     echo "usage: build_litecore -e <VAL> [-l <VAL>]"
-    echo "  -e|--edition <VAL>   LiteCore edition: CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
+    echo "  -e|--edition CE|EE   LiteCore edition: CE or EE."
     echo "  -l|--lib <VAL>       The library to build:  LiteCore (LiteCore + mbedcrypto) or mbedcrypto (mbedcrypto only). The default is LiteCore."
     echo
 }
 
 shopt -s nocasematch
+
+MBEDTLS_DIR=vendor/mbedtls
+MBEDTLS_LIB=crypto/library/libmbedcrypto.a
+
+CORE_COUNT=`getconf _NPROCESSORS_ONLN`
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -57,12 +62,12 @@ else
   exit 1
 fi
 
+set -o xtrace
+
 pushd $SCRIPT_DIR/../../couchbase-lite-core/build_cmake > /dev/null
 
 rm -rf $OS && mkdir -p $OS
 pushd $OS > /dev/null
-
-CORE_COUNT=`getconf _NPROCESSORS_ONLN`
 
 OUTPUT_DIR=$SCRIPT_DIR/../lite-core/$OS/x86_64
 mkdir -p $OUTPUT_DIR
@@ -75,13 +80,13 @@ if [[ $OS == linux ]]; then
     cp -f libLiteCore.so $OUTPUT_DIR
 
     make -j `expr $CORE_COUNT + 1` mbedcrypto
-    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
+    cp -f $MBEDTLS_DIR/$MBEDTLS_LIB $OUTPUT_DIR
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
+    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
     make -j `expr $CORE_COUNT + 1`
-    cp -f library/libmbedcrypto.a $OUTPUT_DIR
+    cp -f $MBEDTLS_LIB $OUTPUT_DIR
   fi
 fi
 
@@ -94,18 +99,17 @@ if [[ $OS == macos ]]; then
     cp -f libLiteCore.dylib $OUTPUT_DIR
 
     make -j `expr $CORE_COUNT + 1` mbedcrypto
-    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
+    cp -f $MBEDTLS_DIR/$MBEDTLS_LIB $OUTPUT_DIR
   fi
 
   if [[ $LIB == mbedcrypto ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
+    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
     make -j `expr $CORE_COUNT + 1`
-    cp -f library/libmbedcrypto.a $OUTPUT_DIR
+    cp -f $MBEDTLS_LIB $OUTPUT_DIR
   fi
 fi
 
 popd > /dev/null
-
 popd > /dev/null
 
 echo "Build $LIB Complete"
