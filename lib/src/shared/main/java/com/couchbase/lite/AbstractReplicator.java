@@ -772,6 +772,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final String path;
 
         final String dbName;
+
+
+        // !!! FIXME
         final C4Database targetDb;
 
         final URI remoteUri = config.getTargetURI();
@@ -854,7 +857,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             port,
             path,
             dbName,
-            targetDb,
             mkmode(push, continuous),
             mkmode(pull, continuous),
             optionsFleece,

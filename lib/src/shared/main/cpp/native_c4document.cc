@@ -185,7 +185,7 @@ Java_com_couchbase_lite_internal_core_C4Document_save(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Document_free(JNIEnv *env, jclass clazz, jlong jdoc) {
-    c4doc_free((C4Document *) jdoc);
+    c4doc_release((C4Document *) jdoc);
 }
 
 /*

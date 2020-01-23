@@ -418,7 +418,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
         jint jport,
         jstring jpath,
         jstring jremoteDBName,
-        jlong jotherLocalDB,
         jint jpush,
         jint jpull,
         jobject jSocketFactoryContext,
@@ -447,7 +446,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
     params.pull = (C4ReplicatorMode) jpull;
-    params.dontStart = true;
     params.optionsDictFleece = options;
     params.onStatusChanged = &statusChangedCallback;
     params.onDocumentsEnded = &documentEndedCallback;
@@ -460,7 +458,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     C4Replicator *repl = c4repl_new((C4Database *) jdb,
                                     c4Address,
                                     remoteDBName,
-                                    (C4Database *) jotherLocalDB,
                                     params,
                                     &error);
     if (!repl) {
@@ -493,7 +490,6 @@ Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
     params.pull = (C4ReplicatorMode) jpull;
-    params.dontStart = true;
     params.optionsDictFleece = options;
     params.onStatusChanged = &statusChangedCallback;
     params.callbackContext = storeContext(env, jReplicatorContext);

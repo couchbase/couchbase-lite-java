@@ -125,7 +125,7 @@ Java_com_couchbase_lite_internal_core_C4QueryEnumerator_free(JNIEnv *env, jclass
     C4QueryEnumerator *e = (C4QueryEnumerator *) handle;
     if (e == NULL)
         return;
-    c4queryenum_free(e);
+    c4queryenum_release(e);
 }
 
 /*
