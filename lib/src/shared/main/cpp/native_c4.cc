@@ -15,6 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#if defined(__ANDROID__)
+#include <android/log.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "com_couchbase_lite_internal_core_C4.h"
 #include "com_couchbase_lite_internal_core_C4Log.h"
 #include "com_couchbase_lite_internal_core_C4Key.h"
@@ -26,6 +32,34 @@ using namespace litecore::jni;
 
 static jclass cls_C4Log;
 static jmethodID m_C4Log_logCallback;
+
+// The default logging callback writes to stderr, or on Android to __android_log_write.
+void vLogError(const char *fmt, va_list args) {
+#if defined(__ANDROID__)
+    __android_log_vprint(ANDROID_LOG_ERROR, "LiteCore/JNI", fmt, args);
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    struct tm tm;
+    localtime_r(&tv.tv_sec, &tm);
+
+    char timestamp[100];
+    strftime(timestamp, sizeof(timestamp), "%T", &tm);
+
+    // ??? Need to do something to accommodate web service logging?
+    fprintf(stderr, "%s.%03u E/LiteCore/JNI: ", timestamp, tv.tv_usec / 1000);
+    vfprintf(stderr, fmt, args);
+    fputc('\n', stderr);
+#endif
+}
+
+void logError(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vLogError(fmt, args);
+    va_end(args);
+}
 
 // ----------------------------------------------------------------------------
 // com_couchbase_lite_internal_core_C4
@@ -167,16 +201,16 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
     jint getEnvStat = gJVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
     if(getEnvStat == JNI_EDETACHED) {
         if (attachCurrentThread(&env) != 0) {
-            C4Warn("logCallback(): Failed to attach the current thread to a Java VM)");
+            logError("logCallback(): Failed to attach the current thread to a Java VM)");
             return;
         }
     } else if(getEnvStat != JNI_OK) {
-        C4Warn("logCallback(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
+        logError("logCallback(): Failed to get the environment: getEnvStat -> %d", getEnvStat);
         return;
     }
 
     if (env->ExceptionCheck() == JNI_TRUE) {
-        C4Warn("logCallback(): Cannot log while an exception is outstanding");
+        logError("logCallback(): Cannot log while an exception is outstanding");
         return;
     }
 
