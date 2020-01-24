@@ -139,6 +139,11 @@ public class C4Replicator {
         synchronized (CLASS_LOCK) { return CONTEXT_TO_C4_REPLICATOR_MAP.get(context); }
     }
 
+    private static void addToMap(long handle, @NonNull C4Replicator repl, @NonNull Object context) {
+        REVERSE_LOOKUP_TABLE.put(handle, repl);
+        CONTEXT_TO_C4_REPLICATOR_MAP.put(context, repl);
+    }
+
 
     //-------------------------------------------------------------------------
     // Member Variables
@@ -208,14 +213,49 @@ public class C4Replicator {
                 pullFilter,
                 options);
 
-            REVERSE_LOOKUP_TABLE.put(handle, this);
-            CONTEXT_TO_C4_REPLICATOR_MAP.put(replicatorContext, this);
+            addToMap(handle, this, replicatorContext);
         }
     }
 
     C4Replicator(
         long db,
-        long openSocket,
+        C4Database otherLocalDB,
+        int push,
+        int pull,
+        @NonNull byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @Nullable C4ReplicationFilter pushFilter,
+        @Nullable C4ReplicationFilter pullFilter,
+        @NonNull Object replicatorContext,
+        @Nullable Object socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+
+        this.listener = listener;
+        this.replicatorContext = replicatorContext;
+        this.socketFactoryContext = socketFactoryContext;
+        this.pushFilter = pushFilter;
+        this.pullFilter = pullFilter;
+
+        synchronized (CLASS_LOCK) {
+            handle = createLocal(
+                db,
+                (otherLocalDB == null) ? 0 : otherLocalDB.getHandle(),
+                push, pull,
+                socketFactoryContext,
+                framing,
+                replicatorContext,
+                pushFilter,
+                pullFilter,
+                options);
+
+            addToMap(handle, this, replicatorContext);
+        }
+    }
+
+    C4Replicator(
+        long db,
+        C4Socket openSocket,
         int push,
         int pull,
         @NonNull byte[] options,
@@ -230,7 +270,7 @@ public class C4Replicator {
         this.pullFilter = null;
 
         synchronized (CLASS_LOCK) {
-            handle = createWithSocket(db, openSocket, push, pull, replicatorContext, options);
+            handle = createWithSocket(db, openSocket.getHandle(), push, pull, replicatorContext, options);
 
             REVERSE_LOOKUP_TABLE.put(handle, this);
         }
@@ -328,6 +368,21 @@ public class C4Replicator {
         int port,
         String path,
         String remoteDatabaseName,
+        int push,
+        int pull,
+        Object socketFactoryContext,
+        int framing,
+        Object replicatorContext,
+        C4ReplicationFilter pushFilter,
+        C4ReplicationFilter pullFilter,
+        byte[] options) throws LiteCoreException;
+
+    /**
+     * Creates a new local replicator.
+     */
+    private static native long createLocal(
+        long db,
+        long targetDb,
         int push,
         int pull,
         Object socketFactoryContext,

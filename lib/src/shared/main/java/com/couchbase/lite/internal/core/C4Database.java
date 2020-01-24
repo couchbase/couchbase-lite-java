@@ -327,6 +327,31 @@ public class C4Database {
     }
 
     public C4Replicator createReplicator(
+        C4Database otherLocalDB,
+        int push, int pull,
+        byte[] options,
+        C4ReplicatorListener listener,
+        C4ReplicationFilter pushFilter,
+        C4ReplicationFilter pullFilter,
+        AbstractReplicator replicatorContext,
+        SocketFactory socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+        return new C4Replicator(
+            handle,
+            otherLocalDB,
+            push,
+            pull,
+            options,
+            listener,
+            pushFilter,
+            pullFilter,
+            replicatorContext,
+            socketFactoryContext,
+            framing);
+    }
+
+    public C4Replicator createReplicator(
         C4Socket openSocket,
         int push, int pull,
         byte[] options,
@@ -335,7 +360,7 @@ public class C4Database {
         throws LiteCoreException {
         return new C4Replicator(
             handle,
-            openSocket.getHandle(),
+            openSocket,
             push,
             pull,
             options,

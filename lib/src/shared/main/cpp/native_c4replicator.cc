@@ -469,6 +469,62 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Replicator
+ * Method:    create
+ * Signature: (JLjava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;JIILjava/lang/Object;ILjava/lang/Object;Lcom/couchbase/lite/internal/core/C4ReplicationFilter;Lcom/couchbase/lite/internal/core/C4ReplicationFilter;[B)J
+ *
+ * This method accesses global state: not thread safe
+ */
+JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_createLocal(
+        JNIEnv *env,
+        jclass clazz,
+        jlong jdb,
+        jlong jotherLocalDB,
+        jint jpush,
+        jint jpull,
+        jobject jSocketFactoryContext,
+        jint jframing,
+        jobject jReplicatorContext,
+        jobject pushFilter,
+        jobject pullFilter,
+        jbyteArray joptions) {
+#ifndef COUCHBASE_ENTERPRISE
+    C4Error error = {LiteCoreDomain, kC4ErrorUnimplemented};
+    throwError(env, error);
+    return 0;
+#else
+    jbyteArraySlice options(env, joptions, false);
+
+    C4SocketFactory socketFactory = {};
+    socketFactory = socket_factory();
+    socketFactory.context = storeContext(env, jSocketFactoryContext);
+    socketFactory.framing = (C4SocketFraming) jframing;
+
+    C4ReplicatorParameters params = {};
+    params.push = (C4ReplicatorMode) jpush;
+    params.pull = (C4ReplicatorMode) jpull;
+    params.optionsDictFleece = options;
+    params.onStatusChanged = &statusChangedCallback;
+    params.onDocumentsEnded = &documentEndedCallback;
+    if (pushFilter != NULL) params.pushFilter = &pushFilterFunction;
+    if (pullFilter != NULL) params.validationFunc = &validationFunction;
+    params.callbackContext = storeContext(env, jReplicatorContext);
+    params.socketFactory = &socketFactory;
+
+    C4Error error;
+    C4Replicator *repl = c4repl_newLocal((C4Database *) jdb,
+                                    (C4Database *) jotherLocalDB,
+                                    params,
+                                    &error);
+    if (!repl) {
+        throwError(env, error);
+        return 0;
+    }
+    return (jlong) repl;
+#endif
+}
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Replicator
  * Method:    createWithSocket
  * Signature: (JJIILjava/lang/Object;[B)J
  *
