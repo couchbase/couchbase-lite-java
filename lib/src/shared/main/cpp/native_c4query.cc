@@ -49,7 +49,7 @@ Java_com_couchbase_lite_internal_core_C4Query_init(JNIEnv *env, jclass clazz, jl
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Query_free(JNIEnv *env, jclass clazz, jlong jquery) {
-    c4query_free((C4Query *) jquery);
+    c4query_release((C4Query *) jquery);
 }
 
 /*

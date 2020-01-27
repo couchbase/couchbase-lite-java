@@ -920,7 +920,6 @@ abstract class AbstractDatabase {
         int port,
         String path,
         String remoteDatabaseName,
-        C4Database otherLocalDB,
         int push,
         int pull,
         byte[] options,
@@ -939,6 +938,36 @@ abstract class AbstractDatabase {
                 port,
                 path,
                 remoteDatabaseName,
+                push,
+                pull,
+                options,
+                listener,
+                pushFilter,
+                pullFilter,
+                replicatorContext,
+                socketFactoryContext,
+                framing);
+            activeReplications.add(replicator); // keeps me from being deallocated
+        }
+        return c4Repl;
+    }
+
+    C4Replicator createReplicator(
+        Replicator replicator,
+        C4Database otherLocalDB,
+        int push,
+        int pull,
+        byte[] options,
+        C4ReplicatorListener listener,
+        C4ReplicationFilter pushFilter,
+        C4ReplicationFilter pullFilter,
+        AbstractReplicator replicatorContext,
+        SocketFactory socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+        final C4Replicator c4Repl;
+        synchronized (lock) {
+            c4Repl = getC4Database().createReplicator(
                 otherLocalDB,
                 push,
                 pull,

@@ -300,7 +300,6 @@ public class C4Database {
     public C4Replicator createReplicator(
         String schema, String host, int port, String path,
         String remoteDatabaseName,
-        C4Database otherLocalDB,
         int push, int pull,
         byte[] options,
         C4ReplicatorListener listener,
@@ -317,8 +316,32 @@ public class C4Database {
             port,
             path,
             remoteDatabaseName,
-            otherLocalDB != null ? otherLocalDB.getHandle() : 0,
             push, pull,
+            options,
+            listener,
+            pushFilter,
+            pullFilter,
+            replicatorContext,
+            socketFactoryContext,
+            framing);
+    }
+
+    public C4Replicator createReplicator(
+        C4Database otherLocalDB,
+        int push, int pull,
+        byte[] options,
+        C4ReplicatorListener listener,
+        C4ReplicationFilter pushFilter,
+        C4ReplicationFilter pullFilter,
+        AbstractReplicator replicatorContext,
+        SocketFactory socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+        return new C4Replicator(
+            handle,
+            otherLocalDB,
+            push,
+            pull,
             options,
             listener,
             pushFilter,
@@ -337,7 +360,7 @@ public class C4Database {
         throws LiteCoreException {
         return new C4Replicator(
             handle,
-            openSocket.getHandle(),
+            openSocket,
             push,
             pull,
             options,

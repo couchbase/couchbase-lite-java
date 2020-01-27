@@ -761,47 +761,77 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
      * @return the c4Replicator
      * @throws LiteCoreException on failure to create the replicator
      */
-    private C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
-        // Source
-        final Database sourceDB = config.getDatabase();
+    private C4Replicator getRemoteC4ReplicatorLocked(URI remoteUri) throws LiteCoreException {
+        // get the URI scheme
+        String scheme = schema();
+        if (scheme == null) { scheme = remoteUri.getScheme(); }
 
-        // Target:
-        String schema;
-        final String host;
-        final int port;
-        final String path;
+        // next, the port. Litecore uses 0 for not set
+        final int p = remoteUri.getPort();
+        final int port = (p <= 0) ? 0 : p;
 
-        final String dbName;
-        final C4Database targetDb;
+        // get db name and path
+        final Deque<String> splitPath = splitPath(remoteUri.getPath());
+        final String dbName = (splitPath.size() <= 0) ? "" : splitPath.removeLast();
+        final String path = "/" + StringUtils.join("/", splitPath);
 
-        final URI remoteUri = config.getTargetURI();
-        // replicate against remote endpoint
-        if (remoteUri == null) {
-            schema = null;
-            host = null;
-            port = 0;
-            path = null;
-            dbName = null;
+        setupFilters();
 
-            final Database otherDb = config.getTargetDatabase();
-            targetDb = (otherDb == null) ? null : otherDb.getC4Database();
-        }
-        // replicate against other database
-        else {
-            schema = remoteUri.getScheme();
-            host = remoteUri.getHost();
+        final boolean continuous = config.isContinuous();
 
-            // NOTE: litecore use 0 for not set
-            final int p = remoteUri.getPort();
-            port = (p <= 0) ? 0 : p;
+        c4ReplListener = new ReplicatorListener();
 
-            final Deque<String> splitPath = splitPath(remoteUri.getPath());
-            dbName = (splitPath.size() <= 0) ? "" : splitPath.removeLast();
-            path = "/" + StringUtils.join("/", splitPath);
+        return config.getDatabase().createReplicator(
+            (Replicator) this,
+            scheme,
+            remoteUri.getHost(),
+            port,
+            path,
+            dbName,
+            mkmode(isPush(config.getReplicatorType()), continuous),
+            mkmode(isPull(config.getReplicatorType()), continuous),
+            getFleeceOptions(),
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter,
+            this,
+            socketFactory,
+            framing());
+    }
 
-            targetDb = null;
-        }
+    /**
+     * Create and return the c4Replicator
+     * Sets c4Replicator.
+     * Must be called holding lock
+     *
+     * @return the c4Replicator
+     * @throws LiteCoreException on failure to create the replicator
+     */
+    private C4Replicator getLocalC4ReplicatorLocked() throws LiteCoreException {
+        final Database otherDb = config.getTargetDatabase();
+        final C4Database targetDb = (otherDb == null) ? null : otherDb.getC4Database();
 
+        setupFilters();
+
+        final boolean continuous = config.isContinuous();
+
+        c4ReplListener = new ReplicatorListener();
+
+        return config.getDatabase().createReplicator(
+            (Replicator) this,
+            targetDb,
+            mkmode(isPush(config.getReplicatorType()), continuous),
+            mkmode(isPull(config.getReplicatorType()), continuous),
+            getFleeceOptions(),
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter,
+            this,
+            socketFactory,
+            framing());
+    }
+
+    private byte[] getFleeceOptions() {
         // Encode the options:
         final Map<String, Object> options = config.effectiveOptions();
 
@@ -824,16 +854,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             catch (LiteCoreException e) { Log.e(DOMAIN, "Failed to encode", e); }
             finally { enc.free(); }
         }
+        return optionsFleece;
+    }
 
-        final int framing = framing();
-        final String newSchema = schema();
-        if (newSchema != null) { schema = newSchema; }
-
-        // Push / Pull / Continuous:
-        final boolean push = isPush(config.getReplicatorType());
-        final boolean pull = isPull(config.getReplicatorType());
-        final boolean continuous = config.isContinuous();
-
+    private void setupFilters() {
         if (config.getPushFilter() != null) {
             c4ReplPushFilter = (docID, revId, flags, dict, isPush, context)
                 -> ((AbstractReplicator) context).validationFunction(docID, revId, documentFlags(flags), dict, isPush);
@@ -843,32 +867,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             c4ReplPullFilter = (docID, revId, flags, dict, isPush, context)
                 -> ((AbstractReplicator) context).validationFunction(docID, revId, documentFlags(flags), dict, isPush);
         }
-
-        c4ReplListener = new ReplicatorListener();
-
-        // create a C4Replicator:
-        final C4Replicator repl = sourceDB.createReplicator(
-            (Replicator) this,
-            schema,
-            host,
-            port,
-            path,
-            dbName,
-            targetDb,
-            mkmode(push, continuous),
-            mkmode(pull, continuous),
-            optionsFleece,
-            c4ReplListener,
-            c4ReplPushFilter,
-            c4ReplPullFilter,
-            this,
-            socketFactory,
-            framing);
-
-        // assign the global!
-        c4Replicator = repl;
-
-        return repl;
     }
 
     /**
@@ -878,8 +876,10 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private void startLocked() {
         C4Replicator repl = null;
         C4ReplicatorStatus status;
+        final URI target = config.getTargetURI();
         try {
-            repl = getC4ReplicatorLocked();
+            repl = (target == null) ? getLocalC4ReplicatorLocked() : getRemoteC4ReplicatorLocked(target);
+            c4Replicator = repl;
             repl.start();
             status = repl.getStatus();
         }

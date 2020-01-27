@@ -397,7 +397,7 @@ Java_com_couchbase_lite_internal_fleece_FLValue_JSON5ToJSON(JNIEnv *env, jclass 
     if (error != kFLNoError)
         throwError(env, {FleeceDomain, error});
     jstring res = toJString(env, json);
-    FLSliceResult_Free(json);
+    FLSliceResult_Release(json);
     return res;
 }
 /*
@@ -409,7 +409,7 @@ JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_toString(JNIEnv *env, jclass clazz, jlong jvalue) {
     FLStringResult str = FLValue_ToString((FLValue) jvalue);
     jstring res = toJString(env, str);
-    FLSliceResult_Free(str);
+    FLSliceResult_Release(str);
     return res;
 }
 
@@ -422,7 +422,7 @@ JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_toJSON(JNIEnv *env, jclass clazz, jlong jvalue) {
     FLStringResult str = FLValue_ToJSON((FLValue) jvalue);
     jstring res = toJString(env, str);
-    FLSliceResult_Free(str);
+    FLSliceResult_Release(str);
     return res;
 }
 
@@ -435,7 +435,7 @@ JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_fleece_FLValue_toJSON5(JNIEnv *env, jclass clazz, jlong jvalue) {
     FLStringResult str = FLValue_ToJSON5((FLValue) jvalue);
     jstring res = toJString(env, str);
-    FLSliceResult_Free(str);
+    FLSliceResult_Release(str);
     return res;
 }
 
@@ -478,7 +478,7 @@ Java_com_couchbase_lite_internal_fleece_FLSliceResult_initWithBytes(JNIEnv *env,
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_fleece_FLSliceResult_free(JNIEnv *env, jclass clazz, jlong jslice) {
-    FLSliceResult_Free(*(FLSliceResult *) jslice);
+    FLSliceResult_Release(*(FLSliceResult *) jslice);
 }
 
 /*

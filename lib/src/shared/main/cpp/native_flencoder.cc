@@ -202,7 +202,7 @@ Java_com_couchbase_lite_internal_fleece_FLEncoder_finish(JNIEnv *env, jclass cla
     if (error != kFLNoError)
         throwError(env, {FleeceDomain, error});
     jbyteArray res = toJByteArray(env, (C4Slice) result);
-    FLSliceResult_Free(result);
+    FLSliceResult_Release(result);
     return res;
 }
 

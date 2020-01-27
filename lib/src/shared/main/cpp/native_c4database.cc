@@ -86,7 +86,7 @@ Java_com_couchbase_lite_internal_core_C4Database_copy(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Database_free(JNIEnv *env, jclass clazz, jlong jdb) {
-    c4db_free((C4Database *) jdb);
+    c4db_release((C4Database *) jdb);
 }
 
 /*
