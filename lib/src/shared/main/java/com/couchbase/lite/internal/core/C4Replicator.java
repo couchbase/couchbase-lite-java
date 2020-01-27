@@ -136,10 +136,10 @@ public class C4Replicator {
 
     @Nullable
     private static C4Replicator getReplicatorForContext(@Nullable Object context) {
-        synchronized (CLASS_LOCK) { return CONTEXT_TO_C4_REPLICATOR_MAP.get(context); }
+        synchronized (CLASS_LOCK) { return (context == null) ? null : CONTEXT_TO_C4_REPLICATOR_MAP.get(context); }
     }
 
-    private static void addToMap(long handle, @NonNull C4Replicator repl, @NonNull Object context) {
+    private static void addToMap(long handle, @NonNull C4Replicator repl, @Nullable Object context) {
         REVERSE_LOOKUP_TABLE.put(handle, repl);
         CONTEXT_TO_C4_REPLICATOR_MAP.put(context, repl);
     }
@@ -227,13 +227,13 @@ public class C4Replicator {
         @Nullable C4ReplicationFilter pushFilter,
         @Nullable C4ReplicationFilter pullFilter,
         @NonNull Object replicatorContext,
-        @Nullable Object socketFactoryContext,
         int framing)
         throws LiteCoreException {
 
+        this.socketFactoryContext = null;
+
         this.listener = listener;
         this.replicatorContext = replicatorContext;
-        this.socketFactoryContext = socketFactoryContext;
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
 
@@ -241,8 +241,8 @@ public class C4Replicator {
             handle = createLocal(
                 db,
                 (otherLocalDB == null) ? 0 : otherLocalDB.getHandle(),
-                push, pull,
-                socketFactoryContext,
+                push,
+                pull,
                 framing,
                 replicatorContext,
                 pushFilter,
@@ -263,16 +263,17 @@ public class C4Replicator {
         @NonNull Object replicatorContext)
         throws LiteCoreException {
 
+        this.socketFactoryContext = null;
+
         this.listener = listener;
         this.replicatorContext = replicatorContext;
-        this.socketFactoryContext = null;
         this.pushFilter = null;
         this.pullFilter = null;
 
         synchronized (CLASS_LOCK) {
             handle = createWithSocket(db, openSocket.getHandle(), push, pull, replicatorContext, options);
 
-            REVERSE_LOOKUP_TABLE.put(handle, this);
+            addToMap(handle, this, null);
         }
     }
 
@@ -385,7 +386,6 @@ public class C4Replicator {
         long targetDb,
         int push,
         int pull,
-        Object socketFactoryContext,
         int framing,
         Object replicatorContext,
         C4ReplicationFilter pushFilter,

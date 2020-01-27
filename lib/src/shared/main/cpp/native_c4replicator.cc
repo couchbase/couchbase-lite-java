@@ -481,7 +481,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
         jlong jotherLocalDB,
         jint jpush,
         jint jpull,
-        jobject jSocketFactoryContext,
         jint jframing,
         jobject jReplicatorContext,
         jobject pushFilter,
@@ -494,11 +493,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
 #else
     jbyteArraySlice options(env, joptions, false);
 
-    C4SocketFactory socketFactory = {};
-    socketFactory = socket_factory();
-    socketFactory.context = storeContext(env, jSocketFactoryContext);
-    socketFactory.framing = (C4SocketFraming) jframing;
-
     C4ReplicatorParameters params = {};
     params.push = (C4ReplicatorMode) jpush;
     params.pull = (C4ReplicatorMode) jpull;
@@ -508,7 +502,6 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
     if (pushFilter != NULL) params.pushFilter = &pushFilterFunction;
     if (pullFilter != NULL) params.validationFunc = &validationFunction;
     params.callbackContext = storeContext(env, jReplicatorContext);
-    params.socketFactory = &socketFactory;
 
     C4Error error;
     C4Replicator *repl = c4repl_newLocal((C4Database *) jdb,
@@ -532,13 +525,13 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Replicator_creat
  */
 JNIEXPORT jlong JNICALL
 Java_com_couchbase_lite_internal_core_C4Replicator_createWithSocket(JNIEnv *env,
-                                                                    jclass clazz,
-                                                                    jlong jdb,
-                                                                    jlong jopenSocket,
-                                                                    jint jpush,
-                                                                    jint jpull,
-                                                                    jobject jReplicatorContext,
-                                                                    jbyteArray joptions) {
+                              jclass clazz,
+                              jlong jdb,
+                              jlong jopenSocket,
+                              jint jpush,
+                              jint jpull,
+                              jobject jReplicatorContext,
+                              jbyteArray joptions) {
     C4Database *db = (C4Database *) jdb;
     C4Socket *openSocket = (C4Socket *) jopenSocket;
     jbyteArraySlice options(env, joptions, false);

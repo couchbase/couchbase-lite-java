@@ -962,7 +962,6 @@ abstract class AbstractDatabase {
         C4ReplicationFilter pushFilter,
         C4ReplicationFilter pullFilter,
         AbstractReplicator replicatorContext,
-        SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
         final C4Replicator c4Repl;
@@ -976,7 +975,6 @@ abstract class AbstractDatabase {
                 pushFilter,
                 pullFilter,
                 replicatorContext,
-                socketFactoryContext,
                 framing);
             activeReplications.add(replicator); // keeps me from being deallocated
         }
