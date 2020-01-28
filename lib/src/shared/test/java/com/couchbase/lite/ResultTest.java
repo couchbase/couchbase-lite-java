@@ -96,8 +96,8 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(13, r.count());
 
                 assertNull(r.getValue("null"));
-                assertEquals(1L, r.getValue("true"));
-                assertEquals(0L, r.getValue("false"));
+                assertEquals(true, r.getValue("true"));
+                assertEquals(false, r.getValue("false"));
                 assertEquals("string", r.getValue("string"));
                 assertEquals(0L, r.getValue("zero"));
                 assertEquals(1L, r.getValue("one"));
@@ -132,8 +132,8 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(13, r.count());
 
                 assertNull(r.getValue(0));
-                assertEquals(1L, r.getValue(1));
-                assertEquals(0L, r.getValue(2));
+                assertEquals(true, r.getValue(1));
+                assertEquals(false, r.getValue(2));
                 assertEquals("string", r.getValue(3));
                 assertEquals(0L, r.getValue(4));
                 assertEquals(1L, r.getValue(5));
