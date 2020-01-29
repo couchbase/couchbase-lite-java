@@ -471,8 +471,9 @@ public final class Blob implements FLEncodable {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        if (blobContentStream != null) {
-            try { blobContentStream.close(); }
+        final InputStream contentStream = blobContentStream;
+        if (contentStream != null) {
+            try { contentStream.close(); }
             catch (IOException ignore) { }
         }
         super.finalize();
@@ -498,6 +499,7 @@ public final class Blob implements FLEncodable {
         blobContentStream = stream;
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Nullable
     private byte[] getContentFromDatabase() {
         Preconditions.assertNotNull(database, "database");

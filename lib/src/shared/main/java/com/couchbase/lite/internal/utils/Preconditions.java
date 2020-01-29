@@ -26,16 +26,17 @@ public final class Preconditions {
 
     @NonNull
     public static <T> T assertNotNull(@Nullable T obj, @NonNull String name) {
-        if (obj == null) { throw new IllegalArgumentException(name + " cannot be null"); }
+        if (obj == null) { throw new IllegalArgumentException(name + " must not be null"); }
         return obj;
     }
 
-    public static void assertNotZero(long n, @NonNull String name) {
-        if (n == 0) { throw new IllegalArgumentException(name + " cannot be 0"); }
+    public static long assertNotZero(long n, @NonNull String name) {
+        if (n == 0) { throw new IllegalArgumentException(name + " must not be 0"); }
+        return n;
     }
 
     public static void assertNotEmpty(String str, @NonNull String name) {
-        if (StringUtils.isEmpty(str)) { throw new IllegalArgumentException(name + " cannot be empty"); }
+        if (StringUtils.isEmpty(str)) { throw new IllegalArgumentException(name + " must not be empty"); }
     }
 
     public static <T> void assertThat(T obj, @NonNull String msg, @NonNull Fn.Predicate<T> predicate) {

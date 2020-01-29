@@ -17,38 +17,33 @@
 //
 package com.couchbase.lite.internal.fleece;
 
+import com.couchbase.lite.internal.core.C4NativePeer;
+import com.couchbase.lite.internal.utils.Preconditions;
+
+
 /*
  * Represent a block of memory returned from the API call. The caller takes ownership, and must
  * call free() method to release the memory except the managed() method is called to indicate
  * that the memory will be managed and released by the native code.
  */
-public class FLSliceResult implements AllocSlice {
+public class FLSliceResult extends C4NativePeer implements AllocSlice {
     //-------------------------------------------------------------------------
     // Member variables
     //-------------------------------------------------------------------------
 
-    private long handle; // hold pointer to FLSliceResult
-
-    private boolean isMemoryManaged;
+    private final boolean isMemoryManaged;
 
     //-------------------------------------------------------------------------
-    // Public methods
+    // Constructors
     //-------------------------------------------------------------------------
 
-    public FLSliceResult() { this.handle = init(); }
+    public FLSliceResult() { this(false); }
 
-    public FLSliceResult(byte[] bytes) { this.handle = initWithBytes(bytes); }
+    public FLSliceResult(boolean managed) { this(init(), managed); }
 
-    public FLSliceResult(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
-        this.handle = handle;
-    }
+    public FLSliceResult(byte[] bytes) { this(initWithBytes(Preconditions.assertNotNull(bytes, "raw bytes"))); }
 
-    public long getHandle() { return handle; }
-
-    public byte[] getBuf() { return getBuf(handle); }
-
-    public long getSize() { return getSize(handle); }
+    public FLSliceResult(long handle) { this(handle, false); }
 
     /*
      * Allow the FLSliceResult in managed mode. In the managed mode, the IllegalStateException will be
@@ -56,25 +51,36 @@ public class FLSliceResult implements AllocSlice {
      * IllegalStateException as the free() method is not called. Use this method when the
      * FLSliceResult will be freed by the native code.
      */
-    public FLSliceResult managed() {
-        isMemoryManaged = true;
-        return this;
+    FLSliceResult(long handle, boolean managed) {
+        super(handle);
+        this.isMemoryManaged = managed;
     }
 
-    public void free() {
-        if (isMemoryManaged) { throw new IllegalStateException("FLSliceResult was marked as memory managed."); }
+    //-------------------------------------------------------------------------
+    // Public methods
+    //-------------------------------------------------------------------------
 
-        if (handle != 0L) {
-            free(handle);
-            handle = 0L;
-        }
+    // !!!  Exposes the peer handle
+    public long getHandle() { return getPeer(); }
+
+    public byte[] getBuf() { return getBuf(getPeer()); }
+
+    public long getSize() { return getSize(getPeer()); }
+
+    public void free() {
+        if (isMemoryManaged) { throw new IllegalStateException("Attempt to free a managed FLSliceResult"); }
+
+        final long hdl = getPeerAndClear();
+        if (hdl == 0L) { return; }
+
+        free(hdl);
     }
 
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        if (handle != 0L && !isMemoryManaged) {
-            throw new IllegalStateException("FLSliceResult was finalized before freeing.");
+        if ((!isMemoryManaged) && (get() != 0L)) {
+            throw new IllegalStateException("FLSliceResult was not freed: " + this);
         }
         super.finalize();
     }
@@ -83,13 +89,13 @@ public class FLSliceResult implements AllocSlice {
     // Native methods
     //-------------------------------------------------------------------------
 
-    static native long init();
+    private static native long init();
 
-    static native long initWithBytes(byte[] bytes);
+    private static native long initWithBytes(byte[] bytes);
 
-    static native void free(long slice);
+    private static native void free(long slice);
 
-    static native byte[] getBuf(long slice);
+    private static native byte[] getBuf(long slice);
 
-    static native long getSize(long slice);
+    private static native long getSize(long slice);
 }

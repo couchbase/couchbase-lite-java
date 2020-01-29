@@ -30,7 +30,7 @@ import com.couchbase.lite.internal.fleece.FLValue;
 
 
 @SuppressWarnings({"PMD.ExcessivePublicCount", "PMD.TooManyMethods", "PMD.ExcessiveParameterList"})
-public class C4Database {
+public class C4Database extends C4NativePeer {
     public static void copyDb(
         String sourcePath,
         String destinationPath,
@@ -53,8 +53,6 @@ public class C4Database {
     //-------------------------------------------------------------------------
     private final boolean shouldRetain; // true -> not release native object, false -> release by free()
 
-    private long handle; // pointer to C4Database
-
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
@@ -70,10 +68,9 @@ public class C4Database {
     }
 
     public C4Database(long handle, boolean shouldRetain) {
-        this.handle = handle;
+        super(handle);
         this.shouldRetain = shouldRetain;
     }
-
 
     //-------------------------------------------------------------------------
     // public methods
@@ -84,93 +81,91 @@ public class C4Database {
     public void free() {
         if (shouldRetain) { return; }
 
-        final long hdl = handle;
-        handle = 0L;
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
 
-        if (hdl == 0) { return; }
-
-        free(hdl);
+        free(handle);
     }
 
-    public void close() throws LiteCoreException { close(handle); }
+    public void close() throws LiteCoreException { close(getPeer()); }
 
-    public void delete() throws LiteCoreException { delete(handle); }
+    public void delete() throws LiteCoreException { delete(getPeer()); }
 
-    public void rekey(int keyType, byte[] newKey) throws LiteCoreException { rekey(handle, keyType, newKey); }
+    public void rekey(int keyType, byte[] newKey) throws LiteCoreException { rekey(getPeer(), keyType, newKey); }
 
     // - Accessors
 
-    public String getPath() { return getPath(handle); }
+    public String getPath() { return getPath(getPeer()); }
 
-    public long getDocumentCount() { return getDocumentCount(handle); }
-
-    @VisibleForTesting
-    public long getLastSequence() { return getLastSequence(handle); }
-
-    public long nextDocExpiration() { return nextDocExpiration(handle); }
-
-    public int purgeExpiredDocs() { return purgeExpiredDocs(handle); }
-
-    public void purgeDoc(String docID) throws LiteCoreException { purgeDoc(handle, docID); }
+    public long getDocumentCount() { return getDocumentCount(getPeer()); }
 
     @VisibleForTesting
-    public int getMaxRevTreeDepth() { return getMaxRevTreeDepth(handle); }
+    public long getLastSequence() { return getLastSequence(getPeer()); }
+
+    public long nextDocExpiration() { return nextDocExpiration(getPeer()); }
+
+    public int purgeExpiredDocs() { return purgeExpiredDocs(getPeer()); }
+
+    public void purgeDoc(String docID) throws LiteCoreException { purgeDoc(getPeer(), docID); }
 
     @VisibleForTesting
-    public void setMaxRevTreeDepth(int maxRevTreeDepth) { setMaxRevTreeDepth(handle, maxRevTreeDepth); }
+    public int getMaxRevTreeDepth() { return getMaxRevTreeDepth(getPeer()); }
 
     @VisibleForTesting
-    public byte[] getPublicUUID() throws LiteCoreException { return getPublicUUID(handle); }
+    public void setMaxRevTreeDepth(int maxRevTreeDepth) { setMaxRevTreeDepth(getPeer(), maxRevTreeDepth); }
 
     @VisibleForTesting
-    public byte[] getPrivateUUID() throws LiteCoreException { return getPrivateUUID(handle); }
+    public byte[] getPublicUUID() throws LiteCoreException { return getPublicUUID(getPeer()); }
+
+    @VisibleForTesting
+    public byte[] getPrivateUUID() throws LiteCoreException { return getPrivateUUID(getPeer()); }
 
     // - Compaction
 
-    public void compact() throws LiteCoreException { compact(handle); }
+    public void compact() throws LiteCoreException { compact(getPeer()); }
 
     // - Transactions
 
-    public void beginTransaction() throws LiteCoreException { beginTransaction(handle); }
+    public void beginTransaction() throws LiteCoreException { beginTransaction(getPeer()); }
 
-    public void endTransaction(boolean commit) throws LiteCoreException { endTransaction(handle, commit); }
+    public void endTransaction(boolean commit) throws LiteCoreException { endTransaction(getPeer(), commit); }
 
     // - RawDocs Raw Documents
 
     @VisibleForTesting
     public C4RawDocument rawGet(String storeName, String docID) throws LiteCoreException {
-        return new C4RawDocument(rawGet(handle, storeName, docID));
+        return new C4RawDocument(rawGet(getPeer(), storeName, docID));
     }
 
     @VisibleForTesting
     public void rawPut(String storeName, String key, String meta, byte[] body) throws LiteCoreException {
-        rawPut(handle, storeName, key, meta, body);
+        rawPut(getPeer(), storeName, key, meta, body);
     }
 
     // c4Document+Fleece.h
 
     // - Fleece-related
     // !!! This needs to hold both the document and the database locks
-    public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle), true); }
+    public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(getPeer()), true); }
 
     // NOTE: Should param be String instead of byte[]?
     @VisibleForTesting
     public FLSliceResult encodeJSON(byte[] jsonData) throws LiteCoreException {
-        return new FLSliceResult(encodeJSON(handle, jsonData));
+        return new FLSliceResult(encodeJSON(getPeer(), jsonData));
     }
 
-    public final FLSharedKeys getFLSharedKeys() { return new FLSharedKeys(getFLSharedKeys(handle)); }
+    public final FLSharedKeys getFLSharedKeys() { return new FLSharedKeys(getFLSharedKeys(getPeer())); }
 
     ////////////////////////////////
     // C4DocEnumerator
     ////////////////////////////////
 
     public C4DocEnumerator enumerateChanges(long since, int flags) throws LiteCoreException {
-        return new C4DocEnumerator(handle, since, flags);
+        return new C4DocEnumerator(getPeer(), since, flags);
     }
 
     public C4DocEnumerator enumerateAllDocs(int flags) throws LiteCoreException {
-        return new C4DocEnumerator(handle, flags);
+        return new C4DocEnumerator(getPeer(), flags);
     }
 
     ////////////////////////////////
@@ -178,22 +173,22 @@ public class C4Database {
     ////////////////////////////////
 
     public C4Document get(String docID, boolean mustExist) throws LiteCoreException {
-        return new C4Document(handle, docID, mustExist);
+        return new C4Document(getPeer(), docID, mustExist);
     }
 
     @VisibleForTesting
     public C4Document getBySequence(long sequence) throws LiteCoreException {
-        return new C4Document(handle, sequence);
+        return new C4Document(getPeer(), sequence);
     }
 
     // - Purging and Expiration
 
     public void setExpiration(String docID, long timestamp) throws LiteCoreException {
-        C4Document.setExpiration(handle, docID, timestamp);
+        C4Document.setExpiration(getPeer(), docID, timestamp);
     }
 
     public long getExpiration(String docID) throws LiteCoreException {
-        return C4Document.getExpiration(handle, docID);
+        return C4Document.getExpiration(getPeer(), docID);
     }
 
     // - Creating and Updating Documents
@@ -210,7 +205,7 @@ public class C4Database {
         int remoteDBID)
         throws LiteCoreException {
         return new C4Document(C4Document.put(
-            handle,
+            getPeer(),
             body,
             docID,
             revFlags,
@@ -235,7 +230,7 @@ public class C4Database {
         int remoteDBID)
         throws LiteCoreException {
         return new C4Document(C4Document.put2(
-            handle,
+            getPeer(),
             body.getHandle(),
             docID,
             revFlags,
@@ -250,12 +245,12 @@ public class C4Database {
     @VisibleForTesting
     @NonNull
     public C4Document create(String docID, byte[] body, int revisionFlags) throws LiteCoreException {
-        return new C4Document(C4Document.create(handle, docID, body, revisionFlags));
+        return new C4Document(C4Document.create(getPeer(), docID, body, revisionFlags));
     }
 
     @NonNull
     public C4Document create(String docID, FLSliceResult body, int flags) throws LiteCoreException {
-        return new C4Document(C4Document.create2(handle, docID, body != null ? body.getHandle() : 0, flags));
+        return new C4Document(C4Document.create2(getPeer(), docID, body != null ? body.getHandle() : 0, flags));
     }
 
     ////////////////////////////////////////////////////////////////
@@ -264,7 +259,7 @@ public class C4Database {
 
     @NonNull
     public C4DatabaseObserver createDatabaseObserver(C4DatabaseObserverListener listener, Object context) {
-        return new C4DatabaseObserver(handle, listener, context);
+        return C4DatabaseObserver.newObserver(getPeer(), listener, context);
     }
 
     @NonNull
@@ -272,7 +267,7 @@ public class C4Database {
         String docID,
         C4DocumentObserverListener listener,
         Object context) {
-        return new C4DocumentObserver(handle, docID, listener, context);
+        return C4DocumentObserver.newObserver(getPeer(), docID, listener, context);
     }
 
     ////////////////////////////////
@@ -280,23 +275,25 @@ public class C4Database {
     ////////////////////////////////
 
     @NonNull
-    public C4BlobStore getBlobStore() throws LiteCoreException { return new C4BlobStore(handle); }
+    public C4BlobStore getBlobStore() throws LiteCoreException { return new C4BlobStore(getPeer()); }
 
     ////////////////////////////////
     // C4Query
     ////////////////////////////////
 
-    public C4Query createQuery(String expression) throws LiteCoreException { return new C4Query(handle, expression); }
+    public C4Query createQuery(String expression) throws LiteCoreException {
+        return new C4Query(getPeer(), expression);
+    }
 
     public boolean createIndex(
         String name, String expressionsJSON, int indexType, String language,
         boolean ignoreDiacritics) throws LiteCoreException {
-        return C4Query.createIndex(handle, name, expressionsJSON, indexType, language, ignoreDiacritics);
+        return C4Query.createIndex(getPeer(), name, expressionsJSON, indexType, language, ignoreDiacritics);
     }
 
-    public void deleteIndex(String name) throws LiteCoreException { C4Query.deleteIndex(handle, name); }
+    public void deleteIndex(String name) throws LiteCoreException { C4Query.deleteIndex(getPeer(), name); }
 
-    public FLValue getIndexes() throws LiteCoreException { return new FLValue(C4Query.getIndexes(handle)); }
+    public FLValue getIndexes() throws LiteCoreException { return new FLValue(C4Query.getIndexes(getPeer())); }
 
     ////////////////////////////////
     // C4Replicator
@@ -314,8 +311,8 @@ public class C4Database {
         SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
-        return new C4Replicator(
-            handle,
+        return C4Replicator.createReplicator(
+            getPeer(),
             schema,
             host,
             port,
@@ -341,8 +338,8 @@ public class C4Database {
         AbstractReplicator replicatorContext,
         int framing)
         throws LiteCoreException {
-        return new C4Replicator(
-            handle,
+        return C4Replicator.createReplicator(
+            getPeer(),
             otherLocalDB,
             push,
             pull,
@@ -361,8 +358,8 @@ public class C4Database {
         C4ReplicatorListener listener,
         Object replicatorContext)
         throws LiteCoreException {
-        return new C4Replicator(
-            handle,
+        return C4Replicator.createReplicator(
+            getPeer(),
             openSocket,
             push,
             pull,
@@ -378,7 +375,13 @@ public class C4Database {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        if (shouldRetain) { return; }
+
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+
+        free(handle);
+
         super.finalize();
     }
 
@@ -386,7 +389,8 @@ public class C4Database {
     // package access
     //-------------------------------------------------------------------------
 
-    long getHandle() { return handle; }
+    // !!!  Exposes the peer handle
+    long getHandle() { return getPeer(); }
 
     //-------------------------------------------------------------------------
     // Native methods

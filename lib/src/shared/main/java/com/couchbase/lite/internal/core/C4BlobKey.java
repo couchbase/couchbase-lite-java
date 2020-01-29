@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.couchbase.lite.LiteCoreException;
@@ -27,13 +28,7 @@ import com.couchbase.lite.LiteCoreException;
  * <p>
  * A raw SHA-1 digest used as the unique identifier of a blob.
  */
-public class C4BlobKey {
-
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-
-    private long handle; // hold pointer to C4BlobKey
+public class C4BlobKey extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructors
@@ -42,12 +37,9 @@ public class C4BlobKey {
     /**
      * Decodes a string of the form "sha1-"+base64 into a raw key.
      */
-    public C4BlobKey(@Nullable String str) throws LiteCoreException { handle = fromString(str); }
+    public C4BlobKey(@Nullable String str) throws LiteCoreException { this(fromString(str)); }
 
-    C4BlobKey(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
-        this.handle = handle;
-    }
+    C4BlobKey(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
@@ -56,14 +48,13 @@ public class C4BlobKey {
     /**
      * Encodes a blob key to a string of the form "sha1-"+base64.
      */
-    public String toString() { return toString(handle); }
+    @NonNull
+    @Override
+    public String toString() { return toString(getPeer()); }
 
     public void free() {
-        final long hdl = handle;
-        handle = 0L;
-
-        if (hdl == 0L) { return; }
-
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
         free(handle);
     }
 
@@ -82,7 +73,8 @@ public class C4BlobKey {
     // package methods
     //-------------------------------------------------------------------------
 
-    long getHandle() { return handle; }
+    // !!!  Exposes the peer handle
+    long getHandle() { return getPeer(); }
 
     //-------------------------------------------------------------------------
     // native methods

@@ -20,58 +20,48 @@ package com.couchbase.lite.internal.core;
 import com.couchbase.lite.LiteCoreException;
 
 
-public class C4RawDocument {
-    static native String key(long rawDoc);
-
-    static native String meta(long rawDoc);
-
-    static native byte[] body(long rawDoc);
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private long handle; // hold pointer to C4Database
+public class C4RawDocument extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
-    C4RawDocument(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
-        this.handle = handle;
-    }
+
+    C4RawDocument(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public String key() {
-        return key(handle);
-    }
 
-    public String meta() {
-        return meta(handle);
-    }
+    public String key() { return key(getPeer()); }
 
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
+    public String meta() { return meta(getPeer()); }
 
-    public byte[] body() {
-        return body(handle);
-    }
+    public byte[] body() { return body(getPeer()); }
 
     public void free() throws LiteCoreException {
-        if (handle != 0L) {
-            C4Database.rawFreeDocument(handle);
-            handle = 0L;
-        }
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        C4Database.rawFreeDocument(handle);
     }
 
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    static native String key(long rawDoc);
+
+    static native String meta(long rawDoc);
+
+    static native byte[] body(long rawDoc);
 }

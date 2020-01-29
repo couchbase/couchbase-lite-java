@@ -17,7 +17,6 @@
 //
 package com.couchbase.lite.internal.core;
 
-import android.support.annotation.GuardedBy;
 import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.LiteCoreException;
@@ -31,38 +30,25 @@ import com.couchbase.lite.internal.fleece.FLArrayIterator;
  * The fields of this struct represent the current matched index row.
  * They are valid until the next call to c4queryenum_next or c4queryenum_free.
  */
-public class C4QueryEnumerator {
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private final Object lock = new Object();
-
-    @GuardedBy("lock")
-    private long handle; // hold pointer to C4QueryEnumerator
+public class C4QueryEnumerator extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
-    /*-------------------------------------------------------------------------*/
-    C4QueryEnumerator(long handle) { this.handle = handle; }
+    //-------------------------------------------------------------------------
+
+    C4QueryEnumerator(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
-    public boolean next() throws LiteCoreException {
-        synchronized (lock) { return (handle != 0) && next(handle); }
-    }
+    public boolean next() throws LiteCoreException { return next(getPeer()); }
 
-    public long getRowCount() throws LiteCoreException {
-        synchronized (lock) { return (handle == 0) ? 0L : getRowCount(handle); }
-    }
+    public long getRowCount() throws LiteCoreException { return getRowCount(getPeer()); }
 
     public C4QueryEnumerator refresh() throws LiteCoreException {
-        synchronized (lock) {
-            if (handle == 0) { return null; }
-            final long newHandle = refresh(handle);
-            return (newHandle == 0) ? null : new C4QueryEnumerator(newHandle);
-        }
+        final long newHandle = refresh(getPeer());
+        return (newHandle == 0) ? null : new C4QueryEnumerator(newHandle);
     }
 
     /**
@@ -70,39 +56,26 @@ public class C4QueryEnumerator {
      * The columns of this result, in the same order as in the query's `WHAT` clause.
      * NOTE: FLArrayIterator is member variable of C4QueryEnumerator. Not necessary to release.
      */
-    public FLArrayIterator getColumns() {
-        synchronized (lock) { return (handle == 0) ? null : new FLArrayIterator(getColumns(handle)); }
-    }
+    public FLArrayIterator getColumns() { return new FLArrayIterator(getColumns(getPeer())); }
 
     /**
      * Returns a bitmap in which a 1 bit represents a column whose value is MISSING.
      * This is how you tell a missing property value from a value that is JSON 'null',
      * since the value in the `columns` array will be a Fleece `null` either way.
      */
-    public long getMissingColumns() {
-        synchronized (lock) { return (handle == 0) ? 0L : getMissingColumns(handle); }
-    }
+    public long getMissingColumns() { return getMissingColumns(getPeer()); }
 
-    public void close() {
-        synchronized (lock) {
-            if (handle != 0) { close(handle); }
-        }
-    }
+    public void close() { withPeerVoid(C4QueryEnumerator::close); }
 
     public void free() {
-        final long hdl;
-        synchronized (lock) {
-            hdl = handle;
-            handle = 0L;
-        }
-
-        if (hdl != 0L) { free(hdl); }
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        close();
+        free(handle);
     }
 
     @VisibleForTesting
-    public boolean seek(long rowIndex) throws LiteCoreException {
-        synchronized (lock) { return (handle != 0) && seek(handle, rowIndex); }
-    }
+    public boolean seek(long rowIndex) throws LiteCoreException { return seek(getPeer(), rowIndex); }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -120,18 +93,14 @@ public class C4QueryEnumerator {
     //-------------------------------------------------------------------------
 
     /**
-     * Reutnr the number of full-text matches (i.e. the number of items in `getFullTextMatches`)
+     * Return the number of full-text matches (i.e. the number of items in `getFullTextMatches`)
      */
-    long getFullTextMatchCount() {
-        synchronized (lock) { return (handle == 0) ? 0L : getFullTextMatchCount(handle); }
-    }
+    long getFullTextMatchCount() { return getFullTextMatchCount(getPeer()); }
 
     /**
      * Return an array of details of each full-text match
      */
-    C4FullTextMatch getFullTextMatches(int idx) {
-        synchronized (lock) { return (handle == 0) ? null : new C4FullTextMatch(getFullTextMatch(handle, idx)); }
-    }
+    C4FullTextMatch getFullTextMatches(int idx) { return new C4FullTextMatch(getFullTextMatch(getPeer(), idx)); }
 
     //-------------------------------------------------------------------------
     // native methods

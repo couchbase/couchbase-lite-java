@@ -24,13 +24,12 @@ import java.io.File;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
-import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
  * Blob Store API
  */
-public class C4BlobStore {
+public class C4BlobStore extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Public static methods
@@ -43,7 +42,6 @@ public class C4BlobStore {
      *
      * @param dirPath The filesystem path of the directory holding the attachments.
      * @param flags   Specifies options like create, read-only
-     *                //@param encryptionKey  Optional encryption algorithm & key
      * @return The BlobStore reference
      * @throws LiteCoreException for any error
      */
@@ -56,18 +54,17 @@ public class C4BlobStore {
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
-    private long handle; // hold pointer to C4BlobStore
+
     private boolean managedByDatabase;
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    C4BlobStore(long handle) throws LiteCoreException { this(getBlobStore(handle), true); }
+    C4BlobStore(long dbHandle) throws LiteCoreException { this(getBlobStore(dbHandle), true); }
 
-    C4BlobStore(long handle, boolean managedByDatabase) {
-        Preconditions.assertNotZero(handle, "handle");
-        this.handle = handle;
+    private C4BlobStore(long handle, boolean managedByDatabase) {
+        super(handle);
         this.managedByDatabase = managedByDatabase;
     }
 
@@ -79,19 +76,23 @@ public class C4BlobStore {
      * Deletes the BlobStore's blobs and directory, and (if successful) frees the object.
      */
     public void delete() throws LiteCoreException {
-        deleteStore(handle);
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
+
         // NOTE: deleteStore() native method release memory.
-        this.handle = 0L;
+        deleteStore(handle);
     }
 
     /**
      * Closes/frees a BlobStore.
      */
     public void free() {
-        if (handle != 0L && !managedByDatabase) {
-            freeStore(handle);
-            handle = 0L;
-        }
+        if (managedByDatabase) { return; }
+
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
+
+        freeStore(handle);
     }
 
     /**
@@ -99,14 +100,14 @@ public class C4BlobStore {
      * WARNING: If the blob is encrypted, the return value is a conservative estimate that may
      * be up to 16 bytes larger than the actual size.
      */
-    public long getSize(C4BlobKey blobKey) { return getSize(handle, blobKey.getHandle()); }
+    public long getSize(C4BlobKey blobKey) { return getSize(getPeer(), getBlobKeyPeer(blobKey)); }
 
     /**
      * Reads the entire contents of a blob into memory. Caller is responsible for freeing it.
      */
     @NonNull
     public FLSliceResult getContents(@NonNull C4BlobKey blobKey) throws LiteCoreException {
-        return new FLSliceResult(getContents(handle, blobKey.getHandle()));
+        return new FLSliceResult(getContents(getPeer(), getBlobKeyPeer(blobKey)));
     }
 
     /**
@@ -120,7 +121,7 @@ public class C4BlobStore {
      */
     @Nullable
     public String getFilePath(@NonNull C4BlobKey blobKey) throws LiteCoreException {
-        return getFilePath(handle, blobKey.getHandle());
+        return getFilePath(getPeer(), getBlobKeyPeer(blobKey));
     }
 
     /**
@@ -128,22 +129,20 @@ public class C4BlobStore {
      */
     @NonNull
     public C4BlobKey create(@NonNull byte[] contents) throws LiteCoreException {
-        return new C4BlobKey(create(handle, contents));
+        return new C4BlobKey(create(getPeer(), contents));
     }
 
     /**
      * Deletes a blob from the store given its key.
      */
-    public void delete(C4BlobKey blobKey) throws LiteCoreException {
-        delete(handle, blobKey.getHandle());
-    }
+    public void delete(C4BlobKey blobKey) throws LiteCoreException { delete(getPeer(), getBlobKeyPeer(blobKey)); }
 
     /**
      * Opens a blob for reading, as a random-access byte stream.
      */
     @NonNull
     public C4BlobReadStream openReadStream(@NonNull C4BlobKey blobKey) throws LiteCoreException {
-        return new C4BlobReadStream(openReadStream(handle, blobKey.getHandle()));
+        return new C4BlobReadStream(openReadStream(getPeer(), getBlobKeyPeer(blobKey)));
     }
 
     /**
@@ -153,12 +152,13 @@ public class C4BlobStore {
      */
     @NonNull
     public C4BlobWriteStream openWriteStream() throws LiteCoreException {
-        return new C4BlobWriteStream(openWriteStream(handle));
+        return new C4BlobWriteStream(openWriteStream(getPeer()));
     }
 
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
@@ -167,8 +167,15 @@ public class C4BlobStore {
     }
 
     //-------------------------------------------------------------------------
+    // private methods
+    //-------------------------------------------------------------------------
+
+    private long getBlobKeyPeer(@NonNull C4BlobKey blobKey) { return blobKey.getHandle(); }
+
+    //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
+
     private static native long getBlobStore(long db) throws LiteCoreException;
 
     private static native long openStore(String dirPath, long flags) throws LiteCoreException;

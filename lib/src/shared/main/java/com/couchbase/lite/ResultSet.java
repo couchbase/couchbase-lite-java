@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4QueryEnumerator;
@@ -45,12 +44,11 @@ public class ResultSet implements Iterable<Result> {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-    private final AtomicBoolean isAlive = new AtomicBoolean(true);
 
     private final AbstractQuery query;
     private final Map<String, Integer> columnNames;
     private final ResultContext context;
-    private C4QueryEnumerator c4enum;
+    private final C4QueryEnumerator c4enum;
     private boolean isAllEnumerated;
 
     //---------------------------------------------
@@ -80,9 +78,8 @@ public class ResultSet implements Iterable<Result> {
      */
     public Result next() {
         Preconditions.assertNotNull(query, "query");
-        if (!isAlive.get()) { return null; }
 
-        synchronized (getDbLock()) {
+        synchronized (getNonNullDbLock()) {
             try {
                 if (c4enum == null) { return null; }
                 else if (isAllEnumerated) {
@@ -137,17 +134,6 @@ public class ResultSet implements Iterable<Result> {
     public Iterator<Result> iterator() { return allResults().iterator(); }
 
     //---------------------------------------------
-    // protected methods
-    //---------------------------------------------
-
-    @SuppressWarnings("NoFinalizer")
-    @Override
-    protected void finalize() throws Throwable {
-        free();
-        super.finalize();
-    }
-
-    //---------------------------------------------
     // Package level access
     //---------------------------------------------
 
@@ -162,16 +148,10 @@ public class ResultSet implements Iterable<Result> {
         return (idx == null) ? -1 : idx;
     }
 
-    // Must guarantee that this thing cannot be freed while a refresh is taking place.
-    // While the code in `free` is not synchronized (goddess help us), the call to `free` is *after* a
-    // synchronized block.  Either `isAlive` is false and this method exits without attempting the refresh
-    // or it has seized the lock and execution of the `free` method cannot actually free this object until
-    // this method exits.
     ResultSet refresh() throws CouchbaseLiteException {
         Preconditions.assertNotNull(query, "query");
 
-        synchronized (getDbLock()) {
-            if (!isAlive.get()) { return null; }
+        synchronized (getNonNullDbLock()) {
             try {
                 final C4QueryEnumerator newEnum = c4enum.refresh();
                 return (newEnum == null) ? null : new ResultSet(query, newEnum, columnNames);
@@ -182,20 +162,24 @@ public class ResultSet implements Iterable<Result> {
         }
     }
 
-    // Please see the `refresh` method if changing this one.
-    private void free() {
-        if (!isAlive.getAndSet(false)) { return; }
-
-        if (c4enum != null) {
-            synchronized (getDbLock()) { c4enum.close(); }
-            c4enum.free();
-            c4enum = null;
-        }
-    }
-
     //---------------------------------------------
     // Private level access
     //---------------------------------------------
-    private Object getDbLock() { return query.getDatabase().getLock(); }
+
+    private Object getDbLock() {
+        final AbstractQuery q = query;
+        if (q == null) { return null; }
+
+        final Database db = q.getDatabase();
+        if (db == null) { return null; }
+
+        return db.getLock();
+    }
+
+    private Object getNonNullDbLock() {
+        final Object lock = getDbLock();
+        if (lock == null) { throw new IllegalStateException("Cannot seize DB lock"); }
+        return lock;
+    }
 }
 

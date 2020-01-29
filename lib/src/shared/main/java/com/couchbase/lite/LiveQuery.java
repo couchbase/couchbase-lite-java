@@ -95,7 +95,7 @@ final class LiveQuery implements DatabaseChangeListener {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        stop();
+        internalStop(query, dbListenerToken);
         super.finalize();
     }
 
@@ -157,15 +157,26 @@ final class LiveQuery implements DatabaseChangeListener {
             final State oldState = state.getAndSet(State.STOPPED);
             if (State.STOPPED == oldState) { return; }
 
-            final Database db = query.getDatabase();
-            if (db != null) {
-                db.removeActiveLiveQuery(this);
-                db.removeChangeListener(dbListenerToken);
-                dbListenerToken = null;
-            }
-
+            final ListenerToken token = dbListenerToken;
             previousResults = null;
-        }
+            dbListenerToken = null;
+
+            internalStop(query, token);
+         }
+    }
+
+    // If this object is GCed out of order, e.g., the dbListener token is gone
+    // by the time we get here (via finalize), we are going to leave things in
+    // an inconsistent state...
+    private void internalStop(AbstractQuery query, ListenerToken token) {
+        if (query == null) { return; }
+
+        final Database db = query.getDatabase();
+        if (db == null) { return; }
+
+        db.removeActiveLiveQuery(this);
+
+        if (token != null) { db.removeChangeListener(token); }
     }
 
     private void update(long delay) {

@@ -225,7 +225,6 @@ abstract class AbstractDatabase {
     @GuardedBy("lock")
     private final Set<LiveQuery> activeLiveQueries;
     private final Set<Replicator> activeReplications;
-    private final Map<String, DocumentChangeNotifier> docChangeNotifiers;
 
     // Executor for purge and posting Database/Document changes.
     private final ExecutionService.CloseableExecutor postExecutor;
@@ -237,6 +236,7 @@ abstract class AbstractDatabase {
 
     private final DocumentExpirationStrategy purgeStrategy;
 
+    private Map<String, DocumentChangeNotifier> docChangeNotifiers;
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
@@ -316,7 +316,6 @@ abstract class AbstractDatabase {
 
         this.activeReplications = null;
         this.activeLiveQueries = null;
-        this.docChangeNotifiers = null;
 
         this.sharedKeys = null;
 
@@ -1120,11 +1119,15 @@ abstract class AbstractDatabase {
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
     }
 
+    // called from finalizer
     private void freeC4DB() {
-        if ((c4db != null) && !shellMode) {
-            getC4Database().free();
-            c4db = null;
-        }
+        if (shellMode) { return; }
+
+        final C4Database db = c4db;
+        c4db = null;
+
+        if (db == null) { return; }
+        db.free();
     }
 
     // --- Database changes:
@@ -1187,20 +1190,24 @@ abstract class AbstractDatabase {
             this);
     }
 
+    // called from finalizer
     private void freeC4DBObserver() {
-        if (c4DbObserver != null) {
-            c4DbObserver.free();
-            c4DbObserver = null;
-        }
+        final C4DatabaseObserver observers = c4DbObserver;
+        c4DbObserver = null;
+
+        if (observers == null) { return; }
+        observers.free();
     }
 
+    // called from finalizer
     private void freeC4Observers() {
         freeC4DBObserver();
 
-        if (docChangeNotifiers != null) {
-            for (DocumentChangeNotifier notifier : docChangeNotifiers.values()) { notifier.stop(); }
-            docChangeNotifiers.clear();
-        }
+        final Map<String, DocumentChangeNotifier> notifiers = docChangeNotifiers;
+        if (notifiers == null) { return; }
+        docChangeNotifiers = new HashMap<>();
+
+        for (DocumentChangeNotifier notifier : notifiers.values()) { notifier.stop(); }
     }
 
     private void postDatabaseChanged() {

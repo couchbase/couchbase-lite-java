@@ -21,82 +21,86 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class C4DatabaseObserver {
+
+public class C4DatabaseObserver extends C4NativePeer {
+
     //-------------------------------------------------------------------------
     // Static Variables
     //-------------------------------------------------------------------------
+
     // Long: handle of C4DatabaseObserver native address
     // C4DatabaseObserver: Java class holds handle
     private static final Map<Long, C4DatabaseObserver> REVERSE_LOOKUP_TABLE
         = Collections.synchronizedMap(new HashMap<>());
 
-    /**
-     * Callback invoked by a database observer.
-     * <p>
-     * NOTE: Two parameters, observer and context, which are defined for iOS:
-     * observer -> this instance
-     * context ->  maintained in java layer
-     */
-    @SuppressWarnings("PMD.UnusedPrivateMethod")
+    //-------------------------------------------------------------------------
+    // JNI callback methods
+    //-------------------------------------------------------------------------
+
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void callback(long handle) {
         final C4DatabaseObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
-        if (obs != null && obs.listener != null) { obs.listener.callback(obs, obs.context); }
+        if (obs == null) { return; }
+
+        final C4DatabaseObserverListener listener = obs.listener;
+        if (listener == null) { return; }
+
+        listener.callback(obs, obs.context);
     }
 
-    static native long create(long db);
+    //-------------------------------------------------------------------------
+    // Static factory methods
+    //-------------------------------------------------------------------------
 
-    static native C4DatabaseChange[] getChanges(long observer, int maxChanges);
+    static C4DatabaseObserver newObserver(long db, C4DatabaseObserverListener listener, Object context) {
+        final C4DatabaseObserver observer = new C4DatabaseObserver(db, listener, context);
+        REVERSE_LOOKUP_TABLE.put(observer.getPeer(), observer);
+        return observer;
+    }
+
+    //-------------------------------------------------------------------------
+    // Member Variables
+    //-------------------------------------------------------------------------
+
+    private final C4DatabaseObserverListener listener;
+    private final Object context;
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    static native void free(long c4observer);
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private final C4DatabaseObserverListener listener;
-    private final Object context;
-    private long handle; // hold pointer to C4DatabaseObserver
-
-    //-------------------------------------------------------------------------
-    // callback methods from JNI
-    //-------------------------------------------------------------------------
-
-    C4DatabaseObserver(long db, C4DatabaseObserverListener listener, Object context) {
+    private C4DatabaseObserver(long db, C4DatabaseObserverListener listener, Object context) {
+        super(create(db));
         this.listener = listener;
         this.context = context;
-        this.handle = create(db);
-        REVERSE_LOOKUP_TABLE.put(handle, this);
+    }
+
+    //-------------------------------------------------------------------------
+    // public methods
+    //-------------------------------------------------------------------------
+
+    public C4DatabaseChange[] getChanges(int maxChanges) { return getChanges(getPeer(), maxChanges); }
+
+    public void free() {
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+
+        REVERSE_LOOKUP_TABLE.remove(handle);
+
+        free(handle);
     }
 
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
 
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-    public C4DatabaseChange[] getChanges(int maxChanges) {
-        return getChanges(handle, maxChanges);
-    }
+    private static native long create(long db);
 
-    public void free() {
-        if (handle != 0L) {
-            REVERSE_LOOKUP_TABLE.remove(handle);
-            free(handle);
-            handle = 0L;
-        }
-    }
+    private static native C4DatabaseChange[] getChanges(long observer, int maxChanges);
 
-    //-------------------------------------------------------------------------
-    // protected methods
-    //-------------------------------------------------------------------------
-    @SuppressWarnings("NoFinalizer")
-    @Override
-    protected void finalize() throws Throwable {
-        free();
-        super.finalize();
-    }
+    private static native void free(long c4observer);
 }
+
+

@@ -20,46 +20,41 @@ package com.couchbase.lite.internal.core;
 import com.couchbase.lite.LiteCoreException;
 
 
-public class C4DocEnumerator {
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private long handle; // hold pointer to C4DocEnumerator
+public class C4DocEnumerator extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
     C4DocEnumerator(long db, long since, int flags) throws LiteCoreException {
-        handle = enumerateChanges(db, since, flags);
+        this(enumerateChanges(db, since, flags));
     }
 
-    C4DocEnumerator(long db, int flags) throws LiteCoreException {
-        handle = enumerateAllDocs(db, flags);
-    }
+    C4DocEnumerator(long db, int flags) throws LiteCoreException { this(enumerateAllDocs(db, flags)); }
+
+    private C4DocEnumerator(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
-    public boolean next() throws LiteCoreException { return next(handle); }
-
     public C4Document getDocument() throws LiteCoreException {
-        final long doc = getDocument(handle);
-        return doc != 0 ? new C4Document(doc) : null;
+        return new C4Document(getDocument(getPeer()));
     }
 
-    public void close() { close(handle); }
+    public boolean next() throws LiteCoreException { return next(getPeer()); }
+
+    public void close() { close(getPeer()); }
 
     public void free() {
-        final long hdl = handle;
-        handle = 0L;
-
-        if (hdl != 0L) { free(hdl); }
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        free(handle);
     }
 
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
@@ -70,6 +65,7 @@ public class C4DocEnumerator {
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
+
     private static native void close(long e);
 
     private static native void free(long e);

@@ -18,26 +18,16 @@
 package com.couchbase.lite.internal.fleece;
 
 public class FleeceDocument {
-    private MRoot _root = null;
-
-    FleeceDocument(AllocSlice fleeceData, boolean mutableContainers) {
-        _root = new MRoot(fleeceData, mutableContainers);
-    }
 
     public static Object getObject(AllocSlice fleeceData, boolean mutableContainers) {
-        MRoot root = new MRoot(fleeceData, mutableContainers);
-        return root.asNative();
+        return new MRoot(fleeceData, mutableContainers).asNative();
     }
 
-    public Object rootObject() {
-        return _root.asNative();
+    private final MRoot root;
+
+    FleeceDocument(AllocSlice fleeceData, boolean mutableContainers) {
+        root = new MRoot(fleeceData, mutableContainers);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        if (_root != null) {
-            _root = null;
-        }
-        super.finalize();
-    }
+    public Object rootObject() { return root.asNative(); }
 }

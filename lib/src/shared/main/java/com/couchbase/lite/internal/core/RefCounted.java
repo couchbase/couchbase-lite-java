@@ -17,10 +17,6 @@
 //
 package com.couchbase.lite.internal.core;
 
-import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.support.Log;
-
-
 abstract class RefCounted {
     private int refCount;
 
@@ -29,9 +25,9 @@ abstract class RefCounted {
     public synchronized void retain() { refCount++; }
 
     public synchronized void release() {
-        if (--refCount <= 0) { free(); }
-        if (refCount < 0) {
-            Log.w(LogDomain.DATABASE, "Ref count for " + getClass().getCanonicalName() + " is " + refCount);
-        }
+//        if (--refCount <= 0) { free(); }
+//        if (refCount < 0) {
+//            Log.w(LogDomain.DATABASE, "Ref count for " + getClass().getCanonicalName() + " is " + refCount);
+//        }
     }
 }

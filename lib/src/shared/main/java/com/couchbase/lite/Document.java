@@ -70,7 +70,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
     private final boolean mutable;
 
     // note that while internalDict is guarded by lock, the content of the Dictionary is not.
-    @SuppressWarnings("NullableProblems")
+    //@SuppressWarnings("NullableProblems")
     @GuardedBy("lock")
     private Dictionary internalDict;
 

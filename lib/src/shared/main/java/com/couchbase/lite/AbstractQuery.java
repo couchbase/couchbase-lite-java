@@ -224,8 +224,26 @@ abstract class AbstractQuery implements Query {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        freeInternal(c4query);
         super.finalize();
+    }
+
+    private void freeInternal(C4Query query) {
+        if (query == null) { return; }
+
+        Database db = database;
+        if (db == null) {
+            final DataSource src = from;
+            if (src == null) { return; }
+
+            db = (Database) src.getSource();
+            if (db == null) { return; }
+        }
+
+        final Object lock = db.getLock();
+        if (lock == null) { return; }
+
+        synchronized (lock) { query.free(); }
     }
 
     //---------------------------------------------
@@ -268,22 +286,6 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
     // Private methods
     //---------------------------------------------
-
-    private void free() {
-        final C4Query query;
-
-        synchronized (lock) {
-            query = c4query;
-            c4query = null;
-        }
-
-        if (query == null) { return; }
-
-        final Database db = getDatabase();
-        if (db != null) {
-            synchronized (db.getLock()) { query.free(); }
-        }
-    }
 
     @GuardedBy("lock")
     private C4Query prepQueryLocked() throws CouchbaseLiteException {
