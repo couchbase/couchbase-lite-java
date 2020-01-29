@@ -1,0 +1,53 @@
+ext {
+    CBL_GROUP = 'com.couchbase.lite'
+    CBL_ARTIFACT_ID = 'couchbase-lite-java'
+
+    PROJECT_DIR = "${projectDir}"
+    ROOT_DIR = "${PROJECT_DIR}/../.."
+    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
+    CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
+    CBL_JAVA_SRC_DIR = "${CBL_JAVA_DIR}/lib/src"
+
+    BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
+    BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
+    BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
+    BUILD_VERSION = "${BUILD_RELEASE}"
+
+    JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
+}
+
+apply plugin: 'java'
+
+group = CBL_GROUP
+
+repositories {
+    google()
+    mavenCentral()
+    jcenter()
+    maven { url "http://172.23.121.218/maven2/cimaven/" }
+}
+
+java {
+    version = BUILD_VERSION
+    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_1_8
+
+    sourceSets {
+        test {
+            java.srcDirs = [
+                "${CBL_JAVA_SRC_DIR}/test/java",                    // Java specific tests
+                "${CBL_JAVA_SRC_DIR}/shared/test/java"              // Shared tests between Java and Android
+            ]
+            resources.srcDirs = [
+                "${CBL_JAVA_SRC_DIR}/shared/test/assets",           // Shared test assets between Java and Android
+                "${CBL_CORE_DIR}/C/tests/data"                      // lite-core test assets
+            ]
+        }
+    }
+}
+
+dependencies {
+    testCompile "com.couchbase.lite:couchbase-lite-java:${BUILD_VERSION}"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompileOnly 'com.android.support:support-annotations:28.0.0'
+}
