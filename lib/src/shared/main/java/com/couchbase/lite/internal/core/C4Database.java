@@ -334,7 +334,6 @@ public class C4Database {
         C4ReplicationFilter pushFilter,
         C4ReplicationFilter pullFilter,
         AbstractReplicator replicatorContext,
-        SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
         return new C4Replicator(
@@ -347,7 +346,6 @@ public class C4Database {
             pushFilter,
             pullFilter,
             replicatorContext,
-            socketFactoryContext,
             framing);
     }
 

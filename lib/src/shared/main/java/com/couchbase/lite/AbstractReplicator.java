@@ -827,7 +827,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             c4ReplPushFilter,
             c4ReplPullFilter,
             this,
-            socketFactory,
             framing());
     }
 
