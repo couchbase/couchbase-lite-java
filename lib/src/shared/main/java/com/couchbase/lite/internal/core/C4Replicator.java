@@ -141,7 +141,7 @@ public class C4Replicator {
 
     private static void addToMap(long handle, @NonNull C4Replicator repl, @Nullable Object context) {
         REVERSE_LOOKUP_TABLE.put(handle, repl);
-        CONTEXT_TO_C4_REPLICATOR_MAP.put(context, repl);
+        if (context != null) { CONTEXT_TO_C4_REPLICATOR_MAP.put(context, repl); }
     }
 
 
