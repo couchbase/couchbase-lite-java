@@ -50,8 +50,9 @@ public class C4Database {
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+    private final boolean shouldRetain; // true -> not release native object, false -> release by free()
+
     private long handle; // hold pointer to C4Database
-    private boolean shouldRetain; // true -> not release native object, false -> release by free()
 
     //-------------------------------------------------------------------------
     // Constructor
@@ -64,10 +65,14 @@ public class C4Database {
         int algorithm,
         byte[] encryptionKey)
         throws LiteCoreException {
-        this.handle = open(path, flags, storageEngine, versioning, algorithm, encryptionKey);
+        this(open(path, flags, storageEngine, versioning, algorithm, encryptionKey), false);
     }
 
-    public C4Database(long handle) { this.handle = handle; }
+    public C4Database(long handle, boolean shouldRetain) {
+        this.handle = handle;
+        this.shouldRetain = shouldRetain;
+    }
+
 
     //-------------------------------------------------------------------------
     // public methods
@@ -78,13 +83,10 @@ public class C4Database {
     public void free() {
         if (shouldRetain) { return; }
 
-        free(handle);
+        final long hdl = handle;
         handle = 0L;
-    }
 
-    public C4Database retain() {
-        shouldRetain = true;
-        return this;
+        internalFree(hdl);
     }
 
     public void close() throws LiteCoreException { close(handle); }
@@ -373,7 +375,7 @@ public class C4Database {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        internalFree(handle);
         super.finalize();
     }
 
@@ -382,6 +384,15 @@ public class C4Database {
     //-------------------------------------------------------------------------
 
     long getHandle() { return handle; }
+
+    //-------------------------------------------------------------------------
+    // private access
+    //-------------------------------------------------------------------------
+
+    private void internalFree(long hdl) {
+        if (shouldRetain || (hdl == 0L)) { return; }
+        free(hdl);
+    }
 
     //-------------------------------------------------------------------------
     // Native methods

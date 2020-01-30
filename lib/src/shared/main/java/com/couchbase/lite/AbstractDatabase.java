@@ -1447,13 +1447,11 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             prepareDocument(document);
 
-            C4Document newDoc = null;
-
             boolean commit = false;
             beginTransaction();
             try {
                 try {
-                    newDoc = saveInTransaction(document, (baseDoc == null) ? null : baseDoc.getC4doc(), deleting);
+                    saveInTransaction(document, (baseDoc == null) ? null : baseDoc.getC4doc(), deleting);
                     commit = true;
                     return;
                 }
@@ -1468,60 +1466,49 @@ abstract class AbstractDatabase {
                     throw new CouchbaseLiteException("Conflict", CBLError.Domain.CBLITE, CBLError.Code.CONFLICT);
                 }
 
-                newDoc = saveConflicted(document, deleting);
-                commit = newDoc != null;
+                commit = saveConflicted(document, deleting);
             }
             finally {
-                try { endTransaction(commit); }
-                catch (CouchbaseLiteException e) {
-                    if (newDoc != null) { newDoc.release(); }
-                    throw e;
-                }
+                endTransaction(commit);
             }
         }
     }
 
     @Nullable
-    private C4Document saveConflicted(@NonNull Document document, boolean deleting)
+    private boolean saveConflicted(@NonNull Document document, boolean deleting)
         throws CouchbaseLiteException {
 
         C4Document curDoc = null;
-        try {
-            try { curDoc = getC4Database().get(document.getId(), true); }
-            catch (LiteCoreException e) {
-                // here if deleting and the curDoc doesn't exist.
-                if (deleting
-                    && (e.domain == C4Constants.ErrorDomain.LITE_CORE)
-                    && (e.code == C4Constants.LiteCoreError.NOT_FOUND)) {
-                    return null;
-                }
 
-                // here if the save failed.
-                throw CBLStatus.convertException(e);
+        try { curDoc = getC4Database().get(document.getId(), true); }
+        catch (LiteCoreException e) {
+            // here if deleting and the curDoc doesn't exist.
+            if (deleting
+                && (e.domain == C4Constants.ErrorDomain.LITE_CORE)
+                && (e.code == C4Constants.LiteCoreError.NOT_FOUND)) {
+                return false;
             }
 
-            // here if deleting and the curDoc has already been deleted
-            if (deleting && curDoc.deleted()) {
-                document.replaceC4Document(curDoc);
-                curDoc = null; // prevent to call curDoc.release() in finally block
-                return null;
-            }
-
-            // Save changes on the current branch:
-            return saveInTransaction(document, curDoc, deleting);
+            // here if the save failed.
+            throw CBLStatus.convertException(e);
         }
-        finally {
-            if (curDoc != null) {
-                curDoc.retain();
-                curDoc.release(); // curDoc is not retained
-            }
+
+        // here if deleting and the curDoc has already been deleted
+        if (deleting && curDoc.deleted()) {
+            document.replaceC4Document(curDoc);
+            return false;
         }
+
+        // Save changes on the current branch:
+        saveInTransaction(document, curDoc, deleting);
+
+        return true;
     }
 
     // Low-level save method
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     @NonNull
-    private C4Document saveInTransaction(@NonNull Document document, @Nullable C4Document base, boolean deleting)
+    private void saveInTransaction(@NonNull Document document, @Nullable C4Document base, boolean deleting)
         throws CouchbaseLiteException {
         FLSliceResult body = null;
         try {
@@ -1543,8 +1530,6 @@ abstract class AbstractDatabase {
                 : getC4Database().create(document.getId(), body, revFlags);
 
             document.replaceC4Document(c4Doc);
-
-            return c4Doc;
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);

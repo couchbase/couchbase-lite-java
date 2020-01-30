@@ -32,7 +32,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.utils.Fn;
 
 
-public class C4Document extends RefCounted {
+public class C4Document {
     public static boolean dictContainsBlobs(FLSliceResult dict, FLSharedKeys sk) {
         return dictContainsBlobs(dict.getHandle(), sk.getHandle());
     }
@@ -143,7 +143,7 @@ public class C4Document extends RefCounted {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        internalFree(handle);
         super.finalize();
     }
 
@@ -155,7 +155,7 @@ public class C4Document extends RefCounted {
 
     byte[] getSelectedBody() { return withHandle(C4Document::getSelectedBody, null); }
 
-    @Override
+    @VisibleForTesting
     void free() {
         final long hdl;
         synchronized (lock) {
@@ -163,10 +163,9 @@ public class C4Document extends RefCounted {
             handle = 0;
         }
 
-        if (hdl != 0L) {
-            free(hdl);
-            if (CouchbaseLiteInternal.isDebugging()) { freedAt = new Exception(); }
-        }
+        internalFree(hdl);
+
+        if (CouchbaseLiteInternal.isDebugging()) { freedAt = new Exception(); }
     }
 
     // - Revisions
@@ -244,6 +243,11 @@ public class C4Document extends RefCounted {
     private void logBadCall() {
         Log.w(LogDomain.DATABASE, "Bad method call: ", new Exception());
         if (freedAt != null) { Log.w(LogDomain.DATABASE, "... on C4Document freed at: ", freedAt); }
+    }
+
+    private void internalFree(long hdl) {
+        if (hdl == 0L) { return; }
+        free(hdl);
     }
 
     //-------------------------------------------------------------------------
