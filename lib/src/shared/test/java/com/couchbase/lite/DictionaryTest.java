@@ -17,15 +17,15 @@
 //
 package com.couchbase.lite;
 
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.HashMap;
+
+import org.junit.Test;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
@@ -34,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 
 public class DictionaryTest extends BaseTest {
     @Test
@@ -288,8 +289,7 @@ public class DictionaryTest extends BaseTest {
     @Test
     public void testEnumeratingKeys() throws CouchbaseLiteException {
         final MutableDictionary dict = new MutableDictionary();
-        for (int i = 0; i < 20; i++)
-            dict.setValue(String.format(Locale.ENGLISH, "key%d", i), i);
+        for (int i = 0; i < 20; i++) { dict.setValue(String.format(Locale.ENGLISH, "key%d", i), i); }
         Map<String, Object> content = dict.toMap();
 
         Map<String, Object> result = new HashMap<>();
@@ -337,19 +337,18 @@ public class DictionaryTest extends BaseTest {
     // @Test
     public void testDictionaryEnumerationWithDataModification() throws CouchbaseLiteException {
         MutableDictionary dict = new MutableDictionary();
-        for (int i = 0; i < 2; i++)
-            dict.setValue(String.format(Locale.ENGLISH, "key%d", i), i);
+        for (int i = 0; i < 2; i++) { dict.setValue(String.format(Locale.ENGLISH, "key%d", i), i); }
 
         Iterator<String> itr = dict.iterator();
         int count = 0;
         try {
             while (itr.hasNext()) {
                 itr.next();
-                if (count++ == 0)
-                    dict.setValue("key2", 2);
+                if (count++ == 0) { dict.setValue("key2", 2); }
             }
             fail("Expected ConcurrentModificationException");
-        } catch (ConcurrentModificationException e) {
+        }
+        catch (ConcurrentModificationException e) {
             // Expected to come here!
         }
         assertEquals(3, dict.count());
@@ -364,11 +363,11 @@ public class DictionaryTest extends BaseTest {
         try {
             while (itr.hasNext()) {
                 itr.next();
-                if (count++ == 0)
-                    dict.setValue("key3", 3);
+                if (count++ == 0) { dict.setValue("key3", 3); }
             }
             fail("Expected ConcurrentModificationException");
-        } catch (ConcurrentModificationException e) {
+        }
+        catch (ConcurrentModificationException e) {
             // Expected to come here!
         }
         assertEquals(4, dict.count());

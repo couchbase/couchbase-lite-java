@@ -49,9 +49,7 @@ public class C4QueryBaseTest extends C4BaseTest {
         return query;
     }
 
-    protected C4Query compile(String whereExpr) throws LiteCoreException {
-        return compile(whereExpr, null);
-    }
+    protected C4Query compile(String whereExpr) throws LiteCoreException { return compile(whereExpr, null); }
 
     protected C4Query compile(String whereExpr, String sortExpr) throws LiteCoreException {
         return compile(whereExpr, sortExpr, false);
@@ -65,9 +63,7 @@ public class C4QueryBaseTest extends C4BaseTest {
             json.append(", \"ORDER_BY\": ");
             json.append(sortExpr);
         }
-        if (addOffsetLimit) {
-            json.append(", \"OFFSET\": [\"$offset\"], \"LIMIT\":  [\"$limit\"]");
-        }
+        if (addOffsetLimit) { json.append(", \"OFFSET\": [\"$offset\"], \"LIMIT\":  [\"$limit\"]"); }
         json.append("}]");
 
         if (query != null) {
@@ -79,9 +75,7 @@ public class C4QueryBaseTest extends C4BaseTest {
         return query;
     }
 
-    protected List<String> run() throws LiteCoreException {
-        return run(null);
-    }
+    protected List<String> run() throws LiteCoreException { return run(null); }
 
     protected List<String> run(Map<String, Object> params) throws LiteCoreException {
         List<String> docIDs = new ArrayList<>();
@@ -90,9 +84,7 @@ public class C4QueryBaseTest extends C4BaseTest {
         C4QueryEnumerator e = query.run(opts, encodedParams);
         try {
             assertNotNull(e);
-            while (e.next()) {
-                docIDs.add(e.getColumns().getValueAt(0).asString());
-            }
+            while (e.next()) { docIDs.add(e.getColumns().getValueAt(0).asString()); }
             return docIDs;
         }
         finally {
@@ -101,9 +93,7 @@ public class C4QueryBaseTest extends C4BaseTest {
         }
     }
 
-    protected List<List<List<Long>>> runFTS() throws LiteCoreException {
-        return runFTS(null);
-    }
+    protected List<List<List<Long>>> runFTS() throws LiteCoreException { return runFTS(null);}
 
     protected List<List<List<Long>>> runFTS(Map<String, Object> params) throws LiteCoreException {
         List<List<List<Long>>> matches = new ArrayList<>();
