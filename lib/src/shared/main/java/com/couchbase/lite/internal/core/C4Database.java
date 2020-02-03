@@ -52,7 +52,7 @@ public class C4Database {
     //-------------------------------------------------------------------------
     private final boolean shouldRetain; // true -> not release native object, false -> release by free()
 
-    private long handle; // hold pointer to C4Database
+    private long handle; // pointer to C4Database
 
     //-------------------------------------------------------------------------
     // Constructor
@@ -148,7 +148,7 @@ public class C4Database {
 
     // - Fleece-related
     // !!! This needs to hold both the document and the database locks
-    public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle)).managed(); }
+    public FLEncoder getSharedFleeceEncoder() { return new FLEncoder(getSharedFleeceEncoder(handle), true); }
 
     // NOTE: Should param be String instead of byte[]?
     @VisibleForTesting

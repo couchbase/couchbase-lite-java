@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.utils.Fn;
 
 
 public class FLValue {
@@ -67,7 +69,7 @@ public class FLValue {
     //-------------------------------------------------------------------------
 
     public FLValue(long handle) {
-        if (handle == 0L) { throw new IllegalArgumentException("handle is 0L."); }
+        Preconditions.checkArgNotZero(handle, "handle");
         this.handle = handle;
     }
 
@@ -187,13 +189,6 @@ public class FLValue {
         return null;
     }
 
-    /**
-     * If a FLValue represents an array, returns it cast to FLArray, else nullptr.
-     *
-     * @return long (FLArray)
-     */
-    public FLArray asFLArray() { return new FLArray(asArray(handle)); }
-
     public List<Object> asArray() { return asFLArray().asArray(); }
 
     public <T> List<T> asTypedArray() { return asFLArray().asTypedArray(); }
@@ -243,7 +238,10 @@ public class FLValue {
     //-------------------------------------------------------------------------
     // package level access
     //-------------------------------------------------------------------------
-    long getHandle() { return handle; }
+
+    <T> T withContent(Fn.Function<Long, T> fn) { return fn.apply(handle); }
+
+    FLArray asFLArray() { return new FLArray(asArray(handle)); }
 
     //-------------------------------------------------------------------------
     // native methods

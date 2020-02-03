@@ -21,6 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.utils.Fn;
+
 
 public class FLDict {
     private final long handle; // hold pointer to FLDict
@@ -30,7 +33,7 @@ public class FLDict {
     //-------------------------------------------------------------------------
 
     public FLDict(long handle) {
-        if (handle == 0L) { throw new IllegalStateException("handle is 0L"); }
+        Preconditions.checkArgNotZero(handle, "handle");
         this.handle = handle;
     }
 
@@ -40,10 +43,7 @@ public class FLDict {
 
     public FLValue toFLValue() { return new FLValue(handle); }
 
-    public long count() {
-        if (handle == 0L) { throw new IllegalStateException("handle is 0L"); }
-        return count(handle);
-    }
+    public long count() { return count(handle); }
 
     public FLValue get(String key) {
         if (key == null) { return null; }
@@ -56,17 +56,14 @@ public class FLDict {
     public Map<String, Object> asDict() {
         final Map<String, Object> results = new HashMap<>();
         final FLDictIterator itr = new FLDictIterator();
-        try {
-            itr.begin(this);
-            String key;
-            while ((key = itr.getKeyString()) != null) {
-                results.put(key, itr.getValue().asObject());
-                itr.next();
-            }
+
+        itr.begin(this);
+        String key;
+        while ((key = itr.getKeyString()) != null) {
+            results.put(key, itr.getValue().asObject());
+            itr.next();
         }
-        finally {
-            itr.free();
-        }
+
         return results;
     }
 
@@ -74,7 +71,7 @@ public class FLDict {
     // protected methods
     //-------------------------------------------------------------------------
 
-    long getHandle() { return handle; }
+    <T> T withContent(Fn.Function<Long, T> fn) { return fn.apply(handle); }
 
     //-------------------------------------------------------------------------
     // native methods
