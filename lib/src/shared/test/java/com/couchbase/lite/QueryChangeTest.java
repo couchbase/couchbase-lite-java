@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class QueryChangeTest  extends BaseQueryTest{
+
     @Test
     public void testQueryChangeTest() {
         QueryChange change = new QueryChange(null, null, null);
@@ -35,8 +36,8 @@ public class QueryChangeTest  extends BaseQueryTest{
         assertNull(change.getError());
     }
 
-    ListenerToken token;
     // https://github.com/couchbase/couchbase-lite-android/issues/1615
+    // ??? note that this test does not actually verify that the listener has been removed
     @Test
     public void testRemoveQueryChangeListenerInCallback() throws Exception {
         loadNumberedDocs(10);
@@ -46,25 +47,24 @@ public class QueryChangeTest  extends BaseQueryTest{
                 .from(DataSource.database(db))
                 .where(Expression.property("number1").lessThan(Expression.intValue(5)));
 
-        // Remove listener in the listener needs be careful as the change event might get call
-        // from the executor thread before query.addChangeListener() returns.
+        final ListenerToken[] token = new ListenerToken[1];
+
+        // Removing a listener inside the listener itself needs be done carefully.
+        // The change handler might get called from the executor thread before query.addChangeListener() returns.
         final CountDownLatch latch = new CountDownLatch(1);
         QueryChangeListener listener = change -> {
-            assertNotNull(change);
             ResultSet rs = change.getResults();
-            while ((rs != null) && (rs.next() != null)) { // here
+            if ((rs != null) && (rs.next() != null)) { // ??? WAT?
                 synchronized (this) {
-                    query.removeChangeListener(token);
-                    token = null;
-                    break;
+                    query.removeChangeListener(token[0]);
+                    token[0] = null;
                 }
             }
             latch.countDown();
         };
 
-        synchronized (this) {
-            token = query.addChangeListener(executor, listener);
-        }
+        synchronized (this) { token[0] = query.addChangeListener(executor, listener); }
+
         assertTrue(latch.await(2, TimeUnit.SECONDS));
     }
 }

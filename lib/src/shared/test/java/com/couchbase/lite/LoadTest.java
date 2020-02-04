@@ -36,7 +36,9 @@ import static org.junit.Assert.assertTrue;
 public class LoadTest extends BaseTest {
     private static final int ITERATIONS = 2000;
 
-    interface VerifyBlock { void verify(int n, Result result); }
+    interface VerifyBlock {
+        void verify(int n, Result result);
+    }
 
     @Test
     public void testCreate() throws Exception {
@@ -318,26 +320,16 @@ public class LoadTest extends BaseTest {
     }
 
     private void verifyByTagName(String tag, VerifyBlock block) throws CouchbaseLiteException {
-        Expression TAG_EXPR = Expression.property("tag");
-        SelectResult DOCID = SelectResult.expression(Meta.id);
-        DataSource ds = DataSource.database(db);
-        Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = query.execute();
-        Result row;
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
+            .from(DataSource.database(db))
+            .where(Expression.property("tag").equalTo(Expression.string(tag)));
         int n = 0;
-        while ((row = rs.next()) != null) {
-            block.verify(++n, row);
-        }
+        for (Result row : query.execute()) { block.verify(++n, row); }
     }
 
     private void verifyByTagName(String tag, int nRows) throws CouchbaseLiteException {
         final AtomicInteger count = new AtomicInteger(0);
-        verifyByTagName(tag, new VerifyBlock() {
-            @Override
-            public void verify(int n, Result result) {
-                count.incrementAndGet();
-            }
-        });
+        verifyByTagName(tag, (n, result) -> count.incrementAndGet());
         assertEquals(nRows, count.intValue());
     }
 }

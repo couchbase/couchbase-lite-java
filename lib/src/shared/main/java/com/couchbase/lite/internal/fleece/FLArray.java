@@ -20,33 +20,40 @@ package com.couchbase.lite.internal.fleece;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.utils.Fn;
+
 
 public class FLArray {
-    /**
-     * Returns the number of items in an array, or 0 if the pointer is nullptr.
-     *
-     * @param array FLArray
-     * @return long (uint32_t)
-     */
-    static native long count(long array);
+    private final long handle; // pointer to FLArray
 
-    /**
-     * Returns an value at an array index, or nullptr if the index is out of range.
-     *
-     * @param array FLArray
-     * @param index uint32_t
-     * @return long (FLValue)
-     */
-    static native long get(long array, long index);
+    //-------------------------------------------------------------------------
+    // constructor
+    //-------------------------------------------------------------------------
 
-    private final long handle; // hold pointer to FLArray
+    public FLArray(long handle) {
+        Preconditions.checkArgNotZero(handle, "handle");
+        this.handle = handle;
+    }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public FLArray(long handle) {
-        this.handle = handle;
-    }
+
+    /**
+     * Returns the number of items in an array; 0 if handle is null.
+     *
+     * @return the number of items in an array; 0 if handle is null.
+     */
+    public long count() { return count(handle); }
+
+    /**
+     * Returns an value at an array index, or null if the index is out of range.
+     *
+     * @param index index for value
+     * @return the FLValue at index
+     */
+    public FLValue get(long index) { return new FLValue(get(handle, index)); }
 
     public List<Object> asArray() { return asTypedArray(); }
 
@@ -54,38 +61,28 @@ public class FLArray {
     public <T> List<T> asTypedArray() {
         final List<T> results = new ArrayList<>();
         final FLArrayIterator itr = new FLArrayIterator();
-        try {
-            itr.begin(this);
-            FLValue value;
-            while ((value = itr.getValue()) != null) {
-                results.add((T) value.asObject());
-                if (!itr.next()) { break; }
-            }
+
+        itr.begin(this);
+        FLValue value;
+        while ((value = itr.getValue()) != null) {
+            results.add((T) value.asObject());
+            if (!itr.next()) { break; }
         }
-        finally {
-            itr.free();
-        }
+
         return results;
-    }
-
-    public long count() {
-        return count(handle);
-    }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
-
-    public FLValue get(long index) {
-        return new FLValue(get(handle, index));
     }
 
     //-------------------------------------------------------------------------
     // package level access
     //-------------------------------------------------------------------------
-    long getHandle() {
-        return handle;
-    }
 
-    // TODO: Need free()?
+    <T> T withContent(Fn.Function<Long, T> fn) { return fn.apply(handle); }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    private static native long count(long array);
+
+    private static native long get(long array, long index);
 }

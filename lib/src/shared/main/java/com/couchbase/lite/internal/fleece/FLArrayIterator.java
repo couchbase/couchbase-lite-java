@@ -18,76 +18,35 @@
 package com.couchbase.lite.internal.fleece;
 
 public class FLArrayIterator {
-    /**
-     * Create FLArrayIterator instance
-     *
-     * @return long (FLArrayIterator *)
-     */
-    static native long init();
-
-    /**
-     * Initializes a FLArrayIterator struct to iterate over an array.
-     *
-     * @param array (FLArray)
-     * @param itr   (FLArrayIterator *)
-     */
-    static native void begin(long array, long itr);
-
-    /**
-     * Returns the current value being iterated over.
-     *
-     * @param itr (FLArrayIterator *)
-     * @return long (FLValue)
-     */
-    static native long getValue(long itr);
-
-    /**
-     * @param itr    (FLArrayIterator *)
-     * @param offset
-     * @return long (FLValue)
-     */
-    static native long getValueAt(long itr, int offset);
-
-    /**
-     * Advances the iterator to the next value, or returns false if at the end.
-     *
-     * @param itr (FLArrayIterator *)
-     */
-    static native boolean next(long itr);
-
-    /**
-     * Free FLArrayIterator instance
-     *
-     * @param itr (FLArrayIterator *)
-     */
-    static native void free(long itr);
-
-    private long handle; // hold pointer to FLArrayIterator
+    private long handle; // pointer to FLArrayIterator
 
     private final boolean managed;
 
     //-------------------------------------------------------------------------
+    // Constructors
+    //-------------------------------------------------------------------------
+
+    public FLArrayIterator() { this(init(), false); }
+
+    public FLArrayIterator(long handle) { this(handle, true); }
+
+    private FLArrayIterator(long handle, boolean managed) {
+        this.handle = handle;
+        this.managed = managed;
+    }
+
+    //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public FLArrayIterator() {
-        this.managed = false;
-        this.handle = init();
-    }
-
-    public FLArrayIterator(long handle) {
-        this.managed = true;
-        this.handle = handle;
-    }
-
-    //-------------------------------------------------------------------------
-    // native methods
-    //-------------------------------------------------------------------------
-
-    // TODO: init() and begin() could be combined.
 
     public void begin(FLArray array) {
-        begin(array.getHandle(), handle);
+        array.withContent(hdl -> {
+            begin(hdl, handle);
+            return null;
+        });
     }
+
+    public boolean next() { return next(handle); }
 
     public FLValue getValue() {
         final long hValue = getValue(handle);
@@ -99,24 +58,77 @@ public class FLArrayIterator {
         return hValue != 0L ? new FLValue(hValue) : null;
     }
 
-    public boolean next() {
-        return next(handle);
-    }
-
-    public void free() {
-        if (handle != 0L && !managed) {
-            free(handle);
-            handle = 0L;
-        }
-    }
-
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
+
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         free();
         super.finalize();
     }
+
+    //-------------------------------------------------------------------------
+    // private methods
+    //-------------------------------------------------------------------------
+
+    private void free() {
+        if (managed) { return; }
+
+        final long hdl = handle;
+        handle = 0L;
+
+        if (hdl != 0L) { free(hdl); }
+    }
+
+    //-------------------------------------------------------------------------
+    // native methods
+    //-------------------------------------------------------------------------
+
+    // TODO: init() and begin() could be combined.
+
+    /**
+     * Create FLArrayIterator instance
+     *
+     * @return long (FLArrayIterator *)
+     */
+    private static native long init();
+
+    /**
+     * Initializes a FLArrayIterator struct to iterate over an array.
+     *
+     * @param array (FLArray)
+     * @param itr   (FLArrayIterator *)
+     */
+    private static native void begin(long array, long itr);
+
+    /**
+     * Returns the current value being iterated over.
+     *
+     * @param itr (FLArrayIterator *)
+     * @return long (FLValue)
+     */
+    private static native long getValue(long itr);
+
+    /**
+     * @param itr    (FLArrayIterator *)
+     * @param offset
+     * @return long (FLValue)
+     */
+    private static native long getValueAt(long itr, int offset);
+
+    /**
+     * Advances the iterator to the next value, or returns false if at the end.
+     *
+     * @param itr (FLArrayIterator *)
+     */
+    private static native boolean next(long itr);
+
+    /**
+     * Free FLArrayIterator instance
+     *
+     * @param itr (FLArrayIterator *)
+     */
+    private static native void free(long itr);
 }

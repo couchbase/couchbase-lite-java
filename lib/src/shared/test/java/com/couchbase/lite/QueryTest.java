@@ -1363,9 +1363,8 @@ public class QueryTest extends BaseQueryTest {
                 assertEquals(9, count);
             }
             else if (latch.getCount() == 1) {
-                Result result;
                 int count = 0;
-                while ((result = rs.next()) != null) {
+                for (Result result : rs) {
                     if (count == 0) {
                         Document doc = db.getDocument(result.getString(0));
                         assertEquals(-1L, doc.getValue("number1"));

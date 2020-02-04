@@ -36,7 +36,12 @@ public class FLDictIterator {
 
     public long getCount() { return getCount(handle); }
 
-    public void begin(FLDict dict) { begin(dict.getHandle(), handle); }
+    public void begin(FLDict dict) {
+        dict.withContent(hdl -> {
+            begin(hdl, handle);
+            return null;
+        });
+    }
 
     /**
      * The annoying check on the value is necessary because, when the iterator is exhausted,

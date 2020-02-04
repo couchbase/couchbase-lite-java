@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.support.Log;
 
 
 public class FLEncoder {
@@ -28,9 +30,9 @@ public class FLEncoder {
     // Member variables
     //-------------------------------------------------------------------------
 
-    private long handle;
+    private final boolean isMemoryManaged;
 
-    private boolean isMemoryManaged;
+    private long handle;
 
     private Object extraInfo;
 
@@ -40,17 +42,19 @@ public class FLEncoder {
 
     public FLEncoder() { this(init()); }
 
-    public FLEncoder(long handle) { this.handle = handle; }
+    public FLEncoder(long handle) { this(handle, false); }
 
     /*
      * Allow the FLEncoder in managed mode. In the managed mode, the IllegalStateException will be
      * thrown when the free() method is called and the finalize() will not throw the
      * IllegalStateException as the free() method is not called. Use this method when the
      * FLEncoder will be freed by the native code.
+     *
+     * ??? Why are these things *ever* not memory managed?
      */
-    public FLEncoder managed() {
-        isMemoryManaged = true;
-        return this;
+    public FLEncoder(long handle, boolean managed) {
+        this.handle = handle;
+        this.isMemoryManaged = managed;
     }
 
     public void free() {
@@ -96,7 +100,7 @@ public class FLEncoder {
             if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
 
             // Double
-            if (value instanceof Double) { return writeDouble(handle,  (Double) value); }
+            if (value instanceof Double) { return writeDouble(handle, (Double) value); }
 
             // Float
             return writeFloat(handle, (Float) value);
@@ -115,13 +119,13 @@ public class FLEncoder {
         if (value instanceof Map) { return write((Map<String, Object>) value); }
 
         // FLValue
-        if (value instanceof FLValue) { return writeValue(handle, ((FLValue) value).getHandle()); }
+        if (value instanceof FLValue) { return ((FLValue) value).withContent(hdl -> (writeValue(handle, hdl))); }
 
         // FLDict
-        if (value instanceof FLDict) { return writeValue(handle, ((FLDict) value).getHandle()); }
+        if (value instanceof FLDict) { return ((FLDict) value).withContent(hdl -> (writeValue(handle, hdl))); }
 
         // FLArray
-        if (value instanceof FLArray) { return writeValue(handle, ((FLArray) value).getHandle()); }
+        if (value instanceof FLArray) { return ((FLArray) value).withContent(hdl -> (writeValue(handle, hdl))); }
 
         // FLEncodable
         if (value instanceof FLEncodable) {
@@ -172,8 +176,8 @@ public class FLEncoder {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        if (handle != 0L && !isMemoryManaged) {
-            throw new IllegalStateException("FLEncoder was finalized before freeing.");
+        if ((handle != 0L) && (!isMemoryManaged)) {
+            Log.e(LogDomain.DATABASE, "FLEncoder was finalized before freeing.");
         }
         super.finalize();
     }
@@ -182,39 +186,39 @@ public class FLEncoder {
     // native methods
     //-------------------------------------------------------------------------
 
-    static native long init(); // FLEncoder FLEncoder_New(void);
+    private static native long init(); // FLEncoder FLEncoder_New(void);
 
-    static native void free(long encoder);
+    private static native void free(long encoder);
 
-    static native boolean writeNull(long encoder);
+    private static native boolean writeNull(long encoder);
 
-    static native boolean writeBool(long encoder, boolean value);
+    private static native boolean writeBool(long encoder, boolean value);
 
-    static native boolean writeInt(long encoder, long value); // 64bit
+    private static native boolean writeInt(long encoder, long value); // 64bit
 
-    static native boolean writeFloat(long encoder, float value);
+    private static native boolean writeFloat(long encoder, float value);
 
-    static native boolean writeDouble(long encoder, double value);
+    private static native boolean writeDouble(long encoder, double value);
 
-    static native boolean writeString(long encoder, String value);
+    private static native boolean writeString(long encoder, String value);
 
-    static native boolean writeData(long encoder, byte[] value);
+    private static native boolean writeData(long encoder, byte[] value);
 
-    static native boolean writeValue(long encoder, long value /*FLValue*/);
+    private static native boolean writeValue(long encoder, long value /*FLValue*/);
 
-    static native boolean beginArray(long encoder, long reserve);
+    private static native boolean beginArray(long encoder, long reserve);
 
-    static native boolean endArray(long encoder);
+    private static native boolean endArray(long encoder);
 
-    static native boolean beginDict(long encoder, long reserve);
+    private static native boolean beginDict(long encoder, long reserve);
 
-    static native boolean endDict(long encoder);
+    private static native boolean endDict(long encoder);
 
-    static native boolean writeKey(long encoder, String slice);
+    private static native boolean writeKey(long encoder, String slice);
 
-    static native byte[] finish(long encoder) throws LiteCoreException;
+    private static native byte[] finish(long encoder) throws LiteCoreException;
 
-    static native long finish2(long encoder) throws LiteCoreException;
+    private static native long finish2(long encoder) throws LiteCoreException;
 
-    static native void reset(long encoder);
+    private static native void reset(long encoder);
 }

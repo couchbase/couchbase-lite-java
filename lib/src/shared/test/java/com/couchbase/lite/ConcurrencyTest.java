@@ -23,16 +23,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.AbstractExecutionService;
 import com.couchbase.lite.utils.ConcurrencyUnitTest;
 import com.couchbase.lite.utils.Report;
 
@@ -552,14 +547,11 @@ public class ConcurrencyTest extends BaseTest {
     }
 
     private void verifyByTagName(String tag, VerifyBlock<Result> block) throws CouchbaseLiteException {
-        Expression TAG_EXPR = Expression.property("tag");
-        SelectResult DOCID = SelectResult.expression(Meta.id);
-        DataSource ds = DataSource.database(db);
-        Query query = QueryBuilder.select(DOCID).from(ds).where(TAG_EXPR.equalTo(Expression.string(tag)));
-        ResultSet rs = query.execute();
-        Result result;
+        Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
+            .from(DataSource.database(db))
+            .where(Expression.property("tag").equalTo(Expression.string(tag)));
         int n = 0;
-        while ((result = rs.next()) != null) { block.verify(++n, result); }
+        for (Result result : query.execute()) { block.verify(++n, result); }
     }
 
     private void verifyByTagName(String tag, int nRows) throws CouchbaseLiteException {
