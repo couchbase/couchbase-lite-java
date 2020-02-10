@@ -144,7 +144,9 @@ public class C4Document {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        internalFree(handle);
+        final long hdl = handle;
+        handle = 0L;
+        internalFree(hdl);
         super.finalize();
     }
 

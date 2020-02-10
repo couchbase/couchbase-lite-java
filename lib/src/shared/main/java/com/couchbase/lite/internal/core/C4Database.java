@@ -87,7 +87,9 @@ public class C4Database {
         final long hdl = handle;
         handle = 0L;
 
-        internalFree(hdl);
+        if (hdl == 0) { return; }
+
+        free(hdl);
     }
 
     public void close() throws LiteCoreException { close(handle); }
@@ -376,7 +378,7 @@ public class C4Database {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        internalFree(handle);
+        free();
         super.finalize();
     }
 
@@ -385,15 +387,6 @@ public class C4Database {
     //-------------------------------------------------------------------------
 
     long getHandle() { return handle; }
-
-    //-------------------------------------------------------------------------
-    // private access
-    //-------------------------------------------------------------------------
-
-    private void internalFree(long hdl) {
-        if (shouldRetain || (hdl == 0L)) { return; }
-        free(hdl);
-    }
 
     //-------------------------------------------------------------------------
     // Native methods

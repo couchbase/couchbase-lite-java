@@ -95,7 +95,9 @@ public class C4Query {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        internalFree(handle);
+        final long hdl = handle;
+        handle = 0;
+        internalFree(hdl);
         super.finalize();
     }
 
@@ -111,6 +113,8 @@ public class C4Query {
     // private methods
     //-------------------------------------------------------------------------
 
+    // !!! This violates Core thread safety.
+    // Should be holding the database lock
     private void internalFree(long hdl) {
         if (hdl == 0L) { return; }
         free(hdl);
