@@ -83,6 +83,7 @@ create_javah(TARGET JNIHeaders
 #
 
 include_directories(
+    ${LITE_CORE_ROOT}/C/                                  # include c4Private.h for debugging
     ${LITE_CORE_ROOT}/C/include/
     ${LITE_CORE_ROOT}/LiteCore/Storage/
     ${LITE_CORE_ROOT}/LiteCore/Support/

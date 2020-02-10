@@ -74,6 +74,8 @@ public final class CouchbaseLiteInternal {
 
         NativeLibrary.load();
 
+        C4Base.debug();
+
         setC4TmpDirPath();
 
         MValue.registerDelegate(mValueDelegate);

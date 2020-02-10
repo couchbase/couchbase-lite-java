@@ -193,6 +193,7 @@ model {
     repositories {
         libs(PrebuiltLibraries) {
             liteCore {
+                headers.srcDir "${CBL_CORE_DIR}/C/"                             // include c4Private.h for debugging
                 headers.srcDir "${CBL_CORE_DIR}/C/include"
                 headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/API"
                 headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/Fleece/Support"

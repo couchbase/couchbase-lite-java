@@ -962,7 +962,6 @@ public class DatabaseTest extends BaseTest {
             assertTrue(path.exists());
 
             // Java/Android does not allow null as directory parameter
-
             Database.delete(dbName, null);
         }
         finally {

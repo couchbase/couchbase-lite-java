@@ -25,7 +25,9 @@ public final class C4Base {
     // native methods
     //-------------------------------------------------------------------------
 
-    public static native String getMessage(int domain, int code, int internalInfo);
+    public static native void debug();
 
     public static native void setTempDir(String tempDir);
+
+    public static native String getMessage(int domain, int code, int internalInfo);
 }

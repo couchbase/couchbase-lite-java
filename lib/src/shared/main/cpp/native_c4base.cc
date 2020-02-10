@@ -16,9 +16,11 @@
 // limitations under the License.
 //
 
-#include "com_couchbase_lite_internal_core_C4Base.h"
+#include "c4Private.h"
 
 #include "native_glue.hh"
+
+#include "com_couchbase_lite_internal_core_C4Base.h"
 
 using namespace litecore;
 using namespace litecore::jni;
@@ -26,6 +28,15 @@ using namespace litecore::jni;
 // ----------------------------------------------------------------------------
 // Java_com_couchbase_lite_internal_core_C4Base
 // ----------------------------------------------------------------------------
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Base
+ * Method:    debug
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_couchbase_lite_internal_core_C4Base_debug(JNIEnv *env, jclass clazz) {
+    c4log_enableFatalExceptionBacktrace();
+    c4log_getWarnOnErrors();
+}
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Base
@@ -34,7 +45,7 @@ using namespace litecore::jni;
  */
 JNIEXPORT jstring JNICALL
 Java_com_couchbase_lite_internal_core_C4Base_getMessage(JNIEnv *env, jclass clazz, jint jdomain, jint jcode,
-                                              jint jinfo) {
+                                                        jint jinfo) {
     C4Error c4err = {(C4ErrorDomain) jdomain, (int32_t) jcode, (int32_t) jinfo};
     C4StringResult msg = c4error_getMessage(c4err);
     jstring result = toJString(env, msg);
