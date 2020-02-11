@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONException;
 
 import com.couchbase.lite.internal.CBLStatus;
@@ -222,28 +223,11 @@ abstract class AbstractQuery implements Query {
     //---------------------------------------------
 
     @SuppressWarnings("NoFinalizer")
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     @Override
     protected void finalize() throws Throwable {
-        freeInternal(c4query);
+        free(c4query);
         super.finalize();
-    }
-
-    private void freeInternal(C4Query query) {
-        if (query == null) { return; }
-
-        Database db = database;
-        if (db == null) {
-            final DataSource src = from;
-            if (src == null) { return; }
-
-            db = (Database) src.getSource();
-            if (db == null) { return; }
-        }
-
-        final Object lock = db.getLock();
-        if (lock == null) { return; }
-
-        synchronized (lock) { query.free(); }
     }
 
     //---------------------------------------------
@@ -376,5 +360,30 @@ abstract class AbstractQuery implements Query {
             if (liveQuery == null) { liveQuery = new LiveQuery(this); }
             return liveQuery;
         }
+    }
+
+    // called from finalizer
+    private void free(C4Query query) {
+        if (query == null) { return; }
+
+        final Object lock = getDbLock();
+        if (lock != null) {
+            synchronized (lock) { query.free(); }
+            return;
+        }
+
+        Log.w(LogDomain.DATABASE, "Could not get DB lock to free query");
+        query.free();
+    }
+
+    private Object getDbLock() {
+        Database db = database;
+
+        if (db == null) {
+            final DataSource src = from;
+            if (src != null) { db = (Database) src.getSource(); }
+        }
+
+        return (db == null) ? null : db.getLock();
     }
 }

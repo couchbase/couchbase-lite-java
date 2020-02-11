@@ -24,6 +24,8 @@ import java.util.Map;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
+// Class has package protected static factory methods
+@SuppressWarnings("PMD.ClassWithOnlyPrivateConstructorsShouldBeFinal")
 public class C4DatabaseObserver extends C4NativePeer {
 
     //-------------------------------------------------------------------------
@@ -40,6 +42,7 @@ public class C4DatabaseObserver extends C4NativePeer {
     //-------------------------------------------------------------------------
 
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void callback(long handle) {
         final C4DatabaseObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
         if (obs == null) { return; }

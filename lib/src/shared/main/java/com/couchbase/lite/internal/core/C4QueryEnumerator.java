@@ -65,12 +65,9 @@ public class C4QueryEnumerator extends C4NativePeer {
      */
     public long getMissingColumns() { return getMissingColumns(getPeer()); }
 
-    public void close() { withPeerVoid(C4QueryEnumerator::close); }
-
     public void free() {
         final long handle = getPeerAndClear();
         if (handle == 0L) { return; }
-        close();
         free(handle);
     }
 
@@ -114,6 +111,7 @@ public class C4QueryEnumerator extends C4NativePeer {
 
     private static native long refresh(long handle) throws LiteCoreException;
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static native void close(long handle);
 
     private static native void free(long handle);

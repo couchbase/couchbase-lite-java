@@ -170,6 +170,7 @@ public class C4BlobStore extends C4NativePeer {
     // private methods
     //-------------------------------------------------------------------------
 
+    // !!! Really shouldn't be grabbing other objects by their handles...
     private long getBlobKeyPeer(@NonNull C4BlobKey blobKey) { return blobKey.getHandle(); }
 
     //-------------------------------------------------------------------------

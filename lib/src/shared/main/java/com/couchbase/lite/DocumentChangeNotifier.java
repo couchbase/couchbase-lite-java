@@ -39,13 +39,13 @@ class DocumentChangeNotifier extends ChangeNotifier<DocumentChange> {
     void stop() {
         final C4DocumentObserver observer = obs;
         obs = null;
-        internalFree(observer);
+        freeObserver(observer);
     }
 
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        internalFree(obs);
+        freeObserver(obs);
         super.finalize();
     }
 
@@ -53,7 +53,7 @@ class DocumentChangeNotifier extends ChangeNotifier<DocumentChange> {
         postChange(new DocumentChange(db, docID));
     }
 
-    private void internalFree(C4DocumentObserver observer) {
+    private void freeObserver(C4DocumentObserver observer) {
         if (observer == null) { return; }
         observer.free();
     }

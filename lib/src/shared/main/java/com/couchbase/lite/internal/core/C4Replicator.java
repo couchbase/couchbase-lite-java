@@ -49,9 +49,12 @@ import com.couchbase.lite.internal.support.Log;
  * these two calls: it has no direct affect on either of the other two states.
  * </ol>
  * <p>
+ * Instances of this class are created using static factory methods
+ * <p>
  * WARNING!
  * This class and its members are referenced by name, from native code.
  */
+@SuppressWarnings("PMD.ClassWithOnlyPrivateConstructorsShouldBeFinal")
 public class C4Replicator extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Constants

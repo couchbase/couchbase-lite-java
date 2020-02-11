@@ -581,7 +581,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        internalFree(c4Replicator);
+        freeC4Replicator(c4Replicator);
         final AbstractNetworkReachabilityManager mgr = reachabilityManager;
         if (mgr != null) { mgr.removeNetworkReachabilityListener(this); }
         super.finalize();
@@ -664,7 +664,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             // Note: don't use c4ActivityLevel here.  It might not be up to date.
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
                 cancelScheduledRetry();
-                internalFree();
+                freeC4Replicator();
                 config.getDatabase().removeActiveReplicator((Replicator) this); // this is likely to dealloc me
             }
         }
@@ -969,7 +969,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     // If actuallyMeansOffline == true, go offline and retry later.
     private void handleError(C4Error c4err) {
-        internalFree();
+        freeC4Replicator();
 
         if (!isTransient(c4err)) {
             Log.i(DOMAIN, "%s: Network error (%s); will retry when network changes...", this, c4err);
@@ -1037,16 +1037,16 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     // - (void) clearRepl
-    private void internalFree() {
+    private void freeC4Replicator() {
         final C4Replicator repl;
         synchronized (lock) {
             repl = c4Replicator;
             c4Replicator = null;
         }
-        internalFree(repl);
+        freeC4Replicator(repl);
     }
 
-    private void internalFree(C4Replicator repl) {
+    private void freeC4Replicator(C4Replicator repl) {
         if (repl == null) { return; }
         repl.free();
     }

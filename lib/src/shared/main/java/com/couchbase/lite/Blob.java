@@ -468,12 +468,12 @@ public final class Blob implements FLEncodable {
             : Arrays.equals(getContent(), m.getContent());
     }
 
-    @SuppressWarnings("NoFinalizer")
+    @SuppressWarnings({"NoFinalizer", "PMD.CloseResource"})
     @Override
     protected void finalize() throws Throwable {
-        final InputStream contentStream = blobContentStream;
-        if (contentStream != null) {
-            try { contentStream.close(); }
+        final InputStream stream = blobContentStream;
+        if (stream != null) {
+            try { stream.close(); }
             catch (IOException ignore) { }
         }
         super.finalize();

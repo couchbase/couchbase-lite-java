@@ -79,56 +79,56 @@ public class FLEncoder extends C4NativePeer {
 
     @SuppressWarnings({"unchecked", "PMD.NPathComplexity"})
     public boolean writeValue(Object value) {
-        final long handle = getPeer();
+        final long peer = getPeer();
         // null
-        if (value == null) { return writeNull(getPeer()); }
+        if (value == null) { return writeNull(peer); }
 
         // boolean
-        if (value instanceof Boolean) { return writeBool(handle, (Boolean) value); }
+        if (value instanceof Boolean) { return writeBool(peer, (Boolean) value); }
 
         // Number
         if (value instanceof Number) {
             // Integer
-            if (value instanceof Integer) { return writeInt(handle, ((Integer) value).longValue()); }
+            if (value instanceof Integer) { return writeInt(peer, ((Integer) value).longValue()); }
 
             // Long
-            if (value instanceof Long) { return writeInt(handle, (Long) value); }
+            if (value instanceof Long) { return writeInt(peer, (Long) value); }
 
             // Short
-            if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
+            if (value instanceof Short) { return writeInt(peer, ((Short) value).longValue()); }
 
             // Double
-            if (value instanceof Double) { return writeDouble(handle, (Double) value); }
+            if (value instanceof Double) { return writeDouble(peer, (Double) value); }
 
             // Float
-            return writeFloat(handle, (Float) value);
+            return writeFloat(peer, (Float) value);
         }
 
         // String
-        if (value instanceof String) { return writeString(handle, (String) value); }
+        if (value instanceof String) { return writeString(peer, (String) value); }
 
         // byte[]
-        if (value instanceof byte[]) { return writeData(handle, (byte[]) value); }
+        if (value instanceof byte[]) { return writeData(peer, (byte[]) value); }
 
         // List
-        if (value instanceof List) { return write((List) value); }
+        if (value instanceof List) { return write((List<?>) value); }
 
         // Map
         if (value instanceof Map) { return write((Map<String, Object>) value); }
 
         // FLValue
         if (value instanceof FLValue) {
-            return ((FLValue) value).withContent(hdl -> (writeValue(handle, hdl)));
+            return ((FLValue) value).withContent(hdl -> (writeValue(peer, hdl)));
         }
 
         // FLDict
         if (value instanceof FLDict) {
-            return ((FLDict) value).withContent(hdl -> (writeValue(handle, hdl)));
+            return ((FLDict) value).withContent(hdl -> (writeValue(peer, hdl)));
         }
 
         // FLArray
         if (value instanceof FLArray) {
-            return ((FLArray) value).withContent(hdl -> (writeValue(handle, hdl)));
+            return ((FLArray) value).withContent(hdl -> (writeValue(peer, hdl)));
         }
 
         // FLEncodable
@@ -154,7 +154,7 @@ public class FLEncoder extends C4NativePeer {
         return endDict();
     }
 
-    public boolean write(List list) {
+    public boolean write(List<?> list) {
         if (list == null) { beginArray(0); }
         else {
             beginArray(list.size());

@@ -73,7 +73,7 @@ public class C4BlobKey extends C4NativePeer {
     // package methods
     //-------------------------------------------------------------------------
 
-    // !!!  Exposes the peer handle
+    // !!! Exposes the peer handle
     long getHandle() { return getPeer(); }
 
     //-------------------------------------------------------------------------

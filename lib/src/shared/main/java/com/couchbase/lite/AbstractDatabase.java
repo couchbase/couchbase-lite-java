@@ -91,6 +91,8 @@ abstract class AbstractDatabase {
 
     private static final int MAX_CHANGES = 100;
 
+    private static final int SHUTDOWN_DELAY_SECS = 30;
+
     // A random but absurdly large number.
     private static final int MAX_CONFLICT_RESOLUTION_RETRIES = 13;
 
@@ -225,6 +227,7 @@ abstract class AbstractDatabase {
     @GuardedBy("lock")
     private final Set<LiveQuery> activeLiveQueries;
     private final Set<Replicator> activeReplications;
+    private final Map<String, DocumentChangeNotifier> docChangeNotifiers;
 
     // Executor for purge and posting Database/Document changes.
     private final ExecutionService.CloseableExecutor postExecutor;
@@ -236,7 +239,6 @@ abstract class AbstractDatabase {
 
     private final DocumentExpirationStrategy purgeStrategy;
 
-    private Map<String, DocumentChangeNotifier> docChangeNotifiers;
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
@@ -316,6 +318,7 @@ abstract class AbstractDatabase {
 
         this.activeReplications = null;
         this.activeLiveQueries = null;
+        this.docChangeNotifiers = null;
 
         this.sharedKeys = null;
 
@@ -647,7 +650,7 @@ abstract class AbstractDatabase {
 
         synchronized (lock) {
             mustBeOpen();
-            return addDatabaseChangeListenerSynchronized(executor, listener);
+            return addDatabaseChangeListenerLocked(executor, listener);
         }
     }
 
@@ -661,11 +664,11 @@ abstract class AbstractDatabase {
 
         synchronized (lock) {
             mustBeOpen();
-            if (token instanceof ChangeListenerToken && ((ChangeListenerToken) token).getKey() != null) {
-                removeDocumentChangeListenerSynchronized((ChangeListenerToken) token);
+            if (!(token instanceof ChangeListenerToken) || (((ChangeListenerToken) token).getKey() == null)) {
+                removeDatabaseChangeListenerLocked(token);
             }
             else {
-                removeDatabaseChangeListenerSynchronized(token);
+                removeDocumentChangeListenerLocked((ChangeListenerToken) token);
             }
         }
     }
@@ -698,7 +701,7 @@ abstract class AbstractDatabase {
 
         synchronized (lock) {
             mustBeOpen();
-            return addDocumentChangeListenerSynchronized(id, executor, listener);
+            return addDocumentChangeListenerLocked(id, executor, listener);
         }
     }
 
@@ -713,33 +716,11 @@ abstract class AbstractDatabase {
 
             Log.i(DOMAIN, "Closing %s at path %s", this, getC4Database().getPath());
 
-            if (hasActiveReplicators()) {
-                throw new CouchbaseLiteException(
-                    "CloseDBFailedReplications",
-                    CBLError.Domain.CBLITE,
-                    CBLError.Code.BUSY);
-            }
+            verifyQuiescent();
 
-
-            if (!activeLiveQueries.isEmpty()) {
-                throw new CouchbaseLiteException(
-                    "CloseDBFailedQueryListeners",
-                    CBLError.Domain.CBLITE,
-                    CBLError.Code.BUSY);
-            }
-
-            // cancel purge
-            if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
-
-            // close db
             closeC4DB();
 
-            // release instances
-            freeC4Observers();
-            freeC4DB();
-
-            // shutdown executor service
-            shutdownExecutorService();
+            shutdown(SHUTDOWN_DELAY_SECS);
         }
     }
 
@@ -754,34 +735,14 @@ abstract class AbstractDatabase {
 
             Log.i(DOMAIN, "Deleting %s at path %s", this, getC4Database().getPath());
 
-            if (hasActiveReplicators()) {
-                throw new CouchbaseLiteException(
-                    "DeleteDBFailedReplications",
-                    CBLError.Domain.CBLITE,
-                    CBLError.Code.BUSY);
-            }
+            verifyQuiescent();
 
-            if (activeLiveQueries.isEmpty()) {
-                throw new CouchbaseLiteException(
-                    "DeleteDBFailedQueryListeners",
-                    CBLError.Domain.CBLITE,
-                    CBLError.Code.BUSY);
-            }
-
-            // cancel purge
-            if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
-
-            // delete db
             deleteC4DB();
 
-            // release instances
-            freeC4Observers();
-            freeC4DB();
-
-            // shutdown executor service
-            shutdownExecutorService();
+            shutdown(SHUTDOWN_DELAY_SECS);
         }
     }
+
 
     @SuppressWarnings("unchecked")
     @NonNull
@@ -847,8 +808,7 @@ abstract class AbstractDatabase {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        freeC4Observers();
-        freeC4DB();
+        shutdown(0);
         super.finalize();
     }
 
@@ -1125,16 +1085,16 @@ abstract class AbstractDatabase {
 
         final C4Database db = c4db;
         c4db = null;
-
         if (db == null) { return; }
+
         db.free();
     }
 
     // --- Database changes:
 
-    // NOTE: calling method must be synchronized.
+    @GuardedBy("lock")
     @NonNull
-    private ListenerToken addDatabaseChangeListenerSynchronized(
+    private ListenerToken addDatabaseChangeListenerLocked(
         @Nullable Executor executor,
         @NonNull DatabaseChangeListener listener) {
         if (dbChangeNotifier == null) {
@@ -1146,8 +1106,8 @@ abstract class AbstractDatabase {
 
     // --- Notification: - C4DatabaseObserver/C4DocumentObserver
 
-    // NOTE: calling method must be synchronized.
-    private void removeDatabaseChangeListenerSynchronized(@NonNull ListenerToken token) {
+    @GuardedBy("lock")
+    private void removeDatabaseChangeListenerLocked(@NonNull ListenerToken token) {
         if (dbChangeNotifier.removeChangeListener(token) == 0) {
             freeC4DBObserver();
             dbChangeNotifier = null;
@@ -1156,9 +1116,9 @@ abstract class AbstractDatabase {
 
     // --- Document changes:
 
-    // NOTE: calling method must be synchronized.
+    @GuardedBy("lock")
     @NonNull
-    private ListenerToken addDocumentChangeListenerSynchronized(
+    private ListenerToken addDocumentChangeListenerLocked(
         @NonNull String docID,
         @Nullable Executor executor,
         @NonNull DocumentChangeListener listener) {
@@ -1173,7 +1133,8 @@ abstract class AbstractDatabase {
     }
 
     // NOTE: calling method must be synchronized.
-    private void removeDocumentChangeListenerSynchronized(@NonNull ChangeListenerToken token) {
+    @GuardedBy("lock")
+    private void removeDocumentChangeListenerLocked(@NonNull ChangeListenerToken token) {
         final String docID = (String) token.getKey();
         if (docChangeNotifiers.containsKey(docID)) {
             final DocumentChangeNotifier notifier = docChangeNotifiers.get(docID);
@@ -1191,23 +1152,24 @@ abstract class AbstractDatabase {
     }
 
     // called from finalizer
+    @GuardedBy("lock")
     private void freeC4DBObserver() {
-        final C4DatabaseObserver observers = c4DbObserver;
+        final C4DatabaseObserver observer = c4DbObserver;
         c4DbObserver = null;
 
-        if (observers == null) { return; }
-        observers.free();
+        if (observer == null) { return; }
+        observer.free();
     }
 
     // called from finalizer
+    @GuardedBy("lock")
     private void freeC4Observers() {
         freeC4DBObserver();
 
         final Map<String, DocumentChangeNotifier> notifiers = docChangeNotifiers;
         if (notifiers == null) { return; }
-        docChangeNotifiers = new HashMap<>();
-
         for (DocumentChangeNotifier notifier : notifiers.values()) { notifier.stop(); }
+        notifiers.clear();
     }
 
     private void postDatabaseChanged() {
@@ -1339,7 +1301,8 @@ abstract class AbstractDatabase {
         return doc;
     }
 
-    // Call holding lock and in a transaction
+    // Call in a transaction
+    @GuardedBy("lock")
     @SuppressWarnings("PMD.NPathComplexity")
     private void saveResolvedDocument(
         @Nullable Document resolvedDoc,
@@ -1485,7 +1448,6 @@ abstract class AbstractDatabase {
         }
     }
 
-    @Nullable
     private boolean saveConflicted(@NonNull Document document, boolean deleting)
         throws CouchbaseLiteException {
 
@@ -1565,9 +1527,36 @@ abstract class AbstractDatabase {
         }
     }
 
-    private void shutdownExecutorService() {
-        postExecutor.stop(60, TimeUnit.SECONDS);
-        queryExecutor.stop(60, TimeUnit.SECONDS);
+    @GuardedBy("lock")
+    private void verifyQuiescent() throws CouchbaseLiteException {
+        if (hasActiveReplicators()) {
+            throw new CouchbaseLiteException(
+                "DeleteDBFailedReplications",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.BUSY);
+        }
+
+        if (!activeLiveQueries.isEmpty()) {
+            throw new CouchbaseLiteException(
+                "DeleteDBFailedQueryListeners",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.BUSY);
+        }
+    }
+
+    // called from finalizer
+    @GuardedBy("lock")
+    private void shutdown(int waitSecs) {
+        // cancel purge
+        if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
+
+        // release instances
+        freeC4Observers();
+        freeC4DB();
+
+        // shutdown executor service
+        postExecutor.stop(waitSecs, TimeUnit.SECONDS);
+        queryExecutor.stop(waitSecs, TimeUnit.SECONDS);
     }
 }
 

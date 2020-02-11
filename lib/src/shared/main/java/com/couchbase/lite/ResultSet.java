@@ -79,7 +79,7 @@ public class ResultSet implements Iterable<Result> {
     public Result next() {
         Preconditions.assertNotNull(query, "query");
 
-        synchronized (getNonNullDbLock()) {
+        synchronized (getDbLock()) {
             try {
                 if (c4enum == null) { return null; }
                 else if (isAllEnumerated) {
@@ -151,7 +151,7 @@ public class ResultSet implements Iterable<Result> {
     ResultSet refresh() throws CouchbaseLiteException {
         Preconditions.assertNotNull(query, "query");
 
-        synchronized (getNonNullDbLock()) {
+        synchronized (getDbLock()) {
             try {
                 final C4QueryEnumerator newEnum = c4enum.refresh();
                 return (newEnum == null) ? null : new ResultSet(query, newEnum, columnNames);
@@ -168,18 +168,11 @@ public class ResultSet implements Iterable<Result> {
 
     private Object getDbLock() {
         final AbstractQuery q = query;
-        if (q == null) { return null; }
-
-        final Database db = q.getDatabase();
-        if (db == null) { return null; }
-
-        return db.getLock();
-    }
-
-    private Object getNonNullDbLock() {
-        final Object lock = getDbLock();
-        if (lock == null) { throw new IllegalStateException("Cannot seize DB lock"); }
-        return lock;
+        if (q != null) {
+            final Database db = q.getDatabase();
+            if (db != null) {return db.getLock(); }
+        }
+        throw new IllegalStateException("Could not obtain db lock");
     }
 }
 

@@ -18,8 +18,10 @@
 package com.couchbase.lite.internal.core;
 
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.support.Log;
 
 
 public class C4Query extends C4NativePeer {
@@ -34,8 +36,7 @@ public class C4Query extends C4NativePeer {
     // public methods
     //-------------------------------------------------------------------------
 
-    // !!! This violates Core thread safety.
-    // Should be holding the database lock
+    // Must be called holding the DB lock
     public void free() {
         final long handle = getPeerAndClear();
         if (handle == 0L) { return; }
@@ -75,7 +76,11 @@ public class C4Query extends C4NativePeer {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        final long handle = getPeerAndClear();
+        if (handle != 0L) {
+            Log.w(LogDomain.DATABASE, "Finalizing a C4Query that has not been freed: " + this);
+            free(handle);
+        }
         super.finalize();
     }
 
