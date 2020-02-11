@@ -37,7 +37,8 @@ public class C4DocumentEnded {
     private boolean errorIsTransient;   // Referenced from native code:
 
     // Called from native code
-    // public C4DocumentEnded() { }
+    @SuppressWarnings("PMD.UnnecessaryConstructor")
+    public C4DocumentEnded() { }
 
     public String getDocID() { return docID; }
 

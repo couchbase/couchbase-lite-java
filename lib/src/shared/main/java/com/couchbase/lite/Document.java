@@ -573,7 +573,7 @@ public class Document implements DictionaryInterface, Iterable<String> {
         final Database db = getDatabase();
         if (db == null) { throw new IllegalStateException(""); }
 
-        final MRoot newRoot = new MRoot(new DocContext(db, c4Document), data.toFLValue(), isMutable());
+        final MRoot newRoot = new MRoot(new DocContext(db, c4Document), data.toFLValue(), mutable);
         root = newRoot;
         synchronized (db.getLock()) { internalDict = (Dictionary) newRoot.asNative(); }
     }

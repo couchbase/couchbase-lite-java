@@ -322,8 +322,6 @@ task checkstyle(type: Checkstyle) {
 
     classpath = files()
 
-    checkstyleTest.enabled = false
-
     reports {
         xml {
             enabled = true
@@ -350,8 +348,6 @@ task pmd(type: Pmd) {
     source = sourceSets.main.java.srcDirs
     include '**/*.java'
     exclude fileFilter
-
-    // pmdTest.enabled = false
 
     reports {
         xml {
