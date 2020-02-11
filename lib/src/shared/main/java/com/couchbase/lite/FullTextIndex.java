@@ -30,17 +30,15 @@ import java.util.Locale;
  */
 public final class FullTextIndex extends AbstractIndex {
 
-    private static String getDefaultLanguage() {
-        return Locale.getDefault().getLanguage();
-    }
+    private static String getDefaultLanguage() { return Locale.getDefault().getLanguage(); }
+
 
     private final List<FullTextIndexItem> indexItems;
-    private String textLanguage = getDefaultLanguage();
-    private boolean shouldIgnoreAccents = false;
 
-    FullTextIndex(FullTextIndexItem... indexItems) {
-        this.indexItems = Arrays.asList(indexItems);
-    }
+    private String textLanguage = getDefaultLanguage();
+    private boolean shouldIgnoreAccents;
+
+    FullTextIndex(FullTextIndexItem... indexItems) { this.indexItems = Arrays.asList(indexItems); }
 
     /**
      * The language code which is an ISO-639 language such as "en", "fr", etc.
@@ -63,21 +61,17 @@ public final class FullTextIndex extends AbstractIndex {
         return this;
     }
 
+    @NonNull
     @Override
-    IndexType type() {
-        return IndexType.FullText;
-    }
+    IndexType type() { return IndexType.FullText; }
 
     @Override
-    String language() {
-        return textLanguage;
-    }
+    String language() { return textLanguage; }
 
     @Override
-    boolean ignoreAccents() {
-        return shouldIgnoreAccents;
-    }
+    boolean ignoreAccents() { return shouldIgnoreAccents; }
 
+    @NonNull
     @Override
     List<Object> items() {
         final List<Object> items = new ArrayList<>();

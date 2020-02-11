@@ -21,6 +21,7 @@ package com.couchbase.lite;
 /**
  * Types of database indexes.
  */
+@SuppressWarnings("PMD.FieldNamingConventions")
 public enum IndexType {
     /**
      * Regular index of property values.
@@ -37,11 +38,7 @@ public enum IndexType {
 
     private final int value;
 
-    IndexType(int value) {
-        this.value = value;
-    }
+    IndexType(int value) { this.value = value; }
 
-    int getValue() {
-        return value;
-    }
+    int getValue() { return value; }
 }

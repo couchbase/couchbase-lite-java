@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +34,7 @@ public final class ValueIndex extends AbstractIndex {
         this.indexItems = Arrays.asList(indexItems);
     }
 
+    @NonNull
     @Override
     IndexType type() {
         return IndexType.Value;
@@ -47,6 +50,7 @@ public final class ValueIndex extends AbstractIndex {
         return false;
     }
 
+    @NonNull
     @Override
     List<Object> items() {
         final List<Object> items = new ArrayList<>();

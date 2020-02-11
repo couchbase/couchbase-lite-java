@@ -37,13 +37,12 @@ public final class CouchbaseLiteException extends Exception {
     }
 
     @NonNull
-    private static String getErrorMessage(@Nullable String msg, @Nullable Throwable e) {
+    private static String getErrorMessage(@Nullable String msg, @Nullable Exception e) {
         String errMsg = msg;
 
         if ((msg == null) && (e != null)) { errMsg = e.getMessage(); }
 
         // look up message by code?
-
         return Log.lookupStandardMessage(errMsg);
     }
 
@@ -66,7 +65,16 @@ public final class CouchbaseLiteException extends Exception {
      *
      * @param cause the cause
      */
-    public CouchbaseLiteException(@NonNull Throwable cause) { this(null, cause, null, 0, null); }
+    public CouchbaseLiteException(@NonNull Exception cause) { this(null, cause, null, 0, null); }
+
+    /**
+     * Constructs a new exception from an internal exception
+     *
+     * @param cause the internal exception
+     */
+    public CouchbaseLiteException(@NonNull CBLInternalException cause) {
+        this(null, cause, null, (cause == null) ? 0 : cause.getCode(), null);
+    }
 
     /**
      * Constructs a new exception with the specified error domain and error code
@@ -98,7 +106,7 @@ public final class CouchbaseLiteException extends Exception {
      * @deprecated Must supply an error message
      */
     @Deprecated
-    public CouchbaseLiteException(@NonNull String domain, int code, @NonNull Throwable cause) {
+    public CouchbaseLiteException(@NonNull String domain, int code, @NonNull Exception cause) {
         this(null, cause, domain, code, null);
     }
 
@@ -123,22 +131,27 @@ public final class CouchbaseLiteException extends Exception {
      * @param domain  the error domain
      * @param code    the error code
      */
-    public CouchbaseLiteException(@NonNull String message, @NonNull Throwable cause, @NonNull String domain, int code) {
+    public CouchbaseLiteException(
+        @NonNull String message,
+        @NonNull Exception cause,
+        @NonNull String domain,
+        int code) {
         this(message, cause, domain, code, null);
     }
 
     /**
-     * Constructs a new exception from an internal exception
-     *
-     * @param cause the internal exception
+     * This method is not part of the public API.
+     * Do not use it.  It may change or disappear at any time.
      */
-    public CouchbaseLiteException(@NonNull CBLInternalException cause) {
-        this(null, cause, null, (cause == null) ? 0 : cause.getCode(), null);
-    }
+    public CouchbaseLiteException() { this(null, null, null, 0, null); }
 
-    private CouchbaseLiteException(
+    /**
+     * This method is not part of the public API.
+     * Do not use it.  It may change or disappear at any time.
+     */
+    public CouchbaseLiteException(
         @Nullable String message,
-        @Nullable Throwable cause,
+        @Nullable Exception cause,
         @Nullable String domain,
         int code,
         @Nullable Map<String, Object> info) {

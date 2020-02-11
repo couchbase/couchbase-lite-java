@@ -15,25 +15,30 @@
 //
 package com.couchbase.lite.internal.utils;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.couchbase.lite.utils.Fn;
 
 
-public class Preconditions {
+public final class Preconditions {
     private Preconditions() {}
 
-    public static void checkArgNotNull(Object obj, String name) {
+    @NonNull
+    public static <T> T assertNotNull(@Nullable T obj, @NonNull String name) {
         if (obj == null) { throw new IllegalArgumentException(name + " cannot be null"); }
+        return obj;
     }
 
-    public static void checkArgNotZero(long n, String name) {
+    public static void assertNotZero(long n, @NonNull String name) {
         if (n == 0) { throw new IllegalArgumentException(name + " cannot be 0"); }
     }
 
-    public static void checkArgNotEmpty(String str, String name) {
+    public static void assertNotEmpty(String str, @NonNull String name) {
         if (StringUtils.isEmpty(str)) { throw new IllegalArgumentException(name + " cannot be empty"); }
     }
 
-    public static <T> void testArg(T obj, String msg, Fn.Predicate<T> predicate) {
+    public static <T> void assertThat(T obj, @NonNull String msg, @NonNull Fn.Predicate<T> predicate) {
         if (!predicate.test(obj)) { throw new IllegalArgumentException(msg); }
     }
 }

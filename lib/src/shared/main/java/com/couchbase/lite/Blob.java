@@ -87,8 +87,8 @@ public final class Blob implements FLEncodable {
         private C4BlobReadStream blobStream;
 
         BlobInputStream(@NonNull C4BlobKey key, @NonNull C4BlobStore store) throws LiteCoreException {
-            Preconditions.checkArgNotNull(key, "key");
-            Preconditions.checkArgNotNull(store, "store");
+            Preconditions.assertNotNull(key, "key");
+            Preconditions.assertNotNull(store, "store");
 
             this.key = key;
             this.store = store;
@@ -97,6 +97,7 @@ public final class Blob implements FLEncodable {
         }
 
         // not supported...
+        @SuppressWarnings("PMD.UselessOverridingMethod")
         @Override
         public int available() throws IOException { return super.available(); }
 
@@ -146,7 +147,7 @@ public final class Blob implements FLEncodable {
 
         @Override
         public int read(@NonNull byte[] buf, int off, int len) throws IOException {
-            Preconditions.checkArgNotNull(buf, "buffer");
+            Preconditions.assertNotNull(buf, "buffer");
             if (off < 0) { throw new IndexOutOfBoundsException("Read offset < 0: " + off); }
             if (len < 0) { throw new IndexOutOfBoundsException("Read length < 0: " + len); }
 
@@ -254,8 +255,8 @@ public final class Blob implements FLEncodable {
      * @param content     The data that this Blob will contain
      */
     public Blob(@NonNull String contentType, @NonNull byte[] content) {
-        Preconditions.checkArgNotNull(contentType, "contentType");
-        Preconditions.checkArgNotNull(content, "content");
+        Preconditions.assertNotNull(contentType, "contentType");
+        Preconditions.assertNotNull(content, "content");
 
         this.contentType = contentType;
         blobLength = content.length;
@@ -275,7 +276,7 @@ public final class Blob implements FLEncodable {
      * @param stream      The stream of data that this Blob will consume
      */
     public Blob(@NonNull String contentType, @NonNull InputStream stream) {
-        Preconditions.checkArgNotNull(contentType, "contentType");
+        Preconditions.assertNotNull(contentType, "contentType");
         this.contentType = contentType;
         initStream(stream);
     }
@@ -291,8 +292,8 @@ public final class Blob implements FLEncodable {
      * @throws IOException on failure to open the file URL
      */
     public Blob(@NonNull String contentType, @NonNull URL fileURL) throws IOException {
-        Preconditions.checkArgNotNull(contentType, "contentType");
-        Preconditions.checkArgNotNull(fileURL, "fileUrl");
+        Preconditions.assertNotNull(contentType, "contentType");
+        Preconditions.assertNotNull(fileURL, "fileUrl");
 
         if (!fileURL.getProtocol().equalsIgnoreCase("file")) {
             throw new IllegalArgumentException(Log.formatStandardMessage("NotFileBasedURL", fileURL));
@@ -336,7 +337,7 @@ public final class Blob implements FLEncodable {
      */
     @Nullable
     public byte[] getContent() {
-        // this will load blobContent from the blobContentStream (all of it!)
+        // this will load blobContent from the blobContentStream (all of it!), if there is any
         if (blobContentStream != null) { readContentFromInitStream(); }
 
         if (blobContent != null) { return copyBytes(blobContent); }
@@ -361,7 +362,7 @@ public final class Blob implements FLEncodable {
 
         if (blobContent != null) { return new ByteArrayInputStream(blobContent); }
 
-        if (database != null) { return getStreamFromDatabase(); }
+        if (database != null) { return getStreamFromDatabase(database); }
 
         return null;
     }
@@ -414,7 +415,10 @@ public final class Blob implements FLEncodable {
     @Override
     public void encodeTo(@NonNull FLEncoder encoder) {
         final Object info = encoder.getExtraInfo();
-        if (info != null) { installInDatabase(((MutableDocument) info).getDatabase()); }
+        if (info != null) {
+            final Database db = Preconditions.assertNotNull(((MutableDocument) info).getDatabase(), "db");
+            installInDatabase(db);
+        }
 
         final Map<String, Object> dict = getJsonRepresentation();
         encoder.beginDict(dict.size());
@@ -465,7 +469,6 @@ public final class Blob implements FLEncodable {
     }
 
     @SuppressWarnings("NoFinalizer")
-    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     @Override
     protected void finalize() throws Throwable {
         if (blobContentStream != null) {
@@ -489,16 +492,15 @@ public final class Blob implements FLEncodable {
     }
 
     private void initStream(@NonNull InputStream stream) {
-        Preconditions.checkArgNotNull(stream, "input stream");
+        Preconditions.assertNotNull(stream, "input stream");
         blobLength = 0;
         blobContent = null;
         blobContentStream = stream;
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Nullable
     private byte[] getContentFromDatabase() {
-        Preconditions.checkArgNotNull(database, "database");
+        Preconditions.assertNotNull(database, "database");
 
         C4BlobStore blobStore = null;
         C4BlobKey key = null;
@@ -531,11 +533,11 @@ public final class Blob implements FLEncodable {
     }
 
     @NonNull
-    private InputStream getStreamFromDatabase() {
+    private InputStream getStreamFromDatabase(@NonNull Database db) {
         C4BlobKey key = null;
         try {
             key = new C4BlobKey(blobDigest);
-            return new BlobInputStream(key, database.getBlobStore());
+            return new BlobInputStream(key, db.getBlobStore());
         }
         catch (IllegalArgumentException | LiteCoreException e) {
             if (key != null) { key.free(); }
@@ -544,7 +546,7 @@ public final class Blob implements FLEncodable {
     }
 
     private void installInDatabase(@NonNull Database db) {
-        Preconditions.checkArgNotNull(db, "database");
+        Preconditions.assertNotNull(db, "database");
 
         if (database != null) {
             if (this.database == db) { return; }
@@ -586,17 +588,15 @@ public final class Blob implements FLEncodable {
     @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private void readContentFromInitStream() {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
+        try (InputStream in = Preconditions.assertNotNull(blobContentStream, "content stream")) {
             final byte[] buff = new byte[MAX_CACHED_CONTENT_LENGTH];
             int n;
-            while ((n = blobContentStream.read(buff)) >= 0) { out.write(buff, 0, n); }
+            while ((n = in.read(buff)) >= 0) { out.write(buff, 0, n); }
         }
         catch (IOException e) {
             throw new IllegalStateException("Failed reading blob content stream", e);
         }
         finally {
-            try { blobContentStream.close(); }
-            catch (IOException ignore) { }
             blobContentStream = null;
         }
 
@@ -607,6 +607,8 @@ public final class Blob implements FLEncodable {
     @SuppressFBWarnings("DE_MIGHT_IGNORE")
     @NonNull
     private C4BlobKey writeDatabaseFromInitStream(@NonNull C4BlobStore store) throws LiteCoreException, IOException {
+        if (blobContentStream == null) { throw new IllegalStateException("Blob stream is null"); }
+
         final C4BlobKey key;
 
         int len = 0;

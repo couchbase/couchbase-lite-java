@@ -45,6 +45,7 @@ import com.couchbase.lite.internal.core.CBLVersion;
 /**
  * Couchbase Lite Internal Log Utility.
  */
+@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
 public final class Log {
     private Log() { } // Utility class
 

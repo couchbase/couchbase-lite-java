@@ -52,7 +52,7 @@ abstract class AbstractConsoleLogger implements Logger {
      * @param level The lowest (most verbose) level to include in the logs
      */
     public void setLevel(@NonNull LogLevel level) {
-        Preconditions.checkArgNotNull(level, "level");
+        Preconditions.assertNotNull(level, "level");
 
         if (logLevel == level) { return; }
 
@@ -74,7 +74,7 @@ abstract class AbstractConsoleLogger implements Logger {
      * @param domains The domains to make active
      */
     public void setDomains(@NonNull EnumSet<LogDomain> domains) {
-        Preconditions.checkArgNotNull(domains, "domains");
+        Preconditions.assertNotNull(domains, "domains");
         logDomains = (!domains.contains(LogDomain.ALL))
             ? domains
             : LogDomain.ALL_DOMAINS;

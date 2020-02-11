@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * The BasicAuthenticator class is an authenticator that will authenticate using HTTP Basic
@@ -34,16 +36,16 @@ public final class BasicAuthenticator extends Authenticator {
     // member variables
     //---------------------------------------------
 
-    private String username;
-    private String password;
+    private final String username;
+    private final String password;
 
     //---------------------------------------------
     // Constructor
     //---------------------------------------------
 
     public BasicAuthenticator(@NonNull String username, @NonNull String password) {
-        if (username == null) { throw new IllegalArgumentException("username cannot be null."); }
-        if (password == null) { throw new IllegalArgumentException("password cannot be null."); }
+        Preconditions.assertNotNull(username, "username");
+        Preconditions.assertNotNull(password, "password");
 
         this.username = username;
         this.password = password;
@@ -54,14 +56,10 @@ public final class BasicAuthenticator extends Authenticator {
     //---------------------------------------------
 
     @NonNull
-    public String getUsername() {
-        return username;
-    }
+    public String getUsername() { return username; }
 
     @NonNull
-    public String getPassword() {
-        return password;
-    }
+    public String getPassword() { return password; }
 
     //---------------------------------------------
     // Authenticator abstract method implementation

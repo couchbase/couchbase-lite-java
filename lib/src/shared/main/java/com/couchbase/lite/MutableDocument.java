@@ -101,7 +101,7 @@ public final class MutableDocument extends Document implements MutableDictionary
     }
 
     private MutableDocument(Database database, String id, C4Document c4doc) {
-        super(database, id != null ? id : createUUID(), c4doc);
+        super(database, id != null ? id : createUUID(), c4doc, true);
     }
 
     //---------------------------------------------
@@ -310,9 +310,6 @@ public final class MutableDocument extends Document implements MutableDictionary
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
-
-    @Override
-    boolean isMutable() { return true; }
 
     @Override
     long generation() { return super.generation() + (isChanged() ? 1 : 0); }

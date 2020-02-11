@@ -28,7 +28,7 @@ import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 
 
-@SuppressWarnings("LineLength")
+@SuppressWarnings({"LineLength", "PMD.TooManyMethods"})
 public abstract class C4Socket {
     //-------------------------------------------------------------------------
     // Constants
@@ -104,6 +104,7 @@ public abstract class C4Socket {
 
     // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void open(
         long handle,
         Object context,
@@ -127,6 +128,7 @@ public abstract class C4Socket {
 
     // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void write(long handle, byte[] allocatedData) {
         if (allocatedData == null) {
             Log.v(LOG_DOMAIN, "C4Socket.callback.write: allocatedData is null");
@@ -143,6 +145,7 @@ public abstract class C4Socket {
     // This method is called by reflection.  Don't change its name.
     // NOTE: No further action is not required?
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void completedReceive(long handle, long byteCount) {
         final C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
         Log.d(LOG_DOMAIN, "C4Socket.completedReceive @" + handle + ": " + socket);
@@ -154,6 +157,7 @@ public abstract class C4Socket {
     // This method is called by reflection.  Don't change its name.
     // NOTE: close(long) method should not be called.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void close(long handle) {
         final C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
         Log.d(LOG_DOMAIN, "C4Socket.close @" + handle + ": " + socket);
@@ -164,6 +168,7 @@ public abstract class C4Socket {
 
     // This method is called by reflection.  Don't change its name.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void requestClose(long handle, int status, String message) {
         final C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
         Log.d(LOG_DOMAIN, "C4Socket.requestClose @" + handle + ": " + socket);
@@ -175,6 +180,7 @@ public abstract class C4Socket {
     // This method is called by reflection.  Don't change its name.
     // NOTE: close(long) method should not be called.
     @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void dispose(long handle) {
         final C4Socket socket = HANDLES_TO_SOCKETS.get(handle);
         Log.d(LOG_DOMAIN, "C4Socket.dispose @" + handle + ": " + socket);

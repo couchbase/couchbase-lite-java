@@ -104,7 +104,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Object getValue(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return getMValue(internalDict, key).asNative(internalDict); }
     }
 
@@ -117,7 +117,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public String getString(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             final Object obj = getMValue(internalDict, key).asNative(internalDict);
             return obj instanceof String ? (String) obj : null;
@@ -133,7 +133,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Number getNumber(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asNumber(getMValue(internalDict, key).asNative(internalDict)); }
     }
 
@@ -147,7 +147,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public int getInt(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asInteger(getMValue(internalDict, key), internalDict); }
     }
 
@@ -161,7 +161,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public long getLong(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asLong(getMValue(internalDict, key), internalDict); }
     }
 
@@ -175,7 +175,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public float getFloat(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asFloat(getMValue(internalDict, key), internalDict); }
     }
 
@@ -189,7 +189,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public double getDouble(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asDouble(getMValue(internalDict, key), internalDict); }
     }
 
@@ -202,7 +202,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public boolean getBoolean(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return CBLConverter.asBoolean(getMValue(internalDict, key).asNative(internalDict)); }
     }
 
@@ -216,7 +216,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Blob getBlob(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             final Object obj = getMValue(internalDict, key).asNative(internalDict);
             return obj instanceof Blob ? (Blob) obj : null;
@@ -237,7 +237,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Date getDate(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         return DateUtils.fromJson(getString(key));
     }
 
@@ -251,7 +251,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Array getArray(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             final Object obj = getMValue(internalDict, key).asNative(internalDict);
             return obj instanceof Array ? (Array) obj : null;
@@ -268,7 +268,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
     @Nullable
     @Override
     public Dictionary getDictionary(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) {
             final Object obj = getMValue(internalDict, key).asNative(internalDict);
             return obj instanceof Dictionary ? (Dictionary) obj : null;
@@ -303,7 +303,7 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
      */
     @Override
     public boolean contains(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         synchronized (lock) { return !getMValue(internalDict, key).isEmpty(); }
     }
 
@@ -366,17 +366,18 @@ public class Dictionary implements DictionaryInterface, FLEncodable, Iterable<St
         return h;
     }
 
+    @SuppressWarnings("PMD.ConsecutiveLiteralAppends")
     @NonNull
     @Override
     public String toString() {
         final StringBuilder buf = new StringBuilder("Dictionary")
-            .append((internalDict.isMutable()) ? "+" : ".")
-            .append((internalDict.isMutated()) ? "!" : ".")
-            .append("{");
+            .append((internalDict.isMutable()) ? '+' : '.')
+            .append((internalDict.isMutated()) ? '!' : '.')
+            .append('{');
         boolean first = true;
         for (String key : getKeys()) {
             if (first) { first = false; }
-            else { buf.append(","); }
+            else { buf.append(','); }
             buf.append(key).append("=>").append(getValue(key));
         }
         return buf.append("}").toString();

@@ -28,6 +28,7 @@ import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -41,7 +42,7 @@ final class MValueDelegate implements MValue.Delegate {
     @Nullable
     @Override
     public Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt) {
-        final FLValue value = mv.getValue();
+        final FLValue value = Preconditions.assertNotNull(mv.getValue(), "MValue");
         switch (value.getType()) {
             case FLConstants.ValueType.ARRAY:
                 cacheIt.set(true);
@@ -82,7 +83,7 @@ final class MValueDelegate implements MValue.Delegate {
 
     @NonNull
     private Object mValueToDictionary(@NonNull MValue mv, @NonNull MCollection parent) {
-        final FLDict flDict = mv.getValue().asFLDict();
+        final FLDict flDict = Preconditions.assertNotNull(mv.getValue(), "MValue").asFLDict();
         final DocContext context = (DocContext) parent.getContext();
 
         final FLValue flType = flDict.get(Blob.META_PROP_TYPE);

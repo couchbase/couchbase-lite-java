@@ -30,7 +30,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-//@Ignore("NEW CORE")
 public class ReplicatorOfflineTest extends BaseReplicatorTest {
 
     @Test

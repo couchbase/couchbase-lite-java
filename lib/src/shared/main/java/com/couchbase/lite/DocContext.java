@@ -27,6 +27,7 @@ import com.couchbase.lite.internal.fleece.MContext;
  */
 class DocContext extends MContext {
     private final Database db;
+    @SuppressWarnings({"PMD.UnusedPrivateField", "PMD.SingularField"})
     private final C4Document doc;
 
     DocContext(Database db) { this(db, null); }

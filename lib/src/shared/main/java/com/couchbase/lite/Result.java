@@ -266,7 +266,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Object getValue(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getValue(index) : null;
     }
@@ -281,7 +281,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public String getString(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getString(index) : null;
     }
@@ -296,7 +296,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Number getNumber(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getNumber(index) : null;
     }
@@ -310,7 +310,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public int getInt(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getInt(index) : 0;
     }
@@ -324,7 +324,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public long getLong(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getLong(index) : 0L;
     }
@@ -338,7 +338,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public float getFloat(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getFloat(index) : 0.0f;
     }
@@ -352,7 +352,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public double getDouble(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getDouble(index) : 0.0;
     }
@@ -366,7 +366,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public boolean getBoolean(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 && getBoolean(index);
     }
@@ -381,7 +381,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Blob getBlob(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getBlob(index) : null;
     }
@@ -396,7 +396,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Date getDate(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getDate(index) : null;
     }
@@ -411,7 +411,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Array getArray(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getArray(index) : null;
     }
@@ -426,7 +426,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
     @Nullable
     @Override
     public Dictionary getDictionary(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final int index = indexForColumnName(key);
         return index >= 0 ? getDictionary(index) : null;
     }
@@ -458,7 +458,7 @@ public final class Result implements ArrayInterface, DictionaryInterface, Iterab
      */
     @Override
     public boolean contains(@NonNull String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         return indexForColumnName(key) >= 0;
     }
 

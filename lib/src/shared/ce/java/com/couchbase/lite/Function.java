@@ -21,6 +21,7 @@ package com.couchbase.lite;
 /**
  * Query functions.
  */
+@SuppressWarnings("PMD.MissingStaticMethodInNonInstantiatableClass")
 public final class Function extends AbstractFunction {
     private Function() { }
 }

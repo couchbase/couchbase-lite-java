@@ -17,12 +17,15 @@
 //
 package com.couchbase.lite;
 
+import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
 import com.couchbase.lite.internal.utils.ClassUtils;
 
 
 final class CBLConverter {
+    private CBLConverter() {}
+
     static Number asNumber(Object value) {
         // special handling for Boolean
         if (value instanceof Boolean) {
@@ -39,7 +42,8 @@ final class CBLConverter {
     }
 
     static int asInteger(MValue val, MCollection container) {
-        if (val.getValue() != null) { return (int) val.getValue().asInt(); }
+        final FLValue value = val.getValue();
+        if (value != null) { return (int) value.asInt(); }
         else {
             final Number num = asNumber(val.asNative(container));
             return num != null ? num.intValue() : 0;
@@ -47,7 +51,8 @@ final class CBLConverter {
     }
 
     static long asLong(MValue val, MCollection container) {
-        if (val.getValue() != null) { return val.getValue().asInt(); }
+        final FLValue value = val.getValue();
+        if (value != null) { return value.asInt(); }
         else {
             final Number num = asNumber(val.asNative(container));
             return num != null ? num.longValue() : 0L;
@@ -55,7 +60,8 @@ final class CBLConverter {
     }
 
     static float asFloat(MValue val, MCollection container) {
-        if (val.getValue() != null) { return val.getValue().asFloat(); }
+        final FLValue value = val.getValue();
+        if (value != null) { return value.asFloat(); }
         else {
             final Number num = asNumber(val.asNative(container));
             return num != null ? num.floatValue() : 0L;
@@ -63,7 +69,8 @@ final class CBLConverter {
     }
 
     static double asDouble(MValue val, MCollection container) {
-        if (val.getValue() != null) { return val.getValue().asDouble(); }
+        final FLValue value = val.getValue();
+        if (value != null) { return value.asDouble(); }
         else {
             final Number num = asNumber(val.asNative(container));
             return num != null ? num.doubleValue() : 0L;

@@ -53,6 +53,8 @@ class DefaultConflictResolver implements ConflictResolver {
 
         // otherwise, choose one randomly, but deterministically.
         final String localRevId = localDoc.getRevisionID();
-        return ((localRevId != null) && (localRevId.compareTo(remoteDoc.getRevisionID()) > 0)) ? localDoc : remoteDoc;
+        if (localRevId == null) { return remoteDoc; }
+        final String remoteRevId = remoteDoc.getRevisionID();
+        return ((remoteRevId == null) || (localRevId.compareTo(remoteRevId) <= 0)) ? remoteDoc : localDoc;
     }
 }

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.couchbase.lite.internal.fleece.FLConstants;
+import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.fleece.MCollection;
 import com.couchbase.lite.internal.fleece.MValue;
 import com.couchbase.lite.internal.support.Log;
@@ -31,15 +32,16 @@ import com.couchbase.lite.internal.utils.DateUtils;
 
 
 final class Fleece {
+    private Fleece() {}
+
     private static final String SUPPORTED_TYPES
         = "MutableDictionary, Dictionary, MutableArray, Array, Map, List, Date, String, Number, Boolean, Blob or null";
 
     static boolean valueWouldChange(Object newValue, MValue oldValue, MCollection container) {
-        // As a simplification we assume that array and dict values are always different, to avoid
-        // a possibly expensive comparison.
-        final int oldType = oldValue.getValue() != null
-            ? oldValue.getValue().getType()
-            : FLConstants.ValueType.UNDEFINED;
+        // As a simplification we assume that array and dict values are always different,
+        // to avoid a possibly expensive comparison.
+        final FLValue val = oldValue.getValue();
+        final int oldType =  (val != null) ? val.getType() : FLConstants.ValueType.UNDEFINED;
         if (oldType == FLConstants.ValueType.UNDEFINED
             || oldType == FLConstants.ValueType.DICT
             || oldType == FLConstants.ValueType.ARRAY) {

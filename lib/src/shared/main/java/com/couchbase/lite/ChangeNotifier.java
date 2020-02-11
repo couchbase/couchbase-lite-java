@@ -37,7 +37,7 @@ class ChangeNotifier<T> {
     ChangeListenerToken addChangeListener(
         @Nullable Executor executor,
         @NonNull ChangeListener<T> listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
 
         synchronized (lock) {
             final ChangeListenerToken<T> token = new ChangeListenerToken<>(executor, listener);
@@ -48,7 +48,7 @@ class ChangeNotifier<T> {
 
     @SuppressWarnings("SuspiciousMethodCalls")
     int removeChangeListener(@NonNull ListenerToken token) {
-        Preconditions.checkArgNotNull(token, "token");
+        Preconditions.assertNotNull(token, "token");
 
         synchronized (lock) {
             listenerTokens.remove(token);

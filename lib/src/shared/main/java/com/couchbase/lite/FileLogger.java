@@ -47,7 +47,10 @@ public final class FileLogger implements Logger {
     private volatile LogLevel logLevel;
 
     // The singleton instance is available from Database.log.getFile()
-    FileLogger() { reset(); }
+    FileLogger() {
+        logLevel = LogLevel.NONE;
+        reset();
+    }
 
     @Override
     public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {

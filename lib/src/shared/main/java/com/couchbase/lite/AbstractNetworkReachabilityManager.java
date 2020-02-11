@@ -49,7 +49,7 @@ abstract class AbstractNetworkReachabilityManager {
     void removeNetworkReachabilityListener(NetworkReachabilityListener listener) {
         synchronized (listeners) {
             listeners.remove(listener);
-            if (listeners.size() == 0) { stopListening(); }
+            if (listeners.isEmpty()) { stopListening(); }
         }
     }
 

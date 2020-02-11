@@ -17,15 +17,21 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.util.List;
 
-
+// This is an interface so that its methods can be package protected
 abstract class AbstractIndex implements Index {
+    @NonNull
     abstract IndexType type();
 
+    @Nullable
     abstract String language();
 
     abstract boolean ignoreAccents();
 
+    @NonNull
     abstract List<Object> items();
 }

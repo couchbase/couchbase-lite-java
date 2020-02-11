@@ -64,6 +64,7 @@ import com.couchbase.lite.utils.Fn;
 /**
  * AbstractDatabase is a base class of A Couchbase Lite Database.
  */
+@SuppressWarnings({"PMD.GodClass", "PMD.CyclomaticComplexity", "PMD.TooManyMethods"})
 abstract class AbstractDatabase {
 
     /**
@@ -72,7 +73,7 @@ abstract class AbstractDatabase {
      * <p>
      */
     // Public API.  Do not fix the name.
-    @SuppressWarnings("ConstantName")
+    @SuppressWarnings({"ConstantName", "PMD.FieldNamingConventions"})
     @NonNull
     public static final com.couchbase.lite.Log log = new com.couchbase.lite.Log();
 
@@ -114,8 +115,8 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public static void delete(@NonNull String name, @NonNull File directory) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(directory, "directory");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(directory, "directory");
         if (!exists(name, directory)) {
             throw new CouchbaseLiteException(
                 "Database not found for delete",
@@ -141,8 +142,8 @@ abstract class AbstractDatabase {
      * @return true if exists, false otherwise.
      */
     public static boolean exists(@NonNull String name, @NonNull File directory) {
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(directory, "directory");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(directory, "directory");
         return getDatabaseFile(directory, name).exists();
     }
 
@@ -191,8 +192,8 @@ abstract class AbstractDatabase {
      */
     @Deprecated
     public static void setLogLevel(@NonNull LogDomain domain, @NonNull LogLevel level) {
-        Preconditions.checkArgNotNull(domain, "domain");
-        Preconditions.checkArgNotNull(level, "level");
+        Preconditions.assertNotNull(domain, "domain");
+        Preconditions.assertNotNull(level, "level");
 
         final EnumSet<LogDomain> domains = (domain == LogDomain.ALL)
             ? LogDomain.ALL_DOMAINS
@@ -254,8 +255,8 @@ abstract class AbstractDatabase {
      */
     protected AbstractDatabase(@NonNull String name, @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotEmpty(name, "db name");
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotEmpty(name, "db name");
+        Preconditions.assertNotNull(config, "config");
 
         CouchbaseLiteInternal.requireInit("Cannot create database");
 
@@ -299,7 +300,7 @@ abstract class AbstractDatabase {
      * Dictionary as an input of the predict() method of the PredictiveModel.
      */
     protected AbstractDatabase(@NonNull C4Database c4db) {
-        Preconditions.checkArgNotNull(c4db, "c4db");
+        Preconditions.assertNotNull(c4db, "c4db");
 
         CouchbaseLiteInternal.requireInit("Cannot create database");
 
@@ -307,7 +308,7 @@ abstract class AbstractDatabase {
 
         this.name = null;
 
-        this.config = null;
+        this.config = new DatabaseConfiguration();
         this.shellMode = true;
 
         this.postExecutor = null;
@@ -371,7 +372,7 @@ abstract class AbstractDatabase {
      * @return the Document object
      */
     public Document getDocument(@NonNull String id) {
-        Preconditions.checkArgNotNull(id, "id");
+        Preconditions.assertNotNull(id, "id");
 
         synchronized (lock) {
             mustBeOpen();
@@ -426,10 +427,10 @@ abstract class AbstractDatabase {
      * @return true if successful. false if the FAIL_ON_CONFLICT concurrency
      * @throws CouchbaseLiteException on error
      */
-    public boolean save(@NonNull MutableDocument document, @Nullable ConflictHandler conflictHandler)
+    public boolean save(@NonNull MutableDocument document, @NonNull ConflictHandler conflictHandler)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(document, "document");
-        Preconditions.checkArgNotNull(conflictHandler, "conflictHandler");
+        Preconditions.assertNotNull(document, "document");
+        Preconditions.assertNotNull(conflictHandler, "conflictHandler");
         saveWithConflictHandler(document, conflictHandler);
         return true;
     }
@@ -479,7 +480,7 @@ abstract class AbstractDatabase {
      * @param document the document to be purged.
      */
     public void purge(@NonNull Document document) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(document, "document");
+        Preconditions.assertNotNull(document, "document");
 
         if (document.isNewDocument()) {
             throw new CouchbaseLiteException("DocumentNotFound", CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND);
@@ -505,7 +506,7 @@ abstract class AbstractDatabase {
      * @param id the document ID
      */
     public void purge(@NonNull String id) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(id, "id");
+        Preconditions.assertNotNull(id, "id");
         synchronized (lock) { purgeSynchronized(id); }
     }
 
@@ -521,7 +522,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public void setDocumentExpiration(@NonNull String id, Date expiration) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(id, "id");
+        Preconditions.assertNotNull(id, "id");
 
         if (purgeStrategy == null) {
             Log.w(LogDomain.DATABASE, "Attempt to set document expiration without a purge strategy");
@@ -548,7 +549,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public Date getDocumentExpiration(@NonNull String id) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(id, "id");
+        Preconditions.assertNotNull(id, "id");
 
         synchronized (lock) {
             try {
@@ -576,7 +577,7 @@ abstract class AbstractDatabase {
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
     public void inBatch(@NonNull Runnable runnable) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(runnable, "runnable");
+        Preconditions.assertNotNull(runnable, "runnable");
 
         synchronized (lock) {
             mustBeOpen();
@@ -643,7 +644,7 @@ abstract class AbstractDatabase {
      */
     @NonNull
     public ListenerToken addChangeListener(@Nullable Executor executor, @NonNull DatabaseChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
@@ -657,7 +658,7 @@ abstract class AbstractDatabase {
      * @param token returned by a previous call to addChangeListener or addDocumentListener.
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        Preconditions.checkArgNotNull(token, "token");
+        Preconditions.assertNotNull(token, "token");
 
         synchronized (lock) {
             mustBeOpen();
@@ -693,8 +694,8 @@ abstract class AbstractDatabase {
         @NonNull String id,
         @Nullable Executor executor,
         @NonNull DocumentChangeListener listener) {
-        Preconditions.checkArgNotNull(id, "id");
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(id, "id");
+        Preconditions.assertNotNull(listener, "listener");
 
         synchronized (lock) {
             mustBeOpen();
@@ -721,7 +722,7 @@ abstract class AbstractDatabase {
             }
 
 
-            if (activeLiveQueries.size() > 0) {
+            if (!activeLiveQueries.isEmpty()) {
                 throw new CouchbaseLiteException(
                     "CloseDBFailedQueryListeners",
                     CBLError.Domain.CBLITE,
@@ -761,7 +762,7 @@ abstract class AbstractDatabase {
                     CBLError.Code.BUSY);
             }
 
-            if (activeLiveQueries.size() > 0) {
+            if (activeLiveQueries.isEmpty()) {
                 throw new CouchbaseLiteException(
                     "DeleteDBFailedQueryListeners",
                     CBLError.Domain.CBLITE,
@@ -794,8 +795,8 @@ abstract class AbstractDatabase {
     }
 
     public void createIndex(@NonNull String name, @NonNull Index index) throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(index, "index");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(index, "index");
 
         synchronized (lock) {
             mustBeOpen();
@@ -913,6 +914,7 @@ abstract class AbstractDatabase {
 
     //////// REPLICATORS:
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     C4Replicator createReplicator(
         Replicator replicator,
         String schema,
@@ -952,6 +954,7 @@ abstract class AbstractDatabase {
         return c4Repl;
     }
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     C4Replicator createReplicator(
         Replicator replicator,
         C4Database otherLocalDB,
@@ -986,7 +989,7 @@ abstract class AbstractDatabase {
     }
 
     boolean hasActiveReplicators() {
-        synchronized (lock) { return activeReplications.size() > 0; }
+        synchronized (lock) { return !activeReplications.isEmpty(); }
     }
 
     //////// RESOLVING REPLICATED CONFLICTS:
@@ -1212,7 +1215,7 @@ abstract class AbstractDatabase {
                 final C4DatabaseChange[] c4DbChanges = c4DbObserver.getChanges(MAX_CHANGES);
                 nChanges = (c4DbChanges == null) ? 0 : c4DbChanges.length;
                 final boolean newExternal = (nChanges > 0) && c4DbChanges[0].isExternal();
-                if (((nChanges <= 0) || (external != newExternal) || (docIDs.size() > 1000)) && (docIDs.size() > 0)) {
+                if ((!docIDs.isEmpty()) && ((nChanges <= 0) || (external != newExternal) || (docIDs.size() > 1000))) {
                     dbChangeNotifier.postChange(new DatabaseChange((Database) this, docIDs));
                     docIDs = new ArrayList<>();
                 }
@@ -1330,6 +1333,7 @@ abstract class AbstractDatabase {
     }
 
     // Call holding lock and in a transaction
+    @SuppressWarnings("PMD.NPathComplexity")
     private void saveResolvedDocument(
         @Nullable Document resolvedDoc,
         @NonNull Document localDoc,
@@ -1369,7 +1373,7 @@ abstract class AbstractDatabase {
             final byte[] mergedBodyBytes = mergedBody == null ? null : mergedBody.getBuf();
 
             // Ask LiteCore to do the resolution:
-            final C4Document rawDoc = localDoc.getC4doc();
+            final C4Document rawDoc = Preconditions.assertNotNull(localDoc.getC4doc(), "raw doc is null");
             // The remote branch has to win so that the doc revision history matches the server's.
             rawDoc.resolveConflict(remoteDoc.getRevisionID(), localDoc.getRevisionID(), mergedBodyBytes, mergedFlags);
             rawDoc.save(0);
@@ -1434,8 +1438,8 @@ abstract class AbstractDatabase {
         boolean deleting,
         @NonNull ConcurrencyControl concurrencyControl)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(document, "document");
-        Preconditions.checkArgNotNull(concurrencyControl, "concurrencyControl");
+        Preconditions.assertNotNull(document, "document");
+        Preconditions.assertNotNull(concurrencyControl, "concurrencyControl");
 
         if (deleting && (!document.exists())) {
             throw new CouchbaseLiteException(

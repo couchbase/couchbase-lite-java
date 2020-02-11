@@ -100,7 +100,7 @@ public class C4Replicator {
         if (listener != null) { listener.statusChanged(repl, status, repl.replicatorContext); }
     }
 
-    static void documentEndedCallback(long handle, boolean pushing, @Nullable C4DocumentEnded[] documentsEnded) {
+    static void documentEndedCallback(long handle, boolean pushing, @Nullable C4DocumentEnded... documentsEnded) {
         final C4Replicator repl = getReplicatorForHandle(handle);
         Log.d(LogDomain.REPLICATOR, "documentEndedCallback() handle: " + handle + ", pushing: " + pushing);
         if (repl == null) { return; }
@@ -173,6 +173,7 @@ public class C4Replicator {
     // Constructors
     //-------------------------------------------------------------------------
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     C4Replicator(
         long db,
         @Nullable String schema,
@@ -217,6 +218,7 @@ public class C4Replicator {
         }
     }
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     C4Replicator(
         long db,
         C4Database otherLocalDB,
@@ -253,16 +255,16 @@ public class C4Replicator {
         }
     }
 
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     C4Replicator(
         long db,
         C4Socket openSocket,
         int push,
         int pull,
-        @NonNull byte[] options,
+        @Nullable byte[] options,
         @Nullable C4ReplicatorListener listener,
         @NonNull Object replicatorContext)
         throws LiteCoreException {
-
         this.socketFactoryContext = null;
 
         this.listener = listener;
@@ -298,6 +300,7 @@ public class C4Replicator {
         }
     }
 
+    @SuppressWarnings("PMD.MethodReturnsInternalArray")
     @Nullable
     public byte[] getResponseHeaders() {
         synchronized (lock) {
@@ -362,6 +365,7 @@ public class C4Replicator {
     /**
      * Creates a new replicator.
      */
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     private static native long create(
         long db,
         String schema,
@@ -381,6 +385,7 @@ public class C4Replicator {
     /**
      * Creates a new local replicator.
      */
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     private static native long createLocal(
         long db,
         long targetDb,
@@ -405,6 +410,7 @@ public class C4Replicator {
      * @param options           flags
      * @return The pointer of the newly created replicator
      */
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     private static native long createWithSocket(
         long db,
         long openSocket,

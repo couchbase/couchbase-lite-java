@@ -29,14 +29,15 @@ public class C4DocumentEnded {
     private String revID;               // Referenced from native code
     private int flags;                  // Referenced from native code
     @SuppressFBWarnings("UUF_UNUSED_FIELD")
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private long sequence;              // Referenced from native code
     private int errorDomain;            // Referenced from native code: C4Error.domain
     private int errorCode;              // Referenced from native code: C4Error.code
     private int errorInternalInfo;      // Referenced from native code: C4Error.internal_info
-    @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
     private boolean errorIsTransient;   // Referenced from native code:
 
     // Called from native code
+    @SuppressWarnings("PMD.UnnecessaryConstructor")
     public C4DocumentEnded() { }
 
     public String getDocID() { return docID; }

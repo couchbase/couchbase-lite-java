@@ -62,7 +62,7 @@ public class JavaExecutionService extends AbstractExecutionService {
         private final Future future;
 
         private CancellableTask(@NonNull Future future) {
-            Preconditions.checkArgNotNull(future, "future");
+            Preconditions.assertNotNull(future, "future");
             this.future = future;
         }
 
@@ -96,11 +96,11 @@ public class JavaExecutionService extends AbstractExecutionService {
     @NonNull
     @Override
     public Cancellable postDelayedOnExecutor(long delayMs, @NonNull Executor executor, @NonNull Runnable task) {
-        Preconditions.checkArgNotNull(executor, "executor");
-        Preconditions.checkArgNotNull(task, "task");
+        Preconditions.assertNotNull(executor, "executor");
+        Preconditions.assertNotNull(task, "task");
         final Runnable delayedTask = () -> {
             try { executor.execute(task); }
-            catch (RejectedExecutionException ignored) { }
+            catch (RejectedExecutionException ignore) { }
         };
 
         final Future future = scheduler.schedule(delayedTask, delayMs, TimeUnit.MILLISECONDS);
@@ -109,7 +109,7 @@ public class JavaExecutionService extends AbstractExecutionService {
 
     @Override
     public void cancelDelayedTask(@NonNull Cancellable cancellableTask) {
-        Preconditions.checkArgNotNull(cancellableTask, "future");
+        Preconditions.assertNotNull(cancellableTask, "future");
         cancellableTask.cancel();
     }
 }

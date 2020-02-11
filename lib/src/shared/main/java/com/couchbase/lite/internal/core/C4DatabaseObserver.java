@@ -38,6 +38,7 @@ public class C4DatabaseObserver {
      * observer -> this instance
      * context ->  maintained in java layer
      */
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private static void callback(long handle) {
         final C4DatabaseObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
         if (obs != null && obs.listener != null) { obs.listener.callback(obs, obs.context); }

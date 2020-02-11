@@ -39,7 +39,7 @@ public class C4BlobReadStream {
     //-------------------------------------------------------------------------
 
     C4BlobReadStream(long handle) {
-        Preconditions.checkArgNotZero(handle, "handle");
+        Preconditions.assertNotZero(handle, "handle");
         this.handle = handle;
     }
 

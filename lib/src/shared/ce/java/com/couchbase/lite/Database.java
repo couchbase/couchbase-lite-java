@@ -41,9 +41,9 @@ public final class Database extends AbstractDatabase {
         @NonNull String name,
         @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(path, "path");
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(path, "path");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(config, "config");
 
         AbstractDatabase.copy(path, name, config, C4Constants.EncryptionAlgorithm.NONE, null);
     }

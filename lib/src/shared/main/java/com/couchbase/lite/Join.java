@@ -65,7 +65,7 @@ public class Join {
          */
         @NonNull
         public Join on(@NonNull Expression expression) {
-            Preconditions.checkArgNotNull(expression, "expression");
+            Preconditions.assertNotNull(expression, "expression");
             this.onExpression = expression;
             return this;
         }
@@ -107,7 +107,7 @@ public class Join {
      */
     @NonNull
     public static On innerJoin(@NonNull DataSource datasource) {
-        Preconditions.checkArgNotNull(datasource, "data source");
+        Preconditions.assertNotNull(datasource, "data source");
         return new On(Type.INNER, datasource);
     }
 
@@ -120,7 +120,7 @@ public class Join {
      */
     @NonNull
     public static On leftJoin(@NonNull DataSource datasource) {
-        Preconditions.checkArgNotNull(datasource, "data source");
+        Preconditions.assertNotNull(datasource, "data source");
         return leftOuterJoin(datasource);
     }
 
@@ -133,7 +133,7 @@ public class Join {
      */
     @NonNull
     public static On leftOuterJoin(@NonNull DataSource datasource) {
-        Preconditions.checkArgNotNull(datasource, "data source");
+        Preconditions.assertNotNull(datasource, "data source");
         return new On(Type.LEFT_OUTER, datasource);
     }
 
@@ -146,7 +146,7 @@ public class Join {
      */
     @NonNull
     public static Join crossJoin(@NonNull DataSource datasource) {
-        Preconditions.checkArgNotNull(datasource, "data source");
+        Preconditions.assertNotNull(datasource, "data source");
         return new Join(Type.CROSS, datasource);
     }
 
@@ -163,8 +163,8 @@ public class Join {
     // Constructors
     //---------------------------------------------
     private Join(@NonNull Type type, @NonNull DataSource datasource) {
-        Preconditions.checkArgNotNull(type, "type");
-        Preconditions.checkArgNotNull(datasource, "data source");
+        Preconditions.assertNotNull(type, "type");
+        Preconditions.assertNotNull(datasource, "data source");
         this.type = type;
         this.dataSource = datasource;
     }

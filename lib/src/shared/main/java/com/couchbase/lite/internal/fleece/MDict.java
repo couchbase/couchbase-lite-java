@@ -101,7 +101,7 @@ public class MDict extends MCollection implements Iterable<String> {
     }
 
     public boolean clear() {
-        Preconditions.testArg(this, "Cannot call set on a non-mutable MDict", MCollection::isMutable);
+        Preconditions.assertThat(this, "Cannot call set on a non-mutable MDict", MCollection::isMutable);
 
         if (valCount == 0) { return true; }
 
@@ -128,7 +128,7 @@ public class MDict extends MCollection implements Iterable<String> {
     }
 
     public boolean contains(String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         final MValue v = valueMap.get(key);
         return (v != null) ? !v.isEmpty() : ((flDict != null) && (flDict.get(key) != null));
     }
@@ -161,7 +161,7 @@ public class MDict extends MCollection implements Iterable<String> {
 
     @NonNull
     public MValue get(String key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
 
         final MValue v = valueMap.get(key);
         if (v != null) { return v; }
@@ -171,8 +171,8 @@ public class MDict extends MCollection implements Iterable<String> {
     }
 
     public boolean set(String key, MValue value) {
-        Preconditions.checkArgNotNull(key, "key");
-        Preconditions.testArg(this, "Cannot call set on a non-mutable MDict", MCollection::isMutable);
+        Preconditions.assertNotNull(key, "key");
+        Preconditions.assertThat(this, "Cannot call set on a non-mutable MDict", MCollection::isMutable);
 
         final MValue oValue = valueMap.get(key);
         if (oValue != null) {

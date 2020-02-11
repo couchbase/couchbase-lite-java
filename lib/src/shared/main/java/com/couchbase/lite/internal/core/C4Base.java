@@ -18,13 +18,16 @@
 package com.couchbase.lite.internal.core;
 
 
-public class C4Base {
+public final class C4Base {
+    private C4Base() { }
 
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
 
-    public static native String getMessage(int domain, int code, int internalInfo);
+    public static native void debug();
 
     public static native void setTempDir(String tempDir);
+
+    public static native String getMessage(int domain, int code, int internalInfo);
 }

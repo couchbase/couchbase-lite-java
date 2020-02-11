@@ -21,11 +21,16 @@ import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Based class for Query Functions.
  */
+@SuppressWarnings({"PMD.AbstractClassWithoutAbstractMethod", "PMD.TooManyMethods"})
 abstract class AbstractFunction {
+    private static final String PARAM_EXPRESSION = "expression";
+
     //---------------------------------------------
     // Aggregation
     //---------------------------------------------
@@ -39,9 +44,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression avg(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("AVG()", Arrays.asList(expression));
     }
 
@@ -54,9 +57,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression count(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("COUNT()", Arrays.asList(expression));
     } // null expression -> count *
 
@@ -69,9 +70,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression min(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("MIN()", Arrays.asList(expression));
     }
 
@@ -84,9 +83,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression max(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("MAX()", Arrays.asList(expression));
     }
 
@@ -99,9 +96,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression sum(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("SUM()", Arrays.asList(expression));
     }
 
@@ -118,9 +113,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression abs(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("ABS()", Arrays.asList(expression));
     }
 
@@ -133,9 +126,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression acos(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("ACOS()", Arrays.asList(expression));
     }
 
@@ -148,9 +139,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression asin(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("ASIN()", Arrays.asList(expression));
     }
 
@@ -163,9 +152,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression atan(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("ATAN()", Arrays.asList(expression));
     }
 
@@ -180,9 +167,8 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression atan2(@NonNull Expression x, @NonNull Expression y) {
-        if (x == null || y == null) {
-            throw new IllegalArgumentException("x and y cannot be null.");
-        }
+        Preconditions.assertNotNull(x, "x");
+        Preconditions.assertNotNull(y, "y");
         return new Expression.FunctionExpression("ATAN2()", Arrays.asList(x, y));
     }
 
@@ -195,9 +181,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression ceil(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("CEIL()", Arrays.asList(expression));
     }
 
@@ -209,9 +193,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression cos(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("COS()", Arrays.asList(expression));
     }
 
@@ -224,9 +206,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression degrees(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("DEGREES()", Arrays.asList(expression));
     }
 
@@ -249,9 +229,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression exp(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("EXP()", Arrays.asList(expression));
     }
 
@@ -264,9 +242,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression floor(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("FLOOR()", Arrays.asList(expression));
     }
 
@@ -278,9 +254,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression ln(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("LN()", Arrays.asList(expression));
     }
 
@@ -292,9 +266,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression log(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("LOG()", Arrays.asList(expression));
     }
 
@@ -318,9 +290,8 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression power(@NonNull Expression base, @NonNull Expression exponent) {
-        if (base == null || exponent == null) {
-            throw new IllegalArgumentException("base or exponent cannot be null.");
-        }
+        Preconditions.assertNotNull(base, "base");
+        Preconditions.assertNotNull(exponent, "exponent");
         return new Expression.FunctionExpression("POWER()", Arrays.asList(base, exponent));
     }
 
@@ -333,9 +304,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression radians(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("RADIANS()", Arrays.asList(expression));
     }
 
@@ -348,9 +317,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression round(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("ROUND()", Arrays.asList(expression));
     }
 
@@ -364,9 +331,8 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression round(@NonNull Expression expression, @NonNull Expression digits) {
-        if (expression == null || digits == null) {
-            throw new IllegalArgumentException("expression and digits cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
+        Preconditions.assertNotNull(digits, "digits");
         return new Expression.FunctionExpression("ROUND()", Arrays.asList(expression, digits));
     }
 
@@ -379,9 +345,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression sign(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("SIGN()", Arrays.asList(expression));
     }
 
@@ -393,9 +357,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression sin(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("SIN()", Arrays.asList(expression));
     }
 
@@ -407,9 +369,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression sqrt(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("SQRT()", Arrays.asList(expression));
     }
 
@@ -421,9 +381,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression tan(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("TAN()", Arrays.asList(expression));
     }
 
@@ -436,9 +394,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression trunc(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("TRUNC()", Arrays.asList(expression));
     }
 
@@ -452,9 +408,8 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression trunc(@NonNull Expression expression, @NonNull Expression digits) {
-        if (expression == null || digits == null) {
-            throw new IllegalArgumentException("expression and digits cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
+        Preconditions.assertNotNull(digits, "digits");
         return new Expression.FunctionExpression("TRUNC()", Arrays.asList(expression, digits));
     }
 
@@ -472,9 +427,8 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression contains(@NonNull Expression expression, @NonNull Expression substring) {
-        if (expression == null || substring == null) {
-            throw new IllegalArgumentException("expression and substring cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
+        Preconditions.assertNotNull(substring, "substring");
         return new Expression.FunctionExpression("CONTAINS()", Arrays.asList(expression, substring));
     }
 
@@ -486,9 +440,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression length(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("LENGTH()", Arrays.asList(expression));
     }
 
@@ -501,9 +453,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression lower(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("LOWER()", Arrays.asList(expression));
     }
 
@@ -516,9 +466,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression ltrim(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("LTRIM()", Arrays.asList(expression));
     }
 
@@ -531,9 +479,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression rtrim(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("RTRIM()", Arrays.asList(expression));
     }
 
@@ -546,9 +492,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression trim(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("TRIM()", Arrays.asList(expression));
     }
 
@@ -560,9 +504,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression upper(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("UPPER()", Arrays.asList(expression));
     }
 
@@ -576,9 +518,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression millisToString(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("MILLIS_TO_STR()", Arrays.asList(expression));
     }
 
@@ -592,9 +532,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression millisToUTC(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("MILLIS_TO_UTC()", Arrays.asList(expression));
     }
 
@@ -618,9 +556,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression stringToMillis(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("STR_TO_MILLIS()", Arrays.asList(expression));
     }
 
@@ -644,9 +580,7 @@ abstract class AbstractFunction {
      */
     @NonNull
     public static Expression stringToUTC(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, PARAM_EXPRESSION);
         return new Expression.FunctionExpression("STR_TO_UTC()", Arrays.asList(expression));
     }
 }

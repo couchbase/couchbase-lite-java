@@ -19,7 +19,6 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import java.io.PrintStream;
 
 /**
  * A class for sending log messages to standard output stream.  This is useful
@@ -29,7 +28,7 @@ import java.io.PrintStream;
 public class ConsoleLogger extends AbstractConsoleLogger {
     @Override
     public void doLog(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
-        final PrintStream ps = (level == LogLevel.ERROR) ? System.err : System.out;
-        ps.println(level + "/CouchbaseLite/" + domain + ":" + message);
+        ((level == LogLevel.ERROR) ? System.err : System.out)
+            .println(level + "/CouchbaseLite/" + domain + ":" + message);
     }
 }

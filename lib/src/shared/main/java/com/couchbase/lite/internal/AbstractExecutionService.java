@@ -66,6 +66,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
     @VisibleForTesting
     static class InstrumentedTask implements Runnable {
         // Putting a `new Exception()` here is useful but extremely expensive
+        @SuppressWarnings("PMD.FinalFieldCouldBeStatic")
         final Exception origin = null;
 
         @NonNull
@@ -95,7 +96,8 @@ public abstract class AbstractExecutionService implements ExecutionService {
                 finishedAt = System.currentTimeMillis();
             }
             finally {
-                onComplete.run();
+                final Runnable completionTask = onComplete;
+                if (completionTask != null) { completionTask.run(); }
             }
             completedAt = System.currentTimeMillis();
         }
@@ -108,21 +110,24 @@ public abstract class AbstractExecutionService implements ExecutionService {
     /**
      * This executor schedules tasks on an underlying thread pool executor
      * (probably some application-wide executor: the Async Task's on Android).
-     * </br>If the underlying executor is low on resources, this executor reverts
+     * <br>
+     * If the underlying executor is low on resources, this executor reverts
      * to serial execution, using an unbounded pending queue.
-     * </br>If the executor is stopped while there are unscheduled pending tasks
+     * <br>
+     * If the executor is stopped while there are unscheduled pending tasks
      * (in the pendingTask queue), all of those tasks are simply discarded.
      * If the pendingTask queue is non-empty, either the head task is scheduled
      * or <code>needsRestart</code> is true (see below) .
-     * </br>Soft resource exhaustion, <code>spaceAvailable</code>is intended to make it
+     * <br>
+     * Soft resource exhaustion, <code>spaceAvailable</code>is intended to make it
      * unlikely that this executor ever encounters a <code>RejectedExecutionException</code>.
      * There are two circumstances under which a <code>RejectedExecutionException</code>
      * is possible:
      * <nl>
-     * </li> The underlying executor rejects the execution of a new task, even though
+     * <li> The underlying executor rejects the execution of a new task, even though
      * <code>spaceAvailable</code> returns true.  This exception will be passed back
      * to client code.
-     * </li> A task on the pending queue attempts to schedule the next task from the queue
+     * <li> A task on the pending queue attempts to schedule the next task from the queue
      * for execution.  When this happens, the queue is stalled and <code>needsRestart</code>
      * is set true.  Subsequent calls to <code>execute</code> will make a best-effort attempt
      * to restart the queue.
@@ -148,7 +153,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
         private boolean needsRestart;
 
         ConcurrentExecutor(@NonNull ThreadPoolExecutor executor) {
-            Preconditions.checkArgNotNull(executor, "executor");
+            Preconditions.assertNotNull(executor, "executor");
             this.executor = executor;
         }
 
@@ -169,7 +174,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
          */
         @Override
         public void execute(@NonNull Runnable task) {
-            Preconditions.checkArgNotNull(task, "task");
+            Preconditions.assertNotNull(task, "task");
 
             final int pendingTaskCount;
             synchronized (this) {
@@ -203,8 +208,8 @@ public abstract class AbstractExecutionService implements ExecutionService {
          */
         @Override
         public boolean stop(long timeout, @NonNull TimeUnit unit) {
-            Preconditions.testArg(timeout, "timeout must be >= 0", x -> x >= 0);
-            Preconditions.checkArgNotNull(unit, "time unit");
+            Preconditions.assertThat(timeout, "timeout must be >= 0", x -> x >= 0);
+            Preconditions.assertNotNull(unit, "time unit");
 
             final CountDownLatch latch;
             synchronized (this) {
@@ -338,7 +343,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
         private boolean needsRestart;
 
         SerialExecutor(@NonNull ThreadPoolExecutor executor) {
-            Preconditions.checkArgNotNull(executor, "executor");
+            Preconditions.assertNotNull(executor, "executor");
             this.executor = executor;
         }
 
@@ -351,7 +356,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
          */
         @Override
         public void execute(@NonNull Runnable task) {
-            Preconditions.checkArgNotNull(task, "task");
+            Preconditions.assertNotNull(task, "task");
 
             synchronized (this) {
                 if (stopLatch != null) { throw new ExecutorClosedException("Executor has been stopped"); }
@@ -373,8 +378,8 @@ public abstract class AbstractExecutionService implements ExecutionService {
          */
         @Override
         public boolean stop(long timeout, @NonNull TimeUnit unit) {
-            Preconditions.testArg(timeout, "timeout must be >= 0", x -> x >= 0);
-            Preconditions.checkArgNotNull(unit, "time unit");
+            Preconditions.assertThat(timeout, "timeout must be >= 0", x -> x >= 0);
+            Preconditions.assertNotNull(unit, "time unit");
 
             final CountDownLatch latch;
             synchronized (this) {
