@@ -20,12 +20,9 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.utils.Preconditions;
@@ -139,7 +136,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setAuthenticator(@NonNull Authenticator authenticator) {
+    public final ReplicatorConfiguration setAuthenticator(@NonNull Authenticator authenticator) {
         checkReadOnly();
         this.authenticator = authenticator;
         return getReplicatorConfiguration();
@@ -155,14 +152,10 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setChannels(List<String> channels) {
+    public final ReplicatorConfiguration setChannels(List<String> channels) {
         checkReadOnly();
         this.channels = channels;
         return getReplicatorConfiguration();
-    }
-
-    private void checkReadOnly() {
-        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
     }
 
     /**
@@ -171,7 +164,7 @@ abstract class AbstractReplicatorConfiguration {
      * @param conflictResolver The replicator type.
      * @return The self object.
      */
-    public ReplicatorConfiguration setConflictResolver(@Nullable ConflictResolver conflictResolver) {
+    public final ReplicatorConfiguration setConflictResolver(@Nullable ConflictResolver conflictResolver) {
         checkReadOnly();
         this.conflictResolver = conflictResolver;
         return getReplicatorConfiguration();
@@ -187,7 +180,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setContinuous(boolean continuous) {
+    public final ReplicatorConfiguration setContinuous(boolean continuous) {
         checkReadOnly();
         this.continuous = continuous;
         return getReplicatorConfiguration();
@@ -201,7 +194,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setDocumentIDs(List<String> documentIDs) {
+    public final ReplicatorConfiguration setDocumentIDs(List<String> documentIDs) {
         checkReadOnly();
         this.documentIDs = documentIDs;
         return getReplicatorConfiguration();
@@ -214,7 +207,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setHeaders(Map<String, String> headers) {
+    public final ReplicatorConfiguration setHeaders(Map<String, String> headers) {
         checkReadOnly();
         this.headers = new HashMap<>(headers);
         return getReplicatorConfiguration();
@@ -224,16 +217,16 @@ abstract class AbstractReplicatorConfiguration {
      * Sets the target server's SSL certificate.
      * <p>
      *
-     * @param pinnedServerCertificate the SSL certificate.
+     * @param pinnedCert the SSL certificate.
      * @return The self object.
      */
-    // !!! FIXME: This method stores a mutable array as private data
-    @SuppressWarnings("PMD.ArrayIsStoredDirectly")
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     @NonNull
-    public ReplicatorConfiguration setPinnedServerCertificate(byte[] pinnedServerCertificate) {
+    public final ReplicatorConfiguration setPinnedServerCertificate(byte[] pinnedCert) {
         checkReadOnly();
-        this.pinnedServerCertificate = pinnedServerCertificate;
+
+        pinnedServerCertificate = new byte[pinnedCert.length];
+        System.arraycopy(pinnedCert, 0, pinnedServerCertificate, 0, pinnedServerCertificate.length);
+
         return getReplicatorConfiguration();
     }
 
@@ -245,7 +238,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setPullFilter(ReplicationFilter pullFilter) {
+    public final ReplicatorConfiguration setPullFilter(ReplicationFilter pullFilter) {
         checkReadOnly();
         this.pullFilter = pullFilter;
         return getReplicatorConfiguration();
@@ -259,7 +252,7 @@ abstract class AbstractReplicatorConfiguration {
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setPushFilter(ReplicationFilter pushFilter) {
+    public final ReplicatorConfiguration setPushFilter(ReplicationFilter pushFilter) {
         checkReadOnly();
         this.pushFilter = pushFilter;
         return getReplicatorConfiguration();
@@ -267,13 +260,13 @@ abstract class AbstractReplicatorConfiguration {
 
     /**
      * Sets the replicator type indicating the direction of the replicator.
-     * The default value is .pushAndPull which is bi-drectional.
+     * The default value is .pushAndPull which is bi-directional.
      *
      * @param replicatorType The replicator type.
      * @return The self object.
      */
     @NonNull
-    public ReplicatorConfiguration setReplicatorType(@NonNull ReplicatorType replicatorType) {
+    public final ReplicatorConfiguration setReplicatorType(@NonNull ReplicatorType replicatorType) {
         Preconditions.assertNotNull(replicatorType, "replicatorType");
         checkReadOnly();
         this.replicatorType = replicatorType;
@@ -287,92 +280,91 @@ abstract class AbstractReplicatorConfiguration {
     /**
      * Return the Authenticator to authenticate with a remote target.
      */
-    public Authenticator getAuthenticator() { return authenticator; }
+    public final Authenticator getAuthenticator() { return authenticator; }
 
     /**
      * A set of Sync Gateway channel names to pull from. Ignored for push replication.
      * The default value is null, meaning that all accessible channels will be pulled.
      * Note: channels that are not accessible to the user will be ignored by Sync Gateway.
      */
-    public List<String> getChannels() { return channels; }
+    public final List<String> getChannels() { return channels; }
 
     /**
      * Return the conflict resolver.
      */
     @Nullable
-    public ConflictResolver getConflictResolver() { return conflictResolver; }
+    public final ConflictResolver getConflictResolver() { return conflictResolver; }
 
     /**
      * Return the continuous flag indicating whether the replicator should stay
      * active indefinitely to replicate changed documents.
      */
-    public boolean isContinuous() { return continuous; }
+    public final boolean isContinuous() { return continuous; }
 
     /**
      * Return the local database to replicate with the replication target.
      */
     @NonNull
-    public Database getDatabase() { return database; }
+    public final Database getDatabase() { return database; }
 
     /**
      * A set of document IDs to filter by: if not nil, only documents with these IDs will be pushed
      * and/or pulled.
      */
-    public List<String> getDocumentIDs() { return documentIDs; }
+    public final List<String> getDocumentIDs() { return documentIDs; }
 
     /**
      * Return Extra HTTP headers to send in all requests to the remote target.
      */
-    public Map<String, String> getHeaders() { return headers; }
+    public final Map<String, String> getHeaders() { return headers; }
 
     /**
      * Return the remote target's SSL certificate.
      */
-    // !!! FIXME: This method returns a writable copy of its private data
-    @SuppressWarnings("PMD.MethodReturnsInternalArray")
-    @SuppressFBWarnings("EI_EXPOSE_REP")
-    public byte[] getPinnedServerCertificate() { return pinnedServerCertificate; }
+    public final byte[] getPinnedServerCertificate() {
+        final byte[] pinnedCert = new byte[pinnedServerCertificate.length];
+        System.arraycopy(pinnedServerCertificate, 0, pinnedCert, 0, pinnedCert.length);
+        return pinnedCert;
+    }
 
     /**
      * Gets a filter object for validating whether the documents can be pulled
      * from the remote endpoint.
      */
-    public ReplicationFilter getPullFilter() { return pullFilter; }
+    public final ReplicationFilter getPullFilter() { return pullFilter; }
 
     /**
      * Gets a filter object for validating whether the documents can be pushed
      * to the remote endpoint.
      */
-    public ReplicationFilter getPushFilter() { return pushFilter; }
+    public final ReplicationFilter getPushFilter() { return pushFilter; }
 
     /**
      * Return Replicator type indicating the direction of the replicator.
      */
     @NonNull
-    public ReplicatorType getReplicatorType() { return replicatorType; }
+    public final ReplicatorType getReplicatorType() { return replicatorType; }
 
     /**
      * Return the replication target to replicate with.
      */
     @NonNull
-    public Endpoint getTarget() { return target; }
+    public final Endpoint getTarget() { return target; }
 
 
     //---------------------------------------------
     // Package level access
     //---------------------------------------------
 
-    abstract Database getTargetDatabase();
-
     abstract ReplicatorConfiguration getReplicatorConfiguration();
 
-    ReplicatorConfiguration readonlyCopy() {
+    final ReplicatorConfiguration readonlyCopy() {
         final ReplicatorConfiguration config = new ReplicatorConfiguration(getReplicatorConfiguration());
         config.readonly = true;
         return config;
     }
 
-    Map<String, Object> effectiveOptions() {
+    final Map<String, Object> effectiveOptions() {
         final Map<String, Object> options = new HashMap<>();
 
         if (authenticator != null) { authenticator.authenticate(options); }
@@ -400,7 +392,7 @@ abstract class AbstractReplicatorConfiguration {
         return options;
     }
 
-    URI getTargetURI() {
-        return (!(target instanceof URLEndpoint)) ? null : ((URLEndpoint) target).getURL();
+    private void checkReadOnly() {
+        if (readonly) { throw new IllegalStateException("ReplicatorConfiguration is readonly mode."); }
     }
 }

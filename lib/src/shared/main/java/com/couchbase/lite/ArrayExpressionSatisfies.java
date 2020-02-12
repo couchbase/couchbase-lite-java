@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * The Satisfies class represents the SATISFIES clause object in a quantified operator
@@ -97,9 +99,7 @@ public final class ArrayExpressionSatisfies {
      */
     @NonNull
     public Expression satisfies(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
         return new QuantifiedExpression(type, variable, inExpression, expression);
     }
 }

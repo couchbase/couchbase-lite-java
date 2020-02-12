@@ -43,6 +43,8 @@ public abstract class C4Socket extends C4NativePeer {
 
     public static final String WEBSOCKET_SCHEME = "ws";
     public static final String WEBSOCKET_SECURE_CONNECTION_SCHEME = "wss";
+    public static final String MESSAGE_SCHEME = "x-msg-endpt";
+
 
     // Replicator option dictionary keys:
     public static final String REPLICATOR_OPTION_EXTRA_HEADERS = "headers"; // Extra HTTP headers: string[]

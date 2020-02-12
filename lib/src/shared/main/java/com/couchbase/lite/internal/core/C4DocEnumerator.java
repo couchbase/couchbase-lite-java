@@ -77,7 +77,4 @@ public class C4DocEnumerator extends C4NativePeer {
     private static native boolean next(long e) throws LiteCoreException;
 
     private static native long getDocument(long e) throws LiteCoreException;
-
-    @SuppressWarnings({"PMD.LinguisticNaming", "PMD.UnusedPrivateMethod"})
-    private static native void getDocumentInfo(long e, Object[] outIDs, long[] outNumbers);
 }

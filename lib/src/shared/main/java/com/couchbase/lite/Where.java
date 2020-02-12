@@ -19,8 +19,11 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Arrays;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -50,9 +53,7 @@ public final class Where extends AbstractQuery implements GroupByRouter, OrderBy
     @NonNull
     @Override
     public GroupBy groupBy(@NonNull Expression... expressions) {
-        if (expressions == null) {
-            throw new IllegalArgumentException("expressions cannot be null.");
-        }
+        Preconditions.assertNotNull(expressions, "expressions");
         return new GroupBy(this, Arrays.asList(expressions));
     }
 
@@ -69,9 +70,7 @@ public final class Where extends AbstractQuery implements GroupByRouter, OrderBy
     @NonNull
     @Override
     public OrderBy orderBy(@NonNull Ordering... orderings) {
-        if (orderings == null) {
-            throw new IllegalArgumentException("orderings is null.");
-        }
+        Preconditions.assertNotNull(orderings, "orderings");
         return new OrderBy(this, Arrays.asList(orderings));
     }
 
@@ -87,12 +86,7 @@ public final class Where extends AbstractQuery implements GroupByRouter, OrderBy
      */
     @NonNull
     @Override
-    public Limit limit(@NonNull Expression limit) {
-        if (limit == null) {
-            throw new IllegalArgumentException("limit is null.");
-        }
-        return new Limit(this, limit, null);
-    }
+    public Limit limit(@NonNull Expression limit) { return limit(limit, null); }
 
     /**
      * Create and chain a LIMIT component to skip the returned results for the given offset
@@ -104,10 +98,8 @@ public final class Where extends AbstractQuery implements GroupByRouter, OrderBy
      */
     @NonNull
     @Override
-    public Limit limit(@NonNull Expression limit, Expression offset) {
-        if (limit == null) {
-            throw new IllegalArgumentException("limit is null.");
-        }
+    public Limit limit(@NonNull Expression limit, @Nullable Expression offset) {
+        Preconditions.assertNotNull(limit, "limit");
         return new Limit(this, limit, offset);
     }
 }

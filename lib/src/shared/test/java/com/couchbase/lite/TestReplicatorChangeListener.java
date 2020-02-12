@@ -4,6 +4,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.jetbrains.annotations.NotNull;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -37,7 +39,7 @@ public class TestReplicatorChangeListener implements ReplicatorChangeListener {
     }
 
     @Override
-    public void changed(ReplicatorChange change) {
+    public void changed(@NotNull ReplicatorChange change) {
         final Replicator.Status status = change.getStatus();
         try {
             if (continuous) { checkContinuousStatus(status); }

@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * An Ordering represents a single ordering component in the query ORDER BY clause.
@@ -89,9 +91,7 @@ public abstract class Ordering {
      */
     @NonNull
     public static SortOrder property(@NonNull String property) {
-        if (property == null) {
-            throw new IllegalArgumentException("property cannot be null.");
-        }
+        Preconditions.assertNotNull(property, "property");
         return expression(Expression.property(property));
     }
 
@@ -107,9 +107,7 @@ public abstract class Ordering {
      */
     @NonNull
     public static SortOrder expression(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
         return new SortOrder(expression);
     }
 

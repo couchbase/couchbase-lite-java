@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Full-text function.
@@ -42,9 +44,7 @@ public final class FullTextFunction {
      */
     @NonNull
     public static Expression rank(@NonNull String indexName) {
-        if (indexName == null) {
-            throw new IllegalArgumentException("indexName cannot be null.");
-        }
+        Preconditions.assertNotNull(indexName, "indexName");
         return new Expression.FunctionExpression("RANK()", Arrays.asList(Expression.string(indexName)));
     }
 }

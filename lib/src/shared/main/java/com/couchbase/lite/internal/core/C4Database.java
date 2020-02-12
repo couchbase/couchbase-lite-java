@@ -299,10 +299,14 @@ public class C4Database extends C4NativePeer {
     // C4Replicator
     ////////////////////////////////
 
-    public C4Replicator createReplicator(
-        String schema, String host, int port, String path,
+    public C4Replicator createRemoteReplicator(
+        String scheme,
+        String host,
+        int port,
+        String path,
         String remoteDatabaseName,
-        int push, int pull,
+        int push,
+        int pull,
         byte[] options,
         C4ReplicatorListener listener,
         C4ReplicationFilter pushFilter,
@@ -311,14 +315,15 @@ public class C4Database extends C4NativePeer {
         SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
-        return C4Replicator.createReplicator(
+        return C4Replicator.createRemoteReplicator(
             getPeer(),
-            schema,
+            scheme,
             host,
             port,
             path,
             remoteDatabaseName,
-            push, pull,
+            push,
+            pull,
             options,
             listener,
             pushFilter,
@@ -328,17 +333,17 @@ public class C4Database extends C4NativePeer {
             framing);
     }
 
-    public C4Replicator createReplicator(
+    public C4Replicator createLocalReplicator(
         C4Database otherLocalDB,
-        int push, int pull,
+        int push,
+        int pull,
         byte[] options,
         C4ReplicatorListener listener,
         C4ReplicationFilter pushFilter,
         C4ReplicationFilter pullFilter,
-        AbstractReplicator replicatorContext,
-        int framing)
+        AbstractReplicator replicatorContext)
         throws LiteCoreException {
-        return C4Replicator.createReplicator(
+        return C4Replicator.createLocalReplicator(
             getPeer(),
             otherLocalDB,
             push,
@@ -347,18 +352,17 @@ public class C4Database extends C4NativePeer {
             listener,
             pushFilter,
             pullFilter,
-            replicatorContext,
-            framing);
+            replicatorContext);
     }
 
-    public C4Replicator createReplicator(
+    public C4Replicator createTargetReplicator(
         C4Socket openSocket,
         int push, int pull,
         byte[] options,
         C4ReplicatorListener listener,
         Object replicatorContext)
         throws LiteCoreException {
-        return C4Replicator.createReplicator(
+        return C4Replicator.createTargetReplicator(
             getPeer(),
             openSocket,
             push,

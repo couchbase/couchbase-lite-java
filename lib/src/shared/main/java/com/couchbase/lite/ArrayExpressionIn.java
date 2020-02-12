@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * The In class represents the IN clause object in a quantified operator (ANY/ANY AND EVERY/EVERY
@@ -44,9 +46,7 @@ public final class ArrayExpressionIn {
      */
     @NonNull
     public ArrayExpressionSatisfies in(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
         return new ArrayExpressionSatisfies(type, variable, expression);
     }
 }

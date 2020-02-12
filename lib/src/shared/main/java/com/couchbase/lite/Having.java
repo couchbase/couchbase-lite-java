@@ -18,8 +18,11 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Arrays;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -54,9 +57,7 @@ public final class Having extends AbstractQuery implements OrderByRouter, LimitR
     @NonNull
     @Override
     public OrderBy orderBy(@NonNull Ordering... orderings) {
-        if (orderings == null) {
-            throw new IllegalArgumentException("orderings is null.");
-        }
+        Preconditions.assertNotNull(orderings, "orderings");
         return new OrderBy(this, Arrays.asList(orderings));
     }
 
@@ -72,12 +73,7 @@ public final class Having extends AbstractQuery implements OrderByRouter, LimitR
      */
     @NonNull
     @Override
-    public Limit limit(@NonNull Expression limit) {
-        if (limit == null) {
-            throw new IllegalArgumentException("limit is null.");
-        }
-        return new Limit(this, limit, null);
-    }
+    public Limit limit(@NonNull Expression limit) { return limit(limit, null); }
 
     /**
      * Creates and chains a Limit object to skip the returned results for the given offset
@@ -89,10 +85,8 @@ public final class Having extends AbstractQuery implements OrderByRouter, LimitR
      */
     @NonNull
     @Override
-    public Limit limit(@NonNull Expression limit, Expression offset) {
-        if (limit == null) {
-            throw new IllegalArgumentException("limit is null.");
-        }
+    public Limit limit(@NonNull Expression limit, @Nullable Expression offset) {
+        Preconditions.assertNotNull(limit, "limit");
         return new Limit(this, limit, offset);
     }
 
@@ -100,7 +94,5 @@ public final class Having extends AbstractQuery implements OrderByRouter, LimitR
     // package level
     //---------------------------------------------
 
-    Object asJSON() {
-        return expression != null ? expression.asJSON() : null;
-    }
+    Object asJSON() { return expression != null ? expression.asJSON() : null; }
 }

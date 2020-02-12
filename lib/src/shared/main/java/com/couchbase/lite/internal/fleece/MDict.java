@@ -29,6 +29,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public class MDict extends MCollection implements Iterable<String> {
+    // ??? What is this for?
     private final List<String> newKey = new ArrayList<>();
     private Map<String, MValue> valueMap = new HashMap<>();
     private FLDict flDict;

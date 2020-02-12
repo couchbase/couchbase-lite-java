@@ -44,7 +44,6 @@ import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.ExecutionService.Cancellable;
 import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
 import com.couchbase.lite.internal.core.C4Error;
 import com.couchbase.lite.internal.core.C4ReplicationFilter;
@@ -52,6 +51,7 @@ import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.C4ReplicatorMode;
 import com.couchbase.lite.internal.core.C4ReplicatorStatus;
+import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -398,7 +398,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     public Status getStatus() { return status.copy(); }
 
     @NonNull
-    Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
+    public Set<String> getPendingDocumentIds() throws CouchbaseLiteException {
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
             throw new CouchbaseLiteException(
                 "PullOnlyPendingDocIDs",
@@ -423,7 +423,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         return (pending == null) ? Collections.emptySet() : Collections.unmodifiableSet(pending);
     }
 
-    boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
+    public boolean isDocumentPending(@NonNull String docId) throws CouchbaseLiteException {
         Preconditions.assertNotNull(docId, "document ID");
 
         if (config.getReplicatorType().equals(ReplicatorConfiguration.ReplicatorType.PULL)) {
@@ -570,9 +570,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     // Abstract methods
     //---------------------------------------------
 
-    protected abstract int framing();
-
-    protected abstract String schema();
+    protected abstract C4Replicator getC4ReplicatorLocked() throws LiteCoreException;
 
     //---------------------------------------------
     // Protected methods
@@ -585,6 +583,110 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         final AbstractNetworkReachabilityManager mgr = reachabilityManager;
         if (mgr != null) { mgr.removeNetworkReachabilityListener(this); }
         super.finalize();
+    }
+
+    /**
+     * Create and return a c4Replicator targeting the passed URI
+     *
+     * @param remoteUri a URI for the replication target
+     * @return the c4Replicator
+     * @throws LiteCoreException on failure to create the replicator
+     */
+    @GuardedBy("lock")
+    @NonNull
+    protected final C4Replicator getRemoteC4ReplicatorLocked(@NonNull URI remoteUri) throws LiteCoreException {
+        // Set up the port: core uses 0 for not set
+        final int p = remoteUri.getPort();
+        final int port = (p <= 0) ? 0 : p;
+
+        // get db name and path
+        final Deque<String> splitPath = splitPath(remoteUri.getPath());
+        final String dbName = (splitPath.size() <= 0) ? "" : splitPath.removeLast();
+        final String path = "/" + StringUtils.join("/", splitPath);
+
+        setupFilters();
+
+        final boolean continuous = config.isContinuous();
+
+        c4ReplListener = new ReplicatorListener();
+
+        return config.getDatabase().createRemoteReplicator(
+            (Replicator) this,
+            remoteUri.getScheme(),
+            remoteUri.getHost(),
+            port,
+            path,
+            dbName,
+            mkmode(isPush(config.getReplicatorType()), continuous),
+            mkmode(isPull(config.getReplicatorType()), continuous),
+            getFleeceOptions(),
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter,
+            socketFactory,
+            C4Socket.NO_FRAMING);
+    }
+
+    /**
+     * Create and return a c4Replicator targeting the passed Database
+     *
+     * @param otherDb a local database for the replication target
+     * @return the c4Replicator
+     * @throws LiteCoreException on failure to create the replicator
+     */
+    @GuardedBy("lock")
+    @NonNull
+    protected final C4Replicator getLocalC4ReplicatorLocked(@NonNull Database otherDb) throws LiteCoreException {
+        setupFilters();
+
+        final boolean continuous = config.isContinuous();
+
+        c4ReplListener = new ReplicatorListener();
+
+        return config.getDatabase().createLocalReplicator(
+            (Replicator) this,
+            otherDb.getC4Database(),
+            mkmode(isPush(config.getReplicatorType()), continuous),
+            mkmode(isPull(config.getReplicatorType()), continuous),
+            getFleeceOptions(),
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter);
+    }
+
+    /**
+     * Create and return a c4Replicator.
+     * The socket factory is responsible for setting up the target
+     *
+     * @param framing the framing mode (C4Socket.XXX_FRAMING)
+     * @return the c4Replicator
+     * @throws LiteCoreException on failure to create the replicator
+     */
+    @GuardedBy("lock")
+    @NonNull
+    protected final C4Replicator getMessageC4ReplicatorLocked(int framing)
+        throws LiteCoreException {
+        setupFilters();
+
+        final boolean continuous = config.isContinuous();
+
+        c4ReplListener = new ReplicatorListener();
+
+        return config.getDatabase().createRemoteReplicator(
+            (Replicator) this,
+            C4Socket.MESSAGE_SCHEME,
+            null,
+            0,
+            null,
+            null,
+            mkmode(isPush(config.getReplicatorType()), continuous),
+            mkmode(isPull(config.getReplicatorType()), continuous),
+            getFleeceOptions(),
+            c4ReplListener,
+            c4ReplPushFilter,
+            c4ReplPullFilter,
+            socketFactory,
+            framing);
     }
 
     //---------------------------------------------
@@ -757,83 +859,6 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
         synchronized (lock) { return repl == c4Replicator; }
     }
 
-    /**
-     * Create and return the c4Replicator
-     * Sets c4Replicator.
-     * Must be called holding lock
-     *
-     * @return the c4Replicator
-     * @throws LiteCoreException on failure to create the replicator
-     */
-    private C4Replicator getRemoteC4ReplicatorLocked(URI remoteUri) throws LiteCoreException {
-        // get the URI scheme
-        String scheme = schema();
-        if (scheme == null) { scheme = remoteUri.getScheme(); }
-
-        // next, the port. Litecore uses 0 for not set
-        final int p = remoteUri.getPort();
-        final int port = (p <= 0) ? 0 : p;
-
-        // get db name and path
-        final Deque<String> splitPath = splitPath(remoteUri.getPath());
-        final String dbName = (splitPath.size() <= 0) ? "" : splitPath.removeLast();
-        final String path = "/" + StringUtils.join("/", splitPath);
-
-        setupFilters();
-
-        final boolean continuous = config.isContinuous();
-
-        c4ReplListener = new ReplicatorListener();
-
-        return config.getDatabase().createReplicator(
-            (Replicator) this,
-            scheme,
-            remoteUri.getHost(),
-            port,
-            path,
-            dbName,
-            mkmode(isPush(config.getReplicatorType()), continuous),
-            mkmode(isPull(config.getReplicatorType()), continuous),
-            getFleeceOptions(),
-            c4ReplListener,
-            c4ReplPushFilter,
-            c4ReplPullFilter,
-            this,
-            socketFactory,
-            framing());
-    }
-
-    /**
-     * Create and return the c4Replicator
-     * Sets c4Replicator.
-     * Must be called holding lock
-     *
-     * @return the c4Replicator
-     * @throws LiteCoreException on failure to create the replicator
-     */
-    private C4Replicator getLocalC4ReplicatorLocked() throws LiteCoreException {
-        final Database otherDb = config.getTargetDatabase();
-        final C4Database targetDb = (otherDb == null) ? null : otherDb.getC4Database();
-
-        setupFilters();
-
-        final boolean continuous = config.isContinuous();
-
-        c4ReplListener = new ReplicatorListener();
-
-        return config.getDatabase().createReplicator(
-            (Replicator) this,
-            targetDb,
-            mkmode(isPush(config.getReplicatorType()), continuous),
-            mkmode(isPull(config.getReplicatorType()), continuous),
-            getFleeceOptions(),
-            c4ReplListener,
-            c4ReplPushFilter,
-            c4ReplPullFilter,
-            this,
-            framing());
-    }
-
     private byte[] getFleeceOptions() {
         // Encode the options:
         final Map<String, Object> options = config.effectiveOptions();
@@ -857,6 +882,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             catch (LiteCoreException e) { Log.e(DOMAIN, "Failed to encode", e); }
             finally { enc.free(); }
         }
+
         return optionsFleece;
     }
 
@@ -879,9 +905,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     private void startLocked() {
         C4Replicator repl = null;
         C4ReplicatorStatus status;
-        final URI target = config.getTargetURI();
+
         try {
-            repl = (target == null) ? getLocalC4ReplicatorLocked() : getRemoteC4ReplicatorLocked(target);
+            repl = getC4ReplicatorLocked();
             c4Replicator = repl;
             repl.start();
             status = repl.getStatus();
@@ -1018,11 +1044,11 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             error);
     }
 
+    // !!! CBL-689
     private void startReachabilityObserver() {
-        final URI remoteUri = config.getTargetURI();
+        if (!(config.getTarget() instanceof URLEndpoint)) { return; }
 
-        // target is database
-        if (remoteUri == null) { return; }
+        final URI remoteUri = ((URLEndpoint) config.getTarget()).getURL();
 
         try {
             final InetAddress host = InetAddress.getByName(remoteUri.getHost());

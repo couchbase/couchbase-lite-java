@@ -27,7 +27,7 @@ public interface DocumentChangeListener extends ChangeListener<DocumentChange> {
     /**
      * Callback function from Database when the specified document is updated.
      *
-     * @param change
+     * @param change description of the change
      */
     @Override
     void changed(@NonNull DocumentChange change);

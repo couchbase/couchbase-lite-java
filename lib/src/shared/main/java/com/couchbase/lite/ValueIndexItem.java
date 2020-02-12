@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Value Index Item
@@ -32,9 +34,7 @@ public final class ValueIndexItem {
      */
     @NonNull
     public static ValueIndexItem property(@NonNull String property) {
-        if (property == null) {
-            throw new IllegalArgumentException("property cannot be null.");
-        }
+        Preconditions.assertNotNull(property, "property");
         return new ValueIndexItem(Expression.property(property));
     }
 
@@ -46,9 +46,7 @@ public final class ValueIndexItem {
      */
     @NonNull
     public static ValueIndexItem expression(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
         return new ValueIndexItem(expression);
     }
 

@@ -21,6 +21,8 @@ import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Full-text expression
@@ -46,9 +48,7 @@ public final class FullTextExpression {
         //---------------------------------------------
 
         @Override
-        Object asJSON() {
-            return Arrays.asList("MATCH", indexName, text);
-        }
+        Object asJSON() { return Arrays.asList("MATCH", indexName, text); }
     }
 
     /**
@@ -59,9 +59,7 @@ public final class FullTextExpression {
      */
     @NonNull
     public static FullTextExpression index(@NonNull String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("name is null.");
-        }
+        Preconditions.assertNotNull(name, "name");
         return new FullTextExpression(name);
     }
 
@@ -73,9 +71,7 @@ public final class FullTextExpression {
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-    private FullTextExpression(String name) {
-        this.name = name;
-    }
+    private FullTextExpression(String name) { this.name = name; }
 
     /**
      * Creates a full-text match expression with the given search text.
@@ -85,9 +81,7 @@ public final class FullTextExpression {
      */
     @NonNull
     public Expression match(@NonNull String query) {
-        if (query == null) {
-            throw new IllegalArgumentException("query is null.");
-        }
+        Preconditions.assertNotNull(query, "query");
         return new FullTextMatchExpression(this.name, query);
     }
 }

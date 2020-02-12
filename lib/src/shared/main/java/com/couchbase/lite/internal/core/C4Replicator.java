@@ -29,8 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.couchbase.lite.AbstractReplicator;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.support.Log;
@@ -95,9 +97,9 @@ public class C4Replicator extends C4NativePeer {
     //-------------------------------------------------------------------------
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    static C4Replicator createReplicator(
+    static C4Replicator createRemoteReplicator(
         long db,
-        @Nullable String schema,
+        @Nullable String scheme,
         @Nullable String host,
         int port,
         @Nullable String path,
@@ -108,16 +110,15 @@ public class C4Replicator extends C4NativePeer {
         @Nullable C4ReplicatorListener listener,
         @Nullable C4ReplicationFilter pushFilter,
         @Nullable C4ReplicationFilter pullFilter,
-        @NonNull Object replicatorContext,
-        @Nullable Object socketFactoryContext,
+        @NonNull AbstractReplicator replicatorContext,
+        @Nullable SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
-
         final C4Replicator replicator;
         synchronized (CLASS_LOCK) {
             replicator = new C4Replicator(
                 db,
-                schema,
+                scheme,
                 host,
                 port,
                 path,
@@ -137,9 +138,8 @@ public class C4Replicator extends C4NativePeer {
         return replicator;
     }
 
-
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    static C4Replicator createReplicator(
+    static C4Replicator createLocalReplicator(
         long db,
         C4Database otherLocalDB,
         int push,
@@ -148,8 +148,7 @@ public class C4Replicator extends C4NativePeer {
         @Nullable C4ReplicatorListener listener,
         @Nullable C4ReplicationFilter pushFilter,
         @Nullable C4ReplicationFilter pullFilter,
-        @NonNull Object replicatorContext,
-        int framing)
+        @NonNull AbstractReplicator replicatorContext)
         throws LiteCoreException {
         final C4Replicator replicator;
         synchronized (CLASS_LOCK) {
@@ -162,8 +161,7 @@ public class C4Replicator extends C4NativePeer {
                 listener,
                 pushFilter,
                 pullFilter,
-                replicatorContext,
-                framing);
+                replicatorContext);
             bind(replicator.getPeer(), replicator, replicatorContext);
         }
 
@@ -171,7 +169,7 @@ public class C4Replicator extends C4NativePeer {
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    static C4Replicator createReplicator(
+    static C4Replicator createTargetReplicator(
         long db,
         C4Socket openSocket,
         int push,
@@ -284,6 +282,7 @@ public class C4Replicator extends C4NativePeer {
     // Constructors
     //-------------------------------------------------------------------------
 
+    // Remote
     @SuppressWarnings("PMD.ExcessiveParameterList")
     private C4Replicator(
         long db,
@@ -309,7 +308,8 @@ public class C4Replicator extends C4NativePeer {
             port,
             path,
             remoteDatabaseName,
-            push, pull,
+            push,
+            pull,
             socketFactoryContext,
             framing,
             replicatorContext,
@@ -324,6 +324,7 @@ public class C4Replicator extends C4NativePeer {
         this.pullFilter = pullFilter;
     }
 
+    // Local
     @SuppressWarnings("PMD.ExcessiveParameterList")
     private C4Replicator(
         long db,
@@ -334,15 +335,14 @@ public class C4Replicator extends C4NativePeer {
         @Nullable C4ReplicatorListener listener,
         @Nullable C4ReplicationFilter pushFilter,
         @Nullable C4ReplicationFilter pullFilter,
-        @NonNull Object replicatorContext,
-        int framing)
+        @NonNull Object replicatorContext)
         throws LiteCoreException {
         super(createLocal(
             db,
             (otherLocalDB == null) ? 0 : otherLocalDB.getHandle(),
             push,
             pull,
-            framing,
+            C4Socket.NO_FRAMING,
             replicatorContext,
             pushFilter,
             pullFilter,
@@ -356,7 +356,7 @@ public class C4Replicator extends C4NativePeer {
         this.pullFilter = pullFilter;
     }
 
-
+    // Target
     @SuppressWarnings("PMD.ExcessiveParameterList")
     private C4Replicator(
         long db,

@@ -75,6 +75,7 @@ abstract class AbstractConsoleLogger implements Logger {
      */
     public void setDomains(@NonNull EnumSet<LogDomain> domains) {
         Preconditions.assertNotNull(domains, "domains");
+        //noinspection deprecation
         logDomains = (!domains.contains(LogDomain.ALL))
             ? domains
             : LogDomain.ALL_DOMAINS;

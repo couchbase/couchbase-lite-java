@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.Locale;
@@ -35,7 +36,7 @@ public class NotificationTest extends BaseTest {
         final CountDownLatch latch = new CountDownLatch(1);
         db.addChangeListener(executor, new DatabaseChangeListener() {
             @Override
-            public void changed(DatabaseChange change) {
+            public void changed(@NotNull DatabaseChange change) {
                 assertNotNull(change);
                 assertNotNull(change.getDocumentIDs());
                 assertEquals(10, change.getDocumentIDs().size());
@@ -70,7 +71,7 @@ public class NotificationTest extends BaseTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         DocumentChangeListener listener1 = new DocumentChangeListener() {
             @Override
-            public void changed(DocumentChange change) {
+            public void changed(@NotNull DocumentChange change) {
                 assertNotNull(change);
                 assertEquals("A", change.getDocumentID());
                 assertEquals(1, latch1.getCount());
@@ -89,7 +90,7 @@ public class NotificationTest extends BaseTest {
         final CountDownLatch latch2 = new CountDownLatch(1);
         DocumentChangeListener listener2 = new DocumentChangeListener() {
             @Override
-            public void changed(DocumentChange change) {
+            public void changed(@NotNull DocumentChange change) {
                 assertNotNull(change);
                 assertEquals("A", change.getDocumentID());
                 assertEquals(1, latch2.getCount());
@@ -107,7 +108,7 @@ public class NotificationTest extends BaseTest {
         final CountDownLatch latch3 = new CountDownLatch(1);
         DocumentChangeListener listener3 = new DocumentChangeListener() {
             @Override
-            public void changed(DocumentChange change) {
+            public void changed(@NotNull DocumentChange change) {
                 assertNotNull(change);
                 assertEquals("A", change.getDocumentID());
                 assertEquals(1, latch3.getCount());
@@ -130,7 +131,7 @@ public class NotificationTest extends BaseTest {
             final CountDownLatch latchDB = new CountDownLatch(1);
             db2.addChangeListener(executor, new DatabaseChangeListener() {
                 @Override
-                public void changed(DatabaseChange change) {
+                public void changed(@NotNull DatabaseChange change) {
                     assertNotNull(change);
                     assertEquals(10, change.getDocumentIDs().size());
                     assertEquals(1, latchDB.getCount());
@@ -141,7 +142,7 @@ public class NotificationTest extends BaseTest {
             final CountDownLatch latchDoc = new CountDownLatch(1);
             db2.addDocumentChangeListener("doc-6", executor, new DocumentChangeListener() {
                 @Override
-                public void changed(DocumentChange change) {
+                public void changed(@NotNull DocumentChange change) {
                     assertNotNull(change);
                     assertEquals("doc-6", change.getDocumentID());
                     Document doc = db2.getDocument(change.getDocumentID());
@@ -184,7 +185,7 @@ public class NotificationTest extends BaseTest {
         // Add change listeners:
         DocumentChangeListener listener = new DocumentChangeListener() {
             @Override
-            public void changed(DocumentChange change) {
+            public void changed(@NotNull DocumentChange change) {
                 if (change.getDocumentID().equals("doc1"))
                     latch.countDown();
             }
@@ -224,7 +225,7 @@ public class NotificationTest extends BaseTest {
         // Add change listeners:
         DocumentChangeListener listener = new DocumentChangeListener() {
             @Override
-            public void changed(DocumentChange change) {
+            public void changed(@NotNull DocumentChange change) {
                 if (change.getDocumentID().equals("doc1")) {
                     latch1.countDown();
                     latch2.countDown();

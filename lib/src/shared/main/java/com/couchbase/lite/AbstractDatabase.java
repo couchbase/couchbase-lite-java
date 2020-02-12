@@ -197,6 +197,7 @@ abstract class AbstractDatabase {
         Preconditions.assertNotNull(domain, "domain");
         Preconditions.assertNotNull(level, "level");
 
+        //noinspection deprecation
         final EnumSet<LogDomain> domains = (domain == LogDomain.ALL)
             ? LogDomain.ALL_DOMAINS
             : EnumSet.of(domain);
@@ -874,9 +875,9 @@ abstract class AbstractDatabase {
     //////// REPLICATORS:
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    C4Replicator createReplicator(
+    C4Replicator createRemoteReplicator(
         Replicator replicator,
-        String schema,
+        String scheme,
         String host,
         int port,
         String path,
@@ -887,14 +888,13 @@ abstract class AbstractDatabase {
         C4ReplicatorListener listener,
         C4ReplicationFilter pushFilter,
         C4ReplicationFilter pullFilter,
-        AbstractReplicator replicatorContext,
         SocketFactory socketFactoryContext,
         int framing)
         throws LiteCoreException {
         final C4Replicator c4Repl;
         synchronized (lock) {
-            c4Repl = getC4Database().createReplicator(
-                schema,
+            c4Repl = getC4Database().createRemoteReplicator(
+                scheme,
                 host,
                 port,
                 path,
@@ -905,7 +905,7 @@ abstract class AbstractDatabase {
                 listener,
                 pushFilter,
                 pullFilter,
-                replicatorContext,
+                replicator,
                 socketFactoryContext,
                 framing);
             activeReplications.add(replicator); // keeps me from being deallocated
@@ -914,7 +914,7 @@ abstract class AbstractDatabase {
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    C4Replicator createReplicator(
+    C4Replicator createLocalReplicator(
         Replicator replicator,
         C4Database otherLocalDB,
         int push,
@@ -922,13 +922,11 @@ abstract class AbstractDatabase {
         byte[] options,
         C4ReplicatorListener listener,
         C4ReplicationFilter pushFilter,
-        C4ReplicationFilter pullFilter,
-        AbstractReplicator replicatorContext,
-        int framing)
+        C4ReplicationFilter pullFilter)
         throws LiteCoreException {
         final C4Replicator c4Repl;
         synchronized (lock) {
-            c4Repl = getC4Database().createReplicator(
+            c4Repl = getC4Database().createLocalReplicator(
                 otherLocalDB,
                 push,
                 pull,
@@ -936,8 +934,7 @@ abstract class AbstractDatabase {
                 listener,
                 pushFilter,
                 pullFilter,
-                replicatorContext,
-                framing);
+                replicator);
             activeReplications.add(replicator); // keeps me from being deallocated
         }
         return c4Repl;
@@ -1218,7 +1215,7 @@ abstract class AbstractDatabase {
             remoteDoc = getConflictingRevision(docID);
         }
 
-        Document resolvedDoc = null;
+        final Document resolvedDoc;
         // If both docs have been deleted, we're done here
         if (localDoc.isDeleted() && remoteDoc.isDeleted()) { resolvedDoc = remoteDoc; }
         else {
@@ -1451,7 +1448,7 @@ abstract class AbstractDatabase {
     private boolean saveConflicted(@NonNull Document document, boolean deleting)
         throws CouchbaseLiteException {
 
-        C4Document curDoc = null;
+        final C4Document curDoc;
 
         try { curDoc = getC4Database().get(document.getId(), true); }
         catch (LiteCoreException e) {
@@ -1480,7 +1477,6 @@ abstract class AbstractDatabase {
 
     // Low-level save method
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    @NonNull
     private void saveInTransaction(@NonNull Document document, @Nullable C4Document base, boolean deleting)
         throws CouchbaseLiteException {
         FLSliceResult body = null;

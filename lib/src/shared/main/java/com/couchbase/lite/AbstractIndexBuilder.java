@@ -20,6 +20,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Based IndexBuilder used for building database index objects.
@@ -35,9 +37,7 @@ abstract class AbstractIndexBuilder {
      * @return The value index
      */
     public static ValueIndex valueIndex(@NonNull ValueIndexItem... items) {
-        if (items == null) {
-            throw new IllegalArgumentException("items cannot be null.");
-        }
+        Preconditions.assertNotNull(items, "items");
         return new ValueIndex(items);
     }
 
@@ -49,9 +49,7 @@ abstract class AbstractIndexBuilder {
      * @return The full-text search index.
      */
     public static FullTextIndex fullTextIndex(@NonNull FullTextIndexItem... items) {
-        if (items == null) {
-            throw new IllegalArgumentException("items cannot be null.");
-        }
+        Preconditions.assertNotNull(items, "items");
         return new FullTextIndex(items);
     }
 }

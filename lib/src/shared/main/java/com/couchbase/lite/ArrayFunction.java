@@ -21,6 +21,8 @@ import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Function provides array functions.
@@ -38,9 +40,8 @@ public final class ArrayFunction {
      */
     @NonNull
     public static Expression contains(@NonNull Expression expression, @NonNull Expression value) {
-        if (expression == null || value == null) {
-            throw new IllegalArgumentException("expression and value cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
+        Preconditions.assertNotNull(value, "value");
         return new Expression.FunctionExpression("ARRAY_CONTAINS()", Arrays.asList(expression, value));
     }
 
@@ -53,9 +54,7 @@ public final class ArrayFunction {
      */
     @NonNull
     public static Expression length(@NonNull Expression expression) {
-        if (expression == null) {
-            throw new IllegalArgumentException("expression cannot be null.");
-        }
+        Preconditions.assertNotNull(expression, "expression");
         return new Expression.FunctionExpression("ARRAY_LENGTH()", Arrays.asList(expression));
     }
 }

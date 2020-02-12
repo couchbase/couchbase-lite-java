@@ -102,6 +102,8 @@ public abstract class AbstractExecutionService implements ExecutionService {
             completedAt = System.currentTimeMillis();
         }
 
+        @NonNull
+        @Override
         public String toString() {
             return "task[" + createdAt + "," + startedAt + "," + finishedAt + "," + completedAt + " @" + task + "]";
         }

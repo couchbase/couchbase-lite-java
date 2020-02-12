@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -61,6 +63,7 @@ public class C4DocumentEnded {
             && errorCode == C4Constants.LiteCoreError.CONFLICT;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "C4DocumentEnded{id=" + docID + ",rev=" + revID + ",flags=" + flags

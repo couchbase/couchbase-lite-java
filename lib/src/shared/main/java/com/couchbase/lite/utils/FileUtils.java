@@ -40,7 +40,6 @@ public final class FileUtils {
     }
 
     @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"})
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static boolean deleteContents(File fileOrDirectory) {
         if ((fileOrDirectory == null) || (!fileOrDirectory.isDirectory())) { return true; }
 

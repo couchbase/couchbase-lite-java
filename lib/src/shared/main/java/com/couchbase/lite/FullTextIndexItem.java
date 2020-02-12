@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Full-text Index Item.
@@ -32,9 +34,7 @@ public final class FullTextIndexItem {
      */
     @NonNull
     public static FullTextIndexItem property(@NonNull String property) {
-        if (property == null) {
-            throw new IllegalArgumentException("property cannot be null.");
-        }
+        Preconditions.assertNotNull(property, "property");
         return new FullTextIndexItem(Expression.property(property));
     }
 

@@ -2,7 +2,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import com.couchbase.lite.internal.core.C4Socket;
+import com.couchbase.lite.internal.core.C4Replicator;
 
 
 public final class Replicator extends AbstractReplicator {
@@ -14,8 +14,11 @@ public final class Replicator extends AbstractReplicator {
     public Replicator(@NonNull ReplicatorConfiguration config) { super(config); }
 
     @Override
-    protected int framing() { return C4Socket.NO_FRAMING; }
+    protected C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
+        final Endpoint target = config.getTarget();
 
-    @Override
-    protected String schema() { return null; }
+        if (target instanceof URLEndpoint) { return getRemoteC4ReplicatorLocked(((URLEndpoint) target).getURL()); }
+
+        throw new IllegalStateException("unrecognized endpoint type: " + target);
+    }
 }

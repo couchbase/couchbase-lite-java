@@ -17,6 +17,9 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
+
 public class C4Error {
     private final int domain;        // C4Error.domain
     private final int code;          // C4Error.code
@@ -46,6 +49,7 @@ public class C4Error {
         return internalInfo;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "C4Error{" +

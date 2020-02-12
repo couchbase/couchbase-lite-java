@@ -55,7 +55,7 @@ public class C4BlobStore extends C4NativePeer {
     // Member Variables
     //-------------------------------------------------------------------------
 
-    private boolean managedByDatabase;
+    private final boolean managedByDatabase;
 
     //-------------------------------------------------------------------------
     // Constructor

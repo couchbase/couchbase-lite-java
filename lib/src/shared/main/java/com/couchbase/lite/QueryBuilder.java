@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 public final class QueryBuilder {
     private QueryBuilder() { }
@@ -32,7 +34,7 @@ public final class QueryBuilder {
      */
     @NonNull
     public static Select select(@NonNull SelectResult... results) {
-        if (results == null) { throw new IllegalArgumentException("results cannot be null."); }
+        Preconditions.assertNotNull(results, "results");
         return new Select(false, results);
     }
 
@@ -49,7 +51,7 @@ public final class QueryBuilder {
      */
     @NonNull
     public static Select selectDistinct(@NonNull SelectResult... results) {
-        if (results == null) { throw new IllegalArgumentException("results cannot be null."); }
+        Preconditions.assertNotNull(results, "results");
         return new Select(true, results);
     }
 }

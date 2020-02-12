@@ -29,7 +29,4 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
 
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }
-
-    @Override
-    Database getTargetDatabase() { return null; }
 }

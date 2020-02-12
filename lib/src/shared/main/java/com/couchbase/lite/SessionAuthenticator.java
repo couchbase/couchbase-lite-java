@@ -18,9 +18,12 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Locale;
 import java.util.Map;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -58,9 +61,8 @@ public final class SessionAuthenticator extends Authenticator {
      * @param sessionID  Sync Gateway session ID
      * @param cookieName The cookie name
      */
-    public SessionAuthenticator(@NonNull String sessionID, String cookieName) {
-        if (sessionID == null) { throw new IllegalArgumentException("sessionID cannot be null."); }
-
+    public SessionAuthenticator(@NonNull String sessionID, @Nullable String cookieName) {
+        Preconditions.assertNotNull(sessionID, "sessionID");
         this.sessionID = sessionID;
         this.cookieName = cookieName != null ? cookieName : DEFAULT_SYNC_GATEWAY_SESSION_ID_NAME;
     }

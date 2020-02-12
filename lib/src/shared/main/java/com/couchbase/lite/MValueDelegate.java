@@ -100,7 +100,7 @@ final class MValueDelegate implements MValue.Delegate {
         else { return new Dictionary(mv, parent); }
     }
 
-    // At some point in the past, attachemnts were dictionaries in a top-level
+    // At some point in the past, attachments were dictionaries in a top-level
     // element named "_attachments". Those dictionaries contained at least the
     // properties listed here.
     // Unfortunately, at this point, we don't know the name of the parent element.

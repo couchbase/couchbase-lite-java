@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * A meta property expression.
@@ -54,9 +56,7 @@ public class MetaExpression extends Expression {
      */
     @NonNull
     public Expression from(@NonNull String alias) {
-        if (alias == null) {
-            throw new IllegalArgumentException("alias cannot be null.");
-        }
+        Preconditions.assertNotNull(alias, "alias");
         return new MetaExpression(this.keyPath, alias);
     }
 
