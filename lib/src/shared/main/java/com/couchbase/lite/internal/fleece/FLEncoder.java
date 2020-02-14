@@ -21,19 +21,16 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.LiteCoreException;
-import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.core.C4NativePeer;
 
 
 @SuppressWarnings("PMD.TooManyMethods")
-public class FLEncoder {
+public class FLEncoder extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Member variables
     //-------------------------------------------------------------------------
 
     private final boolean isMemoryManaged;
-
-    private long handle;
 
     private Object extraInfo;
 
@@ -54,79 +51,85 @@ public class FLEncoder {
      * ??? Why are these things *ever* not memory managed?
      */
     public FLEncoder(long handle, boolean managed) {
-        this.handle = handle;
+        super(handle);
         this.isMemoryManaged = managed;
     }
 
     public void free() {
-        if (isMemoryManaged) { throw new IllegalStateException("FLEncoder was marked as native memory managed."); }
+        if (isMemoryManaged) { throw new IllegalStateException("Attempt to free a managed FLEncoder"); }
 
-        final long hdl = handle;
-        handle = 0;
+        final long handle = getPeerAndClear();
 
-        if (hdl != 0) { free(handle); }
+        if (handle != 0) { free(handle); }
     }
 
-    public boolean writeString(String value) { return writeString(handle, value); }
+    public boolean writeString(String value) { return writeString(getPeer(), value); }
 
-    public boolean writeData(byte[] value) { return writeData(handle, value); }
+    public boolean writeData(byte[] value) { return writeData(getPeer(), value); }
 
-    public boolean beginDict(long reserve) { return beginDict(handle, reserve); }
+    public boolean beginDict(long reserve) { return beginDict(getPeer(), reserve); }
 
-    public boolean endDict() { return endDict(handle); }
+    public boolean endDict() { return endDict(getPeer()); }
 
-    public boolean beginArray(long reserve) { return beginArray(handle, reserve); }
+    public boolean beginArray(long reserve) { return beginArray(getPeer(), reserve); }
 
-    public boolean endArray() { return endArray(handle); }
+    public boolean endArray() { return endArray(getPeer()); }
 
-    public boolean writeKey(String slice) { return writeKey(handle, slice); }
+    public boolean writeKey(String slice) { return writeKey(getPeer(), slice); }
 
     @SuppressWarnings({"unchecked", "PMD.NPathComplexity"})
     public boolean writeValue(Object value) {
+        final long peer = getPeer();
         // null
-        if (value == null) { return writeNull(handle); }
+        if (value == null) { return writeNull(peer); }
 
         // boolean
-        if (value instanceof Boolean) { return writeBool(handle, (Boolean) value); }
+        if (value instanceof Boolean) { return writeBool(peer, (Boolean) value); }
 
         // Number
         if (value instanceof Number) {
             // Integer
-            if (value instanceof Integer) { return writeInt(handle, ((Integer) value).longValue()); }
+            if (value instanceof Integer) { return writeInt(peer, ((Integer) value).longValue()); }
 
             // Long
-            if (value instanceof Long) { return writeInt(handle, (Long) value); }
+            if (value instanceof Long) { return writeInt(peer, (Long) value); }
 
             // Short
-            if (value instanceof Short) { return writeInt(handle, ((Short) value).longValue()); }
+            if (value instanceof Short) { return writeInt(peer, ((Short) value).longValue()); }
 
             // Double
-            if (value instanceof Double) { return writeDouble(handle, (Double) value); }
+            if (value instanceof Double) { return writeDouble(peer, (Double) value); }
 
             // Float
-            return writeFloat(handle, (Float) value);
+            return writeFloat(peer, (Float) value);
         }
 
         // String
-        if (value instanceof String) { return writeString(handle, (String) value); }
+        if (value instanceof String) { return writeString(peer, (String) value); }
 
         // byte[]
-        if (value instanceof byte[]) { return writeData(handle, (byte[]) value); }
+        if (value instanceof byte[]) { return writeData(peer, (byte[]) value); }
 
         // List
-        if (value instanceof List) { return write((List) value); }
+        if (value instanceof List) { return write((List<?>) value); }
 
         // Map
         if (value instanceof Map) { return write((Map<String, Object>) value); }
 
         // FLValue
-        if (value instanceof FLValue) { return ((FLValue) value).withContent(hdl -> (writeValue(handle, hdl))); }
+        if (value instanceof FLValue) {
+            return ((FLValue) value).withContent(hdl -> (writeValue(peer, hdl)));
+        }
 
         // FLDict
-        if (value instanceof FLDict) { return ((FLDict) value).withContent(hdl -> (writeValue(handle, hdl))); }
+        if (value instanceof FLDict) {
+            return ((FLDict) value).withContent(hdl -> (writeValue(peer, hdl)));
+        }
 
         // FLArray
-        if (value instanceof FLArray) { return ((FLArray) value).withContent(hdl -> (writeValue(handle, hdl))); }
+        if (value instanceof FLArray) {
+            return ((FLArray) value).withContent(hdl -> (writeValue(peer, hdl)));
+        }
 
         // FLEncodable
         if (value instanceof FLEncodable) {
@@ -137,7 +140,7 @@ public class FLEncoder {
         return false;
     }
 
-    public boolean writeNull() { return writeNull(handle); }
+    public boolean writeNull() { return writeNull(getPeer()); }
 
     public boolean write(Map<String, Object> map) {
         if (map == null) { beginDict(0); }
@@ -151,7 +154,7 @@ public class FLEncoder {
         return endDict();
     }
 
-    public boolean write(List list) {
+    public boolean write(List<?> list) {
         if (list == null) { beginArray(0); }
         else {
             beginArray(list.size());
@@ -160,15 +163,21 @@ public class FLEncoder {
         return endArray();
     }
 
-    public byte[] finish() throws LiteCoreException { return finish(handle); }
+    public byte[] finish() throws LiteCoreException { return finish(getPeer()); }
 
-    public FLSliceResult finish2() throws LiteCoreException { return new FLSliceResult(finish2(handle)); }
+    public FLSliceResult finish2() throws LiteCoreException {
+        return new FLSliceResult(finish2(getPeer()));
+    }
+
+    public FLSliceResult managedFinish2() throws LiteCoreException {
+        return new FLSliceResult(finish2(getPeer()), true);
+    }
 
     public Object getExtraInfo() { return extraInfo; }
 
     public void setExtraInfo(Object info) { extraInfo = info; }
 
-    public void reset() { reset(handle); }
+    public void reset() { reset(getPeer()); }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -177,8 +186,8 @@ public class FLEncoder {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        if ((handle != 0L) && (!isMemoryManaged)) {
-            Log.e(LogDomain.DATABASE, "FLEncoder was finalized before freeing.");
+        if ((!isMemoryManaged) && (get() != 0L)) {
+            throw new IllegalStateException("FLEncoder finalized without being freed: " + this);
         }
         super.finalize();
     }

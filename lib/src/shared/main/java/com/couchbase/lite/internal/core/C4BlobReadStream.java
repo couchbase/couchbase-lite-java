@@ -20,28 +20,18 @@ package com.couchbase.lite.internal.core;
 import android.support.annotation.NonNull;
 
 import com.couchbase.lite.LiteCoreException;
-import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
  * An open stream for reading data from a blob.
  */
-public class C4BlobReadStream {
-
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-
-    private long handle; // hold pointer to C4BlobReadStream
+public class C4BlobReadStream extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    C4BlobReadStream(long handle) {
-        Preconditions.assertNotZero(handle, "handle");
-        this.handle = handle;
-    }
+    C4BlobReadStream(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
@@ -53,33 +43,30 @@ public class C4BlobReadStream {
      * @param maxBytesToRead The maximum number of bytes to read to the buffer
      */
     @NonNull
-    public byte[] read(long maxBytesToRead) throws LiteCoreException { return read(handle, maxBytesToRead); }
+    public byte[] read(long maxBytesToRead) throws LiteCoreException { return read(getPeer(), maxBytesToRead); }
 
     public int read(byte[] b, int offset, long maxBytesToRead) throws LiteCoreException {
-        return read(handle, b, offset, maxBytesToRead);
+        return read(getPeer(), b, offset, maxBytesToRead);
     }
 
     /**
      * Returns the exact length in bytes of the stream.
      */
-    public long getLength() throws LiteCoreException { return getLength(handle); }
+    public long getLength() throws LiteCoreException { return getLength(getPeer()); }
 
     /**
      * Moves to a random location in the stream; the next c4stream_read call will read from that
      * location.
      */
-    public void seek(long position) throws LiteCoreException { seek(handle, position); }
+    public void seek(long position) throws LiteCoreException { seek(getPeer(), position); }
 
     /**
      * Closes a read-stream.
      */
     public void close() {
-        final long hdl = handle;
-        handle = 0L;
-
-        if (hdl == 0L) { return; }
-
-        close(hdl);
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        close(handle);
     }
 
     //-------------------------------------------------------------------------

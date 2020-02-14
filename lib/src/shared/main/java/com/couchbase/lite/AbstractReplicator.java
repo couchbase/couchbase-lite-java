@@ -581,8 +581,9 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        clearRepl();
-        if (reachabilityManager != null) { reachabilityManager.removeNetworkReachabilityListener(this); }
+        freeC4Replicator(c4Replicator);
+        final AbstractNetworkReachabilityManager mgr = reachabilityManager;
+        if (mgr != null) { mgr.removeNetworkReachabilityListener(this); }
         super.finalize();
     }
 
@@ -663,7 +664,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
             // Note: don't use c4ActivityLevel here.  It might not be up to date.
             if (c4Status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED) {
                 cancelScheduledRetry();
-                clearRepl();
+                freeC4Replicator();
                 config.getDatabase().removeActiveReplicator((Replicator) this); // this is likely to dealloc me
             }
         }
@@ -968,7 +969,7 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
 
     // If actuallyMeansOffline == true, go offline and retry later.
     private void handleError(C4Error c4err) {
-        clearRepl();
+        freeC4Replicator();
 
         if (!isTransient(c4err)) {
             Log.i(DOMAIN, "%s: Network error (%s); will retry when network changes...", this, c4err);
@@ -1036,13 +1037,17 @@ public abstract class AbstractReplicator extends NetworkReachabilityListener {
     }
 
     // - (void) clearRepl
-    private void clearRepl() {
+    private void freeC4Replicator() {
         final C4Replicator repl;
         synchronized (lock) {
-            if (c4Replicator == null) { return; }
             repl = c4Replicator;
             c4Replicator = null;
         }
+        freeC4Replicator(repl);
+    }
+
+    private void freeC4Replicator(C4Replicator repl) {
+        if (repl == null) { return; }
         repl.free();
     }
 

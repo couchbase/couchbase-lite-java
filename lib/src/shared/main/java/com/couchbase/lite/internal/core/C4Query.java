@@ -17,66 +17,46 @@
 //
 package com.couchbase.lite.internal.core;
 
-import android.support.annotation.GuardedBy;
-
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
+import com.couchbase.lite.internal.support.Log;
 
 
-public class C4Query {
-    private final Object lock = new Object();
-
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-
-    @GuardedBy("lock")
-    private long handle; // hold pointer to C4Query
-
+public class C4Query extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
-    C4Query(long db, String expression) throws LiteCoreException {
-        handle = init(db, expression);
-    }
+
+    C4Query(long db, String expression) throws LiteCoreException { super(init(db, expression)); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
+    // Must be called holding the DB lock
     public void free() {
-        final long hdl;
-        synchronized (lock) {
-            hdl = handle;
-            handle = 0;
-        }
-
-        internalFree(hdl);
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        free(handle);
     }
 
     //////// RUNNING QUERIES:
 
-    public String explain() {
-        synchronized (lock) { return (handle == 0L) ? null : explain(handle); }
-    }
+    public String explain() { return withPeer(null, C4Query::explain); }
 
     //////// INDEXES:
 
     // - Creates a database index, to speed up subsequent queries.
 
     public C4QueryEnumerator run(C4QueryOptions options, AllocSlice parameters) throws LiteCoreException {
-        AllocSlice params = null;
+        final AllocSlice params = (parameters != null) ? parameters : new FLSliceResult();
         try {
-            params = parameters;
-            if (params == null) { params = new FLSliceResult(); }
-
-            synchronized (lock) {
-                return (handle == 0)
-                    ? null
-                    : new C4QueryEnumerator(run(handle, options.isRankFullText(), params.getHandle()));
-            }
+            return withPeerThrows(
+                null,
+                h -> new C4QueryEnumerator(run(h, options.isRankFullText(), params.getHandle())));
         }
         finally {
             if (params != parameters) { params.free(); }
@@ -85,7 +65,8 @@ public class C4Query {
 
     @SuppressWarnings("PMD.MethodReturnsInternalArray")
     public byte[] getFullTextMatched(C4FullTextMatch match) throws LiteCoreException {
-        synchronized (lock) { return (handle == 0L) ? null : getFullTextMatched(handle, match.handle); }
+        final long matchPeer = match.handle;
+        return withPeerThrows(null, h -> getFullTextMatched(h, matchPeer));
     }
 
     //-------------------------------------------------------------------------
@@ -95,9 +76,11 @@ public class C4Query {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        final long hdl = handle;
-        handle = 0;
-        internalFree(hdl);
+        final long handle = getPeerAndClear();
+        if (handle != 0L) {
+            Log.w(LogDomain.DATABASE, "Finalizing a C4Query that has not been freed: " + this);
+            free(handle);
+        }
         super.finalize();
     }
 
@@ -105,20 +88,7 @@ public class C4Query {
     // package protected methods
     //-------------------------------------------------------------------------
 
-    int columnCount() {
-        synchronized (lock) { return (handle == 0L) ? 0 : columnCount(handle); }
-    }
-
-    //-------------------------------------------------------------------------
-    // private methods
-    //-------------------------------------------------------------------------
-
-    // !!! This violates Core thread safety.
-    // Should be holding the database lock
-    private void internalFree(long hdl) {
-        if (hdl == 0L) { return; }
-        free(hdl);
-    }
+    int columnCount() { return withPeer(0, C4Query::columnCount); }
 
     //-------------------------------------------------------------------------
     // Native methods

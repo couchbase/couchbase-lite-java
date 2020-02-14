@@ -17,7 +17,9 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.util.concurrent.Executor;
@@ -54,15 +56,17 @@ final class LiveQuery implements DatabaseChangeListener {
 
     private final AtomicReference<State> state = new AtomicReference<>(State.STOPPED);
 
-    private ResultSet previousResults;
-
 
     @NonNull
     private final AbstractQuery query;
 
     private final Object lock = new Object();
 
+    @GuardedBy("lock")
     private ListenerToken dbListenerToken;
+
+    @GuardedBy("lock")
+    private ResultSet previousResults;
 
     //---------------------------------------------
     // Constructors
@@ -95,7 +99,7 @@ final class LiveQuery implements DatabaseChangeListener {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        stop();
+        stop(query, dbListenerToken);
         super.finalize();
     }
 
@@ -157,15 +161,27 @@ final class LiveQuery implements DatabaseChangeListener {
             final State oldState = state.getAndSet(State.STOPPED);
             if (State.STOPPED == oldState) { return; }
 
-            final Database db = query.getDatabase();
-            if (db != null) {
-                db.removeActiveLiveQuery(this);
-                db.removeChangeListener(dbListenerToken);
-                dbListenerToken = null;
-            }
-
             previousResults = null;
+
+            final ListenerToken token = dbListenerToken;
+            dbListenerToken = null;
+
+            stop(query, token);
         }
+    }
+
+    // If this object is GCed out of order, e.g., the dbListener token is gone
+    // by the time we get here (via finalize), we are going to leave things in
+    // an inconsistent state...
+    private void stop(@Nullable AbstractQuery query, @Nullable ListenerToken token) {
+        if (query == null) { return; }
+
+        final Database db = query.getDatabase();
+        if (db == null) { return; }
+
+        db.removeActiveLiveQuery(this);
+
+        if (token != null) { db.removeChangeListener(token); }
     }
 
     private void update(long delay) {

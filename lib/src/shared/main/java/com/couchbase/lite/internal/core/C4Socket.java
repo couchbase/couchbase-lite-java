@@ -17,6 +17,8 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.NonNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,8 +30,8 @@ import com.couchbase.lite.internal.SocketFactory;
 import com.couchbase.lite.internal.support.Log;
 
 
-@SuppressWarnings({"LineLength", "PMD.TooManyMethods"})
-public abstract class C4Socket {
+@SuppressWarnings({"LineLength", "PMD.TooManyMethods", "unused"})
+public abstract class C4Socket extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Constants
     //
@@ -186,23 +188,34 @@ public abstract class C4Socket {
         Log.d(LOG_DOMAIN, "C4Socket.dispose @" + handle + ": " + socket);
         if (socket == null) { return; }
 
-        socket.release();
+        release(socket);
     }
 
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
+    private static void bind(@NonNull C4Socket socket) {
+        final long handle = socket.getPeer();
+        HANDLES_TO_SOCKETS.put(handle, socket);
+        Log.d(LOG_DOMAIN, "C4Socket.bind @" + handle + ": " + HANDLES_TO_SOCKETS.size());
+    }
 
-    private long handle; // pointer to C4Socket
+    private static void release(@NonNull C4Socket socket) {
+        final long handle = socket.getPeer();
+        HANDLES_TO_SOCKETS.remove(handle);
+        Log.d(LOG_DOMAIN, "C4Socket.release @" + handle + ": " + HANDLES_TO_SOCKETS.size());
+    }
 
     //-------------------------------------------------------------------------
     // constructors
     //-------------------------------------------------------------------------
 
-    protected C4Socket(long handle) { bind(handle); }
+    protected C4Socket(long handle) {
+        super(handle);
+        bind(this);
+    }
 
     protected C4Socket(String schema, String host, int port, String path, int framing) {
-        bind(fromNative(this, schema, host, port, path, framing));
+        final long handle = fromNative(this, schema, host, port, path, framing);
+        setPeer(handle);
+        bind(this);
     }
 
     //-------------------------------------------------------------------------
@@ -224,41 +237,47 @@ public abstract class C4Socket {
     // Protected methods
     //-------------------------------------------------------------------------
 
-    protected boolean released() { return handle == 0L; }
+    protected boolean released() { return getPeerHandleUnchecked() == 0L; }
 
     protected final void opened() {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.opened @" + handle);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         opened(handle);
     }
 
     protected final void completedWrite(long byteCount) {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.completedWrite @" + handle + ": " + byteCount);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         completedWrite(handle, byteCount);
     }
 
     protected final void received(byte[] data) {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.received @" + handle + ": " + data.length);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         received(handle, data);
     }
 
     protected final void closed(int errorDomain, int errorCode, String message) {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.closed @" + handle + ": " + errorCode);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         closed(handle, errorDomain, errorCode, message);
     }
 
     protected final void closeRequested(int status, String message) {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.closeRequested @" + handle + ": " + status);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         closeRequested(handle, status, message);
     }
 
     protected final void gotHTTPResponse(int httpStatus, byte[] responseHeadersFleece) {
+        final long handle = getPeerHandleUnchecked();
         Log.d(LOG_DOMAIN, "C4Socket.gotHTTPResponse @" + handle + ": " + httpStatus);
-        if (released()) { return; }
+        if (handle == 0) { return; }
         gotHTTPResponse(handle, httpStatus, responseHeadersFleece);
     }
 
@@ -266,24 +285,7 @@ public abstract class C4Socket {
     // package protected methods
     //-------------------------------------------------------------------------
 
-    final long getHandle() { return handle; }
-
-    //-------------------------------------------------------------------------
-    // private methods
-    //-------------------------------------------------------------------------
-
-    private void bind(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("binding to 0"); }
-        HANDLES_TO_SOCKETS.put(handle, this);
-        Log.d(LOG_DOMAIN, "C4Socket.bind @" + handle + ": " + HANDLES_TO_SOCKETS.size());
-        this.handle = handle;
-    }
-
-    private void release() {
-        HANDLES_TO_SOCKETS.remove(handle);
-        Log.d(LOG_DOMAIN, "C4Socket.release @" + handle + ": " + HANDLES_TO_SOCKETS.size());
-        handle = 0L;
-    }
+    final long getHandle() { return getPeer(); }
 
     //-------------------------------------------------------------------------
     // native methods

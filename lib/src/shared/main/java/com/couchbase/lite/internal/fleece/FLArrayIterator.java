@@ -17,9 +17,10 @@
 //
 package com.couchbase.lite.internal.fleece;
 
-public class FLArrayIterator {
-    private long handle; // pointer to FLArrayIterator
+import com.couchbase.lite.internal.core.C4NativePeer;
 
+
+public class FLArrayIterator extends C4NativePeer {
     private final boolean managed;
 
     //-------------------------------------------------------------------------
@@ -31,7 +32,7 @@ public class FLArrayIterator {
     public FLArrayIterator(long handle) { this(handle, true); }
 
     private FLArrayIterator(long handle, boolean managed) {
-        this.handle = handle;
+        super(handle);
         this.managed = managed;
     }
 
@@ -40,22 +41,32 @@ public class FLArrayIterator {
     //-------------------------------------------------------------------------
 
     public void begin(FLArray array) {
+        final long handle = getPeer();
         array.withContent(hdl -> {
             begin(hdl, handle);
             return null;
         });
     }
 
-    public boolean next() { return next(handle); }
+    public boolean next() { return next(getPeer()); }
 
     public FLValue getValue() {
-        final long hValue = getValue(handle);
-        return hValue != 0L ? new FLValue(hValue) : null;
+        final long hValue = getValue(getPeer());
+        return hValue == 0L ? null : new FLValue(hValue);
     }
 
     public FLValue getValueAt(int index) {
-        final long hValue = getValueAt(handle, index);
-        return hValue != 0L ? new FLValue(hValue) : null;
+        final long hValue = getValueAt(getPeer(), index);
+        return hValue == 0L ? null : new FLValue(hValue);
+    }
+
+    public void free() {
+        if (managed) { return; }
+
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
+
+        free(handle);
     }
 
     //-------------------------------------------------------------------------
@@ -70,23 +81,8 @@ public class FLArrayIterator {
     }
 
     //-------------------------------------------------------------------------
-    // private methods
-    //-------------------------------------------------------------------------
-
-    private void free() {
-        if (managed) { return; }
-
-        final long hdl = handle;
-        handle = 0L;
-
-        if (hdl != 0L) { free(hdl); }
-    }
-
-    //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
-
-    // TODO: init() and begin() could be combined.
 
     /**
      * Create FLArrayIterator instance
@@ -113,7 +109,7 @@ public class FLArrayIterator {
 
     /**
      * @param itr    (FLArrayIterator *)
-     * @param offset
+     * @param offset Array offset
      * @return long (FLValue)
      */
     private static native long getValueAt(long itr, int offset);

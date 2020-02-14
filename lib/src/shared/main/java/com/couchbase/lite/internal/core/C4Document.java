@@ -17,38 +17,19 @@
 //
 package com.couchbase.lite.internal.core;
 
-import android.support.annotation.GuardedBy;
-import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.LiteCoreException;
-import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.fleece.FLDict;
 import com.couchbase.lite.internal.fleece.FLSharedKeys;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
-import com.couchbase.lite.internal.support.Log;
-import com.couchbase.lite.internal.utils.Preconditions;
-import com.couchbase.lite.utils.Fn;
 
 
 @SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
-public class C4Document {
+public class C4Document extends C4NativePeer {
     public static boolean dictContainsBlobs(FLSliceResult dict, FLSharedKeys sk) {
         return dictContainsBlobs(dict.getHandle(), sk.getHandle());
     }
-
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-
-    @NonNull
-    private final Object lock = new Object(); // lock for thread-safety
-
-    @GuardedBy("lock")
-    private long handle; // hold pointer to C4Document
-
-    private Exception freedAt;
 
     //-------------------------------------------------------------------------
     // Constructor
@@ -57,10 +38,7 @@ public class C4Document {
 
     C4Document(long db, long sequence) throws LiteCoreException { this(getBySequence(db, sequence)); }
 
-    C4Document(long handle) {
-        Preconditions.assertNotZero(handle, "handle");
-        this.handle = handle;
-    }
+    C4Document(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
@@ -68,57 +46,59 @@ public class C4Document {
 
     // - C4Document
 
-    public int getFlags() { return withHandle(C4Document::getFlags, 0); }
+    public int getFlags() { return withPeer(0, C4Document::getFlags); }
 
-    public String getDocID() { return withHandle(C4Document::getDocID, null); }
+    public String getDocID() { return withPeer(null, C4Document::getDocID); }
 
-    public String getRevID() { return withHandle(C4Document::getRevID, null); }
+    public String getRevID() { return withPeer(null, C4Document::getRevID); }
 
-    public long getSequence() { return withHandle(C4Document::getSequence, 0L); }
+    public long getSequence() { return withPeer(0L, C4Document::getSequence); }
 
     // - C4Revision
 
-    public String getSelectedRevID() { return withHandle(C4Document::getSelectedRevID, null); }
+    public String getSelectedRevID() { return withPeer(null, C4Document::getSelectedRevID); }
 
-    public long getSelectedSequence() { return withHandle(C4Document::getSelectedSequence, 0L); }
+    public long getSelectedSequence() { return withPeer(0L, C4Document::getSelectedSequence); }
 
     public FLDict getSelectedBody2() {
-        final long value = withHandle(C4Document::getSelectedBody2, null);
+        final long value = withPeer(null, C4Document::getSelectedBody2);
         return value == 0 ? null : new FLDict(value);
     }
 
     // - Lifecycle
 
-    public int getSelectedFlags() { return withHandle(C4Document::getSelectedFlags, 0); }
+    public int getSelectedFlags() { return withPeer(0, C4Document::getSelectedFlags); }
 
-    public void save(int maxRevTreeDepth) throws LiteCoreException { withHandleVoid(h -> save(h, maxRevTreeDepth)); }
+    public void save(int maxRevTreeDepth) throws LiteCoreException {
+        withPeerVoidThrows(h -> save(h, maxRevTreeDepth));
+    }
 
     // - Revisions
 
-    public boolean selectNextRevision() { return withHandle(C4Document::selectNextRevision, false); }
+    public boolean selectNextRevision() { return withPeer(false, C4Document::selectNextRevision); }
 
     public void selectNextLeafRevision(boolean includeDeleted, boolean withBody) throws LiteCoreException {
-        withHandleVoid(h -> selectNextLeafRevision(h, includeDeleted, withBody));
+        withPeerVoidThrows(h -> selectNextLeafRevision(h, includeDeleted, withBody));
     }
 
     // - Purging and Expiration
 
     public void resolveConflict(String winningRevID, String losingRevID, byte[] mergeBody, int mergedFlags)
         throws LiteCoreException {
-        withHandleVoid(h -> resolveConflict(h, winningRevID, losingRevID, mergeBody, mergedFlags));
+        withPeerVoidThrows(h -> resolveConflict(h, winningRevID, losingRevID, mergeBody, mergedFlags));
     }
 
     // - Creating and Updating Documents
 
     public C4Document update(FLSliceResult body, int flags) throws LiteCoreException {
         final long bodyHandle = (body != null) ? body.getHandle() : 0;
-        final long newDoc = withHandleThrows(h -> update2(h, bodyHandle, flags), 0L);
+        final long newDoc = withPeerThrows(0L, h -> update2(h, bodyHandle, flags));
         return (newDoc == 0) ? null : new C4Document(newDoc);
     }
 
     @VisibleForTesting
     public C4Document update(byte[] body, int flags) throws LiteCoreException {
-        final long newDoc = withHandleThrows(h -> update(h, body, flags), 0L);
+        final long newDoc = withPeerThrows(0L, h -> update(h, body, flags));
         return (newDoc == 0) ? null : new C4Document(newDoc);
     }
 
@@ -134,7 +114,7 @@ public class C4Document {
     // - Fleece
 
     public String bodyAsJSON(boolean canonical) throws LiteCoreException {
-        return withHandleThrows(h -> bodyAsJSON(h, canonical), null);
+        return withPeerThrows(null, h -> bodyAsJSON(h, canonical));
     }
 
     //-------------------------------------------------------------------------
@@ -144,9 +124,7 @@ public class C4Document {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        final long hdl = handle;
-        handle = 0L;
-        internalFree(hdl);
+        free();
         super.finalize();
     }
 
@@ -156,55 +134,50 @@ public class C4Document {
 
     // - Lifecycle
 
-    byte[] getSelectedBody() { return withHandle(C4Document::getSelectedBody, null); }
+    byte[] getSelectedBody() { return withPeer(null, C4Document::getSelectedBody); }
 
     @VisibleForTesting
     void free() {
-        final long hdl;
-        synchronized (lock) {
-            hdl = handle;
-            handle = 0;
-        }
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
 
-        internalFree(hdl);
-
-        if (CouchbaseLiteInternal.isDebugging()) { freedAt = new Exception(); }
+        free(handle);
     }
 
     // - Revisions
 
     @VisibleForTesting
-    boolean selectCurrentRevision() { return withHandle(C4Document::selectCurrentRevision, false); }
+    boolean selectCurrentRevision() { return withPeer(false, C4Document::selectCurrentRevision); }
 
     @VisibleForTesting
-    void loadRevisionBody() throws LiteCoreException { withHandleVoid(C4Document::loadRevisionBody); }
+    void loadRevisionBody() throws LiteCoreException { withPeerVoidThrows(C4Document::loadRevisionBody); }
 
     @VisibleForTesting
-    boolean hasRevisionBody() { return withHandle(C4Document::hasRevisionBody, false); }
+    boolean hasRevisionBody() { return withPeer(false, C4Document::hasRevisionBody); }
 
     @VisibleForTesting
-    boolean selectParentRevision() { return withHandle(C4Document::selectParentRevision, false); }
+    boolean selectParentRevision() { return withPeer(false, C4Document::selectParentRevision); }
 
     @VisibleForTesting
     boolean selectFirstPossibleAncestorOf(String revID) {
-        return withHandle(h -> selectFirstPossibleAncestorOf(h, revID), false);
+        return withPeer(false, h -> selectFirstPossibleAncestorOf(h, revID));
     }
 
     @VisibleForTesting
     boolean selectNextPossibleAncestorOf(String revID) {
-        return withHandle(h -> selectNextPossibleAncestorOf(h, revID), false);
+        return withPeer(false, h -> selectNextPossibleAncestorOf(h, revID));
     }
 
     @VisibleForTesting
     boolean selectCommonAncestorRevision(String revID1, String revID2) {
-        return withHandle(h -> selectCommonAncestorRevision(h, revID1, revID2), false);
+        return withPeer(false, h -> selectCommonAncestorRevision(h, revID1, revID2));
     }
 
     // - Purging and Expiration
 
     @VisibleForTesting
     int purgeRevision(String revID) throws LiteCoreException {
-        return withHandleThrows(h -> purgeRevision(h, revID), 0);
+        return withPeerThrows(0, h -> purgeRevision(h, revID));
     }
 
     //-------------------------------------------------------------------------
@@ -218,42 +191,6 @@ public class C4Document {
 
     @SuppressWarnings("PMD.UnusedPrivateMethod")
     private boolean accessRemoved() { return isSelectedRevFlags(C4Constants.RevisionFlags.PURGED); }
-
-    private <T> T withHandle(Fn.Function<Long, T> fn, T def) {
-        synchronized (lock) {
-            if (handle != 0) { return fn.apply(handle); }
-            logBadCall();
-            return def;
-        }
-    }
-
-    private <T> T withHandleThrows(Fn.FunctionThrows<Long, T, LiteCoreException> fn, T def) throws LiteCoreException {
-        synchronized (lock) {
-            if (handle != 0) { return fn.apply(handle); }
-            logBadCall();
-            return def;
-        }
-    }
-
-    private void withHandleVoid(Fn.ConsumerThrows<Long, LiteCoreException> fn) throws LiteCoreException {
-        synchronized (lock) {
-            if (handle != 0) {
-                fn.accept(handle);
-                return;
-            }
-            logBadCall();
-        }
-    }
-
-    private void logBadCall() {
-        Log.w(LogDomain.DATABASE, "Bad method call: ", new Exception());
-        if (freedAt != null) { Log.w(LogDomain.DATABASE, "... on C4Document freed at: ", freedAt); }
-    }
-
-    private void internalFree(long hdl) {
-        if (hdl == 0L) { return; }
-        free(hdl);
-    }
 
     //-------------------------------------------------------------------------
     // native methods

@@ -26,21 +26,13 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * An open stream for writing data to a blob.
  */
-public class C4BlobWriteStream {
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-
-    private long handle; // hold pointer to C4BlobWriteStream
+public class C4BlobWriteStream extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    C4BlobWriteStream(long handle) {
-        if (handle == 0) { throw new IllegalArgumentException("handle is 0"); }
-        this.handle = handle;
-    }
+    C4BlobWriteStream(long handle) { super(handle); }
 
     //-------------------------------------------------------------------------
     // public methods
@@ -67,7 +59,7 @@ public class C4BlobWriteStream {
     public void write(@NonNull byte[] bytes, int len) throws LiteCoreException {
         Preconditions.assertNotNull(bytes, "bytes");
         if (len <= 0) { return; }
-        write(handle, bytes, len);
+        write(getPeer(), bytes, len);
     }
 
     /**
@@ -75,7 +67,7 @@ public class C4BlobWriteStream {
      * called after writing the entire data. No more data can be written after this call.
      */
     @NonNull
-    public C4BlobKey computeBlobKey() throws LiteCoreException { return new C4BlobKey(computeBlobKey(handle)); }
+    public C4BlobKey computeBlobKey() throws LiteCoreException { return new C4BlobKey(computeBlobKey(getPeer())); }
 
     /**
      * Adds the data written to the stream as a finished blob to the store.
@@ -83,19 +75,16 @@ public class C4BlobWriteStream {
      * were unable to receive all of the data from the network, or if you've called
      * c4stream_computeBlobKey and found that the data does not match the expected digest/key.)
      */
-    public void install() throws LiteCoreException { install(handle); }
+    public void install() throws LiteCoreException { install(getPeer()); }
 
     /**
      * Closes a blob write-stream. If c4stream_install was not already called, the temporary file
      * will be deleted without adding the blob to the store.
      */
     public void close() {
-        final long hdl = handle;
-        handle = 0L;
-
-        if (hdl == 0L) { return; }
-
-        close(hdl);
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+        close(handle);
     }
 
     //-------------------------------------------------------------------------

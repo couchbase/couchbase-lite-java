@@ -27,14 +27,19 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public class MValue implements Encodable {
+
     //-------------------------------------------------------------------------
     // Constants
     //-------------------------------------------------------------------------
-    static final MValue EMPTY = new MValue(true);
+
+    static final MValue EMPTY = new MValue(null, null) {
+        public boolean isEmpty() { return true; }
+    };
 
     //-------------------------------------------------------------------------
     // Types
     //-------------------------------------------------------------------------
+
     public interface Delegate {
         @Nullable
         Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt);
@@ -48,6 +53,7 @@ public class MValue implements Encodable {
     //-------------------------------------------------------------------------
     // Static members
     //-------------------------------------------------------------------------
+
     private static Delegate delegate;
 
     //-------------------------------------------------------------------------
@@ -62,36 +68,33 @@ public class MValue implements Encodable {
     @VisibleForTesting
     public static Delegate getRegisteredDelegate() { return delegate; }
 
-
     //-------------------------------------------------------------------------
     // Instance members
     //-------------------------------------------------------------------------
+
     @Nullable
     private FLValue value;
     @Nullable
     private Object nativeObject;
 
-    private final boolean empty;
-
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
-    public MValue(@Nullable Object obj) {
-        this(false);
-        nativeObject = obj;
-    }
 
-    public MValue(@Nullable FLValue val) {
-        this(false);
+    public MValue(@Nullable Object obj) { this(obj, null); }
+
+    public MValue(@Nullable FLValue val) { this(null, val); }
+
+    private MValue(@Nullable Object obj, @Nullable FLValue val) {
+        nativeObject = obj;
         this.value = val;
     }
-
-    private MValue(boolean isEmpty) { this.empty = isEmpty; }
 
     //-------------------------------------------------------------------------
     // Public methods
     //-------------------------------------------------------------------------
-    public boolean isEmpty() { return empty; }
+
+    public boolean isEmpty() { return false; }
 
     public boolean isMutated() { return value == null; }
 
@@ -115,7 +118,7 @@ public class MValue implements Encodable {
 
     @Override
     public void encodeTo(@NonNull FLEncoder enc) {
-        if (empty) { throw new IllegalStateException("MValue is empty."); }
+        if (isEmpty()) { throw new IllegalStateException("MValue is empty."); }
 
         if (value != null) { enc.writeValue(value); }
         else { encodeNative(enc, nativeObject); }
@@ -127,13 +130,14 @@ public class MValue implements Encodable {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        nativeChangeSlot(null);
+        nativeChangeSlot(null); // ??? WAT?
         super.finalize();
     }
 
     //-------------------------------------------------------------------------
     // Private methods
     //-------------------------------------------------------------------------
+
     @Nullable
     private Object toNative(@NonNull MValue mv, @Nullable MCollection parent, @NonNull AtomicBoolean cacheIt) {
         Preconditions.assertNotNull(MValue.delegate, "delegate");
@@ -146,13 +150,13 @@ public class MValue implements Encodable {
         return delegate.collectionFromNative(obj);
     }
 
-    private void encodeNative(@NonNull FLEncoder encoder, @Nullable Object object) {
-        Preconditions.assertNotNull(MValue.delegate, "delegate");
-        delegate.encodeNative(encoder, object);
-    }
-
     private void nativeChangeSlot(@Nullable MValue newSlot) {
         final MCollection collection = collectionFromNative(newSlot);
         if (collection != null) { collection.setSlot(newSlot, this); }
+    }
+
+    private void encodeNative(@NonNull FLEncoder encoder, @Nullable Object object) {
+        Preconditions.assertNotNull(MValue.delegate, "delegate");
+        delegate.encodeNative(encoder, object);
     }
 }

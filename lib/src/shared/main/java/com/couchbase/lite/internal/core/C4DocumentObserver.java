@@ -22,15 +22,34 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class C4DocumentObserver {
+
+// Class has package protected static factory methods
+@SuppressWarnings("PMD.ClassWithOnlyPrivateConstructorsShouldBeFinal")
+public class C4DocumentObserver extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Static Variables
     //-------------------------------------------------------------------------
+
     // Long: handle of C4DatabaseObserver native address
     // C4DocumentObserver: Java class holds handle
     private static final Map<Long, C4DocumentObserver> REVERSE_LOOKUP_TABLE
         = Collections.synchronizedMap(new HashMap<>());
+
+    //-------------------------------------------------------------------------
+    // Static Factory Methods
+    //-------------------------------------------------------------------------
+
+    static C4DocumentObserver newObserver(long db, String docID, C4DocumentObserverListener listener, Object context) {
+        final C4DocumentObserver observer = new C4DocumentObserver(db, docID, listener, context);
+        REVERSE_LOOKUP_TABLE.put(observer.getPeer(), observer);
+        return observer;
+    }
+
+    //-------------------------------------------------------------------------
+    // JNI callback methods
+    //-------------------------------------------------------------------------
 
     /**
      * Callback invoked by a database observer.
@@ -40,67 +59,57 @@ public class C4DocumentObserver {
      * context ->  maintained in java layer
      */
     @SuppressWarnings("PMD.UnusedPrivateMethod")
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
     private static void callback(long handle, String docID, long sequence) {
         final C4DocumentObserver obs = REVERSE_LOOKUP_TABLE.get(handle);
-        if ((obs != null) && (obs.listener != null)) { obs.listener.callback(obs, docID, sequence, obs.context); }
+        if (obs == null) { return; }
+
+        final C4DocumentObserverListener listener = obs.listener;
+        if (listener == null) { return; }
+
+        listener.callback(obs, docID, sequence, obs.context);
     }
 
-    static native long create(long db, String docID);
+    //-------------------------------------------------------------------------
+    // Member Variables
+    //-------------------------------------------------------------------------
 
-    /**
-     * Free C4DocumentObserver* instance
-     *
-     * @param c4observer (C4DocumentObserver*)
-     */
-    static native void free(long c4observer);
+    private final C4DocumentObserverListener listener;
+    private final Object context;
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
-    //-------------------------------------------------------------------------
-    // Member Variables
-    //-------------------------------------------------------------------------
-    private final C4DocumentObserverListener listener;
-    private final Object context;
-    private long handle; // hold pointer to C4DocumentObserver
 
-    //-------------------------------------------------------------------------
-    // callback methods from JNI
-    //-------------------------------------------------------------------------
-
-    C4DocumentObserver(
-        long db,
-        String docID,
-        C4DocumentObserverListener listener,
-        Object context) {
+    private C4DocumentObserver(long db, String docID, C4DocumentObserverListener listener, Object context) {
+        super(create(db, docID));
         this.listener = listener;
         this.context = context;
-        this.handle = create(db, docID);
-        REVERSE_LOOKUP_TABLE.put(handle, this);
+    }
+
+    //-------------------------------------------------------------------------
+    // public methods
+    //-------------------------------------------------------------------------
+
+    public void free() {
+        final long handle = getPeerAndClear();
+        if (handle == 0L) { return; }
+
+        REVERSE_LOOKUP_TABLE.remove(handle);
+
+        free(handle);
     }
 
     //-------------------------------------------------------------------------
     // native methods
     //-------------------------------------------------------------------------
 
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-    public void free() {
-        if (handle != 0L) {
-            REVERSE_LOOKUP_TABLE.remove(handle);
-            free(handle);
-            handle = 0L;
-        }
-    }
+    private static native long create(long db, String docID);
 
-    //-------------------------------------------------------------------------
-    // protected methods
-    //-------------------------------------------------------------------------
-    @SuppressWarnings("NoFinalizer")
-    @Override
-    protected void finalize() throws Throwable {
-        free();
-        super.finalize();
-    }
+    /**
+     * Free C4DocumentObserver* instance
+     *
+     * @param c4observer (C4DocumentObserver*)
+     */
+    private static native void free(long c4observer);
 }

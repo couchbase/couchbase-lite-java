@@ -20,52 +20,43 @@ package com.couchbase.lite.internal.fleece;
 
 import android.support.annotation.Nullable;
 
+import com.couchbase.lite.internal.core.C4NativePeer;
 
-public class FLDictIterator {
-    private long handle; // hold pointer to FLDictIterator
+
+public class FLDictIterator extends C4NativePeer {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    public FLDictIterator() { handle = init(); }
+    public FLDictIterator() { super(init()); }
 
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
 
-    public long getCount() { return getCount(handle); }
+    public long getCount() { return getCount(getPeer()); }
 
     public void begin(FLDict dict) {
+        final long handle = getPeer();
         dict.withContent(hdl -> {
             begin(hdl, handle);
             return null;
         });
     }
 
-    /**
-     * The annoying check on the value is necessary because, when the iterator is exhausted,
-     * the handle points beyond the end of the dict and attempting to get the key will
-     * cause a pointer exception.
-     *
-     * @return the key
-     */
     @Nullable
-    public String getKeyString() { return getKeyString(handle); }
+    public String getKeyString() { return getKeyString(getPeer()); }
 
     @Nullable
-    public FLValue getValue() {
-        final long hValue = getValue(handle);
-        return (hValue == 0L) ? null : new FLValue(hValue);
-    }
+    public FLValue getValue() { return new FLValue(getValue(getPeer())); }
 
-    public boolean next() { return next(handle); }
+    public boolean next() { return next(getPeer()); }
 
     public void free() {
-        final long hdl = handle;
-        handle = 0;
-
-        if (hdl != 0L) { free(hdl); }
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
+        free(handle);
     }
 
     //-------------------------------------------------------------------------

@@ -49,10 +49,13 @@ import com.couchbase.lite.internal.support.Log;
  * these two calls: it has no direct affect on either of the other two states.
  * </ol>
  * <p>
+ * Instances of this class are created using static factory methods
+ * <p>
  * WARNING!
  * This class and its members are referenced by name, from native code.
  */
-public class C4Replicator {
+@SuppressWarnings("PMD.ClassWithOnlyPrivateConstructorsShouldBeFinal")
+public class C4Replicator extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Constants
     //-------------------------------------------------------------------------
@@ -88,9 +91,116 @@ public class C4Replicator {
     }
 
     //-------------------------------------------------------------------------
+    // Static Factory Methods
+    //-------------------------------------------------------------------------
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    static C4Replicator createReplicator(
+        long db,
+        @Nullable String schema,
+        @Nullable String host,
+        int port,
+        @Nullable String path,
+        @Nullable String remoteDatabaseName,
+        int push,
+        int pull,
+        @NonNull byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @Nullable C4ReplicationFilter pushFilter,
+        @Nullable C4ReplicationFilter pullFilter,
+        @NonNull Object replicatorContext,
+        @Nullable Object socketFactoryContext,
+        int framing)
+        throws LiteCoreException {
+
+        final C4Replicator replicator;
+        synchronized (CLASS_LOCK) {
+            replicator = new C4Replicator(
+                db,
+                schema,
+                host,
+                port,
+                path,
+                remoteDatabaseName,
+                push,
+                pull,
+                options,
+                listener,
+                pushFilter,
+                pullFilter,
+                replicatorContext,
+                socketFactoryContext,
+                framing);
+            bind(replicator.getPeer(), replicator, replicatorContext);
+        }
+
+        return replicator;
+    }
+
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    static C4Replicator createReplicator(
+        long db,
+        C4Database otherLocalDB,
+        int push,
+        int pull,
+        @NonNull byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @Nullable C4ReplicationFilter pushFilter,
+        @Nullable C4ReplicationFilter pullFilter,
+        @NonNull Object replicatorContext,
+        int framing)
+        throws LiteCoreException {
+        final C4Replicator replicator;
+        synchronized (CLASS_LOCK) {
+            replicator = new C4Replicator(
+                db,
+                otherLocalDB,
+                push,
+                pull,
+                options,
+                listener,
+                pushFilter,
+                pullFilter,
+                replicatorContext,
+                framing);
+            bind(replicator.getPeer(), replicator, replicatorContext);
+        }
+
+        return replicator;
+    }
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    static C4Replicator createReplicator(
+        long db,
+        C4Socket openSocket,
+        int push,
+        int pull,
+        @Nullable byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @NonNull Object replicatorContext)
+        throws LiteCoreException {
+        final C4Replicator replicator;
+        synchronized (CLASS_LOCK) {
+            replicator = new C4Replicator(
+                db,
+                openSocket,
+                push,
+                pull,
+                options,
+                listener,
+                replicatorContext);
+            bind(replicator.getPeer(), replicator, null);
+        }
+
+        return replicator;
+    }
+
+    //-------------------------------------------------------------------------
     // Native callback methods
     //-------------------------------------------------------------------------
 
+    @SuppressWarnings("unused")
     static void statusChangedCallback(long handle, @Nullable C4ReplicatorStatus status) {
         final C4Replicator repl = getReplicatorForHandle(handle);
         Log.d(LogDomain.REPLICATOR, "statusChangedCallback() handle: " + handle + ", status: " + status);
@@ -100,6 +210,7 @@ public class C4Replicator {
         if (listener != null) { listener.statusChanged(repl, status, repl.replicatorContext); }
     }
 
+    @SuppressWarnings("unused")
     static void documentEndedCallback(long handle, boolean pushing, @Nullable C4DocumentEnded... documentsEnded) {
         final C4Replicator repl = getReplicatorForHandle(handle);
         Log.d(LogDomain.REPLICATOR, "documentEndedCallback() handle: " + handle + ", pushing: " + pushing);
@@ -139,15 +250,20 @@ public class C4Replicator {
         synchronized (CLASS_LOCK) { return (context == null) ? null : CONTEXT_TO_C4_REPLICATOR_MAP.get(context); }
     }
 
-    private static void addToMap(long handle, @NonNull C4Replicator repl, @Nullable Object context) {
+    private static void bind(long handle, @NonNull C4Replicator repl, @Nullable Object context) {
         REVERSE_LOOKUP_TABLE.put(handle, repl);
         if (context != null) { CONTEXT_TO_C4_REPLICATOR_MAP.put(context, repl); }
     }
 
+    private static void release(long handle, @Nullable Object context) {
+        REVERSE_LOOKUP_TABLE.remove(handle);
+        CONTEXT_TO_C4_REPLICATOR_MAP.remove(context);
+    }
 
     //-------------------------------------------------------------------------
     // Member Variables
     //-------------------------------------------------------------------------
+
     @NonNull
     private final Object replicatorContext;
     @Nullable
@@ -164,17 +280,12 @@ public class C4Replicator {
     @NonNull
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    @NonNull
-    private final Object lock = new Object();
-    @GuardedBy("lock")
-    private long handle; // pointer to native C4Replicator
-
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    C4Replicator(
+    private C4Replicator(
         long db,
         @Nullable String schema,
         @Nullable String host,
@@ -191,35 +302,30 @@ public class C4Replicator {
         @Nullable Object socketFactoryContext,
         int framing)
         throws LiteCoreException {
+        super(create(
+            db,
+            schema,
+            host,
+            port,
+            path,
+            remoteDatabaseName,
+            push, pull,
+            socketFactoryContext,
+            framing,
+            replicatorContext,
+            pushFilter,
+            pullFilter,
+            options));
 
         this.listener = listener;
         this.replicatorContext = replicatorContext;
         this.socketFactoryContext = socketFactoryContext;
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
-
-        synchronized (CLASS_LOCK) {
-            handle = create(
-                db,
-                schema,
-                host,
-                port,
-                path,
-                remoteDatabaseName,
-                push, pull,
-                socketFactoryContext,
-                framing,
-                replicatorContext,
-                pushFilter,
-                pullFilter,
-                options);
-
-            addToMap(handle, this, replicatorContext);
-        }
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    C4Replicator(
+    private C4Replicator(
         long db,
         C4Database otherLocalDB,
         int push,
@@ -231,6 +337,16 @@ public class C4Replicator {
         @NonNull Object replicatorContext,
         int framing)
         throws LiteCoreException {
+        super(createLocal(
+            db,
+            (otherLocalDB == null) ? 0 : otherLocalDB.getHandle(),
+            push,
+            pull,
+            framing,
+            replicatorContext,
+            pushFilter,
+            pullFilter,
+            options));
 
         this.socketFactoryContext = null;
 
@@ -238,25 +354,11 @@ public class C4Replicator {
         this.replicatorContext = replicatorContext;
         this.pushFilter = pushFilter;
         this.pullFilter = pullFilter;
-
-        synchronized (CLASS_LOCK) {
-            handle = createLocal(
-                db,
-                (otherLocalDB == null) ? 0 : otherLocalDB.getHandle(),
-                push,
-                pull,
-                framing,
-                replicatorContext,
-                pushFilter,
-                pullFilter,
-                options);
-
-            addToMap(handle, this, replicatorContext);
-        }
     }
 
+
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    C4Replicator(
+    private C4Replicator(
         long db,
         C4Socket openSocket,
         int push,
@@ -265,96 +367,72 @@ public class C4Replicator {
         @Nullable C4ReplicatorListener listener,
         @NonNull Object replicatorContext)
         throws LiteCoreException {
+        super(createWithSocket(db, openSocket.getHandle(), push, pull, replicatorContext, options));
+
         this.socketFactoryContext = null;
 
         this.listener = listener;
         this.replicatorContext = replicatorContext;
         this.pushFilter = null;
         this.pullFilter = null;
-
-        synchronized (CLASS_LOCK) {
-            handle = createWithSocket(db, openSocket.getHandle(), push, pull, replicatorContext, options);
-
-            addToMap(handle, this, null);
-        }
     }
 
     public void start() {
         if (running.getAndSet(true)) { return; }
-        synchronized (lock) {
-            if (handle != 0) { start(handle); }
-        }
+        start(getPeer());
     }
 
     public void stop() {
         if (!running.getAndSet(false)) { return; }
-        synchronized (lock) {
-            if (handle != 0) { stop(handle); }
-        }
+        stop(getPeer());
     }
 
     @Nullable
-    public C4ReplicatorStatus getStatus() {
-        synchronized (lock) {
-            return (handle == 0) ? null : getStatus(handle);
-        }
-    }
+    public C4ReplicatorStatus getStatus() { return getStatus(getPeer()); }
 
     @SuppressWarnings("PMD.MethodReturnsInternalArray")
     @Nullable
-    public byte[] getResponseHeaders() {
-        synchronized (lock) {
-            return (handle == 0) ? null : getResponseHeaders(handle);
-        }
-    }
+    public byte[] getResponseHeaders() { return getResponseHeaders(getPeer()); }
 
     // Null return value indicates that this replicator is dead
     @Nullable
     public Boolean isDocumentPending(String docId) throws LiteCoreException {
-        synchronized (lock) {
-            return (handle == 0) ? null : Boolean.valueOf(isDocumentPending(handle, docId));
-        }
+        return isDocumentPending(getPeer(), docId);
     }
 
     // Null return value indicates that this replicator is dead
     @Nullable
     public Set<String> getPendingDocIDs() throws LiteCoreException {
-        synchronized (lock) {
-            if (handle == 0) { return null; }
-
-            final FLSliceResult result = new FLSliceResult(getPendingDocIds(handle));
-            try {
-                final FLValue slice = FLValue.fromData(result);
-                return (slice == null) ? Collections.emptySet() : new HashSet<>(slice.asTypedArray());
-            }
-            finally { result.free(); }
+        final FLSliceResult result = new FLSliceResult(getPendingDocIds(getPeer()));
+        try {
+            final FLValue slice = FLValue.fromData(result);
+            return (slice == null) ? Collections.emptySet() : new HashSet<>(slice.asTypedArray());
         }
+        finally { result.free(); }
     }
 
     // Several bugs have been reported, near here:
     // Usually: JNI DETECTED ERROR IN APPLICATION: use of deleted global reference
     // https://issues.couchbase.com/browse/CBL-34
     public void free() {
-        final long handle;
-
-        synchronized (lock) {
-            if (this.handle == 0) { return; }
-            handle = this.handle;
-            this.handle = 0;
-        }
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return; }
 
         synchronized (CLASS_LOCK) {
+            release(handle, this.replicatorContext);
             free(handle, replicatorContext, socketFactoryContext);
-
-            REVERSE_LOOKUP_TABLE.remove(handle);
-            CONTEXT_TO_C4_REPLICATOR_MAP.remove(this.replicatorContext);
         }
     }
 
+    // This must not be called, unless <code>free()</code> is called first.
+    // Until <code>free()</code> is called, there is a reference to this object
+    // in the <code>REVERSE_LOOKUP_TABLE</code>
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        free();
+        if (get() != 0) {
+            throw new IllegalStateException("C4Replicator finalized without being freed: " + this);
+        }
         super.finalize();
     }
 
