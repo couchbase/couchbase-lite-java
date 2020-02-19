@@ -61,14 +61,22 @@ ext {
     BUILD_COMMIT = getBuildCommit()
 
     JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
+    JAVA_INCLUDE = "${JAVA_HOME}/include"
 
     ETC_DIR = "${PROJECT_DIR}/etc"
     CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
     CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
-    CBL_CORE_NATIVE_DIR = "${CBL_JAVA_DIR}/lite-core"
+
     CBL_NATIVE_DIR = "${buildDir}/native"
-    REPORTS_DIR = "${buildDir}/reports"
+    CBL_GENERATED_DIR = "${buildDir}/generated/sources"
+    CBL_JNI_INCLUDE_DIR = "${CBL_GENERATED_DIR}/include"
+    CBL_GENERATED_JAVA_DIR = "${CBL_GENERATED_DIR}/java"
+
     CBL_NATIVE_LIBRARIES = []
+    CBL_CORE_NATIVE_DIR = "${CBL_JAVA_DIR}/lite-core"
+    CBL_CRYPTO_LIB = "${CBL_CORE_NATIVE_DIR}/macos/x86_64/libmbedcrypto.a"
+
+    REPORTS_DIR = "${buildDir}/reports"
 }
 
 // comma separated list of annotations for tests that should not be run.
@@ -100,10 +108,11 @@ java {
                 "src/main/java",                                    // Java specific code
                 "src/shared/ce/java",                               // Shared code between Java and Android (CE Only)
                 "src/shared/main/java",                             // Shared code between Java and Android
+                CBL_GENERATED_JAVA_DIR,                             // generated code
             ]
             resources.srcDirs = [
                 "src/main/resources",                               // Resource files
-                "${CBL_NATIVE_DIR}"                                 // Native Libraries
+                CBL_NATIVE_DIR,                                     // Native Libraries
             ]
         }
         test {
@@ -152,7 +161,7 @@ task generateCBLVersion(type: Copy) {
                 BUILD  : BUILD_NUMBER.toString(),
                 COMMIT : BUILD_COMMIT.toString()])
     }
-    into "src/main/java/com/couchbase/lite/internal/core"
+    into "${CBL_GENERATED_JAVA_DIR}/com/couchbase/lite/internal/core"
 }
 compileJava.dependsOn generateCBLVersion
 
@@ -162,7 +171,7 @@ compileJava.dependsOn generateCBLVersion
 // ----------------------------------------------------------------
 
 // For generating JNI headers:
-compileJava.options.compilerArgs += ["-h", "${PROJECT_DIR}/lib/src/shared/main/cpp"]
+compileJava.options.compilerArgs += ["-h", CBL_JNI_INCLUDE_DIR]
 
 // UTF-8
 compileJava.options.encoding = "UTF-8"
@@ -214,9 +223,9 @@ model {
                 binaries.withType(StaticLibraryBinary) {
                     def os = targetPlatform.operatingSystem
                     if (os.macOsX) {
-                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/macos/x86_64/libmbedcrypto.a")
+                        staticLibraryFile = file(CBL_CRYPTO_LIB)
                     } else if (os.linux) {
-                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/linux/x86_64/libmbedcrypto.a")
+                        staticLibraryFile = file(CBL_CRYPTO_LIB)
                     } else if (os.windows) {
                         staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/windows/x86_64/mbedcrypto.lib")
                     }
@@ -251,24 +260,27 @@ model {
 
             binaries.all {
                 if (targetPlatform.operatingSystem.macOsX) {
-                    cppCompiler.args '-I', "${JAVA_HOME}/include"
-                    cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
+                    cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
+                    cppCompiler.args '-I', JAVA_INCLUDE
+                    cppCompiler.args '-I', "${JAVA_INCLUDE}/darwin"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.linux) {
                     def libCxxIncDir = properties.getProperty('LINUX_LIBCXX_INCDIR')
                     if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
-                    cppCompiler.args '-I', "${JAVA_HOME}/include"
-                    cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
+                    cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
+                    cppCompiler.args '-I', JAVA_INCLUDE
+                    cppCompiler.args '-I', "${JAVA_INCLUDE}/linux"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
                     def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
                     if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
-                    cppCompiler.args "-I${JAVA_HOME}/include"
-                    cppCompiler.args "-I${JAVA_HOME}/include/win32"
+                    cppCompiler.args "-I${CBL_JNI_INCLUDE_DIR}"
+                    cppCompiler.args "-I${JAVA_INCLUDE}"
+                    cppCompiler.args "-I${JAVA_INCLUDE}/win32"
                     cppCompiler.args "/MD"
                 }
             }
@@ -616,7 +628,7 @@ def getNativeLibraryResourcePath(platform) {
 def getLicenseVersion() {
     def version = "master"
     try { version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/product-texts")).text.trim() }
-    catch (Exception ignore) {}
+    catch (Exception ignore) { }
     return version
 }
 
@@ -626,7 +638,7 @@ def getBuildCommit() {
         commit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim()
         if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) { commit += "+" }
     }
-    catch (Exception ignore) {}
+    catch (Exception ignore) { }
     return commit
 }
 

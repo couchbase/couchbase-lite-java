@@ -30,18 +30,21 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     MESSAGE( FATAL_ERROR "!!!UNEXPECTED SYSTEM (expecting 'Android': "     ${CMAKE_SYSTEM_NAME} )
 endif()
 
-MESSAGE( STATUS "Java_FOUND: "            ${Java_FOUND} )
-MESSAGE( STATUS "Java_INCLUDE_DIRS: "     ${Java_INCLUDE_DIRS} )
-MESSAGE( STATUS "JAVA_INCLUDE_PATH: "     ${JAVA_INCLUDE_PATH} )
-MESSAGE( STATUS "JAVA_INCLUDE_PATH2: "    ${JAVA_INCLUDE_PATH2} )
-MESSAGE( STATUS "Java_JAVAH_EXECUTABLE: " ${Java_JAVAH_EXECUTABLE} )
-MESSAGE( STATUS "Core root: " ${LITE_CORE_ROOT} )
+MESSAGE( STATUS "JAVA FOUND: "            ${Java_FOUND} )
+MESSAGE( STATUS "JAVA INCLUDE DIRS: "     ${Java_INCLUDE_DIRS} )
+MESSAGE( STATUS "JAVA INCLUDE PATH: "     ${JAVA_INCLUDE_PATH} )
+MESSAGE( STATUS "JAVA INCLUDE PATH2: "    ${JAVA_INCLUDE_PATH2} )
+MESSAGE( STATUS "JAVA JAVAH EXECUTABLE: " ${Java_JAVAH_EXECUTABLE} )
+MESSAGE( STATUS "CORE ROOT: " ${LITE_CORE_ROOT} )
+MESSAGE( STATUS "OUTPUT DIR: " ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} )
 
 #
 # Generate JNI header files
 #
+set(JNI_OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/include)
+add_custom_target(JNI_DIR ALL COMMAND ${CMAKE_COMMAND} -E make_directory ${JNI_OUTPUT_DIR})
+
 set(JNI_CLASSPATH  ${PROJECT_SOURCE_DIR}/src/shared/main/java)
-set(JNI_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/src/shared/main/cpp)
 set(JNI_CLASSES
     com.couchbase.lite.internal.core.C4
     com.couchbase.lite.internal.core.C4Base
@@ -83,6 +86,7 @@ create_javah(TARGET JNIHeaders
 #
 
 include_directories(
+    ${JNI_OUTPUT_DIR}
     ${LITE_CORE_ROOT}/C/                                  # include c4Private.h for debugging
     ${LITE_CORE_ROOT}/C/include/
     ${LITE_CORE_ROOT}/LiteCore/Storage/
