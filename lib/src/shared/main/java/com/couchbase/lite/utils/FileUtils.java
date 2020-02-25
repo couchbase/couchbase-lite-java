@@ -34,7 +34,7 @@ public final class FileUtils {
         return eraseFileOrDir(new File(fileOrDirectory));
     }
 
-    public static boolean eraseFileOrDir(File fileOrDirectory) {
+    public static boolean eraseFileOrDir(@NonNull File fileOrDirectory) {
         Preconditions.assertNotNull(fileOrDirectory, "file or directory");
         return deleteRecursive(fileOrDirectory);
     }
@@ -53,7 +53,7 @@ public final class FileUtils {
         return true;
     }
 
-    public static boolean setPermissionRecursive(File fileOrDirectory, boolean readable, boolean writable) {
+    public static boolean setPermissionRecursive(@NonNull File fileOrDirectory, boolean readable, boolean writable) {
         if (fileOrDirectory.isDirectory()) {
             final File[] files = fileOrDirectory.listFiles();
             if (files != null) {

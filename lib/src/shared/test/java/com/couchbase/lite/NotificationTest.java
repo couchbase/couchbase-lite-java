@@ -29,29 +29,29 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class NotificationTest extends BaseTest {
+public class NotificationTest extends BaseDbTest {
     @Test
     public void testDatabaseChange()
             throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(1);
-        db.addChangeListener(executor, new DatabaseChangeListener() {
+        baseTestDb.addChangeListener(testSerialExecutor, new DatabaseChangeListener() {
             @Override
             public void changed(@NotNull DatabaseChange change) {
                 assertNotNull(change);
                 assertNotNull(change.getDocumentIDs());
                 assertEquals(10, change.getDocumentIDs().size());
-                assertEquals(db, change.getDatabase());
+                assertEquals(baseTestDb, change.getDatabase());
                 latch.countDown();
             }
         });
-        db.inBatch(new Runnable() {
+        baseTestDb.inBatch(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < 10; i++) {
                     MutableDocument doc = new MutableDocument(String.format(Locale.ENGLISH, "doc-%d", i));
                     doc.setValue("type", "demo");
                     try {
-                        save(doc);
+                        saveDocInBaseTestDb(doc);
                     } catch (CouchbaseLiteException e) {
                         throw new RuntimeException(e);
                     }
@@ -78,13 +78,13 @@ public class NotificationTest extends BaseTest {
                 latch1.countDown();
             }
         };
-        ListenerToken token = db.addDocumentChangeListener("A", listener1);
+        ListenerToken token = baseTestDb.addDocumentChangeListener("A", listener1);
         mDocB.setValue("thewronganswer", 18);
-        Document docB = save(mDocB);
+        Document docB = saveDocInBaseTestDb(mDocB);
         mDocA.setValue("theanswer", 18);
-        Document docA = save(mDocA);
+        Document docA = saveDocInBaseTestDb(mDocA);
         assertTrue(latch1.await(10, TimeUnit.SECONDS));
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
 
         // update doc
         final CountDownLatch latch2 = new CountDownLatch(1);
@@ -97,12 +97,12 @@ public class NotificationTest extends BaseTest {
                 latch2.countDown();
             }
         };
-        token = db.addDocumentChangeListener("A", listener2);
+        token = baseTestDb.addDocumentChangeListener("A", listener2);
         mDocA = docA.toMutable();
         mDocA.setValue("thewronganswer", 18);
-        docA = save(mDocA);
+        docA = saveDocInBaseTestDb(mDocA);
         assertTrue(latch2.await(5, TimeUnit.SECONDS));
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
 
         // delete doc
         final CountDownLatch latch3 = new CountDownLatch(1);
@@ -115,21 +115,21 @@ public class NotificationTest extends BaseTest {
                 latch3.countDown();
             }
         };
-        token = db.addDocumentChangeListener("A", listener3);
-        db.delete(docA);
+        token = baseTestDb.addDocumentChangeListener("A", listener3);
+        baseTestDb.delete(docA);
         assertTrue(latch3.await(5, TimeUnit.SECONDS));
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
 
     }
 
     @Test
     public void testExternalChanges()
             throws InterruptedException, CouchbaseLiteException {
-        final Database db2 = db.copy();
+        final Database db2 = baseTestDb.copy();
         assertNotNull(db2);
         try {
             final CountDownLatch latchDB = new CountDownLatch(1);
-            db2.addChangeListener(executor, new DatabaseChangeListener() {
+            db2.addChangeListener(testSerialExecutor, new DatabaseChangeListener() {
                 @Override
                 public void changed(@NotNull DatabaseChange change) {
                     assertNotNull(change);
@@ -140,7 +140,7 @@ public class NotificationTest extends BaseTest {
             });
 
             final CountDownLatch latchDoc = new CountDownLatch(1);
-            db2.addDocumentChangeListener("doc-6", executor, new DocumentChangeListener() {
+            db2.addDocumentChangeListener("doc-6", testSerialExecutor, new DocumentChangeListener() {
                 @Override
                 public void changed(@NotNull DocumentChange change) {
                     assertNotNull(change);
@@ -152,14 +152,14 @@ public class NotificationTest extends BaseTest {
                 }
             });
 
-            db.inBatch(new Runnable() {
+            baseTestDb.inBatch(new Runnable() {
                 @Override
                 public void run() {
                     for (int i = 0; i < 10; i++) {
                         MutableDocument doc = new MutableDocument(String.format(Locale.ENGLISH, "doc-%d", i));
                         doc.setValue("type", "demo");
                         try {
-                            save(doc);
+                            saveDocInBaseTestDb(doc);
                         } catch (CouchbaseLiteException e) {
                             throw new RuntimeException(e);
                         }
@@ -179,7 +179,7 @@ public class NotificationTest extends BaseTest {
             throws InterruptedException, CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Scott");
-        Document savedDoc1 = save(doc1);
+        Document savedDoc1 = saveDocInBaseTestDb(doc1);
 
         final CountDownLatch latch = new CountDownLatch(5);
         // Add change listeners:
@@ -190,26 +190,26 @@ public class NotificationTest extends BaseTest {
                     latch.countDown();
             }
         };
-        ListenerToken token1 = db.addDocumentChangeListener("doc1", listener);
-        ListenerToken token2 = db.addDocumentChangeListener("doc1", listener);
-        ListenerToken token3 = db.addDocumentChangeListener("doc1", listener);
-        ListenerToken token4 = db.addDocumentChangeListener("doc1", listener);
-        ListenerToken token5 = db.addDocumentChangeListener("doc1", listener);
+        ListenerToken token1 = baseTestDb.addDocumentChangeListener("doc1", listener);
+        ListenerToken token2 = baseTestDb.addDocumentChangeListener("doc1", listener);
+        ListenerToken token3 = baseTestDb.addDocumentChangeListener("doc1", listener);
+        ListenerToken token4 = baseTestDb.addDocumentChangeListener("doc1", listener);
+        ListenerToken token5 = baseTestDb.addDocumentChangeListener("doc1", listener);
 
         try {
             // Update doc1:
             doc1 = savedDoc1.toMutable();
             doc1.setValue("name", "Scott Tiger");
-            save(doc1);
+            saveDocInBaseTestDb(doc1);
 
             // Let's wait for 0.5 seconds:
             assertTrue(latch.await(500, TimeUnit.MILLISECONDS));
         } finally {
-            db.removeChangeListener(token1);
-            db.removeChangeListener(token2);
-            db.removeChangeListener(token3);
-            db.removeChangeListener(token4);
-            db.removeChangeListener(token5);
+            baseTestDb.removeChangeListener(token1);
+            baseTestDb.removeChangeListener(token2);
+            baseTestDb.removeChangeListener(token3);
+            baseTestDb.removeChangeListener(token4);
+            baseTestDb.removeChangeListener(token5);
         }
     }
 
@@ -218,7 +218,7 @@ public class NotificationTest extends BaseTest {
             throws InterruptedException, CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Scott");
-        Document savedDoc1 = save(doc1);
+        Document savedDoc1 = saveDocInBaseTestDb(doc1);
 
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(2);
@@ -232,29 +232,29 @@ public class NotificationTest extends BaseTest {
                 }
             }
         };
-        ListenerToken token = db.addDocumentChangeListener("doc1", listener);
+        ListenerToken token = baseTestDb.addDocumentChangeListener("doc1", listener);
 
         // Update doc1:
         doc1 = savedDoc1.toMutable();
         doc1.setValue("name", "Scott Tiger");
-        savedDoc1 = save(doc1);
+        savedDoc1 = saveDocInBaseTestDb(doc1);
 
         // Let's wait for 0.5 seconds:
         assertTrue(latch1.await(500, TimeUnit.MILLISECONDS));
 
         // Remove change listener:
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
 
         // Update doc1:
         doc1 = savedDoc1.toMutable();
         doc1.setValue("name", "Scotty");
-        savedDoc1 = save(doc1);
+        savedDoc1 = saveDocInBaseTestDb(doc1);
 
         // Let's wait for 0.5 seconds:
         assertFalse(latch2.await(500, TimeUnit.MILLISECONDS));
         assertEquals(1, latch2.getCount());
 
         // Remove again:
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
     }
 }

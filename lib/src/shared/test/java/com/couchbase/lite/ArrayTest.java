@@ -41,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class ArrayTest extends BaseTest {
+public class ArrayTest extends BaseDbTest {
     static final String kArrayTestDate = "2007-06-30T08:34:09.001Z";
     static final String kArrayTestBlob = "i'm blob";
 
@@ -55,7 +55,7 @@ public class ArrayTest extends BaseTest {
         doc.setValue("array", array);
         assertEquals(array, doc.getArray("array"));
 
-        Document updatedDoc = save(doc);
+        Document updatedDoc = saveDocInBaseTestDb(doc);
         assertEquals(new ArrayList<>(), updatedDoc.getArray("array").toList());
     }
 
@@ -73,7 +73,7 @@ public class ArrayTest extends BaseTest {
         doc.setValue("array", array);
         assertEquals(array, doc.getArray("array"));
 
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
         assertEquals(data, savedDoc.getArray("array").toList());
     }
 
@@ -93,7 +93,7 @@ public class ArrayTest extends BaseTest {
         assertEquals(array, doc.getArray("array"));
 
         // save
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
         assertEquals(data, savedDoc.getArray("array").toList());
 
         // update
@@ -181,7 +181,7 @@ public class ArrayTest extends BaseTest {
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
             doc.setValue("array", array);
-            doc = save(doc).toMutable();
+            doc = saveDocInBaseTestDb(doc).toMutable();
 
             // Get an existing array:
             array = doc.getArray("array");
@@ -293,7 +293,7 @@ public class ArrayTest extends BaseTest {
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
             doc.setArray("array", array);
-            doc = save(doc).toMutable();
+            doc = saveDocInBaseTestDb(doc).toMutable();
             MutableArray gotArray = doc.getArray("array");
 
             List<Object> data = arrayOfAllTypes();
@@ -392,7 +392,7 @@ public class ArrayTest extends BaseTest {
     public void testInsertObjectToExistingArray() throws CouchbaseLiteException {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("array", new MutableArray());
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         mDoc = doc.toMutable();
 
         MutableArray mArray = mDoc.getArray("array");
@@ -490,7 +490,7 @@ public class ArrayTest extends BaseTest {
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
             doc.setValue("array", array);
-            doc = save(doc).toMutable();
+            doc = saveDocInBaseTestDb(doc).toMutable();
             array = doc.getArray("array");
 
             for (int j = array.count() - 1; j >= 0; j--) {
@@ -951,7 +951,7 @@ public class ArrayTest extends BaseTest {
         assertEquals(Arrays.asList("x", "y", "z"), array2.toList());
 
         // Save:
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         // Check current array:
         assertTrue(doc.getArray("array") != array2);
@@ -980,7 +980,7 @@ public class ArrayTest extends BaseTest {
         assertEquals(Arrays.asList("a", "b", "c", "d"), array1.toList());
 
         // Save:
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         assertEquals("Daniel Tiger", doc.getString("array"));
     }
 
@@ -1052,7 +1052,7 @@ public class ArrayTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("array", array);
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         array = doc.getArray("array");
 
         itr = array.iterator();
@@ -1082,7 +1082,7 @@ public class ArrayTest extends BaseTest {
         mArray.addArray(null);
         mArray.addDictionary(null);
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1133,7 +1133,7 @@ public class ArrayTest extends BaseTest {
         mDoc.setArray("array4", mArray4);
         mDoc.setArray("array5", mArray5);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array1 = doc.getArray("array1");
         Array array2 = doc.getArray("array2");
         Array array3 = doc.getArray("array3");
@@ -1269,7 +1269,7 @@ public class ArrayTest extends BaseTest {
         mDoc.setArray("array4", mArray4);
         mDoc.setArray("array5", mArray5);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array1 = doc.getArray("array1");
         Array array2 = doc.getArray("array2");
         Array array3 = doc.getArray("array3");
@@ -1337,7 +1337,7 @@ public class ArrayTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("test");
         mDoc.setArray("array", mArray);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array = doc.getArray("array");
 
         assertNotNull(array);
@@ -1369,7 +1369,7 @@ public class ArrayTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("test");
         mDoc.setValue("array", mArray);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array = doc.getArray("array");
 
         assertNotNull(array);
@@ -1393,7 +1393,7 @@ public class ArrayTest extends BaseTest {
         mArray.addInt(Integer.MAX_VALUE);
         mArray.addInt(Integer.MIN_VALUE);
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1419,7 +1419,7 @@ public class ArrayTest extends BaseTest {
         mArray.setInt(2, 0);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1442,7 +1442,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertInt(2, Integer.MIN_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1463,7 +1463,7 @@ public class ArrayTest extends BaseTest {
         mArray.addLong(Long.MAX_VALUE);
         mArray.addLong(Long.MIN_VALUE);
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1486,7 +1486,7 @@ public class ArrayTest extends BaseTest {
         mArray.setLong(1, Long.MIN_VALUE);
         mArray.setLong(2, 0);
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1509,7 +1509,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertLong(2, Long.MIN_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1530,7 +1530,7 @@ public class ArrayTest extends BaseTest {
         mArray.addFloat(Float.MAX_VALUE);
         mArray.addFloat(Float.MIN_VALUE);
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1556,7 +1556,7 @@ public class ArrayTest extends BaseTest {
         mArray.setFloat(2, 0);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1580,7 +1580,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertFloat(2, Float.MIN_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1603,7 +1603,7 @@ public class ArrayTest extends BaseTest {
         mArray.addDouble(Double.MIN_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1629,7 +1629,7 @@ public class ArrayTest extends BaseTest {
         mArray.setDouble(2, 0.0);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1653,7 +1653,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertDouble(2, Double.MIN_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1676,7 +1676,7 @@ public class ArrayTest extends BaseTest {
         mArray.addNumber(Double.MAX_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1703,7 +1703,7 @@ public class ArrayTest extends BaseTest {
         mArray.setNumber(2, Integer.MAX_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1727,7 +1727,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertNumber(2, Double.MAX_VALUE);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1750,7 +1750,7 @@ public class ArrayTest extends BaseTest {
         mArray.addString("World");
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1777,7 +1777,7 @@ public class ArrayTest extends BaseTest {
         mArray.setString(2, "");
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1801,7 +1801,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertString(2, "!");
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1823,7 +1823,7 @@ public class ArrayTest extends BaseTest {
         mArray.addBoolean(false);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1847,7 +1847,7 @@ public class ArrayTest extends BaseTest {
         mArray.setBoolean(1, true);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1870,7 +1870,7 @@ public class ArrayTest extends BaseTest {
         mArray.insertBoolean(1, false);
 
         mDoc.setArray("array", mArray);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("array"));
             Array array = doc.getArray("array");
@@ -1945,7 +1945,7 @@ public class ArrayTest extends BaseTest {
         throws CouchbaseLiteException {
         validator.accept(mArray);
         mDoc.setValue(key, mArray);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array = doc.getArray(key);
         validator.accept(array);
         return doc;

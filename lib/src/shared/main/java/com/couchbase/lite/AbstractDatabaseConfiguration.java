@@ -24,6 +24,8 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 abstract class AbstractDatabaseConfiguration {
+    static String getDbDirectory(@Nullable String dir) { return CouchbaseLiteInternal.makeDbPath(dir); }
+
 
     //---------------------------------------------
     // member variables
@@ -85,7 +87,7 @@ abstract class AbstractDatabaseConfiguration {
     String getRootDirectory() { return rootDirectory; }
 
     private void setRootDirectory(@Nullable String dir) {
-        dbDirectory = CouchbaseLiteInternal.makeDbPath(dir);
+        dbDirectory = getDbDirectory(dir);
         rootDirectory = dir;
     }
 }

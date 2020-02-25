@@ -69,44 +69,44 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc = new MutableDocument("doc");
         doc.setInt("answer", 42);
         doc.setString("notHere", "string");
-        save(doc);
-        db.setDocumentExpiration("doc", new Date(now + 500L));
+        saveDocInBaseTestDb(doc);
+        baseTestDb.setDocumentExpiration("doc", new Date(now + 500L));
 
         // this one is deleted
         MutableDocument doc10 = new MutableDocument("doc10");
         doc10.setInt("answer", 42);
         doc10.setString("notHere", "string");
-        save(doc10);
-        db.setDocumentExpiration("doc10", new Date(now + 2000L)); //deleted doc
-        db.delete(doc10);
+        saveDocInBaseTestDb(doc10);
+        baseTestDb.setDocumentExpiration("doc10", new Date(now + 2000L)); //deleted doc
+        baseTestDb.delete(doc10);
 
         // should be in the result set
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setInt("answer", 42);
         doc1.setString("a", "string");
-        save(doc1);
-        db.setDocumentExpiration("doc1", new Date(now + 2000L));
+        saveDocInBaseTestDb(doc1);
+        baseTestDb.setDocumentExpiration("doc1", new Date(now + 2000L));
 
         // should be in the result set
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setInt("answer", 42);
         doc2.setString("b", "string");
-        save(doc2);
-        db.setDocumentExpiration("doc2", new Date(now + 3000L));
+        saveDocInBaseTestDb(doc2);
+        baseTestDb.setDocumentExpiration("doc2", new Date(now + 3000L));
 
         // should be in the result set
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setInt("answer", 42);
         doc3.setString("c", "string");
-        save(doc3);
-        db.setDocumentExpiration("doc3", new Date(now + 4000L));
+        saveDocInBaseTestDb(doc3);
+        baseTestDb.setDocumentExpiration("doc3", new Date(now + 4000L));
 
         Thread.sleep(1000);
 
         // This should get all but the one that has expired
         // and the one that was deleted
         Query query = QueryBuilder.select(SR_DOCID, SR_EXPIRATION)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.expiration.lessThan(Expression.longValue(now + 6000L)));
 
         int rows = verifyQuery(query, false, (n, result) -> { });
@@ -118,10 +118,10 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setInt("answer", 42);
         doc1a.setString("a", "string");
-        db.save(doc1a);
+        baseTestDb.save(doc1a);
 
         Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.id.equalTo(Expression.string("doc1"))
                 .and(Meta.deleted.equalTo(Expression.booleanValue(false))));
 
@@ -137,12 +137,12 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setInt("answer", 42);
         doc1a.setString("a", "string");
-        save(doc1a);
+        saveDocInBaseTestDb(doc1a);
 
-        db.delete(db.getDocument("doc1"));
+        baseTestDb.delete(baseTestDb.getDocument("doc1"));
 
         Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.deleted.equalTo(Expression.booleanValue(true))
                 .and(Meta.id.equalTo(Expression.string("doc1"))));
 
@@ -153,7 +153,7 @@ public class QueryTest extends BaseQueryTest {
     @Test
     public void testNoWhereQuery() throws Exception {
         loadJSONResource("names_100.json");
-        Query query = QueryBuilder.select(SR_DOCID, SR_SEQUENCE).from(DataSource.database(db));
+        Query query = QueryBuilder.select(SR_DOCID, SR_SEQUENCE).from(DataSource.database(baseTestDb));
         int numRows = verifyQuery(query, (n, result) -> {
             String docID = result.getString(0);
             String expectedID = String.format(Locale.ENGLISH, "doc-%03d", n);
@@ -162,7 +162,7 @@ public class QueryTest extends BaseQueryTest {
             int sequence = result.getInt(1);
             assertEquals(n, sequence);
 
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertEquals(expectedID, doc.getId());
             assertEquals(n, doc.getSequence());
         });
@@ -257,13 +257,13 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Scott");
         doc1.setValue("address", null);
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Tiger");
         doc2.setValue("address", "123 1st ave.");
         doc2.setValue("age", 20);
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         Expression name = Expression.property("name");
         Expression address = Expression.property("address");
@@ -284,7 +284,7 @@ public class QueryTest extends BaseQueryTest {
         for (Object[] c : cases) {
             Expression exp = (Expression) c[0];
             final String[] documentIDs = (String[]) c[1];
-            Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(exp);
+            Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(baseTestDb)).where(exp);
             int numRows = verifyQuery(query, true, (n, result) -> {
                 if (n < documentIDs.length) {
                     String docID = documentIDs[n - 1];
@@ -299,17 +299,17 @@ public class QueryTest extends BaseQueryTest {
     public void testWhereIs() throws Exception {
         final MutableDocument doc1 = new MutableDocument();
         doc1.setValue("string", "string");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         Query query = QueryBuilder
             .select(SR_DOCID)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("string").is(Expression.string("string")));
 
         int numRows = verifyQuery(query, (n, result) -> {
             String docID = result.getString(0);
             assertEquals(doc1.getId(), docID);
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertEquals(doc1.getValue("string"), doc.getValue("string"));
         });
         assertEquals(1, numRows);
@@ -319,17 +319,17 @@ public class QueryTest extends BaseQueryTest {
     public void testWhereIsNot() throws Exception {
         final MutableDocument doc1 = new MutableDocument();
         doc1.setValue("string", "string");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         Query query = QueryBuilder
             .select(SR_DOCID)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("string").isNot(Expression.string("string1")));
 
         int numRows = verifyQuery(query, (n, result) -> {
             String docID = result.getString(0);
             assertEquals(doc1.getId(), docID);
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertEquals(doc1.getValue("string"), doc.getValue("string"));
         });
         assertEquals(1, numRows);
@@ -355,7 +355,7 @@ public class QueryTest extends BaseQueryTest {
             Expression.string("Marlen"),
             Expression.string("Maryjo")};
 
-        DataSource ds = DataSource.database(db);
+        DataSource ds = DataSource.database(baseTestDb);
         Expression exprFirstName = Expression.property("name.first");
         SelectResult srFirstName = SelectResult.property("name.first");
         Ordering orderByFirstName = Ordering.property("name.first");
@@ -378,14 +378,14 @@ public class QueryTest extends BaseQueryTest {
         Expression w = Expression.property("name.first").like(Expression.string("%Mar%"));
         Query query = QueryBuilder
             .select(SR_DOCID)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(w)
             .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
         int numRows = verifyQuery(query, false, (n, result) -> {
             String docID = result.getString(0);
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             Map<String, Object> name = doc.getDictionary("name").toMap();
             String firstName = (String) name.get("first");
             if (firstName != null) { firstNames.add(firstName); }
@@ -401,14 +401,14 @@ public class QueryTest extends BaseQueryTest {
         Expression w = Expression.property("name.first").regex(Expression.string("^Mar.*"));
         Query query = QueryBuilder
             .select(SR_DOCID)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(w)
             .orderBy(Ordering.property("name.first").ascending());
 
         final List<String> firstNames = new ArrayList<>();
         int numRows = verifyQuery(query, false, (n, result) -> {
             String docID = result.getString(0);
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             Map<String, Object> name = doc.getDictionary("name").toMap();
             String firstName = (String) name.get("first");
             if (firstName != null) { firstNames.add(firstName); }
@@ -422,13 +422,13 @@ public class QueryTest extends BaseQueryTest {
         loadJSONResource("sentences.json");
 
         Index index = IndexBuilder.fullTextIndex(FullTextIndexItem.property("sentence"));
-        db.createIndex("sentence", index);
+        baseTestDb.createIndex("sentence", index);
 
         SelectResult S_SENTENCE = SelectResult.property("sentence");
         FullTextExpression SENTENCE = FullTextExpression.index("sentence");
         Query query = QueryBuilder
             .select(SR_DOCID, S_SENTENCE)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(SENTENCE.match("'Dummie woman'"))
             .orderBy(Ordering.expression(FullTextFunction.rank("sentence")).descending());
 
@@ -449,12 +449,12 @@ public class QueryTest extends BaseQueryTest {
             if (ascending) { o = Ordering.expression(Expression.property("name.first")).ascending(); }
             else { o = Ordering.expression(Expression.property("name.first")).descending(); }
 
-            Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).orderBy(o);
+            Query query = QueryBuilder.select(SR_DOCID).from(DataSource.database(baseTestDb)).orderBy(o);
             final List<String> firstNames = new ArrayList<>();
 
             int numRows = verifyQuery(query, (n, result) -> {
                 String docID = result.getString(0);
-                Document doc = db.getDocument(docID);
+                Document doc = baseTestDb.getDocument(docID);
                 Map<String, Object> name = doc.getDictionary("name").toMap();
                 String firstName = (String) name.get("first");
                 firstNames.add(firstName);
@@ -475,14 +475,14 @@ public class QueryTest extends BaseQueryTest {
         // https://github.com/couchbase/couchbase-lite-core/issues/81
         final MutableDocument doc1 = new MutableDocument();
         doc1.setValue("number", 20);
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument();
         doc2.setValue("number", 20);
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         SelectResult S_NUMBER = SelectResult.property("number");
-        Query query = QueryBuilder.selectDistinct(S_NUMBER).from(DataSource.database(db));
+        Query query = QueryBuilder.selectDistinct(S_NUMBER).from(DataSource.database(baseTestDb));
 
         int numRows = verifyQuery(query, (n, result) -> assertEquals(20, result.getInt(0)));
         assertEquals(1, numRows);
@@ -494,10 +494,10 @@ public class QueryTest extends BaseQueryTest {
 
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression mainPropExpr = Expression.property("number1").from("main");
         Expression secondaryExpr = Expression.property("theone").from("secondary");
@@ -510,7 +510,7 @@ public class QueryTest extends BaseQueryTest {
 
         int numRows = verifyQuery(query, (n, result) -> {
             String docID = result.getString(0);
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertEquals(42, doc.getInt("number1"));
         });
         assertEquals(1, numRows);
@@ -522,10 +522,10 @@ public class QueryTest extends BaseQueryTest {
 
         final MutableDocument joinme = new MutableDocument("joinme");
         joinme.setValue("theone", 42);
-        save(joinme);
+        saveDocInBaseTestDb(joinme);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression mainPropExpr = Expression.property("number1").from("main");
         Expression secondaryExpr = Expression.property("theone").from("secondary");
@@ -554,8 +554,8 @@ public class QueryTest extends BaseQueryTest {
     public void testCrossJoin() throws Exception {
         loadNumberedDocs(10);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Join join = Join.crossJoin(secondaryDS);
 
@@ -581,7 +581,7 @@ public class QueryTest extends BaseQueryTest {
         final List<Integer> expectedCounts = Arrays.asList(1, 6, 1, 1, 3);
         final List<String> expectedMaxZips = Arrays.asList("35243", "94153", "81223", "33612", "50801");
 
-        DataSource ds = DataSource.database(this.db);
+        DataSource ds = DataSource.database(this.baseTestDb);
 
         Expression state = Expression.property("contact.address.state");
         Expression count = Function.count(Expression.intValue(1));
@@ -646,7 +646,7 @@ public class QueryTest extends BaseQueryTest {
     public void testParameters() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource dataSource = DataSource.database(this.db);
+        DataSource dataSource = DataSource.database(this.baseTestDb);
 
 
         Expression paramN1 = Expression.parameter("num1");
@@ -676,7 +676,7 @@ public class QueryTest extends BaseQueryTest {
     public void testMeta() throws Exception {
         loadNumberedDocs(5);
 
-        DataSource dataSource = DataSource.database(this.db);
+        DataSource dataSource = DataSource.database(this.baseTestDb);
 
         Query query = QueryBuilder
             .select(SR_DOCID, SR_SEQUENCE, SR_NUMBER1)
@@ -719,7 +719,7 @@ public class QueryTest extends BaseQueryTest {
     public void testLimit() throws Exception {
         loadNumberedDocs(10);
 
-        DataSource dataSource = DataSource.database(this.db);
+        DataSource dataSource = DataSource.database(this.baseTestDb);
 
         Query query = QueryBuilder
             .select(SR_NUMBER1)
@@ -755,7 +755,7 @@ public class QueryTest extends BaseQueryTest {
     public void testLimitOffset() throws Exception {
         loadNumberedDocs(10);
 
-        DataSource dataSource = DataSource.database(this.db);
+        DataSource dataSource = DataSource.database(this.baseTestDb);
 
         Query query = QueryBuilder
             .select(SR_NUMBER1)
@@ -799,7 +799,7 @@ public class QueryTest extends BaseQueryTest {
         SelectResult RES_GENDER = SelectResult.property("gender");
         SelectResult RES_CITY = SelectResult.property("contact.address.city");
 
-        DataSource DS = DataSource.database(db);
+        DataSource DS = DataSource.database(baseTestDb);
 
         Query query = QueryBuilder
             .select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
@@ -819,7 +819,7 @@ public class QueryTest extends BaseQueryTest {
     public void testQueryProjectingKeys() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource DS = DataSource.database(db);
+        DataSource DS = DataSource.database(baseTestDb);
 
         Expression AVG = Function.avg(EXPR_NUMBER1);
         Expression CNT = Function.count(EXPR_NUMBER1);
@@ -852,7 +852,7 @@ public class QueryTest extends BaseQueryTest {
     public void testQuantifiedOperators() throws Exception {
         loadJSONResource("names_100.json");
 
-        DataSource ds = DataSource.database(db);
+        DataSource ds = DataSource.database(baseTestDb);
 
         Expression exprLikes = Expression.property("likes");
         VariableExpression exprVarLike = ArrayExpression.variable("LIKE");
@@ -905,7 +905,7 @@ public class QueryTest extends BaseQueryTest {
     public void testAggregateFunctions() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource ds = DataSource.database(this.db);
+        DataSource ds = DataSource.database(this.baseTestDb);
 
         Expression avg = Function.avg(EXPR_NUMBER1);
         Expression cnt = Function.count(EXPR_NUMBER1);
@@ -937,9 +937,9 @@ public class QueryTest extends BaseQueryTest {
         array.addValue("650-123-0001");
         array.addValue("650-123-0002");
         doc.setValue("array", array);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        DataSource ds = DataSource.database(db);
+        DataSource ds = DataSource.database(baseTestDb);
         Expression exprArray = Expression.property("array");
         Expression exprArrayLength = ArrayFunction.length(exprArray);
         SelectResult srArrayLength = SelectResult.expression(exprArrayLength);
@@ -982,7 +982,7 @@ public class QueryTest extends BaseQueryTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("number", num);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
         final Double[] expectedValues = {
             Math.abs(num),
@@ -1038,7 +1038,7 @@ public class QueryTest extends BaseQueryTest {
         for (Expression f : functions) {
             Query query = QueryBuilder
                 .select(SelectResult.expression(f))
-                .from(DataSource.database(db));
+                .from(DataSource.database(baseTestDb));
 
             int numRows = verifyQuery(query, (n, result) -> {
                 double expected = expectedValues[index.intValue()];
@@ -1055,9 +1055,9 @@ public class QueryTest extends BaseQueryTest {
         final String str = "  See you 18r  ";
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("greeting", str);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        DataSource ds = DataSource.database(db);
+        DataSource ds = DataSource.database(baseTestDb);
 
         Expression prop = Expression.property("greeting");
 
@@ -1111,7 +1111,7 @@ public class QueryTest extends BaseQueryTest {
     public void testSelectAll() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource.As ds = DataSource.database(db);
+        DataSource.As ds = DataSource.database(baseTestDb);
 
         Expression exprTestDBNum1 = Expression.property("number1").from("testdb");
         SelectResult srTestDBNum1 = SelectResult.expression(exprTestDBNum1);
@@ -1123,7 +1123,7 @@ public class QueryTest extends BaseQueryTest {
         int numRows = verifyQuery(query, (n, result) -> {
             assertEquals(1, result.count());
             Dictionary a1 = result.getDictionary(0);
-            Dictionary a2 = result.getDictionary(db.getName());
+            Dictionary a2 = result.getDictionary(baseTestDb.getName());
             assertEquals(n, a1.getInt("number1"));
             assertEquals(100 - n, a1.getInt("number2"));
             assertEquals(n, a2.getInt("number1"));
@@ -1137,7 +1137,7 @@ public class QueryTest extends BaseQueryTest {
         numRows = verifyQuery(query, (n, result) -> {
             assertEquals(2, result.count());
             Dictionary a1 = result.getDictionary(0);
-            Dictionary a2 = result.getDictionary(db.getName());
+            Dictionary a2 = result.getDictionary(baseTestDb.getName());
             assertEquals(n, a1.getInt("number1"));
             assertEquals(100 - n, a1.getInt("number2"));
             assertEquals(n, a2.getInt("number1"));
@@ -1184,7 +1184,7 @@ public class QueryTest extends BaseQueryTest {
         for (String letter : letters) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("string", letter);
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
 
         Collation noLocale = Collation.unicode()
@@ -1193,7 +1193,7 @@ public class QueryTest extends BaseQueryTest {
             .ignoreAccents(false);
 
         Query query = QueryBuilder.select(SelectResult.property("string"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.expression(Expression.property("string").collate(noLocale)));
 
         final String[] expected = {"A", "Å", "B", "Z"};
@@ -1207,7 +1207,7 @@ public class QueryTest extends BaseQueryTest {
         for (String letter : letters) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("string", letter);
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
 
         Collation localeEspanol = Collation.unicode()
@@ -1216,7 +1216,7 @@ public class QueryTest extends BaseQueryTest {
             .ignoreAccents(false);
 
         Query query = QueryBuilder.select(SelectResult.property("string"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.expression(Expression.property("string").collate(localeEspanol)));
 
         final String[] expected = {"A", "Å", "B", "Z"};
@@ -1231,7 +1231,7 @@ public class QueryTest extends BaseQueryTest {
         for (String letter : letters) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("string", letter);
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
 
         Collation localeSvenska = Collation.unicode()
@@ -1240,7 +1240,7 @@ public class QueryTest extends BaseQueryTest {
             .ignoreAccents(false);
 
         Query query = QueryBuilder.select(SelectResult.property("string"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.expression(Expression.property("string").collate(localeSvenska)));
 
         final String[] expected = {"A", "B", "Z", "Å"};
@@ -1325,14 +1325,14 @@ public class QueryTest extends BaseQueryTest {
         for (List<Object> data : testData) {
             MutableDocument mDoc = new MutableDocument();
             mDoc.setValue("value", data.get(0));
-            Document doc = save(mDoc);
+            Document doc = saveDocInBaseTestDb(mDoc);
 
             Expression VALUE = Expression.property("value");
             Expression comparison = (Boolean) data.get(2) ?
                 VALUE.collate((Collation) data.get(3)).equalTo(Expression.value(data.get(1))) :
                 VALUE.collate((Collation) data.get(3)).lessThan(Expression.value(data.get(1)));
 
-            Query query = QueryBuilder.select().from(DataSource.database(db)).where(comparison);
+            Query query = QueryBuilder.select().from(DataSource.database(baseTestDb)).where(comparison);
 
             int numRows = verifyQuery(query, (n, result) -> {
                 assertEquals(1, n);
@@ -1340,7 +1340,7 @@ public class QueryTest extends BaseQueryTest {
             });
             assertEquals(data.toString(), 1, numRows);
 
-            db.delete(doc);
+            baseTestDb.delete(doc);
         }
     }
 
@@ -1350,7 +1350,7 @@ public class QueryTest extends BaseQueryTest {
 
         Query query = QueryBuilder
             .select(SR_DOCID)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1").ascending());
 
@@ -1366,7 +1366,7 @@ public class QueryTest extends BaseQueryTest {
                 int count = 0;
                 for (Result result : rs) {
                     if (count == 0) {
-                        Document doc = db.getDocument(result.getString(0));
+                        Document doc = baseTestDb.getDocument(result.getString(0));
                         assertEquals(-1L, doc.getValue("number1"));
                     }
                     count++;
@@ -1375,7 +1375,7 @@ public class QueryTest extends BaseQueryTest {
             }
             latch.countDown();
         };
-        ListenerToken token = query.addChangeListener(executor, listener);
+        ListenerToken token = query.addChangeListener(testSerialExecutor, listener);
         try {
             // create one doc
             executeAsync(500, () -> {
@@ -1409,7 +1409,7 @@ public class QueryTest extends BaseQueryTest {
 
         Query query = QueryBuilder
             .select()
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1").ascending());
 
@@ -1422,7 +1422,7 @@ public class QueryTest extends BaseQueryTest {
             latch.countDown();
             // should come only once!
         };
-        ListenerToken token = query.addChangeListener(executor, listener);
+        ListenerToken token = query.addChangeListener(testSerialExecutor, listener);
         try {
             // create one doc
             executeAsync(500, () -> {
@@ -1448,7 +1448,7 @@ public class QueryTest extends BaseQueryTest {
     public void testCountFunctions() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource ds = DataSource.database(this.db);
+        DataSource ds = DataSource.database(this.baseTestDb);
         Expression cnt = Function.count(EXPR_NUMBER1);
 
         SelectResult rsCnt = SelectResult.expression(cnt);
@@ -1465,17 +1465,17 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument hotel1 = new MutableDocument("hotel1");
         hotel1.setString("type", "hotel");
         hotel1.setString("name", "Hilton");
-        db.save(hotel1);
+        baseTestDb.save(hotel1);
 
         MutableDocument hotel2 = new MutableDocument("hotel2");
         hotel2.setString("type", "hotel");
         hotel2.setString("name", "Sheraton");
-        db.save(hotel2);
+        baseTestDb.save(hotel2);
 
         MutableDocument hotel3 = new MutableDocument("hotel2");
         hotel3.setString("type", "hotel");
         hotel3.setString("name", "Marriott");
-        db.save(hotel3);
+        baseTestDb.save(hotel3);
 
         // Bookmark
         MutableDocument bookmark1 = new MutableDocument("bookmark1");
@@ -1485,7 +1485,7 @@ public class QueryTest extends BaseQueryTest {
         hotels1.addString("hotel1");
         hotels1.addString("hotel2");
         bookmark1.setArray("hotels", hotels1);
-        db.save(bookmark1);
+        baseTestDb.save(bookmark1);
 
         MutableDocument bookmark2 = new MutableDocument("bookmark2");
         bookmark2.setString("type", "bookmark");
@@ -1493,11 +1493,11 @@ public class QueryTest extends BaseQueryTest {
         MutableArray hotels2 = new MutableArray();
         hotels2.addString("hotel3");
         bookmark2.setArray("hotels", hotels2);
-        db.save(bookmark2);
+        baseTestDb.save(bookmark2);
 
         // Join Query
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression typeExpr = Expression.property("type").from("main");
         Expression hotelsExpr = Expression.property("hotels").from("main");
@@ -1518,7 +1518,7 @@ public class QueryTest extends BaseQueryTest {
 
     @Test
     public void testJoinWithEmptyArgs() {
-        DataSource mainDS = DataSource.database(this.db).as("main");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
 
         assertThrows(
             IllegalArgumentException.class,
@@ -1557,11 +1557,11 @@ public class QueryTest extends BaseQueryTest {
         exam2.setString("question", "There are 100 senators in the US.");
         exam2.setBoolean("answer", true);
 
-        db.save(exam1);
-        db.save(exam2);
+        baseTestDb.save(exam1);
+        baseTestDb.save(exam2);
 
         Query query = QueryBuilder.select(SelectResult.all())
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("exam type").equalTo(Expression.string("final"))
                 .and(Expression.property("answer").equalTo(Expression.booleanValue(true))));
 
@@ -1585,7 +1585,7 @@ public class QueryTest extends BaseQueryTest {
         exam1.setString("question", "There are 45 states in the US.");
         exam1.setBoolean("answer", true);
 
-        db.save(exam1);
+        baseTestDb.save(exam1);
 
         Query query = QueryBuilder
             .select(
@@ -1593,7 +1593,7 @@ public class QueryTest extends BaseQueryTest {
                 SelectResult.property("question"),
                 SelectResult.property("answer")
             )
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.id.equalTo(Expression.string("exam1")));
 
         verifyQuery(query, (n, result) -> { assertTrue((Boolean) result.toMap().get("answer")); });
@@ -1605,20 +1605,20 @@ public class QueryTest extends BaseQueryTest {
         // STEP 1: Insert two documents
         Document task1 = createTaskDocument("Task 1", false);
         Document task2 = createTaskDocument("Task 2", false);
-        assertEquals(2, db.getCount());
+        assertEquals(2, baseTestDb.getCount());
 
         // STEP 2: query documents before deletion
         Query query = QueryBuilder.select(SR_DOCID, SR_ALL)
-            .from(DataSource.database(this.db))
+            .from(DataSource.database(this.baseTestDb))
             .where(Expression.property("type").equalTo(Expression.string("task")));
 
         int rows = verifyQuery(query, (n, result) -> { });
         assertEquals(2, rows);
 
         // STEP 3: delete task 1
-        db.delete(task1);
-        assertEquals(1, db.getCount());
-        assertNull(db.getDocument(task1.getId()));
+        baseTestDb.delete(task1);
+        assertEquals(1, baseTestDb.getCount());
+        assertNull(baseTestDb.getDocument(task1.getId()));
 
         // STEP 4: query documents again after deletion
         rows = verifyQuery(query, (n, result) -> assertEquals(task2.getId(), result.getString(0)));
@@ -1630,7 +1630,7 @@ public class QueryTest extends BaseQueryTest {
         doc.setString("type", "task");
         doc.setString("title", title);
         doc.setBoolean("complete", complete);
-        return save(doc);
+        return saveDocInBaseTestDb(doc);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1389
@@ -1640,7 +1640,7 @@ public class QueryTest extends BaseQueryTest {
         Document task1 = createTaskDocument("Task 1", false);
         Document task2 = createTaskDocument("Task 2", true);
         Document task3 = createTaskDocument("Task 3", true);
-        assertEquals(3, db.getCount());
+        assertEquals(3, baseTestDb.getCount());
 
         Expression exprType = Expression.property("type");
         Expression exprComplete = Expression.property("complete");
@@ -1648,12 +1648,12 @@ public class QueryTest extends BaseQueryTest {
 
         // regular query - true
         Query query = QueryBuilder.select(SR_ALL)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(true))));
 
         int numRows = verifyQuery(query, false, (n, result) -> {
-            Dictionary dict = result.getDictionary(db.getName());
+            Dictionary dict = result.getDictionary(baseTestDb.getName());
             assertTrue(dict.getBoolean("complete"));
             assertEquals("task", dict.getString("type"));
             assertTrue(dict.getString("title").startsWith("Task "));
@@ -1662,12 +1662,12 @@ public class QueryTest extends BaseQueryTest {
 
         // regular query - false
         query = QueryBuilder.select(SR_ALL)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(false))));
 
         numRows = verifyQuery(query, false, (n, result) -> {
-            Dictionary dict = result.getDictionary(db.getName());
+            Dictionary dict = result.getDictionary(baseTestDb.getName());
             assertFalse(dict.getBoolean("complete"));
             assertEquals("task", dict.getString("type"));
             assertTrue(dict.getString("title").startsWith("Task "));
@@ -1676,7 +1676,7 @@ public class QueryTest extends BaseQueryTest {
 
         // aggregation query - true
         query = QueryBuilder.select(srCount)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(true))));
 
@@ -1685,7 +1685,7 @@ public class QueryTest extends BaseQueryTest {
 
         // aggregation query - false
         query = QueryBuilder.select(srCount)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(exprType.equalTo(Expression.string("task"))
                 .and(exprComplete.equalTo(Expression.booleanValue(false))));
 
@@ -1700,10 +1700,10 @@ public class QueryTest extends BaseQueryTest {
 
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression mainPropExpr = Expression.property("number1").from("main");
         Expression secondaryExpr = Expression.property("theone").from("secondary");
@@ -1738,10 +1738,10 @@ public class QueryTest extends BaseQueryTest {
         final MutableDocument doc1 = new MutableDocument("joinme");
         doc1.setValue("theone", 42);
         doc1.setString("numberID", "doc1"); // document ID of number documents.
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression mainPropExpr = Meta.id.from("main");
         Expression secondaryExpr = Expression.property("numberID").from("secondary");
@@ -1757,7 +1757,7 @@ public class QueryTest extends BaseQueryTest {
         int numRows = verifyQuery(query, (n, result) -> {
             assertEquals(1, n);
             String docID = result.getString("mainDocID");
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertEquals(1, doc.getInt("number1"));
             assertEquals(99, doc.getInt("number2"));
 
@@ -1840,7 +1840,7 @@ public class QueryTest extends BaseQueryTest {
         for (String value : values) {
             MutableDocument doc = new MutableDocument();
             doc.setString("hey", value);
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
         List<List<Object>> testData = new ArrayList<>();
         testData.add(Arrays.asList("BINARY collation", Collation.ascii(),
@@ -1867,7 +1867,7 @@ public class QueryTest extends BaseQueryTest {
         Expression property = Expression.property("hey");
         for (List<Object> data : testData) {
             Query query = QueryBuilder.select(SelectResult.property("hey"))
-                .from(DataSource.database(db))
+                .from(DataSource.database(baseTestDb))
                 .orderBy(Ordering.expression(property.collate((Collation) data.get(1))));
 
             final List<String> list = new ArrayList<>();
@@ -1880,13 +1880,13 @@ public class QueryTest extends BaseQueryTest {
     public void testCloseDatabaseWithActiveLiveQuery() throws InterruptedException {
         final CountDownLatch latch1 = new CountDownLatch(1);
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
-        ListenerToken token = query.addChangeListener(executor, change -> latch1.countDown());
+        ListenerToken token = query.addChangeListener(testSerialExecutor, change -> latch1.countDown());
         assertTrue(latch1.await(2, TimeUnit.SECONDS));
 
         try {
-            db.close();
+            baseTestDb.close();
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -1905,9 +1905,9 @@ public class QueryTest extends BaseQueryTest {
         final MutableDocument doc = new MutableDocument();
         doc.setValue("string", "STRING");
         doc.setValue("date", null);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        DataSource ds = DataSource.database(this.db);
+        DataSource ds = DataSource.database(this.baseTestDb);
         Expression cntNum1 = Function.count(EXPR_NUMBER1);
         Expression cntInt1 = Function.count(Expression.intValue(1));
         Expression cntAstr = Function.count(Expression.string("*"));
@@ -1944,7 +1944,7 @@ public class QueryTest extends BaseQueryTest {
     public void testFunctionCountAll() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource.As ds = DataSource.database(db);
+        DataSource.As ds = DataSource.database(baseTestDb);
 
         Expression countAll = Function.count(Expression.all());
         Expression countAllFrom = Function.count(Expression.all().from("testdb"));
@@ -1973,7 +1973,7 @@ public class QueryTest extends BaseQueryTest {
         loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.property("number1"));
 
         // Type 1: Enumeration by ResultSet.next()
@@ -2029,7 +2029,7 @@ public class QueryTest extends BaseQueryTest {
         loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.property("number1"));
 
         // Get all results by get(int)
@@ -2080,7 +2080,7 @@ public class QueryTest extends BaseQueryTest {
         loadNumberedDocs(5);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("number1").is(Expression.intValue(100)))
             .orderBy(Ordering.property("number1"));
 
@@ -2130,13 +2130,13 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Scott");
         doc1.setValue("address", null);
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         Query query = QueryBuilder.select(
             SelectResult.property("name"),
             SelectResult.property("address"),
             SelectResult.property("age"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         // Array:
         verifyQuery(query, (n, result) -> {
@@ -2168,7 +2168,7 @@ public class QueryTest extends BaseQueryTest {
 
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.not(Expression.property("number1")
                 .between(Expression.intValue(3), Expression.intValue(5))))
             .orderBy(Ordering.expression(Expression.property("number1")).ascending());
@@ -2187,7 +2187,7 @@ public class QueryTest extends BaseQueryTest {
 
         Query query = QueryBuilder
             .select(SelectResult.all())
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .limit(Expression.intValue(10));
 
         int numRows = verifyQuery(query, (n, result) -> { });
@@ -2199,33 +2199,33 @@ public class QueryTest extends BaseQueryTest {
     public void testFTSStemming() throws Exception {
         MutableDocument mDoc0 = new MutableDocument("doc0");
         mDoc0.setString("content", "hello");
-        save(mDoc0);
+        saveDocInBaseTestDb(mDoc0);
 
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("content", "beauty");
-        save(mDoc1);
+        saveDocInBaseTestDb(mDoc1);
 
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("content", "beautifully");
-        save(mDoc2);
+        saveDocInBaseTestDb(mDoc2);
 
         MutableDocument mDoc3 = new MutableDocument("doc3");
         mDoc3.setString("content", "beautiful");
-        save(mDoc3);
+        saveDocInBaseTestDb(mDoc3);
 
         MutableDocument mDoc4 = new MutableDocument("doc4");
         mDoc4.setString("content", "pretty");
-        save(mDoc4);
+        saveDocInBaseTestDb(mDoc4);
 
         FullTextIndex ftsIndex = IndexBuilder.fullTextIndex(FullTextIndexItem.property("content"));
-        db.createIndex("ftsIndex", ftsIndex);
+        baseTestDb.createIndex("ftsIndex", ftsIndex);
 
         String[] expectedIDs = {"doc1", "doc2", "doc3"};
         String[] expectedContents = {"beauty", "beautifully", "beautiful"};
 
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("beautiful"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2239,23 +2239,23 @@ public class QueryTest extends BaseQueryTest {
     // https://github.com/couchbase/couchbase-lite-net/blob/master/src/Couchbase.Lite.Tests.Shared/QueryTest.cs#L1721
     @Test
     public void testFTSStemming2() throws Exception {
-        db.createIndex(
+        baseTestDb.createIndex(
             "passageIndex",
             IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage("en"));
-        db.createIndex(
+        baseTestDb.createIndex(
             "passageIndexStemless",
             IndexBuilder.fullTextIndex(FullTextIndexItem.property("passage")).setLanguage(null));
 
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
-        save(mDoc1);
+        saveDocInBaseTestDb(mDoc1);
 
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("passage", "The mother replied 'No, you already have too many cats.'");
-        save(mDoc2);
+        saveDocInBaseTestDb(mDoc2);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("passageIndex").match("cat"));
 
         int numRows = verifyQuery(query, (n, result) -> {
@@ -2265,7 +2265,7 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(2, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("passageIndexStemless").match("cat"));
 
         numRows = verifyQuery(query, (n, result) -> {
@@ -2282,18 +2282,18 @@ public class QueryTest extends BaseQueryTest {
     public void testFTSSetOperations() throws Exception {
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("content", "a database is a software system");
-        save(mDoc1);
+        saveDocInBaseTestDb(mDoc1);
 
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("content", "sqlite is a software system");
-        save(mDoc2);
+        saveDocInBaseTestDb(mDoc2);
 
         MutableDocument mDoc3 = new MutableDocument("doc3");
         mDoc3.setString("content", "sqlite is a database");
-        save(mDoc3);
+        saveDocInBaseTestDb(mDoc3);
 
         FullTextIndex ftsIndex = IndexBuilder.fullTextIndex(FullTextIndexItem.property("content"));
-        db.createIndex("ftsIndex", ftsIndex);
+        baseTestDb.createIndex("ftsIndex", ftsIndex);
 
         // The enhanced query syntax
         // https://www.sqlite.org/fts3.html#_set_operations_using_the_enhanced_query_syntax
@@ -2301,7 +2301,7 @@ public class QueryTest extends BaseQueryTest {
         // AND binary set operator
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("sqlite AND database"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2312,7 +2312,7 @@ public class QueryTest extends BaseQueryTest {
         // implicit AND operator
         query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("sqlite database"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2323,7 +2323,7 @@ public class QueryTest extends BaseQueryTest {
         // OR operator
         query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("sqlite OR database"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2333,7 +2333,7 @@ public class QueryTest extends BaseQueryTest {
 
         // NOT operator
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("database NOT sqlite"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2347,18 +2347,18 @@ public class QueryTest extends BaseQueryTest {
     public void testFTSMixedOperators() throws Exception {
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("content", "a database is a software system");
-        save(mDoc1);
+        saveDocInBaseTestDb(mDoc1);
 
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("content", "sqlite is a software system");
-        save(mDoc2);
+        saveDocInBaseTestDb(mDoc2);
 
         MutableDocument mDoc3 = new MutableDocument("doc3");
         mDoc3.setString("content", "sqlite is a database");
-        save(mDoc3);
+        saveDocInBaseTestDb(mDoc3);
 
         FullTextIndex ftsIndex = IndexBuilder.fullTextIndex(FullTextIndexItem.property("content"));
-        db.createIndex("ftsIndex", ftsIndex);
+        baseTestDb.createIndex("ftsIndex", ftsIndex);
 
         // The enhanced query syntax
         // https://www.sqlite.org/fts3.html#_set_operations_using_the_enhanced_query_syntax
@@ -2366,7 +2366,7 @@ public class QueryTest extends BaseQueryTest {
         // A AND B AND C
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("sqlite AND software AND system"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2376,7 +2376,7 @@ public class QueryTest extends BaseQueryTest {
 
         // (A AND B) OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR database"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2385,7 +2385,7 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(expectedIDs2.length, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite AND software) OR system"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2395,7 +2395,7 @@ public class QueryTest extends BaseQueryTest {
 
         // (A OR B) AND C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND database"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2404,7 +2404,7 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(expectedIDs4.length, numRows);
 
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("(sqlite OR software) AND system"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2414,7 +2414,7 @@ public class QueryTest extends BaseQueryTest {
 
         // A OR B OR C
         query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("content"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(FullTextExpression.index("ftsIndex").match("database OR software OR system"))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2430,7 +2430,7 @@ public class QueryTest extends BaseQueryTest {
 
         Query query = QueryBuilder
             .select()
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(EXPR_NUMBER1.greaterThan(Expression.intValue(25)))
             .orderBy(Ordering.property("number1").ascending());
 
@@ -2441,7 +2441,7 @@ public class QueryTest extends BaseQueryTest {
             while (rs.next() != null) { count++; }
             if (count == 75) { latch.countDown(); } // 26-100
         };
-        ListenerToken token = query.addChangeListener(executor, listener);
+        ListenerToken token = query.addChangeListener(testSerialExecutor, listener);
 
         try {
             // create one doc
@@ -2470,16 +2470,16 @@ public class QueryTest extends BaseQueryTest {
         // save doc1 with number1 -> 5
         MutableDocument doc = new MutableDocument("doc1");
         doc.setInt("number1", 5);
-        db.save(doc);
+        baseTestDb.save(doc);
 
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id), SelectResult.property("number1"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("number1").lessThan(Expression.intValue(10)))
             .orderBy(Ordering.property("number1"));
 
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
-        ListenerToken token = query.addChangeListener(executor, change -> {
+        ListenerToken token = query.addChangeListener(testSerialExecutor, change -> {
             int matchs = 0;
             ResultSet rs = change.getResults();
             for (Result r : rs) {
@@ -2494,9 +2494,9 @@ public class QueryTest extends BaseQueryTest {
         try {
             assertTrue(latch1.await(5, TimeUnit.SECONDS));
 
-            doc = db.getDocument("doc1").toMutable();
+            doc = baseTestDb.getDocument("doc1").toMutable();
             doc.setInt("number1", 15);
-            db.save(doc);
+            baseTestDb.save(doc);
 
             assertTrue(latch2.await(5, TimeUnit.SECONDS));
         }
@@ -2511,26 +2511,26 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setString("name", "food");
         mDoc1.setString("description", "bar");
-        save(mDoc1);
+        saveDocInBaseTestDb(mDoc1);
 
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("name", "foo");
         mDoc2.setString("description", "unknown");
-        save(mDoc2);
+        saveDocInBaseTestDb(mDoc2);
 
         MutableDocument mDoc3 = new MutableDocument("doc3");
         mDoc3.setString("name", "water");
         mDoc3.setString("description", "drink");
-        save(mDoc3);
+        saveDocInBaseTestDb(mDoc3);
 
         MutableDocument mDoc4 = new MutableDocument("doc4");
         mDoc4.setString("name", "chocolate");
         mDoc4.setString("description", "bar");
-        save(mDoc4);
+        saveDocInBaseTestDb(mDoc4);
 
         // LIKE operator only
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("name").like(Expression.string("%foo%")))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2544,7 +2544,7 @@ public class QueryTest extends BaseQueryTest {
 
         // EQUAL operator only
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("description").equalTo(Expression.string("bar")))
             .orderBy(Ordering.expression(Meta.id));
 
@@ -2558,7 +2558,7 @@ public class QueryTest extends BaseQueryTest {
 
         // AND and LIKE operators
         query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("name").like(Expression.string("%foo%"))
                 .and(Expression.property("description").equalTo(Expression.string("bar"))))
             .orderBy(Ordering.expression(Meta.id));
@@ -2579,10 +2579,10 @@ public class QueryTest extends BaseQueryTest {
 
         final MutableDocument joinme = new MutableDocument("joinme");
         joinme.setValue("theone", 42);
-        save(joinme);
+        saveDocInBaseTestDb(joinme);
 
-        DataSource mainDS = DataSource.database(this.db).as("main");
-        DataSource secondaryDS = DataSource.database(this.db).as("secondary");
+        DataSource mainDS = DataSource.database(this.baseTestDb).as("main");
+        DataSource secondaryDS = DataSource.database(this.baseTestDb).as("secondary");
 
         Expression mainPropExpr = Expression.property("number1").from("main");
         Expression secondaryExpr = Expression.property("theone").from("secondary");
@@ -2612,10 +2612,10 @@ public class QueryTest extends BaseQueryTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setInt("answer", 42);
         doc1a.setString("a", "string");
-        db.save(doc1a);
+        baseTestDb.save(doc1a);
 
         Query query = QueryBuilder.select(SR_DOCID, SR_DELETED)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.id.equalTo(Expression.string("doc1")));
 
         ResultSet rs = query.execute();
@@ -2765,7 +2765,7 @@ public class QueryTest extends BaseQueryTest {
         }
 
         Query query = QueryBuilder.select(selections)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.property("local").ascending());
 
         verifyQuery(query, (n, result) -> {
@@ -2823,7 +2823,7 @@ public class QueryTest extends BaseQueryTest {
         expectedLocal.add(localToUTC("yyyy-MM-dd HH:mm:ss.SSS", "1985-10-26 01:21:30.555"));
 
         Query query = QueryBuilder.select(selections)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.property("local").ascending());
 
         verifyQuery(query, (n, result) -> {
@@ -2850,7 +2850,7 @@ public class QueryTest extends BaseQueryTest {
         for (Number millis : millisToUse) {
             MutableDocument doc = new MutableDocument();
             doc.setNumber("timestamp", millis);
-            db.save(doc);
+            baseTestDb.save(doc);
             expectedLocal.add(toLocal((long) millis));
         }
 
@@ -2867,7 +2867,7 @@ public class QueryTest extends BaseQueryTest {
         selections[1] = SelectResult.expression(Function.millisToUTC(Expression.property("timestamp")));
 
         Query query = QueryBuilder.select(selections)
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .orderBy(Ordering.property("timestamp").ascending());
 
         verifyQuery(query, (n, result) -> {
@@ -2881,7 +2881,7 @@ public class QueryTest extends BaseQueryTest {
             Expression w = (Expression) c[0];
             String[] documentIDs = (String[]) c[1];
             final List<String> docIDList = new ArrayList<>(Arrays.asList(documentIDs));
-            Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(db)).where(w);
+            Query q = QueryBuilder.select(SR_DOCID).from(DataSource.database(baseTestDb)).where(w);
             int numRows = verifyQuery(
                 q,
                 (n, result) -> {
@@ -2902,7 +2902,7 @@ public class QueryTest extends BaseQueryTest {
     private void createDateDocs() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument();
         doc.setString("local", "1985-10-26");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         ArrayList<String> dateTimeFormats = new ArrayList<>();
         dateTimeFormats.add("1985-10-26 01:21");
@@ -2919,7 +2919,7 @@ public class QueryTest extends BaseQueryTest {
             doc.setString("PST", format + "-08:00");
             doc.setString("PST2", format + "-0800");
             doc.setString("UTC", format + "Z");
-            db.save(doc);
+            baseTestDb.save(doc);
         }
     }
 

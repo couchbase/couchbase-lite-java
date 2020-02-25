@@ -15,16 +15,32 @@
 //
 package com.couchbase.lite.utils;
 
+import java.util.Locale;
+import java.util.Random;
+
+import com.couchbase.lite.CouchbaseLiteException;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 
-public class TestUtils {
-    @FunctionalInterface
-    public interface Task {
-        void run() throws Exception;
+public final class TestUtils {
+
+    private TestUtils() {}
+
+    public static final String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public static final String ALPHANUMERIC = "0123456789" + ALPHA + ALPHA.toLowerCase(Locale.ROOT);
+
+    private static final char[] CHARS = ALPHANUMERIC.toCharArray();
+    private static final Random RANDOM = new Random(System.currentTimeMillis());
+
+    public static String randomString(int len) {
+        final char[] buf = new char[len];
+        for (int idx = 0; idx < buf.length; ++idx) { buf[idx] = CHARS[RANDOM.nextInt(CHARS.length)]; }
+        return new String(buf);
     }
 
-    public static <T extends Exception> void assertThrows(Class<T> ex, Task test) {
+    public static <T extends Exception> void assertThrows(Class<T> ex, Fn.TaskThrows<Exception> test) {
         try {
             test.run();
             fail("Expecting exception: " + ex);
@@ -34,4 +50,15 @@ public class TestUtils {
             catch (ClassCastException e1) { fail("Expecting exception: " + ex + " but got " + e); }
         }
     }
+    public static void assertThrowsCBL(String domain, int code, Fn.TaskThrows<CouchbaseLiteException> task) {
+        try {
+            task.run();
+            fail();
+        }
+        catch (CouchbaseLiteException e) {
+            assertEquals(code, e.getCode());
+            assertEquals(domain, e.getDomain());
+        }
+    }
 }
+

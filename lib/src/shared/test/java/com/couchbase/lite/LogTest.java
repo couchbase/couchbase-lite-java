@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.TestUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
@@ -31,7 +32,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class LogTest extends BaseTest {
+public class LogTest extends BaseDbTest {
     static class BasicLogger implements Logger {
         private String message;
 
@@ -463,9 +464,9 @@ public class LogTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument();
         doc.setString("hebrew", hebrew);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        Query query = QueryBuilder.select(SelectResult.all()).from(DataSource.database(db));
+        Query query = QueryBuilder.select(SelectResult.all()).from(DataSource.database(baseTestDb));
         ResultSet rs = query.execute();
         assertEquals(rs.allResults().size(), 1);
 
@@ -554,7 +555,7 @@ public class LogTest extends BaseTest {
         }
     }
 
-    private void testWithConfiguration(LogLevel level, LogFileConfiguration config, TestUtils.Task task)
+    private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Fn.TaskThrows<Exception> task)
         throws Exception {
         final com.couchbase.lite.Log logger = Database.log;
 

@@ -20,6 +20,7 @@ package com.couchbase.lite;
 import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -87,7 +88,7 @@ abstract class AbstractDatabase {
         + " for document (%s) does not match the IDs of the conflicting documents (%s)";
 
     private static final LogDomain DOMAIN = LogDomain.DATABASE;
-    private static final String DB_EXTENSION = "cblite2";
+    private static final String DB_EXTENSION = ".cblite2";
 
     private static final int MAX_CHANGES = 100;
 
@@ -113,12 +114,14 @@ abstract class AbstractDatabase {
      * Deletes a database of the given name in the given directory.
      *
      * @param name      the database's name
-     * @param directory the path where the database is located.
+     * @param directory the directory containing the database: the database's parent directory.
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the operation.
      */
-    public static void delete(@NonNull String name, @NonNull File directory) throws CouchbaseLiteException {
+    public static void delete(@NonNull String name, @Nullable File directory) throws CouchbaseLiteException {
         Preconditions.assertNotNull(name, "name");
-        Preconditions.assertNotNull(directory, "directory");
+
+        if (directory == null) { directory = new File(AbstractDatabaseConfiguration.getDbDirectory(null)); }
+
         if (!exists(name, directory)) {
             throw new CouchbaseLiteException(
                 "Database not found for delete",
@@ -208,7 +211,7 @@ abstract class AbstractDatabase {
     }
 
     private static File getDatabaseFile(File dir, String name) {
-        return new File(dir, name.replaceAll("/", ":") + "." + DB_EXTENSION);
+        return new File(dir, name.replaceAll("/", ":") + DB_EXTENSION);
     }
 
     //---------------------------------------------
@@ -243,6 +246,8 @@ abstract class AbstractDatabase {
     private ChangeNotifier<DatabaseChange> dbChangeNotifier;
 
     private C4DatabaseObserver c4DbObserver;
+
+    private String path;
 
     //---------------------------------------------
     // Constructors
@@ -715,7 +720,7 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             if (c4db == null) { return; }
 
-            Log.i(DOMAIN, "Closing %s at path %s", this, getC4Database().getPath());
+            Log.i(DOMAIN, "Closing %s at path %s", this, path);
 
             verifyQuiescent();
 
@@ -734,7 +739,7 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             mustBeOpen();
 
-            Log.i(DOMAIN, "Deleting %s at path %s", this, getC4Database().getPath());
+            Log.i(DOMAIN, "Deleting %s at path %s", this, path);
 
             verifyQuiescent();
 
@@ -787,6 +792,9 @@ abstract class AbstractDatabase {
             catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
         }
     }
+
+    @VisibleForTesting
+    public File getDbFile() { return isOpen() ? getFilePath() : new File(path); }
 
     //---------------------------------------------
     // Override public method
@@ -1082,7 +1090,9 @@ abstract class AbstractDatabase {
 
         final C4Database db = c4db;
         c4db = null;
+
         if (db == null) { return; }
+        path = db.getPath();
 
         db.free();
     }

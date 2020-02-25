@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class ConcurrencyTest extends BaseTest {
+public class ConcurrencyTest extends BaseDbTest {
 
     interface Callback {
         void callback(int threadIndex);
@@ -82,7 +82,7 @@ public class ConcurrencyTest extends BaseTest {
             threadIndex -> {
                 final String tag = "tag-" + threadIndex;
                 try {
-                    db.inBatch(() -> {
+                    baseTestDb.inBatch(() -> {
                         try { createDocs(kNDocs, tag); }
                         catch (CouchbaseLiteException e) { fail(); }
                     });
@@ -157,7 +157,7 @@ public class ConcurrencyTest extends BaseTest {
         concurrentValidator(
             kNThreads,
             threadIndex -> {
-                try { db.inBatch(() -> readDocs(docIDs, kNRounds)); }
+                try { baseTestDb.inBatch(() -> readDocs(docIDs, kNRounds)); }
                 catch (CouchbaseLiteException e) { fail(); }
             },
             kWaitInSec);
@@ -204,8 +204,8 @@ public class ConcurrencyTest extends BaseTest {
             () -> {
                 for (String docID : docIDs) {
                     try {
-                        Document doc = db.getDocument(docID);
-                        if (doc != null) { db.delete(doc); }
+                        Document doc = baseTestDb.getDocument(docID);
+                        if (doc != null) { baseTestDb.delete(doc); }
                     }
                     catch (CouchbaseLiteException e) { fail(); }
                 }
@@ -217,8 +217,8 @@ public class ConcurrencyTest extends BaseTest {
             () -> {
                 for (String docID : docIDs) {
                     try {
-                        Document doc = db.getDocument(docID);
-                        if (doc != null) { db.delete(doc); }
+                        Document doc = baseTestDb.getDocument(docID);
+                        if (doc != null) { baseTestDb.delete(doc); }
                     }
                     catch (CouchbaseLiteException e) { fail(); }
                 }
@@ -228,7 +228,7 @@ public class ConcurrencyTest extends BaseTest {
         assertTrue(latch2.await(180, TimeUnit.SECONDS));
         checkForFailure();
 
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test
@@ -245,9 +245,9 @@ public class ConcurrencyTest extends BaseTest {
             latch1,
             () -> {
                 for (String docID : docIDs) {
-                    Document doc = db.getDocument(docID);
+                    Document doc = baseTestDb.getDocument(docID);
                     if (doc != null) {
-                        try { db.purge(doc); }
+                        try { baseTestDb.purge(doc); }
                         catch (CouchbaseLiteException e) { assertEquals(404, e.getCode()); }
                     }
                 }
@@ -258,9 +258,9 @@ public class ConcurrencyTest extends BaseTest {
             latch2,
             () -> {
                 for (String docID : docIDs) {
-                    Document doc = db.getDocument(docID);
+                    Document doc = baseTestDb.getDocument(docID);
                     if (doc != null) {
-                        try { db.purge(doc); }
+                        try { baseTestDb.purge(doc); }
                         catch (CouchbaseLiteException e) { assertEquals(404, e.getCode()); }
                     }
                 }
@@ -270,7 +270,7 @@ public class ConcurrencyTest extends BaseTest {
         assertTrue(latch2.await(180, TimeUnit.SECONDS));
         checkForFailure();
 
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test
@@ -297,7 +297,7 @@ public class ConcurrencyTest extends BaseTest {
         runSafelyInThread(
             latch2,
             () -> {
-                try { db.close(); }
+                try { baseTestDb.close(); }
                 catch (CouchbaseLiteException e) { fail(); }
             });
 
@@ -330,7 +330,7 @@ public class ConcurrencyTest extends BaseTest {
         runSafelyInThread(
             latch2,
             () -> {
-                try { db.delete(); }
+                try { baseTestDb.delete(); }
                 catch (CouchbaseLiteException e) { fail(); }
             });
 
@@ -360,7 +360,7 @@ public class ConcurrencyTest extends BaseTest {
         runSafelyInThread(
             latch2,
             () -> {
-                try { db.compact(); }
+                try { baseTestDb.compact(); }
                 catch (CouchbaseLiteException e) { fail(); }
             });
 
@@ -394,7 +394,7 @@ public class ConcurrencyTest extends BaseTest {
             () -> {
                 try {
                     Index index = IndexBuilder.fullTextIndex(FullTextIndexItem.property("sentence"));
-                    db.createIndex("sentence", index);
+                    baseTestDb.createIndex("sentence", index);
                 }
                 catch (CouchbaseLiteException e) { fail(); }
             });
@@ -410,12 +410,12 @@ public class ConcurrencyTest extends BaseTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
 
-        db.addChangeListener(executor, change -> latch2.countDown());
+        baseTestDb.addChangeListener(testSerialExecutor, change -> latch2.countDown());
 
         runSafelyInThread(
             latch1,
             () -> {
-                try { db.save(new MutableDocument("doc1")); }
+                try { baseTestDb.save(new MutableDocument("doc1")); }
                 catch (CouchbaseLiteException e) { fail(); }
             });
 
@@ -430,12 +430,12 @@ public class ConcurrencyTest extends BaseTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
 
-        db.addDocumentChangeListener("doc1", change -> latch2.countDown());
+        baseTestDb.addDocumentChangeListener("doc1", change -> latch2.countDown());
 
         runSafelyInThread(
             latch1,
             () -> {
-                try { db.save(new MutableDocument("doc1")); }
+                try { baseTestDb.save(new MutableDocument("doc1")); }
                 catch (CouchbaseLiteException e) { fail(); }
             });
 
@@ -452,7 +452,7 @@ public class ConcurrencyTest extends BaseTest {
 
         final Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id), SelectResult.expression(Meta.sequence))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         concurrentValidator(
             10,
@@ -461,7 +461,7 @@ public class ConcurrencyTest extends BaseTest {
                     ResultSet rs = query.execute();
                     List<Result> results = rs.allResults();
                     assertEquals(100, results.size());
-                    assertEquals(db.getCount(), results.size());
+                    assertEquals(baseTestDb.getCount(), results.size());
                 }
                 catch (CouchbaseLiteException e) {
                     Report.log(LogLevel.ERROR, "Query Error", e);
@@ -504,7 +504,7 @@ public class ConcurrencyTest extends BaseTest {
         List<String> docs = Collections.synchronizedList(new ArrayList<>(nDocs));
         for (int i = 0; i < nDocs; i++) {
             MutableDocument doc = createDocumentWithTag(tag);
-            Document saved = save(doc);
+            Document saved = saveDocInBaseTestDb(doc);
             docs.add(saved.getId());
         }
         return docs;
@@ -513,7 +513,7 @@ public class ConcurrencyTest extends BaseTest {
     private boolean updateDocs(List<String> docIds, int rounds, String tag) {
         for (int i = 1; i <= rounds; i++) {
             for (String docId : docIds) {
-                Document d = db.getDocument(docId);
+                Document d = baseTestDb.getDocument(docId);
                 MutableDocument doc = d.toMutable();
                 doc.setValue("tag", tag);
 
@@ -529,7 +529,7 @@ public class ConcurrencyTest extends BaseTest {
                 phones.setValue(0, phone);
 
                 doc.setValue("updated", new Date());
-                try { db.save(doc); }
+                try { baseTestDb.save(doc); }
                 catch (CouchbaseLiteException e) { return false; }
             }
         }
@@ -539,7 +539,7 @@ public class ConcurrencyTest extends BaseTest {
     private void readDocs(List<String> docIDs, int rounds) {
         for (int i = 1; i <= rounds; i++) {
             for (String docID : docIDs) {
-                Document doc = db.getDocument(docID);
+                Document doc = baseTestDb.getDocument(docID);
                 assertNotNull(doc);
                 assertEquals(docID, doc.getId());
             }
@@ -548,7 +548,7 @@ public class ConcurrencyTest extends BaseTest {
 
     private void verifyByTagName(String tag, VerifyBlock<Result> block) throws CouchbaseLiteException {
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("tag").equalTo(Expression.string(tag)));
         int n = 0;
         for (Result result : query.execute()) { block.verify(++n, result); }

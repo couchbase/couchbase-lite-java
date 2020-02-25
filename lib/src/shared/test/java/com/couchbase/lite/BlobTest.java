@@ -40,7 +40,7 @@ import static org.junit.Assert.fail;
 
 
 // There are other blob tests in test suites...
-public class BlobTest extends BaseTest {
+public class BlobTest extends BaseDbTest {
     private static final String BLOB_1 = "i'm blob";
     private static final String BLOB_2 = "i'm blob too";
 
@@ -71,7 +71,7 @@ public class BlobTest extends BaseTest {
         mDoc.setBlob("blob1a", data1a);
         mDoc.setBlob("blob1b", data1b);
         mDoc.setBlob("blob2a", data2a);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Blob blob1a = doc.getBlob("blob1a");
         Blob blob1b = doc.getBlob("blob1b");
@@ -111,7 +111,7 @@ public class BlobTest extends BaseTest {
         mDoc.setBlob("blob1a", data1a);
         mDoc.setBlob("blob1b", data1b);
         mDoc.setBlob("blob2a", data2a);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Blob blob1a = doc.getBlob("blob1a");
         Blob blob1b = doc.getBlob("blob1b");
@@ -137,9 +137,9 @@ public class BlobTest extends BaseTest {
         Blob blob = new Blob("image/png", blobContent);
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setBlob("blob", blob);
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
 
-        Document doc = db.getDocument("doc1");
+        Document doc = baseTestDb.getDocument("doc1");
         Blob savedBlob = doc.getBlob("blob");
         assertNotNull(savedBlob);
 
@@ -158,10 +158,10 @@ public class BlobTest extends BaseTest {
             Blob blob = new Blob("image/png", is);
             MutableDocument mDoc = new MutableDocument("doc1");
             mDoc.setBlob("blob", blob);
-            db.save(mDoc);
+            baseTestDb.save(mDoc);
         }
 
-        Document doc = db.getDocument("doc1");
+        Document doc = baseTestDb.getDocument("doc1");
         Blob savedBlob = doc.getBlob("blob");
         assertNotNull(savedBlob);
 
@@ -195,7 +195,7 @@ public class BlobTest extends BaseTest {
         Blob blob = new Blob("application/json", bytes);
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setBlob("blob", blob);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Blob savedBlob = doc.getBlob("blob");
         assertNotNull(savedBlob);
         assertEquals("application/json", savedBlob.getContentType());
@@ -215,11 +215,11 @@ public class BlobTest extends BaseTest {
         Blob blob = new Blob("application/json", bytes);
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setBlob("blob", blob);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         // Reload the doc from the database to make sure to "bust the cache" for the blob
         // cached in the doc object
-        Document reloadedDoc = db.getDocument(doc.getId());
+        Document reloadedDoc = baseTestDb.getDocument(doc.getId());
         Blob savedBlob = reloadedDoc.getBlob("blob");
         byte[] content = savedBlob.getContent();
         assertArrayEquals(content, bytes);
@@ -301,7 +301,7 @@ public class BlobTest extends BaseTest {
         Blob blob = new Blob("image/png", bytes);
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setBlob("blob", blob);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Blob savedBlob = doc.getBlob("blob");
         assertNotNull(savedBlob);

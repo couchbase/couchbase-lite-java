@@ -22,7 +22,6 @@ import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
@@ -45,12 +44,12 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
     @Test
     public void testStopReplicatorAfterOffline() throws URISyntaxException, InterruptedException {
         Endpoint target = getRemoteTargetEndpoint();
-        ReplicatorConfiguration config = makeConfig(false, true, true, db, target);
+        ReplicatorConfiguration config = makeConfig(false, true, true, baseTestDb, target);
         Replicator repl = new Replicator(config);
         final CountDownLatch offline = new CountDownLatch(1);
         final CountDownLatch stopped = new CountDownLatch(1);
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 Replicator.Status status = change.getStatus();
                 if (status.getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
@@ -71,7 +70,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         Replicator repl = new Replicator(makeConfig(true, false, false, endpoint));
         final CountDownLatch stopped = new CountDownLatch(1);
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 Replicator.Status status = change.getStatus();
                 if (status.getActivityLevel() == Replicator.ActivityLevel.STOPPED) { stopped.countDown(); }
@@ -91,7 +90,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
 
         assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(null));
 
-        assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(executor, null));
+        assertThrows(IllegalArgumentException.class, () -> repl.addDocumentReplicationListener(testSerialExecutor, null));
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -102,7 +101,7 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
 
         assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(null));
 
-        assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(executor, null));
+        assertThrows(IllegalArgumentException.class, () -> repl.addChangeListener(testSerialExecutor, null));
     }
 
     @Test
@@ -110,9 +109,9 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         final CountDownLatch offline = new CountDownLatch(2);
         final CountDownLatch stopped = new CountDownLatch(1);
 
-        Replicator repl = new Replicator(makeConfig(false, true, true, db, getRemoteTargetEndpoint()));
+        Replicator repl = new Replicator(makeConfig(false, true, true, baseTestDb, getRemoteTargetEndpoint()));
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 switch (change.getStatus().getActivityLevel()) {
                     case OFFLINE:

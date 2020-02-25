@@ -22,7 +22,7 @@ import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL;
 
 
-public abstract class BaseReplicatorTest extends BaseTest {
+public abstract class BaseReplicatorTest extends BaseDbTest {
     protected Replicator repl;
 
     protected final ReplicatorConfiguration makeConfig(
@@ -30,7 +30,7 @@ public abstract class BaseReplicatorTest extends BaseTest {
         boolean pull,
         boolean continuous,
         Endpoint target) {
-        return makeConfig(push, pull, continuous, this.db, target);
+        return makeConfig(push, pull, continuous, this.baseTestDb, target);
     }
 
     protected final ReplicatorConfiguration makeConfig(

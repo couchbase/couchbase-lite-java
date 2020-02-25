@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-public class LiveQueryTest extends BaseTest {
+public class LiveQueryTest extends BaseDbTest {
     private static final String KEY = "number";
 
     private volatile Query globalQuery;
@@ -43,13 +43,13 @@ public class LiveQueryTest extends BaseTest {
     public void testBasicLiveQuery() throws CouchbaseLiteException, InterruptedException {
         final Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property(KEY).ascending());
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        ListenerToken token = query.addChangeListener(executor, change -> latch.countDown());
+        ListenerToken token = query.addChangeListener(testSerialExecutor, change -> latch.countDown());
 
         createDocNumbered(10);
 
@@ -62,14 +62,14 @@ public class LiveQueryTest extends BaseTest {
     public void testLiveQueryWith2Listeners() throws CouchbaseLiteException, InterruptedException {
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property(KEY).ascending());
 
         final CountDownLatch latch = new CountDownLatch(2);
 
-        ListenerToken token1 = query.addChangeListener(executor, change -> latch.countDown());
-        ListenerToken token2 = query.addChangeListener(executor, change -> latch.countDown());
+        ListenerToken token1 = query.addChangeListener(testSerialExecutor, change -> latch.countDown());
+        ListenerToken token2 = query.addChangeListener(testSerialExecutor, change -> latch.countDown());
 
         createDocNumbered(11);
 
@@ -84,7 +84,7 @@ public class LiveQueryTest extends BaseTest {
     public void testLiveQueryDelay() throws CouchbaseLiteException, InterruptedException {
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(0)))
             .orderBy(Ordering.property(KEY).ascending());
 
@@ -93,7 +93,7 @@ public class LiveQueryTest extends BaseTest {
         //  - after LIVE_QUERY_UPDATE_INTERVAL_MS when the change gets noticed.
         final long[] times = new long[] {1, System.currentTimeMillis(), 0, 0};
         ListenerToken token = query.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 int n = (int) ++times[0];
                 if (n >= times.length) { return; }
@@ -129,7 +129,7 @@ public class LiveQueryTest extends BaseTest {
 
         Query query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.parameter("VALUE")))
             .orderBy(Ordering.property(KEY).ascending());
 
@@ -139,7 +139,7 @@ public class LiveQueryTest extends BaseTest {
         params.setInt("VALUE", 2);
         query.setParameters(params);
 
-        ListenerToken token = query.addChangeListener(executor, change -> globalLatch.countDown());
+        ListenerToken token = query.addChangeListener(testSerialExecutor, change -> globalLatch.countDown());
         try {
             assertTrue(globalLatch.await(10, TimeUnit.SECONDS));
 
@@ -184,7 +184,7 @@ public class LiveQueryTest extends BaseTest {
         String docID = "doc-" + i;
         MutableDocument doc = new MutableDocument(docID);
         doc.setValue(KEY, i);
-        save(doc);
+        saveDocInBaseTestDb(doc);
     }
 
     private void nextQuery(int n, QueryChange change) {
@@ -204,12 +204,12 @@ public class LiveQueryTest extends BaseTest {
     private void newQuery(int n) {
         globalQuery = QueryBuilder
             .select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property(KEY).greaterThanOrEqualTo(Expression.intValue(n)))
             .orderBy(Ordering.property(KEY).ascending());
 
         globalLatch = new CountDownLatch(1);
 
-        globalToken = globalQuery.addChangeListener(executor, ch -> nextQuery(n + 1, ch));
+        globalToken = globalQuery.addChangeListener(testSerialExecutor, ch -> nextQuery(n + 1, ch));
     }
 }

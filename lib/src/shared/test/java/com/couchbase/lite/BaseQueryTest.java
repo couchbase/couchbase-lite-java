@@ -25,7 +25,7 @@ import com.couchbase.lite.utils.Fn;
 import static org.junit.Assert.assertEquals;
 
 
-public abstract class BaseQueryTest extends BaseTest {
+public abstract class BaseQueryTest extends BaseDbTest {
     interface QueryResult {
         void check(int n, Result result) throws Exception;
     }
@@ -58,7 +58,7 @@ public abstract class BaseQueryTest extends BaseTest {
         MutableDocument doc = new MutableDocument(docID);
         doc.setValue("number1", i);
         doc.setValue("number2", num - i);
-        save(doc);
+        saveDocInBaseTestDb(doc);
         return docID;
     }
 
@@ -70,9 +70,9 @@ public abstract class BaseQueryTest extends BaseTest {
         final List<Map<String, Object>> numbers = new ArrayList<>();
 
         SafeTest test = new SafeTest(() -> {
-            for (int i = from; i <= to; i++) { numbers.add(db.getDocument(createDocNumbered(i, to)).toMap()); }
+            for (int i = from; i <= to; i++) { numbers.add(baseTestDb.getDocument(createDocNumbered(i, to)).toMap()); }
         });
-        db.inBatch(test);
+        baseTestDb.inBatch(test);
 
         test.checkFail();
         test.checkErr();

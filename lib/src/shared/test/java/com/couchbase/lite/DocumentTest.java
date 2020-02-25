@@ -49,7 +49,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class DocumentTest extends BaseTest {
+public class DocumentTest extends BaseDbTest {
     private static final String TEST_DATE = "2017-01-01T00:00:00.000Z";
     private static final String TEST_BLOB = "i'm blob";
 
@@ -128,8 +128,8 @@ public class DocumentTest extends BaseTest {
         assertTrue(doc1a.getId().length() > 0);
         assertEquals(new HashMap<String, Object>(), doc1a.toMap());
 
-        save(doc1a);
-        Document doc1b = db.getDocument(doc1a.getId());
+        saveDocInBaseTestDb(doc1a);
+        Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
         assertTrue(doc1a != doc1b);
         assertTrue(doc1b.exists());
@@ -143,8 +143,8 @@ public class DocumentTest extends BaseTest {
         assertEquals("doc1", doc1a.getId());
         assertEquals(new HashMap<String, Object>(), doc1a.toMap());
 
-        save(doc1a);
-        Document doc1b = db.getDocument("doc1");
+        saveDocInBaseTestDb(doc1a);
+        Document doc1b = baseTestDb.getDocument("doc1");
         assertNotNull(doc1b);
         assertTrue(doc1a != doc1b);
         assertTrue(doc1b.exists());
@@ -156,7 +156,7 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1a = new MutableDocument("");
         assertNotNull(doc1a);
         try {
-            save(doc1a);
+            saveDocInBaseTestDb(doc1a);
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -172,8 +172,8 @@ public class DocumentTest extends BaseTest {
         assertTrue(doc1a.getId().length() > 0);
         assertEquals(new HashMap<String, Object>(), doc1a.toMap());
 
-        save(doc1a);
-        Document doc1b = db.getDocument(doc1a.getId());
+        saveDocInBaseTestDb(doc1a);
+        Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
         assertTrue(doc1a != doc1b);
         assertTrue(doc1b.exists());
@@ -199,8 +199,8 @@ public class DocumentTest extends BaseTest {
         assertTrue(doc1a.getId().length() > 0);
         assertEquals(dict, doc1a.toMap());
 
-        save(doc1a);
-        Document doc1b = db.getDocument(doc1a.getId());
+        saveDocInBaseTestDb(doc1a);
+        Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
         assertTrue(doc1a != doc1b);
         assertTrue(doc1b.exists());
@@ -227,8 +227,8 @@ public class DocumentTest extends BaseTest {
         assertEquals("doc1", doc1a.getId());
         assertEquals(dict, doc1a.toMap());
 
-        save(doc1a);
-        Document doc1b = db.getDocument("doc1");
+        saveDocInBaseTestDb(doc1a);
+        Document doc1b = baseTestDb.getDocument("doc1");
         assertNotNull(doc1b);
         assertTrue(doc1a != doc1b);
         assertTrue(doc1b.exists());
@@ -254,7 +254,7 @@ public class DocumentTest extends BaseTest {
         doc.setData(dict);
         assertEquals(dict, doc.toMap());
 
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
         //doc = db.getDocument("doc1");
         assertEquals(dict, savedDoc.toMap());
 
@@ -274,24 +274,24 @@ public class DocumentTest extends BaseTest {
         doc.setData(nuDict);
         assertEquals(nuDict, doc.toMap());
 
-        savedDoc = save(doc);
+        savedDoc = saveDocInBaseTestDb(doc);
         assertEquals(nuDict, savedDoc.toMap());
     }
 
     @Test
     public final void testMutateEmptyDocument() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc");
-        db.save(doc);
+        baseTestDb.save(doc);
 
-        doc = db.getDocument("doc").toMutable();
+        doc = baseTestDb.getDocument("doc").toMutable();
         doc.setString("foo", "bar");
-        db.save(doc);
+        baseTestDb.save(doc);
     }
 
     @Test
     public void testGetValueFromDocument() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
-        save(doc, d -> {
+        saveDocInBaseTestDb(doc, d -> {
             assertEquals(0, d.getInt("key"));
             assertEquals(0.0f, d.getFloat("key"), 0.0f);
             assertEquals(0.0, d.getDouble("key"), 0.0);
@@ -311,9 +311,9 @@ public class DocumentTest extends BaseTest {
     public void testSaveThenGetFromAnotherDB() throws CouchbaseLiteException {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setValue("name", "Scott Tiger");
-        save(doc1a);
+        saveDocInBaseTestDb(doc1a);
 
-        Database anotherDb = db.copy();
+        Database anotherDb = baseTestDb.copy();
         Document doc1b = anotherDb.getDocument("doc1");
         assertTrue(doc1a != doc1b);
         assertEquals(doc1a.getId(), doc1b.getId());
@@ -326,12 +326,12 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setValue("name", "Scott Tiger");
 
-        save(doc1a);
+        saveDocInBaseTestDb(doc1a);
 
-        Document doc1b = db.getDocument("doc1");
-        Document doc1c = db.getDocument("doc1");
+        Document doc1b = baseTestDb.getDocument("doc1");
+        Document doc1c = baseTestDb.getDocument("doc1");
 
-        Database anotherDb = db.copy();
+        Database anotherDb = baseTestDb.copy();
         Document doc1d = anotherDb.getDocument("doc1");
 
         assertTrue(doc1a != doc1b);
@@ -347,7 +347,7 @@ public class DocumentTest extends BaseTest {
 
         MutableDocument mDoc1b = doc1b.toMutable();
         mDoc1b.setValue("name", "Daniel Tiger");
-        doc1b = save(mDoc1b);
+        doc1b = saveDocInBaseTestDb(mDoc1b);
 
         Assert.assertNotEquals(doc1b.toMap(), doc1a.toMap());
         Assert.assertNotEquals(doc1b.toMap(), doc1c.toMap());
@@ -373,25 +373,25 @@ public class DocumentTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("string1", "");
         mDoc.setValue("string2", "string");
-        Document doc = save(mDoc, validator4Save);
+        Document doc = saveDocInBaseTestDb(mDoc, validator4Save);
         // update
         mDoc = doc.toMutable();
         mDoc.setValue("string1", "string");
         mDoc.setValue("string2", "");
-        save(mDoc, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc, validator4SUpdate);
 
         // -- setString
         // save
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setString("string1", "");
         mDoc2.setString("string2", "string");
-        Document doc2 = save(mDoc2, validator4Save);
+        Document doc2 = saveDocInBaseTestDb(mDoc2, validator4Save);
 
         // update
         mDoc2 = doc2.toMutable();
         mDoc2.setString("string1", "string");
         mDoc2.setString("string2", "");
-        save(mDoc2, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc2, validator4SUpdate);
     }
 
     @Test
@@ -401,7 +401,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getString("null"));
                 assertNull(d.getString("true"));
                 assertNull(d.getString("false"));
@@ -441,7 +441,7 @@ public class DocumentTest extends BaseTest {
         mDoc.setValue("number2", 0);
         mDoc.setValue("number3", -1);
         mDoc.setValue("number4", -10);
-        Document doc = save(mDoc, validator4Save);
+        Document doc = saveDocInBaseTestDb(mDoc, validator4Save);
 
         // Update:
         mDoc = doc.toMutable();
@@ -449,7 +449,7 @@ public class DocumentTest extends BaseTest {
         mDoc.setValue("number2", 1);
         mDoc.setValue("number3", -10);
         mDoc.setValue("number4", -1);
-        save(mDoc, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc, validator4SUpdate);
 
         // -- setNumber
         // save
@@ -458,7 +458,7 @@ public class DocumentTest extends BaseTest {
         mDoc2.setNumber("number2", 0);
         mDoc2.setNumber("number3", -1);
         mDoc2.setNumber("number4", -10);
-        Document doc2 = save(mDoc2, validator4Save);
+        Document doc2 = saveDocInBaseTestDb(mDoc2, validator4Save);
 
         // Update:
         mDoc2 = doc2.toMutable();
@@ -466,7 +466,7 @@ public class DocumentTest extends BaseTest {
         mDoc2.setNumber("number2", 1);
         mDoc2.setNumber("number3", -10);
         mDoc2.setNumber("number4", -1);
-        save(mDoc2, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc2, validator4SUpdate);
 
         // -- setInt
         // save
@@ -475,7 +475,7 @@ public class DocumentTest extends BaseTest {
         mDoc3.setInt("number2", 0);
         mDoc3.setInt("number3", -1);
         mDoc3.setInt("number4", -10);
-        Document doc3 = save(mDoc3, validator4Save);
+        Document doc3 = saveDocInBaseTestDb(mDoc3, validator4Save);
 
         // Update:
         mDoc3 = doc3.toMutable();
@@ -483,7 +483,7 @@ public class DocumentTest extends BaseTest {
         mDoc3.setInt("number2", 1);
         mDoc3.setInt("number3", -10);
         mDoc3.setInt("number4", -1);
-        save(mDoc3, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc3, validator4SUpdate);
 
         // -- setLong
         // save
@@ -492,7 +492,7 @@ public class DocumentTest extends BaseTest {
         mDoc4.setLong("number2", 0);
         mDoc4.setLong("number3", -1);
         mDoc4.setLong("number4", -10);
-        Document doc4 = save(mDoc4, validator4Save);
+        Document doc4 = saveDocInBaseTestDb(mDoc4, validator4Save);
 
         // Update:
         mDoc4 = doc4.toMutable();
@@ -500,7 +500,7 @@ public class DocumentTest extends BaseTest {
         mDoc4.setLong("number2", 1);
         mDoc4.setLong("number3", -10);
         mDoc4.setLong("number4", -1);
-        save(mDoc4, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc4, validator4SUpdate);
 
         // -- setFloat
         // save
@@ -509,7 +509,7 @@ public class DocumentTest extends BaseTest {
         mDoc5.setFloat("number2", 0);
         mDoc5.setFloat("number3", -1);
         mDoc5.setFloat("number4", -10);
-        Document doc5 = save(mDoc5, validator4Save);
+        Document doc5 = saveDocInBaseTestDb(mDoc5, validator4Save);
 
         // Update:
         mDoc5 = doc5.toMutable();
@@ -517,7 +517,7 @@ public class DocumentTest extends BaseTest {
         mDoc5.setFloat("number2", 1);
         mDoc5.setFloat("number3", -10);
         mDoc5.setFloat("number4", -1);
-        save(mDoc5, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc5, validator4SUpdate);
 
         // -- setDouble
         // save
@@ -526,7 +526,7 @@ public class DocumentTest extends BaseTest {
         mDoc6.setDouble("number2", 0);
         mDoc6.setDouble("number3", -1);
         mDoc6.setDouble("number4", -10);
-        Document doc6 = save(mDoc6, validator4Save);
+        Document doc6 = saveDocInBaseTestDb(mDoc6, validator4Save);
 
         // Update:
         mDoc6 = doc6.toMutable();
@@ -534,7 +534,7 @@ public class DocumentTest extends BaseTest {
         mDoc6.setDouble("number2", 1);
         mDoc6.setDouble("number3", -10);
         mDoc6.setDouble("number4", -1);
-        save(mDoc6, validator4SUpdate);
+        saveDocInBaseTestDb(mDoc6, validator4SUpdate);
     }
 
     @Test
@@ -544,7 +544,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getNumber("null"));
                 assertEquals(1, d.getNumber("true").intValue());
                 assertEquals(0, d.getNumber("false").intValue());
@@ -569,7 +569,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertEquals(0, d.getInt("null"));
                 assertEquals(1, d.getInt("true"));
                 assertEquals(0, d.getInt("false"));
@@ -594,7 +594,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertEquals(0, d.getLong("null"));
                 assertEquals(1, d.getLong("true"));
                 assertEquals(0, d.getLong("false"));
@@ -619,7 +619,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertEquals(0.0f, d.getFloat("null"), 0.0f);
                 assertEquals(1.0f, d.getFloat("true"), 0.0f);
                 assertEquals(0.0f, d.getFloat("false"), 0.0f);
@@ -644,7 +644,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertEquals(0.0, d.getDouble("null"), 0.0);
                 assertEquals(1.0, d.getDouble("true"), 0.0);
                 assertEquals(0.0, d.getDouble("false"), 0.0);
@@ -704,7 +704,7 @@ public class DocumentTest extends BaseTest {
         doc.setValue("max_float", Float.MAX_VALUE);
         doc.setValue("min_double", Double.MIN_VALUE);
         doc.setValue("max_double", Double.MAX_VALUE);
-        save(doc, validator);
+        saveDocInBaseTestDb(doc, validator);
 
         // -- setInt, setLong, setFloat, setDouble
         MutableDocument doc2 = new MutableDocument("doc2");
@@ -716,7 +716,7 @@ public class DocumentTest extends BaseTest {
         doc2.setFloat("max_float", Float.MAX_VALUE);
         doc2.setDouble("min_double", Double.MIN_VALUE);
         doc2.setDouble("max_double", Double.MAX_VALUE);
-        save(doc2, validator);
+        saveDocInBaseTestDb(doc2, validator);
     }
 
 
@@ -768,7 +768,7 @@ public class DocumentTest extends BaseTest {
         doc.setValue("number3", 1.50);
         doc.setValue("number4", 1.51);
         doc.setValue("number5", 1.99);
-        save(doc, validator);
+        saveDocInBaseTestDb(doc, validator);
 
         // -- setFloat
         MutableDocument doc2 = new MutableDocument("doc2");
@@ -777,7 +777,7 @@ public class DocumentTest extends BaseTest {
         doc2.setFloat("number3", 1.50f);
         doc2.setFloat("number4", 1.51f);
         doc2.setFloat("number5", 1.99f);
-        save(doc2, validator);
+        saveDocInBaseTestDb(doc2, validator);
 
         // -- setDouble
         MutableDocument doc3 = new MutableDocument("doc3");
@@ -786,7 +786,7 @@ public class DocumentTest extends BaseTest {
         doc3.setDouble("number3", 1.50);
         doc3.setDouble("number4", 1.51);
         doc3.setDouble("number5", 1.99);
-        save(doc3, validator);
+        saveDocInBaseTestDb(doc3, validator);
     }
 
     @Test
@@ -808,25 +808,25 @@ public class DocumentTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("boolean1", true);
         mDoc.setValue("boolean2", false);
-        Document doc = save(mDoc, validator4Save);
+        Document doc = saveDocInBaseTestDb(mDoc, validator4Save);
 
         // Update:
         mDoc = doc.toMutable();
         mDoc.setValue("boolean1", false);
         mDoc.setValue("boolean2", true);
-        save(mDoc, validator4Update);
+        saveDocInBaseTestDb(mDoc, validator4Update);
 
         // -- setBoolean
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setValue("boolean1", true);
         mDoc2.setValue("boolean2", false);
-        Document doc2 = save(mDoc2, validator4Save);
+        Document doc2 = saveDocInBaseTestDb(mDoc2, validator4Save);
 
         // Update:
         mDoc2 = doc2.toMutable();
         mDoc2.setValue("boolean1", false);
         mDoc2.setValue("boolean2", true);
-        save(mDoc2, validator4Update);
+        saveDocInBaseTestDb(mDoc2, validator4Update);
     }
 
     @Test
@@ -836,7 +836,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertEquals(false, d.getBoolean("null"));
                 assertEquals(true, d.getBoolean("true"));
                 assertEquals(false, d.getBoolean("false"));
@@ -863,7 +863,7 @@ public class DocumentTest extends BaseTest {
         assertTrue(dateStr.length() > 0);
         mDoc.setValue("date", date);
 
-        Document doc = save(mDoc, d -> {
+        Document doc = saveDocInBaseTestDb(mDoc, d -> {
             assertEquals(dateStr, d.getValue("date"));
             assertEquals(dateStr, d.getString("date"));
             assertEquals(dateStr, DateUtils.toJson(d.getDate("date")));
@@ -878,7 +878,7 @@ public class DocumentTest extends BaseTest {
         final String nuDateStr = DateUtils.toJson(nuDate);
         mDoc.setValue("date", nuDate);
 
-        save(mDoc, d -> {
+        saveDocInBaseTestDb(mDoc, d -> {
             assertEquals(nuDateStr, d.getValue("date"));
             assertEquals(nuDateStr, d.getString("date"));
             assertEquals(nuDateStr, DateUtils.toJson(d.getDate("date")));
@@ -892,7 +892,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getDate("null"));
                 assertNull(d.getDate("true"));
                 assertNull(d.getDate("false"));
@@ -956,22 +956,22 @@ public class DocumentTest extends BaseTest {
         // --setValue
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("blob", blob);
-        Document doc = save(mDoc, validator4Save);
+        Document doc = saveDocInBaseTestDb(mDoc, validator4Save);
 
         // Update:
         mDoc = doc.toMutable();
         mDoc.setValue("blob", nuBlob);
-        save(mDoc, validator4Update);
+        saveDocInBaseTestDb(mDoc, validator4Update);
 
         // --setBlob
         MutableDocument mDoc2 = new MutableDocument("doc2");
         mDoc2.setBlob("blob", blob);
-        Document doc2 = save(mDoc2, validator4Save);
+        Document doc2 = saveDocInBaseTestDb(mDoc2, validator4Save);
 
         // Update:
         mDoc2 = doc2.toMutable();
         mDoc2.setBlob("blob", nuBlob);
-        save(mDoc2, validator4Update);
+        saveDocInBaseTestDb(mDoc2, validator4Update);
     }
 
     @Test
@@ -981,7 +981,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getBlob("null"));
                 assertNull(d.getBlob("true"));
                 assertNull(d.getBlob("false"));
@@ -1015,7 +1015,7 @@ public class DocumentTest extends BaseTest {
             assertEquals(mDict, mDoc.getValue("dict"));
             assertEquals(mDict.toMap(), ((MutableDictionary) mDoc.getValue("dict")).toMap());
 
-            Document doc = save(mDoc);
+            Document doc = saveDocInBaseTestDb(mDoc);
 
             assertTrue(mDict != doc.getValue("dict"));
             assertEquals(doc.getValue("dict"), doc.getDictionary("dict"));
@@ -1034,7 +1034,7 @@ public class DocumentTest extends BaseTest {
             map.put("city", "Mountain View");
             assertEquals(map, mDoc.getDictionary("dict").toMap());
 
-            doc = save(mDoc);
+            doc = saveDocInBaseTestDb(mDoc);
 
             assertTrue(mDict != doc.getValue("dict"));
             assertEquals(doc.getValue("dict"), doc.getDictionary("dict"));
@@ -1049,7 +1049,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getDictionary("null"));
                 assertNull(d.getDictionary("true"));
                 assertNull(d.getDictionary("false"));
@@ -1086,7 +1086,7 @@ public class DocumentTest extends BaseTest {
             assertEquals(array, mDoc.getValue("array"));
             assertEquals(array.toList(), ((MutableArray) mDoc.getValue("array")).toList());
 
-            Document doc = save(mDoc);
+            Document doc = saveDocInBaseTestDb(mDoc);
             assertTrue(array != doc.getValue("array"));
             assertEquals(doc.getValue("array"), doc.getArray("array"));
 
@@ -1099,7 +1099,7 @@ public class DocumentTest extends BaseTest {
             array = mDoc.getArray("array");
             array.addValue("item4");
             array.addValue("item5");
-            doc = save(mDoc);
+            doc = saveDocInBaseTestDb(mDoc);
             assertTrue(array != doc.getValue("array"));
             assertEquals(doc.getValue("array"), doc.getArray("array"));
             List<String> list = Arrays.asList("item1", "item2", "item3", "item4", "item5");
@@ -1114,7 +1114,7 @@ public class DocumentTest extends BaseTest {
             MutableDocument doc = new MutableDocument(docID);
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
-            save(doc, d -> {
+            saveDocInBaseTestDb(doc, d -> {
                 assertNull(d.getArray("null"));
                 assertNull(d.getArray("true"));
                 assertNull(d.getArray("false"));
@@ -1144,7 +1144,7 @@ public class DocumentTest extends BaseTest {
         mDoc.setArray("array-null", null);
         mDoc.setDictionary("dict-null", null);
         // TODO: NOTE: Current implementation follows iOS way. So set null remove it!!
-        save(mDoc, d -> {
+        saveDocInBaseTestDb(mDoc, d -> {
             assertEquals(6, d.count());
             assertTrue(d.contains("obj-null"));
             assertTrue(d.contains("string-null"));
@@ -1203,7 +1203,7 @@ public class DocumentTest extends BaseTest {
         assertNull(address.getString("zip"));
 
         // Save:
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
         //doc = db.getDocument(doc.getId());
 
         nuDict.put("zip", "94302");
@@ -1251,7 +1251,7 @@ public class DocumentTest extends BaseTest {
         assertEquals(3, members.count());
 
         // Save
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("members", Arrays.asList("d", "e", "f", "g"));
@@ -1270,12 +1270,12 @@ public class DocumentTest extends BaseTest {
         shipping.setValue("state", "CA");
         addresses.setValue("shipping", shipping);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         shipping = doc.getDictionary("addresses").getDictionary("shipping");
         shipping.setValue("zip", "94042");
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         Map<String, Object> mapShipping = new HashMap<>();
         mapShipping.put("street", "1 Main street");
@@ -1308,7 +1308,7 @@ public class DocumentTest extends BaseTest {
         address2.setValue("state", "CA");
         addresses.addValue(address2);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         address1 = doc.getArray("addresses").getDictionary(0);
         address1.setValue("street", "2 Main street");
@@ -1318,7 +1318,7 @@ public class DocumentTest extends BaseTest {
         address2.setValue("street", "2 Second street");
         address2.setValue("zip", "94302");
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         Map<String, Object> mapAddress1 = new HashMap<>();
         mapAddress1.put("street", "2 Main street");
@@ -1356,7 +1356,7 @@ public class DocumentTest extends BaseTest {
         group2.addValue(3);
         groups.addValue(group2);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         group1 = doc.getArray("groups").getArray(0);
         group1.setValue(0, "d");
@@ -1368,7 +1368,7 @@ public class DocumentTest extends BaseTest {
         group2.setValue(1, 5);
         group2.setValue(2, 6);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("groups", Arrays.asList(
@@ -1397,7 +1397,7 @@ public class DocumentTest extends BaseTest {
         group2.setValue("member", member2);
         doc.setValue("group2", group2);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         member1 = doc.getDictionary("group1").getArray("member");
         member1.setValue(0, "d");
@@ -1409,7 +1409,7 @@ public class DocumentTest extends BaseTest {
         member2.setValue(1, 5);
         member2.setValue(2, 6);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         Map<String, Object> expected = new HashMap<>();
         Map<String, Object> mapGroup1 = new HashMap<>();
@@ -1437,7 +1437,7 @@ public class DocumentTest extends BaseTest {
         assertEquals("94042", doc.getDictionary("shipping").getString("zip"));
         assertEquals("94042", doc.getDictionary("billing").getString("zip"));
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         MutableDictionary shipping = doc.getDictionary("shipping");
         MutableDictionary billing = doc.getDictionary("billing");
@@ -1451,7 +1451,7 @@ public class DocumentTest extends BaseTest {
         billing.setValue("street", "3 Main street");
 
         // Save update:
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         assertEquals("2 Main street", doc.getDictionary("shipping").getString("street"));
         assertEquals("3 Main street", doc.getDictionary("billing").getString("street"));
     }
@@ -1480,7 +1480,7 @@ public class DocumentTest extends BaseTest {
             Arrays.asList("650-000-0001", "650-000-0002", "650-000-0003"),
             doc.getArray("home").toList());
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         // After save: both mobile and home are not independent to each other
         MutableArray mobile = doc.getArray("mobile");
@@ -1494,7 +1494,7 @@ public class DocumentTest extends BaseTest {
         home.addValue("650-000-5678");
 
         // Save update:
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertEquals(
             Arrays.asList("650-000-0001", "650-000-0002", "650-000-0003", "650-000-1234"),
@@ -1554,7 +1554,7 @@ public class DocumentTest extends BaseTest {
             assertEquals(12, doc.count());
             assertEquals(12, doc.toMap().size());
 
-            doc = save(doc).toMutable();
+            doc = saveDocInBaseTestDb(doc).toMutable();
 
             assertEquals(12, doc.count());
             assertEquals(12, doc.toMap().size());
@@ -1577,7 +1577,7 @@ public class DocumentTest extends BaseTest {
         profile.put("address", mapAddress);
         doc.setData(profile);
 
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
         doc.remove("name");
         doc.remove("weight");
@@ -1621,15 +1621,15 @@ public class DocumentTest extends BaseTest {
         props.put("PropName2", 42);
 
         MutableDocument mDoc = new MutableDocument("docName", props);
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
 
         Map<String, Object> newProps = new HashMap<>();
         props.put("PropName3", "Val3");
         props.put("PropName4", 84);
 
-        MutableDocument existingDoc = db.getDocument("docName").toMutable();
+        MutableDocument existingDoc = baseTestDb.getDocument("docName").toMutable();
         existingDoc.setData(newProps);
-        save(existingDoc);
+        saveDocInBaseTestDb(existingDoc);
 
         assertEquals(newProps, existingDoc.toMap());
     }
@@ -1658,7 +1658,7 @@ public class DocumentTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setString("name", "Scott Tiger");
         try {
-            db.delete(mDoc);
+            baseTestDb.delete(mDoc);
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -1674,12 +1674,12 @@ public class DocumentTest extends BaseTest {
         mDoc.setValue("name", "Scott Tiger");
 
         // Save:
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         // Delete:
-        db.delete(doc);
+        baseTestDb.delete(doc);
 
-        assertNull(db.getDocument(docID));
+        assertNull(baseTestDb.getDocument(docID));
 
         // NOTE: doc is reserved.
         Object v = doc.getValue("name");
@@ -1699,14 +1699,14 @@ public class DocumentTest extends BaseTest {
         dict.put("address", addr);
 
         MutableDocument mDoc = new MutableDocument("doc1", dict);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Dictionary address = doc.getDictionary("address");
         assertEquals("1 Main street", address.getValue("street"));
         assertEquals("Mountain View", address.getValue("city"));
         assertEquals("CA", address.getValue("state"));
 
-        db.delete(doc);
+        baseTestDb.delete(doc);
 
         // The dictionary still has data but is detached:
         assertEquals("1 Main street", address.getValue("street"));
@@ -1720,7 +1720,7 @@ public class DocumentTest extends BaseTest {
         dict.put("members", Arrays.asList("a", "b", "c"));
 
         MutableDocument mDoc = new MutableDocument("doc1", dict);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Array members = doc.getArray("members");
         assertEquals(3, members.count());
@@ -1728,7 +1728,7 @@ public class DocumentTest extends BaseTest {
         assertEquals("b", members.getValue(1));
         assertEquals("c", members.getValue(2));
 
-        db.delete(doc);
+        baseTestDb.delete(doc);
 
         // The array still has data but is detached:
         assertEquals(3, members.count());
@@ -1743,7 +1743,7 @@ public class DocumentTest extends BaseTest {
         Date dto1 = new Date(System.currentTimeMillis() + 1000L);
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("theanswer", 18);
-        db.save(doc1);
+        baseTestDb.save(doc1);
 
         // purge doc
         final CountDownLatch latch = new CountDownLatch(1);
@@ -1753,10 +1753,10 @@ public class DocumentTest extends BaseTest {
             assertEquals(1, latch.getCount());
             latch.countDown();
         };
-        ListenerToken token = db.addDocumentChangeListener("doc1", changeListener);
-        db.setDocumentExpiration("doc1", dto1);
+        ListenerToken token = baseTestDb.addDocumentChangeListener("doc1", changeListener);
+        baseTestDb.setDocumentExpiration("doc1", dto1);
         assertTrue(latch.await(10, TimeUnit.SECONDS));
-        db.removeChangeListener(token);
+        baseTestDb.removeChangeListener(token);
     }
 
     @Test
@@ -1768,7 +1768,7 @@ public class DocumentTest extends BaseTest {
 
         // Purge before save:
         try {
-            db.purge(doc);
+            baseTestDb.purge(doc);
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -1778,11 +1778,11 @@ public class DocumentTest extends BaseTest {
         assertEquals("Scott", doc.getValue("name"));
 
         //Save
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
 
         // purge
-        db.purge(savedDoc);
-        assertNull(db.getDocument(docID));
+        baseTestDb.purge(savedDoc);
+        assertNull(baseTestDb.getDocument(docID));
     }
 
     @Test
@@ -1794,7 +1794,7 @@ public class DocumentTest extends BaseTest {
 
         // Purge before save:
         try {
-            db.purge(docID);
+            baseTestDb.purge(docID);
             fail();
         }
         catch (CouchbaseLiteException e) {
@@ -1804,11 +1804,11 @@ public class DocumentTest extends BaseTest {
         assertEquals("Scott", doc.getValue("name"));
 
         //Save
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
 
         // purge
-        db.purge(docID);
-        assertNull(db.getDocument(docID));
+        baseTestDb.purge(docID);
+        assertNull(baseTestDb.getDocument(docID));
     }
 
     @Test
@@ -1821,24 +1821,24 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1c = new MutableDocument("doc3");
         doc1a.setInt("answer", 12);
         doc1a.setValue("question", "What is six plus six?");
-        save(doc1a);
+        saveDocInBaseTestDb(doc1a);
 
         doc1b.setInt("answer", 22);
         doc1b.setValue("question", "What is eleven plus eleven?");
-        save(doc1b);
+        saveDocInBaseTestDb(doc1b);
 
         doc1c.setInt("answer", 32);
         doc1c.setValue("question", "What is twenty plus twelve?");
-        save(doc1c);
+        saveDocInBaseTestDb(doc1c);
 
-        db.setDocumentExpiration("doc1", dto30);
-        db.setDocumentExpiration("doc3", dto30);
+        baseTestDb.setDocumentExpiration("doc1", dto30);
+        baseTestDb.setDocumentExpiration("doc3", dto30);
 
-        db.setDocumentExpiration("doc3", null);
-        Date exp = db.getDocumentExpiration("doc1");
+        baseTestDb.setDocumentExpiration("doc3", null);
+        Date exp = baseTestDb.getDocumentExpiration("doc1");
         assertEquals(exp, dto30);
-        assertNull(db.getDocumentExpiration("doc2"));
-        assertNull(db.getDocumentExpiration("doc3"));
+        assertNull(baseTestDb.getDocumentExpiration("doc2"));
+        assertNull(baseTestDb.getDocumentExpiration("doc3"));
     }
 
     @Test
@@ -1847,22 +1847,22 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setInt("answer", 12);
         doc1.setValue("question", "What is six plus six?");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setInt("answer", 12);
         doc2.setValue("question", "What is six plus six?");
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
-        db.setDocumentExpiration("doc2", new Date(System.currentTimeMillis()));//expire now
+        baseTestDb.setDocumentExpiration("doc2", new Date(System.currentTimeMillis()));//expire now
         Thread.sleep(500);
-        assertNull(db.getDocument("doc2"));
+        assertNull(baseTestDb.getDocument("doc2"));
 
-        db.setDocumentExpiration("doc1", dto3);
+        baseTestDb.setDocumentExpiration("doc1", dto3);
 
         Thread.sleep(3 * 1000); // sleep 4 sec
 
-        assertNull(db.getDocument("doc1"));
+        assertNull(baseTestDb.getDocument("doc1"));
     }
 
     @Test
@@ -1871,10 +1871,10 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1a = new MutableDocument("deleted_doc");
         doc1a.setInt("answer", 12);
         doc1a.setValue("question", "What is six plus six?");
-        save(doc1a);
-        db.delete(doc1a);
+        saveDocInBaseTestDb(doc1a);
+        baseTestDb.delete(doc1a);
         try {
-            db.setDocumentExpiration("deleted_doc", dto30);
+            baseTestDb.setDocumentExpiration("deleted_doc", dto30);
         }
         catch (CouchbaseLiteException e) {
             e.printStackTrace();
@@ -1888,10 +1888,10 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc1a = new MutableDocument("deleted_doc");
         doc1a.setInt("answer", 12);
         doc1a.setValue("question", "What is six plus six?");
-        save(doc1a);
-        db.delete(doc1a);
+        saveDocInBaseTestDb(doc1a);
+        baseTestDb.delete(doc1a);
         try {
-            db.getDocumentExpiration("deleted_doc");
+            baseTestDb.getDocumentExpiration("deleted_doc");
         }
         catch (CouchbaseLiteException e) {
             assertEquals(e.getCode(), CBLError.Code.NOT_FOUND);
@@ -1902,7 +1902,7 @@ public class DocumentTest extends BaseTest {
     public void testSetExpirationOnNoneExistDoc() {
         Date dto30 = new Date(System.currentTimeMillis() + 30000L);
         try {
-            db.setDocumentExpiration("not_exist", dto30);
+            baseTestDb.setDocumentExpiration("not_exist", dto30);
         }
         catch (CouchbaseLiteException e) {
             e.printStackTrace();
@@ -1914,7 +1914,7 @@ public class DocumentTest extends BaseTest {
     public void testGetExpirationFromNoneExistDoc() {
         Date dto30 = new Date(System.currentTimeMillis() + 30000L);
         try {
-            db.getDocumentExpiration("not_exist");
+            baseTestDb.getDocumentExpiration("not_exist");
         }
         catch (CouchbaseLiteException e) {
             assertEquals(e.getCode(), CBLError.Code.NOT_FOUND);
@@ -1932,12 +1932,12 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc");
         doc.setInt("answer", 42);
         doc.setValue("question", "What is twenty-one times two?");
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        assertNull(db.getDocumentExpiration("doc"));
-        db.setDocumentExpiration("doc", d60Days);
+        assertNull(baseTestDb.getDocumentExpiration("doc"));
+        baseTestDb.setDocumentExpiration("doc", d60Days);
 
-        Date exp = db.getDocumentExpiration("doc");
+        Date exp = baseTestDb.getDocumentExpiration("doc");
         assertNotNull(exp);
         long diff = exp.getTime() - now.getTime();
         assertTrue(Math.abs(TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS) - 60.0) <= 1.0);
@@ -1947,11 +1947,11 @@ public class DocumentTest extends BaseTest {
     public void testReopenDB() throws CouchbaseLiteException {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("string", "str");
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
 
         reopenDB();
 
-        Document doc = db.getDocument("doc1");
+        Document doc = baseTestDb.getDocument("doc1");
         assertEquals("str", doc.getString("string"));
         Map<String, Object> expected = new HashMap<>();
         expected.put("string", "str");
@@ -1970,7 +1970,7 @@ public class DocumentTest extends BaseTest {
         doc.setValue("name", "Jim");
         doc.setValue("data", data);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertEquals("Jim", doc.getValue("name"));
         assertTrue(doc.getValue("data") instanceof Blob);
@@ -2003,7 +2003,7 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("data", data);
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
@@ -2035,7 +2035,7 @@ public class DocumentTest extends BaseTest {
             Blob data = new Blob("text/plain", stream);
             assertNotNull(data);
             doc.setValue("data", data);
-            doc = save(doc).toMutable();
+            doc = saveDocInBaseTestDb(doc).toMutable();
         }
         finally {
             stream.close();
@@ -2091,7 +2091,7 @@ public class DocumentTest extends BaseTest {
             }
         }
 
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
@@ -2124,7 +2124,7 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("data", data);
         doc.setValue("name", "Jim");
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         Object obj = doc.getValue("data");
         assertTrue(obj instanceof Blob);
@@ -2133,9 +2133,9 @@ public class DocumentTest extends BaseTest {
 
         reopenDB();
 
-        doc = db.getDocument("doc1").toMutable();
+        doc = baseTestDb.getDocument("doc1").toMutable();
         doc.setValue("foo", "bar");
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
@@ -2160,7 +2160,7 @@ public class DocumentTest extends BaseTest {
         doc.setLong("key20", 20L);
         doc.setLong("key21", 21L);
         final Map<String, Object> content2 = doc.toMap();
-        save(doc, doc1 -> {
+        saveDocInBaseTestDb(doc, doc1 -> {
             Map<String, Object> content1 = doc1.toMap();
             Map<String, Object> result1 = new HashMap<>();
             int count1 = 0;
@@ -2196,7 +2196,7 @@ public class DocumentTest extends BaseTest {
         assertEquals(mDoc1.getString("name"), mDoc2.getString("name"));
         assertEquals(mDoc1.getInt("score"), mDoc2.getInt("score"));
 
-        Document doc1 = save(mDoc1);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
         MutableDocument mDoc3 = doc1.toMutable();
 
         // https://forums.couchbase.com/t/bug-in-document-tomutable-in-db21/15441
@@ -2242,7 +2242,7 @@ public class DocumentTest extends BaseTest {
         assertFalse(doc1c.equals(doc1b));
         assertTrue(doc1c.equals(doc1c));
 
-        Document savedDoc = save(doc1c);
+        Document savedDoc = saveDocInBaseTestDb(doc1c);
         MutableDocument mDoc = savedDoc.toMutable();
         assertTrue(savedDoc.equals(mDoc));
         assertTrue(mDoc.equals(savedDoc));
@@ -2257,8 +2257,8 @@ public class DocumentTest extends BaseTest {
         MutableDocument doc2 = new MutableDocument("doc2");
         doc1.setLong("answer", 42L); // TODO: Integer cause inequality with saved doc
         doc2.setLong("answer", 42L); // TODO: Integer cause inequality with saved doc
-        Document sDoc1 = save(doc1);
-        Document sDoc2 = save(doc2);
+        Document sDoc1 = saveDocInBaseTestDb(doc1);
+        Document sDoc2 = saveDocInBaseTestDb(doc2);
 
         assertTrue(doc1.equals(doc1));
         assertTrue(sDoc1.equals(sDoc1));
@@ -2286,7 +2286,7 @@ public class DocumentTest extends BaseTest {
             doc1b.setLong("answer", 42L);
             assertTrue(doc1a.equals(doc1b));
             assertTrue(doc1b.equals(doc1a));
-            Document sDoc1a = save(doc1a);
+            Document sDoc1a = saveDocInBaseTestDb(doc1a);
             otherDB.save(doc1b);
             Document sDoc1b = otherDB.getDocument(doc1b.getId());
             assertTrue(doc1a.equals(sDoc1a));
@@ -2296,11 +2296,11 @@ public class DocumentTest extends BaseTest {
             assertFalse(sDoc1a.equals(sDoc1b));
             assertFalse(sDoc1b.equals(sDoc1a));
 
-            sDoc1a = db.getDocument("doc1");
+            sDoc1a = baseTestDb.getDocument("doc1");
             sDoc1b = otherDB.getDocument("doc1");
             assertFalse(sDoc1b.equals(sDoc1a));
 
-            Database sameDB = new Database(db.getName());
+            Database sameDB = new Database(baseTestDb.getName());
             try {
                 Document anotherDoc1a = sameDB.getDocument("doc1");
                 assertTrue(anotherDoc1a.equals(sDoc1a));
@@ -2320,22 +2320,22 @@ public class DocumentTest extends BaseTest {
     public void testDeleteDocAndGetDoc() throws CouchbaseLiteException {
         String docID = "doc-1";
 
-        Document doc = db.getDocument(docID);
+        Document doc = baseTestDb.getDocument(docID);
         assertNull(doc);
 
         MutableDocument mDoc = new MutableDocument(docID);
         mDoc.setValue("key", "value");
-        doc = save(mDoc);
+        doc = saveDocInBaseTestDb(mDoc);
         assertNotNull(doc);
-        assertEquals(1, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
 
-        doc = db.getDocument(docID);
+        doc = baseTestDb.getDocument(docID);
         assertNotNull(doc);
         assertEquals("value", doc.getString("key"));
 
-        db.delete(doc);
-        assertEquals(0, db.getCount());
-        doc = db.getDocument(docID);
+        baseTestDb.delete(doc);
+        assertEquals(0, baseTestDb.getCount());
+        doc = baseTestDb.getDocument(docID);
         assertNull(doc);
     }
 
@@ -2381,11 +2381,11 @@ public class DocumentTest extends BaseTest {
         mDoc9.setValue("key1", 100L);
         mDoc9.setValue("key3", false);
 
-        Document doc1 = save(mDoc1);
-        Document doc2 = save(mDoc2);
-        Document doc3 = save(mDoc3);
-        Document doc4 = save(mDoc4);
-        Document doc5 = save(mDoc5);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
+        Document doc2 = saveDocInBaseTestDb(mDoc2);
+        Document doc3 = saveDocInBaseTestDb(mDoc3);
+        Document doc4 = saveDocInBaseTestDb(mDoc4);
+        Document doc5 = saveDocInBaseTestDb(mDoc5);
 
         // compare doc1, doc2, mdoc1, and mdoc2
         assertTrue(doc1.equals(doc1));
@@ -2549,11 +2549,11 @@ public class DocumentTest extends BaseTest {
         mDoc7.setValue("key1", 100L);
         mDoc7.setValue("key3", false);
 
-        Document doc1 = save(mDoc1);
-        Document doc2 = save(mDoc2);
-        Document doc3 = save(mDoc3);
-        Document doc4 = save(mDoc4);
-        Document doc5 = save(mDoc5);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
+        Document doc2 = saveDocInBaseTestDb(mDoc2);
+        Document doc3 = saveDocInBaseTestDb(mDoc3);
+        Document doc4 = saveDocInBaseTestDb(mDoc4);
+        Document doc5 = saveDocInBaseTestDb(mDoc5);
 
         assertEquals(doc1.hashCode(), doc1.hashCode());
         Assert.assertNotEquals(doc1.hashCode(), doc2.hashCode());
@@ -2642,16 +2642,16 @@ public class DocumentTest extends BaseTest {
     public void testRevisionIDNewDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument();
         assertNull(doc.getRevisionID());
-        db.save(doc);
+        baseTestDb.save(doc);
         assertNotNull(doc.getRevisionID());
     }
 
     @Test
     public void testRevisionIDExistingDoc() throws CouchbaseLiteException {
         MutableDocument mdoc = new MutableDocument("doc1");
-        db.save(mdoc);
+        baseTestDb.save(mdoc);
 
-        Document doc = db.getDocument("doc1");
+        Document doc = baseTestDb.getDocument("doc1");
         String docRevID = mdoc.getRevisionID();
         assertEquals(mdoc.getRevisionID(), docRevID);
 
@@ -2659,7 +2659,7 @@ public class DocumentTest extends BaseTest {
         assertEquals(docRevID, mdoc.getRevisionID());
 
         mdoc.setInt("int", 88);
-        db.save(mdoc);
+        baseTestDb.save(mdoc);
 
         assertEquals(docRevID, doc.getRevisionID());
         assertNotEquals(docRevID, mdoc.getRevisionID());

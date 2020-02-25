@@ -81,7 +81,7 @@ public class ResultTest extends BaseQueryTest {
         MutableDocument mDoc = new MutableDocument(docID);
         if (i % 2 == 1) { DocumentTest.populateData(mDoc); }
         else { DocumentTest.populateDataByTypedSetter(mDoc); }
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
         return docID;
     }
 
@@ -89,7 +89,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetValueByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             // run query
             int rows = verifyQuery(query, false, (n, r) -> {
@@ -125,7 +125,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetValue() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             // run query
             int rows = verifyQuery(query, false, (n, r) -> {
@@ -166,7 +166,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetStringByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -201,7 +201,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetString() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -241,7 +241,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetNumberByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -277,7 +277,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetNumber() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -317,7 +317,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetIntegerByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -352,7 +352,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetInteger() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -392,7 +392,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetLongByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -427,7 +427,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetLong() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -466,7 +466,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetFloatByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -501,7 +501,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetFloat() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -540,7 +540,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDoubleByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -575,7 +575,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDouble() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -614,7 +614,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetBooleanByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -649,7 +649,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetBoolean() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -688,7 +688,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDateByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -723,7 +723,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDate() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -762,7 +762,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetBlobByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -798,7 +798,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetBlob() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -838,7 +838,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDictionaryByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -878,7 +878,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetDictionary() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -922,7 +922,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetArrayByKey() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -959,7 +959,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetArray() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 assertEquals(13, r.count());
@@ -1001,7 +1001,7 @@ public class ResultTest extends BaseQueryTest {
     public void testGetKeys() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 List<String> keys = r.getKeys();
@@ -1043,7 +1043,7 @@ public class ResultTest extends BaseQueryTest {
     public void testContains() throws Exception {
         for (int i = 1; i <= 2; i++) {
             String docID = prepareData(i);
-            Query query = generateQuery(db, docID);
+            Query query = generateQuery(baseTestDb, docID);
 
             int rows = verifyQuery(query, false, (n, r) -> {
                 // exists -> true
@@ -1079,10 +1079,10 @@ public class ResultTest extends BaseQueryTest {
 
         MutableDocument mDoc = new MutableDocument(doc1);
         mDoc.setDictionary(key1, new MutableDictionary());
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
 
         final Query query = QueryBuilder.select(SelectResult.property(key1))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Meta.id.equalTo(Expression.string(doc1)));
 
         ResultSet results = query.execute();

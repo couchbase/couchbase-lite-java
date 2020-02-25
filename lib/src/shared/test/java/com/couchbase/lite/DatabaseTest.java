@@ -1,7 +1,5 @@
 //
-// DatabaseTest.java
-//
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,15 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.CouchbaseLiteInternal;
-import com.couchbase.lite.utils.FileUtils;
+import com.couchbase.lite.utils.TestUtils;
 
-import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -43,171 +38,25 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class DatabaseTest extends BaseTest {
-    final static String DATABASE_TEST_BLOB = "i'm blob";
-
-    //---------------------------------------------
-    //  Helper methods
-    //---------------------------------------------
-
-    //---------------------------------------------
-    //  DatabaseConfiguration
-    //---------------------------------------------
-    @Test
-    public void testCreateConfiguration() {
-        // Default:
-        DatabaseConfiguration config1 = new DatabaseConfiguration();
-        assertNotNull(config1.getDirectory());
-        assertFalse(config1.getDirectory().isEmpty());
-
-        // Custom
-        DatabaseConfiguration config2 = new DatabaseConfiguration();
-        String dbDir = getScratchDirectoryPath("tmp");
-        config2.setDirectory(dbDir);
-        assertEquals(dbDir, config2.getDirectory());
-    }
-
-    @Test
-    public void testGetSetConfiguration() throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.db.getConfig().getDirectory());
-        Database db = new Database("db", config);
-        try {
-            assertNotNull(db.getConfig());
-            assertNotSame(db.getConfig(), config);
-            assertEquals(db.getConfig().getDirectory(), config.getDirectory());
-        }
-        finally {
-            db.delete();
-        }
-    }
-
-    @Test
-    public void testConfigurationIsCopiedWhenGetSet() throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.db.getConfig().getDirectory());
-        Database db = new Database("db", config);
-        try {
-            assertNotNull(db.getConfig());
-            assertNotSame(db.getConfig(), config);
-        }
-        finally {
-            db.delete();
-        }
-    }
-
-    @Test
-    public void testDatabaseConfigurationDefaultDirectory() throws CouchbaseLiteException, IOException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-
-        String expectedPath = CouchbaseLiteInternal.makeDbPath(null);
-        assertEquals(config.getDirectory(), expectedPath);
-
-        Database db = new Database("db", config);
-        try { assertTrue(new File(db.getPath()).getCanonicalPath().contains(expectedPath)); }
-        finally { db.delete(); }
-    }
-
-    //---------------------------------------------
-    //  Create Database
-    //---------------------------------------------
-
-    @Test
-    public void testCreate() throws CouchbaseLiteException {
-        // create db with default options
-        Database db = openDatabase("db");
-        try {
-            assertNotNull(db);
-            assertEquals(0, db.getCount());
-        }
-        finally {
-            // delete database
-            eraseDatabase(db);
-        }
-    }
-
-    @Test
-    public void testCreateWithDefaultConfiguration() throws CouchbaseLiteException {
-
-        Database db = new Database("db");
-        try {
-            assertNotNull(db);
-            assertEquals(0, db.getCount());
-        }
-        finally {
-            // delete database
-            eraseDatabase(db);
-        }
-    }
-
-    @Test
-    public void testCreateWithSpecialCharacterDBNames() throws CouchbaseLiteException {
-        Database db = openDatabase(LEGAL_FILE_NAME_CHARS);
-
-        try {
-            assertNotNull(db);
-            assertEquals(0, db.getCount());
-        }
-        finally {
-            // delete database
-            eraseDatabase(db);
-        }
-    }
-
-    @Test
-    public void testCreateWithEmptyDBNames() {
-        try {
-            Database db = openDatabase("");
-            fail();
-        }
-        catch (IllegalArgumentException e) {
-            // NOTE: CBL Android's Database constructor does not work without specified directory.
-        }
-        catch (CouchbaseLiteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void testCreateWithCustomDirectory() throws CouchbaseLiteException, IOException {
-        final String dbName = "db";
-
-        File dir = new File(getScratchDirectoryPath("CouchbaseLite"));
-        deleteDatabase(dbName, dir);
-        assertFalse(Database.exists(dbName, dir));
-
-        // create db with custom directory
-        DatabaseConfiguration config = new DatabaseConfiguration().setDirectory(dir.getCanonicalPath());
-        Database db = new Database(dbName, config);
-        try {
-            assertNotNull(db);
-            assertEquals(dbName, db.getName());
-            assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2"));
-            assertTrue(new File(db.getPath()).getCanonicalPath().contains(dir.getPath()));
-            assertTrue(Database.exists(dbName, dir));
-            assertEquals(0, db.getCount());
-        }
-        finally {
-            eraseDatabase(db);
-            FileUtils.eraseFileOrDir(dir);
-        }
-    }
+// The rules in this test are:
+// baseTestDb is managed by the superclass
+// If a test opens a new database it guarantee that it is deleted.
+// If a test opens a copy of the baseTestDb, it must close (but NOT delete)
+public class DatabaseTest extends BaseDbTest {
+    private final static String DATABASE_TEST_BLOB = "i'm blob";
 
     //---------------------------------------------
     //  Get Document
     //---------------------------------------------
     @Test
     public void testGetNonExistingDocWithID() {
-        assertNull(db.getDocument("non-exist"));
+        assertNull(baseTestDb.getDocument("non-exist"));
     }
 
     @Test
     public void testGetExistingDocWithID() throws CouchbaseLiteException {
-        // store doc
-        String docID = "doc1";
-        generateDocument(docID);
-
-        // validate document by getDocument
+        final String docID = "doc1";
+        createDocInBaseTestDb(docID);
         verifyGetDocument(docID);
     }
 
@@ -215,62 +64,55 @@ public class DatabaseTest extends BaseTest {
     public void testGetExistingDocWithIDFromDifferentDBInstance() throws CouchbaseLiteException {
         // store doc
         String docID = "doc1";
-        generateDocument(docID);
+        createDocInBaseTestDb(docID);
 
         // open db with same db name and default option
-        Database otherDB = openDatabase(db.getName(), -1);
-        assertNotNull(otherDB);
-        assertNotSame(db, otherDB);
+        Database otherDb = openBaseTestDbCopy(0);
+        try {
+            assertNotSame(baseTestDb, otherDb);
 
-        // get doc from other DB.
-        assertEquals(1, otherDB.getCount());
+            // get doc from other DB.
+            assertEquals(1, otherDb.getCount());
 
-        verifyGetDocument(otherDB, docID);
-
-        otherDB.close();
+            verifyGetDocument(otherDb, docID);
+        }
+        finally {
+            closeDb(otherDb);
+        }
     }
 
     @Test
     public void testGetExistingDocWithIDInBatch() throws CouchbaseLiteException {
-        final int NUM_DOCS = 10;
+        final int n = 10;
 
         // Save 10 docs:
-        createDocs(NUM_DOCS);
+        createDocsInBaseTestDb(n);
 
-        db.inBatch(() -> validateDocs(NUM_DOCS));
+        baseTestDb.inBatch(() -> verifyDocuments(n));
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testGetDocFromClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        generateDocument("doc1");
+        createDocInBaseTestDb("doc1");
 
         // Close db:
-        db.close();
+        baseTestDb.close();
 
-        try {
-            Document doc = db.getDocument("doc1");
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        // should fail
+        baseTestDb.getDocument("doc1");
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testGetDocFromDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        generateDocument("doc1");
+        createDocInBaseTestDb("doc1");
 
-        // Close db:
-        eraseDatabase(db);
-        try {
-            Document doc = db.getDocument("doc1");
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        // Delete db:
+        baseTestDb.delete();
+
+        // should fail
+        baseTestDb.getDocument("doc1");
     }
 
     //---------------------------------------------
@@ -280,9 +122,9 @@ public class DatabaseTest extends BaseTest {
     // base test method
     private void testSaveNewDocWithID(String docID) throws CouchbaseLiteException {
         // store doc
-        generateDocument(docID);
+        createDocInBaseTestDb(docID);
 
-        assertEquals(1, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
 
         // validate document by getDocument
         verifyGetDocument(docID);
@@ -300,30 +142,27 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testSaveAndGetMultipleDocs() throws CouchbaseLiteException {
-        {
-            final int NUM_DOCS = 10;//1000;
-            for (int i = 0; i < NUM_DOCS; i++) {
-                MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
-                doc.setValue("key", i);
-                save(doc);
-            }
-            assertEquals(NUM_DOCS, db.getCount());
-            validateDocs(NUM_DOCS);
+        final int nDocs = 10; //1000;
+        for (int i = 0; i < nDocs; i++) {
+            MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
+            doc.setValue("key", i);
+            saveDocInBaseTestDb(doc);
         }
-        System.gc();
+        assertEquals(nDocs, baseTestDb.getCount());
+        verifyDocuments(nDocs);
     }
 
     @Test
     public void testSaveDoc() throws CouchbaseLiteException {
         // store doc
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
 
         // update doc
         doc.setValue("key", 2);
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
-        assertEquals(1, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
 
         // validate document by getDocument
         verifyGetDocument(docID, 2);
@@ -333,28 +172,20 @@ public class DatabaseTest extends BaseTest {
     public void testSaveDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
 
         // Create db with default
-        Database otherDB = openDatabase(db.getName(), -1);
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(1, otherDB.getCount());
-
-        // Update doc & store it into different instance
-        doc.setValue("key", 2);
-        CouchbaseLiteException exception = null;
+        Database otherDb = openBaseTestDbCopy();
         try {
-            otherDB.save(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
+            assertNotSame(otherDb, baseTestDb);
+            assertEquals(1, otherDb.getCount());
+
+            // Update doc & store it into different instance
+            doc.setValue("key", 2);
+            TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.INVALID_PARAMETER, () -> otherDb.save(doc));
         }
         finally {
-            // close otherDb
-            otherDB.close();
+            closeDb(otherDb);
         }
     }
 
@@ -362,77 +193,67 @@ public class DatabaseTest extends BaseTest {
     public void testSaveDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
 
         // Create db with default
-        Database otherDB = openDatabase("otherDB");
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(0, otherDB.getCount());
-
-        // Update doc & store it into different instance
-        doc.setValue("key", 2);
-        CouchbaseLiteException exception = null;
+        Database otherDb = openDatabase();
         try {
-            otherDB.save(doc);
-            fail();
+            assertNotSame(otherDb, baseTestDb);
+            assertEquals(0, otherDb.getCount());
+
+            // Update doc & store it into different instance
+            doc.setValue("key", 2);
+
+            TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.INVALID_PARAMETER, () -> otherDb.save(doc));
         }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
-        }
+
         finally {
             // delete otherDb
-            eraseDatabase(otherDB);
+            deleteDb(otherDb);
         }
     }
+
 
     @Test
     public void testSaveSameDocTwice() throws CouchbaseLiteException {
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
-        save(doc);
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        saveDocInBaseTestDb(doc);
         assertEquals(docID, doc.getId());
-        assertEquals(1, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
     }
 
     @Test
     public void testSaveInBatch() throws CouchbaseLiteException {
-        final int NUM_DOCS = 10;
+        final int nDocs = 10;
 
-        db.inBatch(() -> {
-            try { createDocs(NUM_DOCS); }
-            catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+        baseTestDb.inBatch(() -> {
+            try { createDocsInBaseTestDb(nDocs); }
+            catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
         });
-        assertEquals(NUM_DOCS, db.getCount());
-        validateDocs(NUM_DOCS);
+        assertEquals(nDocs, baseTestDb.getCount());
+        verifyDocuments(nDocs);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testSaveDocToClosedDB() throws CouchbaseLiteException {
-        db.close();
+        baseTestDb.close();
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("key", 1);
 
-        try {
-            save(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        saveDocInBaseTestDb(doc);
     }
 
-    @Test(expected = CouchbaseLiteException.class)
+    @Test(expected = IllegalStateException.class)
     public void testSaveDocToDeletedDB() throws CouchbaseLiteException {
         // Delete db:
-        Database.delete(db.getName(), db.getFilePath().getParentFile());
+        baseTestDb.delete();
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("key", 1);
 
-        save(doc);
+        saveDocInBaseTestDb(doc);
     }
 
     //---------------------------------------------
@@ -442,49 +263,40 @@ public class DatabaseTest extends BaseTest {
     public void testDeletePreSaveDoc() {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("key", 1);
-        try {
-            db.delete(doc);
-            fail("deleting unsaved doc should fail");
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Code.NOT_FOUND, e.getCode());
-        }
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.delete(doc));
     }
 
     @Test
     public void testDeleteDoc() throws CouchbaseLiteException {
         String docID = "doc1";
-        Document doc = generateDocument(docID);
-        db.delete(doc);
-        assertEquals(0, db.getCount());
-        assertNull(db.getDocument(docID));
+        Document doc = createDocInBaseTestDb(docID);
+        assertEquals(1, baseTestDb.getCount());
+        baseTestDb.delete(doc);
+        assertEquals(0, baseTestDb.getCount());
+        assertNull(baseTestDb.getDocument(docID));
     }
 
     @Test
     public void testDeleteDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Create db with same name:
         // Create db with default
-        Database otherDB = openDatabase(db.getName(), -1);
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(1, otherDB.getCount());
-
-        // Delete from the different db instance:
+        Database otherDb = openBaseTestDbCopy();
         try {
-            otherDB.delete(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
+            assertNotSame(otherDb, baseTestDb);
+            assertEquals(1, otherDb.getCount());
+
+            // Delete from the different db instance:
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.INVALID_PARAMETER,
+                () -> otherDb.delete(doc));
         }
         finally {
-            // close otherDb
-            otherDB.close();
+            closeDb(otherDb);
         }
     }
 
@@ -492,71 +304,66 @@ public class DatabaseTest extends BaseTest {
     public void testDeleteDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Create db with default
-        Database otherDB = openDatabase("otherDB");
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(0, otherDB.getCount());
-
-        // Delete from the different db:
+        Database otherDb = openDatabase();
         try {
-            otherDB.delete(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
+            assertNotSame(otherDb, baseTestDb);
+
+            // Delete from the different db:
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.INVALID_PARAMETER,
+                () -> otherDb.delete(doc));
         }
         finally {
-            // close otherDb
-            eraseDatabase(otherDB);
+            deleteDb(otherDb);
         }
     }
 
     @Test
     public void testDeleteDocInBatch() throws CouchbaseLiteException {
-        final int NUM_DOCS = 10;
+        final int nDocs = 10;
 
         // Save 10 docs:
-        createDocs(NUM_DOCS);
+        createDocsInBaseTestDb(nDocs);
 
-        db.inBatch(() -> {
-            for (int i = 0; i < NUM_DOCS; i++) {
+        baseTestDb.inBatch(() -> {
+            for (int i = 0; i < nDocs; i++) {
                 String docID = String.format(Locale.US, "doc_%03d", i);
-                Document doc = db.getDocument(docID);
-                try { db.delete(doc); }
-                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
-                assertNull(db.getDocument(docID));
-                assertEquals((9 - i), db.getCount());
+                Document doc = baseTestDb.getDocument(docID);
+                try { baseTestDb.delete(doc); }
+                catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
+                assertNull(baseTestDb.getDocument(docID));
+                assertEquals((9 - i), baseTestDb.getCount());
             }
         });
 
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = generateDocument("doc1");
+        Document doc = createDocInBaseTestDb("doc1");
 
         // Close db:
-        db.close();
+        baseTestDb.close();
 
         // Delete doc from db:
-        db.delete(doc);
+        baseTestDb.delete(doc);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = generateDocument("doc1");
+        Document doc = createDocInBaseTestDb("doc1");
 
-        eraseDatabase(db);
+        baseTestDb.delete();
 
         // Delete doc from db:
-        db.delete(doc);
+        baseTestDb.delete(doc);
     }
 
     //---------------------------------------------
@@ -565,50 +372,41 @@ public class DatabaseTest extends BaseTest {
     @Test
     public void testPurgePreSaveDoc() {
         MutableDocument doc = new MutableDocument("doc1");
-        try {
-            db.purge(doc);
-            fail("purging unsaved doc should fail");
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Code.NOT_FOUND, e.getCode());
-        }
-        assertEquals(0, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.purge(doc));
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test
     public void testPurgeDoc() throws CouchbaseLiteException {
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Purge Doc
         purgeDocAndVerify(doc);
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test
     public void testPurgeDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Create db with default:
-        Database otherDB = openDatabase(db.getName(), -1);
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(1, otherDB.getCount());
-
-        // purge document against other db instance:
+        Database otherDb = openBaseTestDbCopy();
         try {
-            otherDB.purge(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
+            assertNotSame(otherDb, baseTestDb);
+            assertEquals(1, otherDb.getCount());
+
+            // purge document against other db instance:
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.INVALID_PARAMETER,
+                () -> otherDb.purge(doc));
         }
         finally {
-            // close otherDb
-            otherDB.close();
+            closeDb(otherDb);
         }
     }
 
@@ -616,26 +414,22 @@ public class DatabaseTest extends BaseTest {
     public void testPurgeDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Create db with default:
-        Database otherDB = openDatabase("otherDB");
-        assertNotNull(otherDB);
-        assertNotSame(otherDB, db);
-        assertEquals(0, otherDB.getCount());
-
-        // Purge document against other db:
+        Database otherDb = openDatabase();
         try {
-            otherDB.purge(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.INVALID_PARAMETER, e.getCode());
+            assertNotSame(otherDb, baseTestDb);
+            assertEquals(0, otherDb.getCount());
+
+            // Purge document against other db:
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.INVALID_PARAMETER,
+                () -> otherDb.purge(doc));
         }
         finally {
-            // close otherDb
-            eraseDatabase(otherDB);
+            deleteDb(otherDb);
         }
     }
 
@@ -643,73 +437,61 @@ public class DatabaseTest extends BaseTest {
     public void testPurgeSameDocTwice() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // Get the document for the second purge:
-        Document doc1 = db.getDocument(docID);
+        Document doc1 = baseTestDb.getDocument(docID);
 
         // Purge the document first time:
         purgeDocAndVerify(doc);
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
 
         // Purge the document second time:
         purgeDocAndVerify(doc1);
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
     @Test
     public void testPurgeDocInBatch() throws CouchbaseLiteException {
-        final int NUM_DOCS = 10;
+        final int nDocs = 10;
         // Save 10 docs:
-        createDocs(NUM_DOCS);
+        createDocsInBaseTestDb(nDocs);
 
-        db.inBatch(() -> {
-            for (int i = 0; i < NUM_DOCS; i++) {
+        baseTestDb.inBatch(() -> {
+            for (int i = 0; i < nDocs; i++) {
                 String docID = String.format(Locale.US, "doc_%03d", i);
-                Document doc = db.getDocument(docID);
+                Document doc = baseTestDb.getDocument(docID);
                 try { purgeDocAndVerify(doc); }
-                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
-                assertEquals((9 - i), db.getCount());
+                catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
+                assertEquals((9 - i), baseTestDb.getCount());
             }
         });
 
-        assertEquals(0, db.getCount());
+        assertEquals(0, baseTestDb.getCount());
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testPurgeDocOnClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = generateDocument("doc1");
+        Document doc = createDocInBaseTestDb("doc1");
 
         // Close db:
-        db.close();
+        baseTestDb.close();
 
         // Purge doc:
-        try {
-            db.purge(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        baseTestDb.purge(doc);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testPurgeDocOnDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = generateDocument("doc1");
+        Document doc = createDocInBaseTestDb("doc1");
 
         // Close db:
-        eraseDatabase(db);
+        baseTestDb.close();
 
         // Purge doc:
-        try {
-            db.purge(doc);
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should be thrown IllegalStateException!!
-        }
+        baseTestDb.purge(doc);
     }
 
     //---------------------------------------------
@@ -717,13 +499,13 @@ public class DatabaseTest extends BaseTest {
     //---------------------------------------------
     @Test
     public void testClose() throws CouchbaseLiteException {
-        db.close();
+        baseTestDb.close();
     }
 
     @Test
     public void testCloseTwice() throws CouchbaseLiteException {
-        db.close();
-        db.close();
+        baseTestDb.close();
+        baseTestDb.close();
     }
 
     @Test
@@ -732,81 +514,83 @@ public class DatabaseTest extends BaseTest {
         String docID = "doc1";
         MutableDocument mDoc = new MutableDocument(docID);
         mDoc.setInt("key", 1);
+
         MutableDictionary mDict = new MutableDictionary(); // nested dictionary
         mDict.setString("hello", "world");
         mDoc.setDictionary("dict", mDict);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         // Close db:
-        db.close();
+        baseTestDb.close();
 
         // Content should be accessible & modifiable without error:
         assertEquals(docID, doc.getId());
         assertEquals(1, ((Number) doc.getValue("key")).intValue());
+
         Dictionary dict = doc.getDictionary("dict");
         assertNotNull(dict);
         assertEquals("world", dict.getString("hello"));
+
         MutableDocument updateDoc = doc.toMutable();
         updateDoc.setValue("key", 2);
         updateDoc.setValue("key1", "value");
+        assertEquals(2, updateDoc.getInt("key"));
+        assertEquals("value", updateDoc.getString("key1"));
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testCloseThenAccessBlob() throws CouchbaseLiteException {
         // Store doc with blob:
-        MutableDocument mDoc = generateDocument("doc1").toMutable();
+        MutableDocument mDoc = createDocInBaseTestDb("doc1").toMutable();
         mDoc.setValue("blob", new Blob("text/plain", DATABASE_TEST_BLOB.getBytes()));
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         // Close db:
-        db.close();
+        baseTestDb.close();
 
         // content should be accessible & modifiable without error
         assertTrue(doc.getValue("blob") instanceof Blob);
         Blob blob = doc.getBlob("blob");
         assertEquals(8, blob.length());
-        try {
-            blob.getContent();
-            fail();
-        }
-        catch (IllegalStateException expected) { }
+
+        // trying to get the content, however, should fail
+        blob.getContent();
     }
 
     @Test
     public void testCloseThenGetDatabaseName() throws CouchbaseLiteException {
-        db.close();
-        assertEquals("testdb", db.getName());
+        final String dbName = baseTestDb.getName();
+        baseTestDb.close();
+        assertEquals(dbName, baseTestDb.getName());
     }
 
     @Test
     public void testCloseThenGetDatabasePath() throws CouchbaseLiteException {
-        db.close();
-        assertNull(db.getPath());
+        baseTestDb.close();
+        assertNull(baseTestDb.getPath());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseThenCallInBatch() throws CouchbaseLiteException {
+        baseTestDb.close();
+        baseTestDb.inBatch(Assert::fail);
     }
 
     @Test
-    public void testCloseThenCallInBatch() throws CouchbaseLiteException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CouchbaseLiteException[] err = {null};
-        db.inBatch(() -> {
+    public void testCloseInInBatch() throws CouchbaseLiteException {
+        baseTestDb.inBatch(() -> {
             // delete db
-            try { db.close(); }
-            catch (CouchbaseLiteException e) { err[0] = e; }
-            latch.countDown();
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.TRANSACTION_NOT_CLOSED,
+                () -> baseTestDb.close());
         });
-
-        try { latch.await(2, TimeUnit.SECONDS); }
-        catch (InterruptedException ignore) { }
-
-        assertNotNull("close should fail", err[0]);
-        assertEquals(CBLError.Domain.CBLITE, err[0].getDomain());
-        assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, err[0].getCode()); // 26
     }
 
     @Test(expected = IllegalStateException.class)
     public void testCloseThenDeleteDatabase() throws CouchbaseLiteException {
-        db.close();
-        db.delete();
+        baseTestDb.close();
+        baseTestDb.delete();
     }
 
     //---------------------------------------------
@@ -814,33 +598,30 @@ public class DatabaseTest extends BaseTest {
     //---------------------------------------------
     @Test
     public void testDelete() throws CouchbaseLiteException {
-        eraseDatabase(db);
+        baseTestDb.delete();
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testDeleteTwice() throws CouchbaseLiteException {
         // delete db twice
-        File path = new File(db.getPath());
+        File path = new File(baseTestDb.getPath());
         assertTrue(path.exists());
-        db.delete();
-        try {
-            db.delete();
-            fail();
-        }
-        catch (IllegalStateException e) {
-            // should come here!
-        }
+
+        baseTestDb.delete();
         assertFalse(path.exists());
+
+        // second delete should fail
+        baseTestDb.delete();
     }
 
     @Test
     public void testDeleteThenAccessDoc() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
 
         // Delete db:
-        eraseDatabase(db);
+        baseTestDb.delete();
 
         // Content should be accessible & modifiable without error:
         assertEquals(docID, doc.getId());
@@ -853,72 +634,70 @@ public class DatabaseTest extends BaseTest {
     public void testDeleteThenAccessBlob() throws CouchbaseLiteException {
         // Store doc with blob:
         String docID = "doc1";
-        MutableDocument doc = generateDocument(docID).toMutable();
+        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
         doc.setValue("blob", new Blob("text/plain", DATABASE_TEST_BLOB.getBytes()));
-        save(doc);
+        saveDocInBaseTestDb(doc);
 
         // Delete db:
-        eraseDatabase(db);
+        baseTestDb.delete();
 
         // content should be accessible & modifiable without error
         Object obj = doc.getValue("blob");
         assertNotNull(obj);
+
         assertTrue(obj instanceof Blob);
         Blob blob = (Blob) obj;
         assertEquals(8, blob.length());
+
         // NOTE content still exists in memory for this case.
         assertNotNull(blob.getContent());
     }
 
     @Test
     public void testDeleteThenGetDatabaseName() throws CouchbaseLiteException {
-        // delete db
-        eraseDatabase(db);
+        final String dbName = baseTestDb.getName();
 
-        assertEquals("testdb", db.getName());
+        // delete db
+        baseTestDb.delete();
+
+        assertEquals(dbName, baseTestDb.getName());
     }
 
     @Test
     public void testDeleteThenGetDatabasePath() throws CouchbaseLiteException {
         // delete db
-        eraseDatabase(db);
+        baseTestDb.delete();
 
-        assertNull(db.getPath());
+        assertNull(baseTestDb.getPath());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testDeleteThenCallInBatch() throws CouchbaseLiteException {
+        baseTestDb.delete();
+        baseTestDb.inBatch(Assert::fail);
     }
 
     @Test
-    public void testDeleteThenCallInBatch() throws CouchbaseLiteException {
-        db.inBatch(() -> {
+    public void testDeleteInInBatch() throws CouchbaseLiteException {
+        baseTestDb.inBatch(() -> {
             // delete db
-            try {
-                db.delete();
-                fail();
-            }
-            catch (CouchbaseLiteException e) {
-                assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-                assertEquals(CBLError.Code.TRANSACTION_NOT_CLOSED, e.getCode()); // 26
-            }
+            TestUtils.assertThrowsCBL(
+                CBLError.Domain.CBLITE,
+                CBLError.Code.TRANSACTION_NOT_CLOSED,
+                () -> baseTestDb.close());
         });
     }
 
     @Test
     public void testDeleteDBOpenedByOtherInstance() throws CouchbaseLiteException {
-        Database otherDB = openDatabase(db.getName());
+        Database otherDb = openBaseTestDbCopy(0);
         try {
-            assertNotSame(db, otherDB);
-
+            assertNotSame(baseTestDb, otherDb);
             // delete db
-            try {
-                db.delete();
-                fail();
-            }
-            catch (CouchbaseLiteException e) {
-                assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-                assertEquals(CBLError.Code.BUSY, e.getCode()); // 24
-            }
+            TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.BUSY, () -> baseTestDb.delete());
         }
         finally {
-            otherDB.close();
+            closeDb(otherDb);
         }
     }
 
@@ -928,14 +707,14 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testDeleteWithDefaultDirDB() throws CouchbaseLiteException {
-        final String dbName = "db";
-        final Database database = new Database(dbName);
-        final File dbDir = new File(database.getPath());
+        final String dbName = baseTestDb.getName();
+
+        final File dbDir = new File(baseTestDb.getPath());
         try {
             assertNotNull(dbDir);
             assertTrue(dbDir.exists());
             // close db before delete
-            database.close();
+            baseTestDb.close();
 
             // Java/Android should not allow null as directory parameter
             try {
@@ -947,97 +726,81 @@ public class DatabaseTest extends BaseTest {
         }
         finally {
             Database.delete(dbName, dbDir.getParentFile());
-        }
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testDeleteOpeningDBWithDefaultDir() throws CouchbaseLiteException {
-        String dbName = "db";
-
-        // create db with custom directory
-        Database db = openDatabase(dbName);
-        try {
-            File path = new File(db.getPath());
-            assertNotNull(path);
-            assertTrue(path.exists());
-
-            // Java/Android does not allow null as directory parameter
-            Database.delete(dbName, null);
-        }
-        finally {
-            db.delete();
+            assertFalse(dbDir.exists());
         }
     }
 
     @Test
-    public void testDeleteByStaticMethod() throws CouchbaseLiteException {
-        String dbName = "db";
+    public void testDeleteOpenDbWithDefaultDir() throws CouchbaseLiteException {
+        File path = new File(baseTestDb.getPath());
+        assertNotNull(path);
+        assertTrue(path.exists());
 
-        String dbDirPath = getScratchDirectoryPath("testing");
-        File dbDirFile = new File(dbDirPath);
-        FileUtils.deleteContents(dbDirFile);
-
-        // create db in a custom directory
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(dbDirPath);
-
-        Database db = new Database(dbName, config);
-        File path = new File(db.getPath());
-
-        // close db before delete
-        db.close();
-
-        Database.delete(dbName, dbDirFile);
-
+        Database.delete(baseTestDb.getName(), null);
         assertFalse(path.exists());
     }
 
     @Test
-    public void testDeleteOpeningDBByStaticMethod() throws CouchbaseLiteException {
-        Database db = openDatabase("db");
-        File dbDir = db.getFilePath().getParentFile();
+    public void testStaticDeleteDb() throws CouchbaseLiteException {
+        final String uniqueName = getUniqueName();
+
+        final String dbDirPath = getScratchDirectoryPath(uniqueName);
+        final File dbDirFile = new File(dbDirPath);
+
+        // create db in a custom directory
+        final DatabaseConfiguration config = new DatabaseConfiguration();
+        config.setDirectory(dbDirPath);
+
+
+        final Database db = new Database(uniqueName, config);
         try {
-            try {
-                Database.delete("db", dbDir);
-                fail();
-            }
-            catch (CouchbaseLiteException e) {
-                assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-                assertEquals(CBLError.Code.BUSY, e.getCode()); // 24
-            }
+            final File path = new File(db.getPath());
+            assertNotNull(path);
+            assertTrue(path.exists());
+
+            // close db before delete
+            db.close();
+
+            Database.delete(uniqueName, dbDirFile);
+            assertFalse(path.exists());
         }
         finally {
-            eraseDatabase(db);
+            deleteDb(db);
         }
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testDeleteNonExistingDBWithDefaultDir() {
-        try { Database.delete("notexistdb", null); }
-        catch (CouchbaseLiteException ignored) { }
-        fail();
     }
 
     @Test
-    public void testDeleteNonExistingDB() {
+    public void testDeleteOpeningDBByStaticMethod() throws CouchbaseLiteException {
+        Database db = openBaseTestDbCopy();
+        final String dbName = db.getName();
+        final File dbDir = db.getFilePath().getParentFile();
+
         try {
-            Database.delete("notexistdb", new File(getScratchDirectoryPath("nowhere")));
-            fail();
+            TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.BUSY, () -> Database.delete(dbName, dbDir));
         }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.NOT_FOUND, e.getCode());
+        finally {
+            closeDb(db);
         }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeleteNonExistingDBWithDefaultDir() throws CouchbaseLiteException {
+        Database.delete("notexistdb", baseTestDb.getFilePath());
+    }
+
+    @Test
+    public void testDeleteNonExistingDB() throws CouchbaseLiteException {
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.NOT_FOUND,
+            () -> Database.delete(baseTestDb.getName(), new File(getScratchDirectoryPath("nowhere"))));
     }
 
     // NOTE: Android/Java does not allow to use null as directory parameters
-    //       This test is not valid for Android Java. Will keep this test
-    //       for unit test consistency with other platforms
     @Test(expected = IllegalArgumentException.class)
     public void testDatabaseExistsWithDefaultDir() {
-        Database.exists("db", null);
+        Database.exists(baseTestDb.getName(), null);
     }
-
 
     //---------------------------------------------
     //  Database Existing
@@ -1045,86 +808,92 @@ public class DatabaseTest extends BaseTest {
 
     @Test
     public void testDatabaseExistsWithDir() throws CouchbaseLiteException {
-        String dbDirPath = getScratchDirectoryPath("test");
-        File dbDir = new File(dbDirPath);
-        dbDir.mkdirs();
+        final String uniqueName = getUniqueName();
+
+        final String dbDirPath = getScratchDirectoryPath(uniqueName);
+        final File dbDir = new File(dbDirPath);
+        assertTrue(dbDir.mkdirs());
         assertTrue(dbDir.exists());
 
-        assertFalse(Database.exists("db", dbDir));
+        assertFalse(Database.exists(uniqueName, dbDir));
 
         // create db with custom directory
-        Database db = new Database("db", new DatabaseConfiguration().setDirectory(dbDirPath));
-        String dbPath = db.getPath();
+        final Database db = new Database(uniqueName, new DatabaseConfiguration().setDirectory(dbDirPath));
+        final File dbPath = db.getFilePath();
+        try {
+            assertTrue(Database.exists(uniqueName, dbDir));
 
-        assertTrue(Database.exists("db", dbDir));
+            db.close();
+            assertTrue(Database.exists(uniqueName, dbDir));
 
-        db.close();
-        assertTrue(Database.exists("db", dbDir));
+            Database.delete(uniqueName, dbDir);
+            assertFalse(Database.exists(uniqueName, dbDir));
 
-        Database.delete("db", dbDir);
-        assertFalse(new File(dbPath).exists());
-        assertFalse(Database.exists("db", dbDir));
+            assertFalse(dbPath.exists());
+        }
+        finally {
+            deleteDb(db);
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testDatabaseExistsAgainstNonExistDBWithDefaultDir() {
-        Database.exists("notexistdb", null);
+        Database.exists("notexistdb", baseTestDb.getFilePath());
     }
 
     @Test
     public void testDatabaseExistsAgainstNonExistDB() {
-        assertFalse(Database.exists("nonexist", new File(getScratchDirectoryPath("nowhere"))));
+        assertFalse(Database.exists(baseTestDb.getName(), new File(getScratchDirectoryPath("nowhere"))));
     }
 
     @Test
     public void testCompact() throws CouchbaseLiteException {
-        final int NUM_DOCS = 20;
-        final int NUM_UPDATES = 25;
-        final List<String> docIDs = createDocs(NUM_DOCS);
+        final int nDocs = 20;
+        final int nUpdates = 25;
+
+        final List<String> docIDs = createDocsInBaseTestDb(nDocs);
 
         // Update each doc 25 times:
-        db.inBatch(() -> {
+        baseTestDb.inBatch(() -> {
             for (String docID : docIDs) {
-                Document savedDoc = db.getDocument(docID);
-                for (int i = 0; i < NUM_UPDATES; i++) {
+                Document savedDoc = baseTestDb.getDocument(docID);
+                for (int i = 0; i < nUpdates; i++) {
                     MutableDocument doc = savedDoc.toMutable();
                     doc.setValue("number", i);
-                    try { savedDoc = save(doc); }
-                    catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+                    try { savedDoc = saveDocInBaseTestDb(doc); }
+                    catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
                 }
             }
         });
 
         // Add each doc with a blob object:
         for (String docID : docIDs) {
-            MutableDocument doc = db.getDocument(docID).toMutable();
+            MutableDocument doc = baseTestDb.getDocument(docID).toMutable();
             doc.setValue("blob", new Blob("text/plain", doc.getId().getBytes()));
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
 
-        assertEquals(NUM_DOCS, db.getCount());
+        assertEquals(nDocs, baseTestDb.getCount());
 
-        File attsDir = new File(db.getPath(), "Attachments");
+        File attsDir = new File(baseTestDb.getPath(), "Attachments");
         assertTrue(attsDir.exists());
         assertTrue(attsDir.isDirectory());
-        File[] atts = attsDir.listFiles();
-        assertEquals(NUM_DOCS, atts.length);
+        assertEquals(nDocs, attsDir.listFiles().length);
 
         // Compact:
-        db.compact();
+        baseTestDb.compact();
+        assertEquals(nDocs, attsDir.listFiles().length);
 
         // Delete all docs:
         for (String docID : docIDs) {
-            Document savedDoc = db.getDocument(docID);
-            db.delete(savedDoc);
-            assertNull(db.getDocument(docID));
+            Document savedDoc = baseTestDb.getDocument(docID);
+            baseTestDb.delete(savedDoc);
+            assertNull(baseTestDb.getDocument(docID));
         }
 
         // Compact:
-        db.compact();
-
-        atts = attsDir.listFiles();
-        assertEquals(0, atts.length);
+        baseTestDb.compact();
+        assertEquals(0, attsDir.listFiles().length);
     }
 
     // REF: https://github.com/couchbase/couchbase-lite-android/issues/1231
@@ -1132,133 +901,128 @@ public class DatabaseTest extends BaseTest {
     public void testOverwriteDocWithNewDocInstgance() throws CouchbaseLiteException {
         MutableDocument mDoc1 = new MutableDocument("abc");
         mDoc1.setValue("someKey", "someVar");
-        Document doc1 = save(mDoc1);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
 
         // This cause conflict, DefaultConflictResolver should be applied.
         MutableDocument mDoc2 = new MutableDocument("abc");
         mDoc2.setValue("someKey", "newVar");
-        Document doc2 = save(mDoc2);
+        Document doc2 = saveDocInBaseTestDb(mDoc2);
 
         // NOTE: Both doc1 and doc2 are generation 1. Higher revision one should win
-        assertEquals(1, db.getCount());
-        Document doc = db.getDocument("abc");
+        assertEquals(1, baseTestDb.getCount());
+        Document doc = baseTestDb.getDocument("abc");
         assertNotNull(doc);
         // NOTE doc1 -> theirs, doc2 -> mine
-        if (doc2.getRevisionID().compareTo(doc1.getRevisionID()) > 0)
-        // mine -> doc 2 win
-        { assertEquals("newVar", doc.getString("someKey")); }
-        else
-        // their -> doc 1 win
-        { assertEquals("someVar", doc.getString("someKey")); }
+        if (doc2.getRevisionID().compareTo(doc1.getRevisionID()) > 0) {
+            // mine -> doc 2 win
+            assertEquals("newVar", doc.getString("someKey"));
+        }
+        else {
+            // their -> doc 1 win
+            assertEquals("someVar", doc.getString("someKey"));
+        }
     }
 
     @Test
     public void testCopy() throws CouchbaseLiteException {
-        final int NUM_DOCS = 10;
-        for (int i = 0; i < NUM_DOCS; i++) {
+        final int nDocs = 10;
+        for (int i = 0; i < nDocs; i++) {
             String docID = "doc_" + i;
             MutableDocument doc = new MutableDocument(docID);
             doc.setValue("name", docID);
             byte[] data = docID.getBytes();
             Blob blob = new Blob("text/plain", data);
             doc.setValue("data", blob);
-            save(doc);
+            saveDocInBaseTestDb(doc);
         }
 
-        String dbName = "nudb";
-        DatabaseConfiguration config = db.getConfig();
-        File dir = new File(config.getDirectory());
+        final DatabaseConfiguration config = baseTestDb.getConfig();
 
-        // Make sure no an existing database at the new location:
-        if (Database.exists(dbName, dir)) { Database.delete(dbName, dir); }
+        String dbName = getUniqueName();
 
         // Copy:
-        Database.copy(new File(db.getPath()), dbName, config);
+        Database.copy(new File(baseTestDb.getPath()), dbName, config);
 
         // Verify:
-        assertTrue(Database.exists(dbName, dir));
+        assertTrue(Database.exists(dbName, new File(config.getDirectory())));
 
         Database nudb = new Database(dbName, config);
-        assertNotNull(nudb);
-        assertEquals(NUM_DOCS, nudb.getCount());
+        try {
+            assertNotNull(nudb);
+            assertEquals(nDocs, nudb.getCount());
 
-        SelectResult S_DOCID = SelectResult.expression(Meta.id);
-        Query query = QueryBuilder.select(S_DOCID).from(DataSource.database(nudb));
+            ResultSet rs = QueryBuilder.select(SelectResult.expression(Meta.id))
+                .from(DataSource.database(nudb))
+                .execute();
 
-        ResultSet rs = query.execute();
-        for (Result r : rs) {
-            String docID = r.getString(0);
-            assertNotNull(docID);
+            for (Result r : rs) {
+                String docID = r.getString(0);
+                assertNotNull(docID);
 
-            Document doc = nudb.getDocument(docID);
-            assertNotNull(doc);
-            assertEquals(docID, doc.getString("name"));
+                Document doc = nudb.getDocument(docID);
+                assertNotNull(doc);
+                assertEquals(docID, doc.getString("name"));
 
-            Blob blob = doc.getBlob("data");
-            assertNotNull(blob);
+                Blob blob = doc.getBlob("data");
+                assertNotNull(blob);
 
-            String data = new String(blob.getContent());
-            assertEquals(docID, data);
+                assertEquals(docID, new String(blob.getContent()));
+            }
         }
-
-        // Clean up:
-        nudb.close();
-        Database.delete(dbName, dir);
+        finally {
+            closeDb(nudb);
+        }
     }
 
     @Test
     public void testCreateIndex() throws CouchbaseLiteException {
-        assertEquals(0, db.getIndexes().size());
+        assertEquals(0, baseTestDb.getIndexes().size());
 
-        // Create value index:
-        ValueIndexItem fNameItem = ValueIndexItem.property("firstName");
-        ValueIndexItem lNameItem = ValueIndexItem.property("lastName");
-
-        Index index1 = IndexBuilder.valueIndex(fNameItem, lNameItem);
-        db.createIndex("index1", index1);
-        assertEquals(1, db.getIndexes().size());
+        baseTestDb.createIndex(
+            "index1",
+            IndexBuilder.valueIndex(
+                ValueIndexItem.property("firstName"),
+                ValueIndexItem.property("lastName")));
+        assertEquals(1, baseTestDb.getIndexes().size());
 
         // Create FTS index:
-        FullTextIndexItem detailItem = FullTextIndexItem.property("detail");
-        Index index2 = IndexBuilder.fullTextIndex(detailItem);
-        db.createIndex("index2", index2);
-        assertEquals(2, db.getIndexes().size());
+        baseTestDb.createIndex("index2", IndexBuilder.fullTextIndex(FullTextIndexItem.property("detail")));
+        assertEquals(2, baseTestDb.getIndexes().size());
 
-        FullTextIndexItem detailItem2 = FullTextIndexItem.property("es-detail");
-        FullTextIndex index3 = IndexBuilder.fullTextIndex(detailItem2).ignoreAccents(true).setLanguage("es");
-        db.createIndex("index3", index3);
-        assertEquals(3, db.getIndexes().size());
-        assertEquals(Arrays.asList("index1", "index2", "index3"), db.getIndexes());
+        baseTestDb.createIndex(
+            "index3",
+            IndexBuilder.fullTextIndex(FullTextIndexItem.property("es-detail")).ignoreAccents(true).setLanguage("es"));
+        assertEquals(3, baseTestDb.getIndexes().size());
 
         // Create value index with expression() instead of property()
-        Expression fNameExpr = Expression.property("firstName");
-        Expression lNameExpr = Expression.property("lastName");
-        ValueIndexItem fNameItem2 = ValueIndexItem.expression(fNameExpr);
-        ValueIndexItem lNameItem2 = ValueIndexItem.expression(lNameExpr);
-        Index index4 = IndexBuilder.valueIndex(fNameItem2, lNameItem2);
-        db.createIndex("index4", index4);
-        assertEquals(4, db.getIndexes().size());
+        baseTestDb.createIndex(
+            "index4",
+            IndexBuilder.valueIndex(
+                ValueIndexItem.expression(Expression.property("firstName")),
+                ValueIndexItem.expression(Expression.property("lastName"))));
+        assertEquals(4, baseTestDb.getIndexes().size());
+
+        assertEquals(Arrays.asList("index1", "index2", "index3", "index4"), baseTestDb.getIndexes());
     }
 
-    @Test
-    public void testIndexBuilderEmptyArgs() {
-        assertThrows(IllegalArgumentException.class, () -> IndexBuilder.fullTextIndex((FullTextIndexItem[]) null));
+    @Test(expected = IllegalArgumentException.class)
+    public void testIndexBuilderEmptyArg1() { IndexBuilder.fullTextIndex((FullTextIndexItem[]) null); }
 
-        assertThrows(IllegalArgumentException.class, () -> IndexBuilder.valueIndex((ValueIndexItem[]) null));
-    }
+    @Test(expected = IllegalArgumentException.class)
+    public void testIndexBuilderEmptyArg2() { IndexBuilder.valueIndex((ValueIndexItem[]) null); }
 
     @Test
     public void testCreateSameIndexTwice() throws CouchbaseLiteException {
         // Create index with first name:
         ValueIndexItem indexItem = ValueIndexItem.property("firstName");
         Index index = IndexBuilder.valueIndex(indexItem);
-        db.createIndex("myindex", index);
+        baseTestDb.createIndex("myindex", index);
 
         // Call create index again:
-        db.createIndex("myindex", index);
+        baseTestDb.createIndex("myindex", index);
 
-        assertEquals(1, db.getIndexes().size());
-        assertEquals(Arrays.asList("myindex"), db.getIndexes());
+        assertEquals(1, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("myindex"), baseTestDb.getIndexes());
     }
 
     @Test
@@ -1269,23 +1033,23 @@ public class DatabaseTest extends BaseTest {
 
         // Create value index with first name:
         Index fNameindex = IndexBuilder.valueIndex(fNameItem);
-        db.createIndex("myindex", fNameindex);
+        baseTestDb.createIndex("myindex", fNameindex);
 
         // Create value index with last name:
         ValueIndex lNameindex = IndexBuilder.valueIndex(lNameItem);
-        db.createIndex("myindex", lNameindex);
+        baseTestDb.createIndex("myindex", lNameindex);
 
         // Check:
-        assertEquals(1, db.getIndexes().size());
-        assertEquals(Arrays.asList("myindex"), db.getIndexes());
+        assertEquals(1, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("myindex"), baseTestDb.getIndexes());
 
         // Create FTS index:
         Index detailIndex = IndexBuilder.fullTextIndex(detailItem);
-        db.createIndex("myindex", detailIndex);
+        baseTestDb.createIndex("myindex", detailIndex);
 
         // Check:
-        assertEquals(1, db.getIndexes().size());
-        assertEquals(Arrays.asList("myindex"), db.getIndexes());
+        assertEquals(1, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("myindex"), baseTestDb.getIndexes());
     }
 
     @Test
@@ -1294,88 +1058,97 @@ public class DatabaseTest extends BaseTest {
 
         // Delete indexes:
 
-        db.deleteIndex("index4");
-        assertEquals(3, db.getIndexes().size());
-        assertEquals(Arrays.asList("index1", "index2", "index3"), db.getIndexes());
+        baseTestDb.deleteIndex("index4");
+        assertEquals(3, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("index1", "index2", "index3"), baseTestDb.getIndexes());
 
-        db.deleteIndex("index1");
-        assertEquals(2, db.getIndexes().size());
-        assertEquals(Arrays.asList("index2", "index3"), db.getIndexes());
+        baseTestDb.deleteIndex("index1");
+        assertEquals(2, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("index2", "index3"), baseTestDb.getIndexes());
 
-        db.deleteIndex("index2");
-        assertEquals(1, db.getIndexes().size());
-        assertEquals(Arrays.asList("index3"), db.getIndexes());
+        baseTestDb.deleteIndex("index2");
+        assertEquals(1, baseTestDb.getIndexes().size());
+        assertEquals(Arrays.asList("index3"), baseTestDb.getIndexes());
 
-        db.deleteIndex("index3");
-        assertEquals(0, db.getIndexes().size());
-        assertEquals(Arrays.asList(), db.getIndexes());
+        baseTestDb.deleteIndex("index3");
+        assertEquals(0, baseTestDb.getIndexes().size());
+        assertTrue(baseTestDb.getIndexes().isEmpty());
 
         // Delete non existing index:
-        db.deleteIndex("dummy");
+        baseTestDb.deleteIndex("dummy");
 
         // Delete deleted indexes:
-        db.deleteIndex("index1");
-        db.deleteIndex("index2");
-        db.deleteIndex("index3");
-        db.deleteIndex("index4");
+        baseTestDb.deleteIndex("index1");
+        baseTestDb.deleteIndex("index2");
+        baseTestDb.deleteIndex("index3");
+        baseTestDb.deleteIndex("index4");
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1416
     @Test
     public void testDeleteAndOpenDB() throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
+        final String dbName = getUniqueName();
+        final DatabaseConfiguration config = new DatabaseConfiguration();
 
-        // open "application" database
-        final Database database1 = new Database("application", config);
+        Database database1 = null;
+        Database database2 = null;
+        try {
+            // open a database
+            database1 = new Database(dbName, config);
 
-        // delete "application" database
-        database1.delete();
+            // delete it
+            database1.delete();
 
-        // open "application" database again
-        final Database database2 = new Database("application", config);
+            // open it again
+            database2 = new Database(dbName, config);
 
-        // inserting documents
-        database2.inBatch(() -> {
-            // just create 100 documents
-            for (int i = 0; i < 100; i++) {
-                MutableDocument doc = new MutableDocument();
+            // inserting documents
+            final Database db = database2;
+            database2.inBatch(() -> {
+                // just create 100 documents
+                for (int i = 0; i < 100; i++) {
+                    MutableDocument doc = new MutableDocument();
 
-                // each doc has 10 items
-                doc.setInt("index", i);
-                for (int j = 0; j < 10; j++) { doc.setInt("item_" + j, j); }
+                    // each doc has 10 items
+                    doc.setInt("index", i);
+                    for (int j = 0; j < 10; j++) { doc.setInt("item_" + j, j); }
 
-                try { database2.save(doc); }
-                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
-            }
-        });
+                    try { db.save(doc); }
+                    catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
+                }
+            });
 
-        // close db again
-        database2.close();
+            // close db again
+            database2.close();
+        }
+        finally {
+            deleteDb(database1);
+            deleteDb(database2);
+        }
     }
 
     @Test
     public void testSaveAndUpdateMutableDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setString("firstName", "Daniel");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         // Update:
         doc.setString("lastName", "Tiger");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         // Update:
         doc.setLong("age", 20L); // Int vs Long assertEquals can not ignore diff.
-        db.save(doc);
-
+        baseTestDb.save(doc);
+        assertEquals(3, doc.getSequence());
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("firstName", "Daniel");
         expected.put("lastName", "Tiger");
         expected.put("age", 20L);
         assertEquals(expected, doc.toMap());
-        assertEquals(3, doc.getSequence());
 
-        Document savedDoc = db.getDocument(doc.getId());
+        Document savedDoc = baseTestDb.getDocument(doc.getId());
         assertEquals(expected, savedDoc.toMap());
         assertEquals(3, savedDoc.getSequence());
     }
@@ -1386,45 +1159,10 @@ public class DatabaseTest extends BaseTest {
         testSaveDocWithConflictUsingConcurrencyControl(ConcurrencyControl.FAIL_ON_CONFLICT);
     }
 
-    void testSaveDocWithConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument("doc1");
-        doc.setString("firstName", "Daniel");
-        doc.setString("lastName", "Tiger");
-        db.save(doc);
-
-        // Get two doc1 document objects (doc1a and doc1b):
-        MutableDocument doc1a = db.getDocument("doc1").toMutable();
-        MutableDocument doc1b = db.getDocument("doc1").toMutable();
-
-        // Modify doc1a:
-        doc1a.setString("firstName", "Scott");
-        db.save(doc1a);
-        doc1a.setString("nickName", "Scotty");
-        db.save(doc1a);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("firstName", "Scott");
-        expected.put("lastName", "Tiger");
-        expected.put("nickName", "Scotty");
-        assertEquals(expected, doc1a.toMap());
-        assertEquals(3, doc1a.getSequence());
-
-        // Modify doc1b, result to conflict when save:
-        doc1b.setString("lastName", "Lion");
-        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
-            assertTrue(db.save(doc1b, cc));
-            Document savedDoc = db.getDocument(doc.getId());
-            assertEquals(doc1b.toMap(), savedDoc.toMap());
-            assertEquals(4, savedDoc.getSequence());
-        }
-        else {
-            assertFalse(db.save(doc1b, cc));
-            Document savedDoc = db.getDocument(doc.getId());
-            assertEquals(expected, savedDoc.toMap());
-            assertEquals(3, savedDoc.getSequence());
-        }
-
-        recreateDB();
+    @Test
+    public void testDeleteDocWithConflict() throws CouchbaseLiteException {
+        testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl.LAST_WRITE_WINS);
+        testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl.FAIL_ON_CONFLICT);
     }
 
     @Test
@@ -1433,70 +1171,10 @@ public class DatabaseTest extends BaseTest {
         testSaveDocWithNoParentConflictUsingConcurrencyControl(ConcurrencyControl.FAIL_ON_CONFLICT);
     }
 
-    void testSaveDocWithNoParentConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
-        MutableDocument doc1a = new MutableDocument("doc1");
-        doc1a.setString("firstName", "Daniel");
-        doc1a.setString("lastName", "Tiger");
-        db.save(doc1a);
-
-        Document savedDoc = db.getDocument(doc1a.getId());
-        assertEquals(doc1a.toMap(), savedDoc.toMap());
-        assertEquals(1, savedDoc.getSequence());
-
-        MutableDocument doc1b = new MutableDocument("doc1");
-        doc1b.setString("firstName", "Scott");
-        doc1b.setString("lastName", "Tiger");
-        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
-            assertTrue(db.save(doc1b, cc));
-            savedDoc = db.getDocument(doc1b.getId());
-            assertEquals(doc1b.toMap(), savedDoc.toMap());
-            assertEquals(2, savedDoc.getSequence());
-        }
-        else {
-            assertFalse(db.save(doc1b, cc));
-            savedDoc = db.getDocument(doc1b.getId());
-            assertEquals(doc1a.toMap(), savedDoc.toMap());
-            assertEquals(1, savedDoc.getSequence());
-        }
-
-        recreateDB();
-    }
-
     @Test
     public void testSaveDocWithDeletedConflict() throws CouchbaseLiteException {
         testSaveDocWithDeletedConflictUsingConcurrencyControl(ConcurrencyControl.LAST_WRITE_WINS);
         testSaveDocWithDeletedConflictUsingConcurrencyControl(ConcurrencyControl.FAIL_ON_CONFLICT);
-    }
-
-    void testSaveDocWithDeletedConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument("doc1");
-        doc.setString("firstName", "Daniel");
-        doc.setString("lastName", "Tiger");
-        db.save(doc);
-
-        // Get two doc1 document objects (doc1a and doc1b):
-        Document doc1a = db.getDocument("doc1");
-        MutableDocument doc1b = db.getDocument("doc1").toMutable();
-
-        // Delete doc1a:
-        db.delete(doc1a);
-        assertEquals(2, doc1a.getSequence());
-        assertNull(db.getDocument(doc.getId()));
-
-        // Modify doc1b, result to conflict when save:
-        doc1b.setString("lastName", "Lion");
-        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
-            assertTrue(db.save(doc1b, cc));
-            Document savedDoc = db.getDocument(doc.getId());
-            assertEquals(doc1b.toMap(), savedDoc.toMap());
-            assertEquals(3, savedDoc.getSequence());
-        }
-        else {
-            assertFalse(db.save(doc1b, cc));
-            assertNull(db.getDocument(doc.getId()));
-        }
-
-        recreateDB();
     }
 
     @Test
@@ -1504,21 +1182,22 @@ public class DatabaseTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setString("firstName", "Daniel");
         doc.setString("lastName", "Tiger");
-        db.save(doc);
+        baseTestDb.save(doc);
 
-        db.delete(doc);
+        baseTestDb.delete(doc);
         assertEquals(2, doc.getSequence());
-        assertNull(db.getDocument(doc.getId()));
+        assertNull(baseTestDb.getDocument(doc.getId()));
 
         doc.setString("firstName", "Scott");
-        db.save(doc);
+        baseTestDb.save(doc);
         assertEquals(3, doc.getSequence());
+
         Map<String, Object> expected = new HashMap<>();
         expected.put("firstName", "Scott");
         expected.put("lastName", "Tiger");
         assertEquals(expected, doc.toMap());
 
-        Document savedDoc = db.getDocument(doc.getId());
+        Document savedDoc = baseTestDb.getDocument(doc.getId());
         assertNotNull(savedDoc);
         assertEquals(expected, savedDoc.toMap());
     }
@@ -1528,88 +1207,40 @@ public class DatabaseTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setString("firstName", "Daniel");
         doc.setString("lastName", "Tiger");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         // Get two doc1 document objects (doc1a and doc1b):
-        Document doc1a = db.getDocument("doc1");
-        MutableDocument doc1b = db.getDocument("doc1").toMutable();
+        Document doc1a = baseTestDb.getDocument("doc1");
+        MutableDocument doc1b = baseTestDb.getDocument("doc1").toMutable();
 
         // Delete doc1a:
-        db.delete(doc1a);
+        baseTestDb.delete(doc1a);
         assertEquals(2, doc1a.getSequence());
-        assertNull(db.getDocument(doc.getId()));
+        assertNull(baseTestDb.getDocument(doc.getId()));
 
         // Delete doc1b:
-        db.delete(doc1b);
+        baseTestDb.delete(doc1b);
         assertEquals(2, doc1b.getSequence());
-        assertNull(db.getDocument(doc.getId()));
+        assertNull(baseTestDb.getDocument(doc.getId()));
     }
 
-    @Test
-    public void testDeleteDocWithConflict() throws CouchbaseLiteException {
-        testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl.LAST_WRITE_WINS);
-        testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl.FAIL_ON_CONFLICT);
-    }
-
-    void testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument("doc1");
-        doc.setString("firstName", "Daniel");
-        doc.setString("lastName", "Tiger");
-        db.save(doc);
-
-        // Get two doc1 document objects (doc1a and doc1b):
-        MutableDocument doc1a = db.getDocument("doc1").toMutable();
-        MutableDocument doc1b = db.getDocument("doc1").toMutable();
-
-
-        // Modify doc1a:
-        doc1a.setString("firstName", "Scott");
-        db.save(doc1a);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("firstName", "Scott");
-        expected.put("lastName", "Tiger");
-        assertEquals(expected, doc1a.toMap());
-        assertEquals(2, doc1a.getSequence());
-
-        // Modify doc1b and delete, result to conflict when delete:
-        doc1b.setString("lastName", "Lion");
-        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
-            assertTrue(db.delete(doc1b, cc));
-            assertEquals(3, doc1b.getSequence());
-            assertNull(db.getDocument(doc1b.getId()));
-        }
-        else {
-            assertFalse(db.delete(doc1b, cc));
-            Document savedDoc = db.getDocument(doc.getId());
-            assertEquals(expected, savedDoc.toMap());
-            assertEquals(2, savedDoc.getSequence());
-        }
-
-        recreateDB();
-    }
+    ///////////////////////////////  H E R E   ! ! ! !
 
     @Test
     public void testDeleteNonExistingDoc() throws CouchbaseLiteException {
-        Document doc1a = generateDocument("doc1");
-        Document doc1b = db.getDocument("doc1");
+        Document doc1a = createDocInBaseTestDb("doc1");
+        Document doc1b = baseTestDb.getDocument("doc1");
 
         // purge doc
-        db.purge(doc1a);
-        assertEquals(0, db.getCount());
-        assertNull(db.getDocument(doc1a.getId()));
+        baseTestDb.purge(doc1a);
+        assertEquals(0, baseTestDb.getCount());
+        assertNull(baseTestDb.getDocument(doc1a.getId()));
 
-        try {
-            db.delete(doc1a);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            if (e.getCode() != CBLError.Code.NOT_FOUND) { fail(); }
-        }
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.delete(doc1a));
 
-        db.delete(doc1b);
-        assertEquals(0, db.getCount());
-        assertNull(db.getDocument(doc1b.getId()));
+        baseTestDb.delete(doc1b);
+        assertEquals(0, baseTestDb.getCount());
+        assertNull(baseTestDb.getDocument(doc1b.getId()));
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1652
@@ -1618,50 +1249,88 @@ public class DatabaseTest extends BaseTest {
         // 1. save
         MutableDocument mdoc = new MutableDocument("doc");
         mdoc.setBoolean("updated", false);
-        db.save(mdoc);
+        baseTestDb.save(mdoc);
+
+        Document doc = baseTestDb.getDocument("doc");
 
         // 2. update
-        Document doc = db.getDocument("doc");
         mdoc = doc.toMutable();
         mdoc.setBoolean("updated", true);
-        db.save(mdoc);
+        baseTestDb.save(mdoc);
 
-        // 3. delete by previously retrived document
-        db.delete(doc);
-        assertNull(db.getDocument("doc"));
+        // 3. delete by previously retrieved document
+        baseTestDb.delete(doc);
+        assertNull(baseTestDb.getDocument("doc"));
     }
+
+    private Database openDatabase() throws CouchbaseLiteException { return verifyDb(createDb()); }
 
     // helper method to open database
-    private Database openDatabase(String dbName) throws CouchbaseLiteException {
-        return openDatabase(dbName, 0);
+    private Database openBaseTestDbCopy() throws CouchbaseLiteException {
+        return openBaseTestDbCopy(-1);
     }
 
-    private Database openDatabase(String dbName, int count) throws CouchbaseLiteException {
-        Database db = new Database(dbName);
-        assertEquals(dbName, db.getName());
+    private Database openBaseTestDbCopy(int count) throws CouchbaseLiteException {
+        return reopenDatabase(baseTestDb.getName(), count);
+    }
 
-        try { assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2")); }
-        catch (IOException e) { throw new RuntimeException("Unable to get db path", e); }
+    // This method opens a *named* database.  Use with extreme caution.
+    private Database reopenDatabase(String dbName, int count) throws CouchbaseLiteException {
+        Database db = verifyDb(new Database(dbName));
 
-        if (count >= 0) { assertEquals(count, db.getCount()); }
+        final long actualCount = db.getCount();
+        if (count != actualCount) {
+            deleteDb(db);
+            fail("Unexpected database count: " + count + " <> " + actualCount);
+        }
 
         return db;
     }
 
-    // helper methods to verify getDoc
-    private void verifyGetDocument(String docID) {
-        verifyGetDocument(docID, 1);
+    private Database verifyDb(Database db) throws CouchbaseLiteException {
+        final String dbName = db.getName();
+        try {
+            assertNotNull(db);
+            assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2"));
+
+            return db;
+        }
+        catch (IOException e) {
+            deleteDb(db);
+            throw new AssertionError("Unable to get db path", e);
+        }
+        catch (AssertionError e) {
+            deleteDb(db);
+            throw e;
+        }
+    }
+
+    // helper method to save n number of docs
+    private List<String> createDocsInBaseTestDb(int n) throws CouchbaseLiteException {
+        List<String> docs = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
+            doc.setValue("key", i);
+            Document savedDoc = saveDocInBaseTestDb(doc);
+            docs.add(savedDoc.getId());
+        }
+        assertEquals(n, baseTestDb.getCount());
+        return docs;
+    }
+
+    // helper method to verify n number of docs
+    private void verifyDocuments(int n) {
+        for (int i = 0; i < n; i++) { verifyGetDocument(String.format(Locale.US, "doc_%03d", i), i); }
     }
 
     // helper methods to verify getDoc
-    private void verifyGetDocument(String docID, int value) {
-        verifyGetDocument(db, docID, value);
-    }
+    private void verifyGetDocument(String docID) { verifyGetDocument(docID, 1); }
 
     // helper methods to verify getDoc
-    private void verifyGetDocument(Database db, String docID) {
-        verifyGetDocument(db, docID, 1);
-    }
+    private void verifyGetDocument(String docID, int value) { verifyGetDocument(baseTestDb, docID, value); }
+
+    // helper methods to verify getDoc
+    private void verifyGetDocument(Database db, String docID) { verifyGetDocument(db, docID, 1); }
 
     // helper methods to verify getDoc
     private void verifyGetDocument(Database db, String docID, int value) {
@@ -1674,27 +1343,148 @@ public class DatabaseTest extends BaseTest {
     // helper method to purge doc and verify doc.
     private void purgeDocAndVerify(Document doc) throws CouchbaseLiteException {
         String docID = doc.getId();
-        db.purge(doc);
-        assertNull(db.getDocument(docID));
+        baseTestDb.purge(doc);
+        assertNull(baseTestDb.getDocument(docID));
     }
 
-    // helper method to save n number of docs
-    private List<String> createDocs(int n) throws CouchbaseLiteException {
-        List<String> docs = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            MutableDocument doc = new MutableDocument(String.format(Locale.US, "doc_%03d", i));
-            doc.setValue("key", i);
-            Document savedDoc = save(doc);
-            docs.add(savedDoc.getId());
+    private void testSaveDocWithConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument("doc1");
+        doc.setString("firstName", "Daniel");
+        doc.setString("lastName", "Tiger");
+        baseTestDb.save(doc);
+
+        // Get two doc1 document objects (doc1a and doc1b):
+        MutableDocument doc1a = baseTestDb.getDocument("doc1").toMutable();
+        MutableDocument doc1b = baseTestDb.getDocument("doc1").toMutable();
+
+        // Modify doc1a:
+        doc1a.setString("firstName", "Scott");
+        baseTestDb.save(doc1a);
+        doc1a.setString("nickName", "Scotty");
+        baseTestDb.save(doc1a);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("firstName", "Scott");
+        expected.put("lastName", "Tiger");
+        expected.put("nickName", "Scotty");
+        assertEquals(expected, doc1a.toMap());
+        assertEquals(3, doc1a.getSequence());
+
+        // Modify doc1b, result to conflict when save:
+        doc1b.setString("lastName", "Lion");
+        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
+            assertTrue(baseTestDb.save(doc1b, cc));
+            Document savedDoc = baseTestDb.getDocument(doc.getId());
+            assertEquals(doc1b.toMap(), savedDoc.toMap());
+            assertEquals(4, savedDoc.getSequence());
         }
-        assertEquals(n, db.getCount());
-        return docs;
+        else {
+            assertFalse(baseTestDb.save(doc1b, cc));
+            Document savedDoc = baseTestDb.getDocument(doc.getId());
+            assertEquals(expected, savedDoc.toMap());
+            assertEquals(3, savedDoc.getSequence());
+        }
+
+        recreateDB();
     }
 
-    // helper method to verify n number of docs
-    private void validateDocs(int n) {
-        for (int i = 0; i < n; i++) {
-            verifyGetDocument(String.format(Locale.US, "doc_%03d", i), i);
+    private void testSaveDocWithDeletedConflictUsingConcurrencyControl(ConcurrencyControl cc)
+        throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument("doc1");
+        doc.setString("firstName", "Daniel");
+        doc.setString("lastName", "Tiger");
+        baseTestDb.save(doc);
+
+        // Get two doc1 document objects (doc1a and doc1b):
+        Document doc1a = baseTestDb.getDocument("doc1");
+        MutableDocument doc1b = baseTestDb.getDocument("doc1").toMutable();
+
+        // Delete doc1a:
+        baseTestDb.delete(doc1a);
+        assertEquals(2, doc1a.getSequence());
+        assertNull(baseTestDb.getDocument(doc.getId()));
+
+        // Modify doc1b, result to conflict when save:
+        doc1b.setString("lastName", "Lion");
+        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
+            assertTrue(baseTestDb.save(doc1b, cc));
+            Document savedDoc = baseTestDb.getDocument(doc.getId());
+            assertEquals(doc1b.toMap(), savedDoc.toMap());
+            assertEquals(3, savedDoc.getSequence());
         }
+        else {
+            assertFalse(baseTestDb.save(doc1b, cc));
+            assertNull(baseTestDb.getDocument(doc.getId()));
+        }
+
+        recreateDB();
     }
+
+    private void testSaveDocWithNoParentConflictUsingConcurrencyControl(ConcurrencyControl cc)
+        throws CouchbaseLiteException {
+        MutableDocument doc1a = new MutableDocument("doc1");
+        doc1a.setString("firstName", "Daniel");
+        doc1a.setString("lastName", "Tiger");
+        baseTestDb.save(doc1a);
+
+        Document savedDoc = baseTestDb.getDocument(doc1a.getId());
+        assertEquals(doc1a.toMap(), savedDoc.toMap());
+        assertEquals(1, savedDoc.getSequence());
+
+        MutableDocument doc1b = new MutableDocument("doc1");
+        doc1b.setString("firstName", "Scott");
+        doc1b.setString("lastName", "Tiger");
+        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
+            assertTrue(baseTestDb.save(doc1b, cc));
+            savedDoc = baseTestDb.getDocument(doc1b.getId());
+            assertEquals(doc1b.toMap(), savedDoc.toMap());
+            assertEquals(2, savedDoc.getSequence());
+        }
+        else {
+            assertFalse(baseTestDb.save(doc1b, cc));
+            savedDoc = baseTestDb.getDocument(doc1b.getId());
+            assertEquals(doc1a.toMap(), savedDoc.toMap());
+            assertEquals(1, savedDoc.getSequence());
+        }
+
+        recreateDB();
+    }
+
+    private void testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument("doc1");
+        doc.setString("firstName", "Daniel");
+        doc.setString("lastName", "Tiger");
+        baseTestDb.save(doc);
+
+        // Get two doc1 document objects (doc1a and doc1b):
+        MutableDocument doc1a = baseTestDb.getDocument("doc1").toMutable();
+        MutableDocument doc1b = baseTestDb.getDocument("doc1").toMutable();
+
+        // Modify doc1a:
+        doc1a.setString("firstName", "Scott");
+        baseTestDb.save(doc1a);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("firstName", "Scott");
+        expected.put("lastName", "Tiger");
+        assertEquals(expected, doc1a.toMap());
+        assertEquals(2, doc1a.getSequence());
+
+        // Modify doc1b and delete, result to conflict when delete:
+        doc1b.setString("lastName", "Lion");
+        if (cc == ConcurrencyControl.LAST_WRITE_WINS) {
+            assertTrue(baseTestDb.delete(doc1b, cc));
+            assertEquals(3, doc1b.getSequence());
+            assertNull(baseTestDb.getDocument(doc1b.getId()));
+        }
+        else {
+            assertFalse(baseTestDb.delete(doc1b, cc));
+            Document savedDoc = baseTestDb.getDocument(doc.getId());
+            assertEquals(expected, savedDoc.toMap());
+            assertEquals(2, savedDoc.getSequence());
+        }
+
+        recreateDB();
+    }
+
 }

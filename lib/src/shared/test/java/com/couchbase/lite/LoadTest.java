@@ -33,7 +33,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
-public class LoadTest extends BaseTest {
+public class LoadTest extends BaseDbTest {
     private static final int ITERATIONS = 2000;
 
     interface VerifyBlock {
@@ -47,7 +47,7 @@ public class LoadTest extends BaseTest {
         final String tag = "Create";
         createDocumentNSave(tag, ITERATIONS);
         verifyByTagName(tag, ITERATIONS);
-        assertEquals(ITERATIONS, db.getCount());
+        assertEquals(ITERATIONS, baseTestDb.getCount());
 
         logPerformanceStats("testCreate()", (System.currentTimeMillis() - start));
     }
@@ -70,7 +70,7 @@ public class LoadTest extends BaseTest {
         // create doc
         createDocumentNSave(docID, tag);
 
-        Document doc = db.getDocument(docID);
+        Document doc = baseTestDb.getDocument(docID);
         assertNotNull(doc);
         assertEquals(docID, doc.getId());
         assertEquals(tag, doc.getString("tag"));
@@ -80,7 +80,7 @@ public class LoadTest extends BaseTest {
         updateDoc(doc, ITERATIONS, tag);
 
         // check document
-        doc = db.getDocument(docID);
+        doc = baseTestDb.getDocument(docID);
         assertNotNull(doc);
         assertEquals(docID, doc.getId());
         assertEquals(tag, doc.getString("tag"));
@@ -107,7 +107,7 @@ public class LoadTest extends BaseTest {
 
         // read the doc n times
         for (int i = 0; i < ITERATIONS; i++) {
-            Document doc = db.getDocument(docID);
+            Document doc = baseTestDb.getDocument(docID);
             assertNotNull(doc);
             assertEquals(docID, doc.getId());
             assertEquals(tag, doc.getString("tag"));
@@ -127,12 +127,12 @@ public class LoadTest extends BaseTest {
         for (int i = 0; i < ITERATIONS; i++) {
             String docID = String.format(Locale.ENGLISH, "doc-%010d", i);
             createDocumentNSave(docID, tag);
-            assertEquals(1, db.getCount());
-            Document doc = db.getDocument(docID);
+            assertEquals(1, baseTestDb.getCount());
+            Document doc = baseTestDb.getDocument(docID);
             assertNotNull(doc);
             assertEquals(tag, doc.getString("tag"));
-            db.delete(doc);
-            assertEquals(0, db.getCount());
+            baseTestDb.delete(doc);
+            assertEquals(0, baseTestDb.getCount());
         }
 
         logPerformanceStats("testDelete()", (System.currentTimeMillis() - start));
@@ -154,14 +154,14 @@ public class LoadTest extends BaseTest {
                 doc.setInt(String.valueOf(j), j);
             }
             try {
-                db.save(doc);
+                baseTestDb.save(doc);
             }
             catch (CouchbaseLiteException e) {
                 Report.log(LogLevel.ERROR, "Failed to save", e);
             }
         }
 
-        assertEquals(ITERATIONS, db.getCount());
+        assertEquals(ITERATIONS, baseTestDb.getCount());
 
         logPerformanceStats("testGlobalReferenceExcceded()", (System.currentTimeMillis() - start));
     }
@@ -174,7 +174,7 @@ public class LoadTest extends BaseTest {
         Map<String, Object> map = new HashMap<>();
         map.put("ID", "doc1");
         mDoc.setValue("map", map);
-        save(mDoc);
+        saveDocInBaseTestDb(mDoc);
 
         long start = System.currentTimeMillis();
 
@@ -189,14 +189,14 @@ public class LoadTest extends BaseTest {
     }
 
     private boolean updateMap(Map map, int i, long l) {
-        Document doc = db.getDocument(map.get("ID").toString());
+        Document doc = baseTestDb.getDocument(map.get("ID").toString());
         if (doc == null) { return false; }
         MutableDocument newDoc = doc.toMutable();
         newDoc.setValue("map", map);
         newDoc.setInt("int", i);
         newDoc.setLong("long", l);
         try {
-            db.save(newDoc);
+            baseTestDb.save(newDoc);
         }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "DB is not responding", e);
@@ -207,7 +207,7 @@ public class LoadTest extends BaseTest {
 
     private void addRevisions(final int revisions, final boolean retriveNewDoc) {
         try {
-            db.inBatch(new Runnable() {
+            baseTestDb.inBatch(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -220,7 +220,7 @@ public class LoadTest extends BaseTest {
                     }
                 }
             });
-            Document doc = db.getDocument("doc");
+            Document doc = baseTestDb.getDocument("doc");
             assertEquals(revisions - 1, doc.getInt("count")); // start from 0.
         }
         catch (CouchbaseLiteException e) {
@@ -231,7 +231,7 @@ public class LoadTest extends BaseTest {
     private void updateDoc(MutableDocument doc, final int revisions) throws CouchbaseLiteException {
         for (int i = 0; i < revisions; i++) {
             doc.setValue("count", i);
-            db.save(doc);
+            baseTestDb.save(doc);
             System.gc();
         }
     }
@@ -239,8 +239,8 @@ public class LoadTest extends BaseTest {
     private void updateDocWithGetDocument(MutableDocument doc, final int revisions) throws CouchbaseLiteException {
         for (int i = 0; i < revisions; i++) {
             doc.setValue("count", i);
-            db.save(doc);
-            doc = db.getDocument("doc").toMutable();
+            baseTestDb.save(doc);
+            doc = baseTestDb.getDocument("doc").toMutable();
         }
     }
 
@@ -281,7 +281,7 @@ public class LoadTest extends BaseTest {
 
     private void createDocumentNSave(String id, String tag) throws CouchbaseLiteException {
         MutableDocument doc = createDocumentWithTag(id, tag);
-        db.save(doc);
+        baseTestDb.save(doc);
     }
 
     private void createDocumentNSave(String tag, int nDocs) throws CouchbaseLiteException {
@@ -314,14 +314,14 @@ public class LoadTest extends BaseTest {
 
             mDoc.setValue("updated", new Date());
 
-            tmpDoc = save(mDoc);
+            tmpDoc = saveDocInBaseTestDb(mDoc);
         }
         return tmpDoc;
     }
 
     private void verifyByTagName(String tag, VerifyBlock block) throws CouchbaseLiteException {
         Query query = QueryBuilder.select(SelectResult.expression(Meta.id))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(Expression.property("tag").equalTo(Expression.string(tag)));
         int n = 0;
         for (Result row : query.execute()) { block.verify(++n, row); }

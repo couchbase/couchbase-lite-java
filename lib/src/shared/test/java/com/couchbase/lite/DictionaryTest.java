@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class DictionaryTest extends BaseTest {
+public class DictionaryTest extends BaseDbTest {
     @Test
     public void testCreateDictionary() throws CouchbaseLiteException {
         MutableDictionary address = new MutableDictionary();
@@ -47,7 +47,7 @@ public class DictionaryTest extends BaseTest {
         mDoc.setValue("address", address);
         assertEquals(address, mDoc.getDictionary("address"));
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         assertEquals(new HashMap<String, Object>(), doc.getDictionary("address").toMap());
     }
 
@@ -68,7 +68,7 @@ public class DictionaryTest extends BaseTest {
         mDoc1.setValue("address", address);
         assertEquals(address, mDoc1.getDictionary("address"));
 
-        Document doc1 = save(mDoc1);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
         assertEquals(dict, doc1.getDictionary("address").toMap());
     }
 
@@ -92,7 +92,7 @@ public class DictionaryTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("dict", mDict);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Dictionary dict = doc.getDictionary("dict");
 
@@ -142,7 +142,7 @@ public class DictionaryTest extends BaseTest {
         dict.put("level3", l3);
         assertEquals(dict, doc.toMap());
 
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
 
         assertTrue(level1 != savedDoc.getDictionary("level1"));
         assertEquals(dict, savedDoc.toMap());
@@ -184,7 +184,7 @@ public class DictionaryTest extends BaseTest {
         assertEquals("4", mDict4.getString("name"));
 
         // after save
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Array array = doc.getArray("array");
         assertEquals(4, array.count());
@@ -224,7 +224,7 @@ public class DictionaryTest extends BaseTest {
         assertTrue(null == profile2.getValue("age"));
 
         // Save:
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
 
         assertTrue(profile2 != savedDoc.getDictionary("profile"));
         Dictionary savedDict = savedDoc.getDictionary("profile");
@@ -253,7 +253,7 @@ public class DictionaryTest extends BaseTest {
         assertEquals("Daniel Tiger", doc.getValue("profile"));
 
         // Save
-        Document savedDoc = save(doc);
+        Document savedDoc = saveDocInBaseTestDb(doc);
         assertEquals("Daniel Tiger", savedDoc.getValue("profile"));
     }
 
@@ -280,7 +280,7 @@ public class DictionaryTest extends BaseTest {
         assertNull(doc.getValue("profile"));
 
         // Save:
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
 
         assertNull(doc.getValue("profile"));
         assertFalse(doc.contains("profile"));
@@ -320,7 +320,7 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("dict", dict);
-        save(doc, doc1 -> {
+        saveDocInBaseTestDb(doc, doc1 -> {
             Map<String, Object> result1 = new HashMap<>();
             int count1 = 0;
             Dictionary dictObj = doc1.getDictionary("dict");
@@ -355,7 +355,7 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("dict", dict);
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         dict = doc.getDictionary("dict");
 
         itr = dict.iterator();
@@ -383,7 +383,7 @@ public class DictionaryTest extends BaseTest {
         doc.setValue("num1", num1);
         doc.setValue("num2", num2);
         doc.setValue("num3", num3);
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         assertEquals(num1, doc.getLong("num1"));
         assertEquals(num2, doc.getLong("num2"));
         assertEquals(num3, doc.getLong("num3"));
@@ -397,7 +397,7 @@ public class DictionaryTest extends BaseTest {
         long num2 = 231548688L;
         doc.setValue("num1", num1);
         doc.setValue("num2", num2);
-        doc = save(doc).toMutable();
+        doc = saveDocInBaseTestDb(doc).toMutable();
         assertEquals(num1, doc.getLong("num1"));
         assertEquals(num2, doc.getLong("num2"));
     }
@@ -413,7 +413,7 @@ public class DictionaryTest extends BaseTest {
         mDict.setArray("array-null", null);
         mDict.setDictionary("dict-null", null);
         mDoc.setDictionary("dict", mDict);
-        save(mDoc, doc -> {
+        saveDocInBaseTestDb(mDoc, doc -> {
             assertEquals(1, doc.count());
             assertTrue(doc.contains("dict"));
             Dictionary d = doc.getDictionary("dict");
@@ -469,7 +469,7 @@ public class DictionaryTest extends BaseTest {
         mDoc.setDictionary("dict4", mDict4);
         mDoc.setDictionary("dict5", mDict5);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Dictionary dict1 = doc.getDictionary("dict1");
         Dictionary dict2 = doc.getDictionary("dict2");
         Dictionary dict3 = doc.getDictionary("dict3");
@@ -604,7 +604,7 @@ public class DictionaryTest extends BaseTest {
         mDoc.setDictionary("dict4", mDict4);
         mDoc.setDictionary("dict5", mDict5);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Dictionary dict1 = doc.getDictionary("dict1");
         Dictionary dict2 = doc.getDictionary("dict2");
         Dictionary dict3 = doc.getDictionary("dict3");
@@ -664,7 +664,7 @@ public class DictionaryTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("test");
         mDoc.setDictionary("dict", mDict);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Dictionary dict = doc.getDictionary("dict");
 
         assertNotNull(dict);
@@ -692,7 +692,7 @@ public class DictionaryTest extends BaseTest {
         MutableDocument mDoc = new MutableDocument("test");
         mDoc.setValue("array", mArray);
 
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
         Array array = doc.getArray("array");
 
         assertNotNull(array);
@@ -716,13 +716,13 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("dict", mDict);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Dictionary dict = doc.getDictionary("dict");
 
         mDoc = doc.toMutable();
         mDoc.setValue("dict2", dict);
-        doc = save(mDoc);
+        doc = saveDocInBaseTestDb(mDoc);
 
         dict = doc.getDictionary("dict2");
         assertEquals(1, dict.count());
@@ -737,13 +737,13 @@ public class DictionaryTest extends BaseTest {
 
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setValue("array", mArray);
-        Document doc = save(mDoc);
+        Document doc = saveDocInBaseTestDb(mDoc);
 
         Array array = doc.getArray("array");
 
         mDoc = doc.toMutable();
         mDoc.setValue("array2", array);
-        doc = save(mDoc);
+        doc = saveDocInBaseTestDb(mDoc);
 
         array = doc.getArray("array2");
         assertEquals(2, array.count());

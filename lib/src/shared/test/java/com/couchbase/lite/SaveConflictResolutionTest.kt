@@ -27,7 +27,7 @@ private const val docID = "doc1"
 
 
 // These tests are largely translations of Jay Vavachan's Obj-C tests
-class SaveConflictResolutionTests : BaseTest() {
+class SaveConflictResolutionTests : BaseDbTest() {
 
     /**
      * 1. Test conflict handler that just returns true without modifying the document.
@@ -38,21 +38,21 @@ class SaveConflictResolutionTests : BaseTest() {
     fun testConflictHandler() {
         val doc = MutableDocument(docID)
         doc.setString("location", "Olympia")
-        save(doc)
+        saveDocInBaseTestDb(doc)
 
-        assertEquals(1, db.getDocument(docID).generation())
+        assertEquals(1, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
         doc1a.setString("artist", "Sheep Jones")
-        db.save(doc1a)
+        baseTestDb.save(doc1a)
 
-        assertEquals(2, db.getDocument(docID).generation())
+        assertEquals(2, baseTestDb.getDocument(docID).generation())
 
         doc1b.setString("artist", "Holly Sears")
 
-        var succeeded = db.save(doc1b) { cur: MutableDocument, old: Document? ->
+        var succeeded = baseTestDb.save(doc1b) { cur: MutableDocument, old: Document? ->
             assertEquals(doc1b, cur)
             assertEquals(doc1a, old)
             assertEquals(2L, cur.generation())
@@ -61,21 +61,21 @@ class SaveConflictResolutionTests : BaseTest() {
         }
         assertTrue(succeeded)
 
-        val newDoc = db.getDocument(docID)
+        val newDoc = baseTestDb.getDocument(docID)
         assertEquals(doc1b, newDoc)
         assertEquals(3L, newDoc.generation())
 
-        val doc1c = db.getDocument(docID).toMutable()
-        val doc1d = db.getDocument(docID).toMutable()
+        val doc1c = baseTestDb.getDocument(docID).toMutable()
+        val doc1d = baseTestDb.getDocument(docID).toMutable()
 
         doc1c.setString("artist", "Marjorie Morgan")
-        db.save(doc1c)
+        baseTestDb.save(doc1c)
 
-        assertEquals(4L, db.getDocument(docID).generation())
+        assertEquals(4L, baseTestDb.getDocument(docID).generation())
 
         doc1d.setString("artist", "G. Charnelet-Vasselon")
 
-        succeeded = db.save(doc1d) { cur: MutableDocument, old: Document? ->
+        succeeded = baseTestDb.save(doc1d) { cur: MutableDocument, old: Document? ->
             assertEquals(doc1d, cur)
             assertEquals(doc1c, old)
             assertEquals(4L, cur.generation())
@@ -85,7 +85,7 @@ class SaveConflictResolutionTests : BaseTest() {
         }
         assertTrue(succeeded)
 
-        val curDoc = db.getDocument(docID)
+        val curDoc = baseTestDb.getDocument(docID)
         assertEquals("Olympia", curDoc.getString("location"))
         assertEquals("Sheep Jones", curDoc.getString("artist"))
         assertEquals(5L, curDoc.generation())
@@ -99,23 +99,23 @@ class SaveConflictResolutionTests : BaseTest() {
     fun testCancelConflictHandler() {
         val doc = MutableDocument(docID)
         doc.setString("location", "Olympia")
-        save(doc)
+        saveDocInBaseTestDb(doc)
 
-        assertEquals(1, db.getDocument(docID).generation())
+        assertEquals(1, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
         doc1a.setString("artist", "Sheep Jones")
-        db.save(doc1a)
+        baseTestDb.save(doc1a)
 
-        assertEquals(2, db.getDocument(docID).generation())
+        assertEquals(2, baseTestDb.getDocument(docID).generation())
 
         doc1b.setString("artist", "Holly Sears")
 
         var succeeded = false
         try {
-            succeeded = db.save(doc1b) { cur: MutableDocument, old: Document? ->
+            succeeded = baseTestDb.save(doc1b) { cur: MutableDocument, old: Document? ->
                 assertEquals(doc1b, cur)
                 assertEquals(doc1a, old)
                 false
@@ -126,25 +126,25 @@ class SaveConflictResolutionTests : BaseTest() {
         }
         assertFalse(succeeded)
 
-        val curDoc = db.getDocument(docID)
+        val curDoc = baseTestDb.getDocument(docID)
         assertEquals(curDoc, doc1a)
 
         // make sure no update to revision and generation
         assertEquals(doc1a.revisionID, curDoc.revisionID)
         assertEquals(2, curDoc.generation())
 
-        val doc1c = db.getDocument(docID).toMutable()
-        val doc1d = db.getDocument(docID).toMutable()
+        val doc1c = baseTestDb.getDocument(docID).toMutable()
+        val doc1d = baseTestDb.getDocument(docID).toMutable()
 
         doc1c.setString("artist", "Marjorie Morgan")
-        db.save(doc1c)
+        baseTestDb.save(doc1c)
 
-        assertEquals(3, db.getDocument(docID).generation())
+        assertEquals(3, baseTestDb.getDocument(docID).generation())
 
         doc1d.setString("artist", "G. Charnelet-Vasselon")
 
         try {
-            succeeded = db.save(doc1d) { cur, _ ->
+            succeeded = baseTestDb.save(doc1d) { cur, _ ->
                 cur.setString("artist", "Holly Sears")
                 false
             }
@@ -155,7 +155,7 @@ class SaveConflictResolutionTests : BaseTest() {
         assertFalse(succeeded)
 
         // make sure no update to revision and generation
-        val newDoc = db.getDocument(docID)
+        val newDoc = baseTestDb.getDocument(docID)
         assertEquals(newDoc, doc1c)
         assertEquals(doc1c.revisionID, newDoc.revisionID)
         assertEquals(3, newDoc.generation())
@@ -169,25 +169,25 @@ class SaveConflictResolutionTests : BaseTest() {
      */
     @Test
     fun testConflictHandlerWithDeletedOldDoc1() {
-        generateDocument(docID)
+        createDocInBaseTestDb(docID)
 
-        assertEquals(1, db.getDocument(docID).generation())
+        assertEquals(1, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID)
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID)
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
-        db.delete(doc1a, ConcurrencyControl.LAST_WRITE_WINS)
+        baseTestDb.delete(doc1a, ConcurrencyControl.LAST_WRITE_WINS)
 
         doc1b.setString("location", "Olympia")
 
-        val succeeded = db.save(doc1b) { cur: MutableDocument, old: Document? ->
+        val succeeded = baseTestDb.save(doc1b) { cur: MutableDocument, old: Document? ->
             assertNotNull(cur)
             assertNull(old)
             true
         }
         assertTrue(succeeded)
 
-        assertEquals(doc1b, db.getDocument(docID))
+        assertEquals(doc1b, baseTestDb.getDocument(docID))
     }
 
     /**
@@ -198,20 +198,20 @@ class SaveConflictResolutionTests : BaseTest() {
      */
     @Test
     fun testConflictHandlerWithDeletedOldDoc2() {
-        generateDocument(docID)
+        createDocInBaseTestDb(docID)
 
-        assertEquals(1, db.getDocument(docID).generation())
+        assertEquals(1, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
-        db.delete(doc1a, ConcurrencyControl.LAST_WRITE_WINS)
+        baseTestDb.delete(doc1a, ConcurrencyControl.LAST_WRITE_WINS)
 
         doc1b.setString("location", "Olympia")
 
         var succeeded = false
         try {
-            succeeded = db.save(doc1b) { cur: MutableDocument, old: Document? ->
+            succeeded = baseTestDb.save(doc1b) { cur: MutableDocument, old: Document? ->
                 assertNull(old)
                 assertNotNull(cur)
                 false
@@ -222,9 +222,9 @@ class SaveConflictResolutionTests : BaseTest() {
         }
         assertFalse(succeeded)
 
-        assertNull(db.getDocument(docID))
+        assertNull(baseTestDb.getDocument(docID))
 
-        val c4doc = db.c4Database.get(docID, false)
+        val c4doc = baseTestDb.c4Database.get(docID, false)
         assertNotNull(c4doc)
         assertTrue(c4doc.deleted())
     }
@@ -236,23 +236,23 @@ class SaveConflictResolutionTests : BaseTest() {
     fun testConflictHandlerThrowsException() {
         val doc = MutableDocument(docID)
         doc.setString("location", "Olympia")
-        save(doc)
+        saveDocInBaseTestDb(doc)
 
-        assertEquals(1L, db.getDocument(docID).generation())
+        assertEquals(1L, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
         doc1a.setString("artist", "Sheep Jones")
-        db.save(doc1a)
+        baseTestDb.save(doc1a)
 
-        assertEquals(2L, db.getDocument(docID).generation())
+        assertEquals(2L, baseTestDb.getDocument(docID).generation())
 
         doc1b.setString("artist", "Holly Sears")
 
         var succeeded = false
         try {
-            succeeded = db.save(doc1b) { _: MutableDocument, _: Document? -> throw IllegalStateException("freak out!") }
+            succeeded = baseTestDb.save(doc1b) { _: MutableDocument, _: Document? -> throw IllegalStateException("freak out!") }
             fail("save should not succeed!")
         } catch (err: CouchbaseLiteException) {
             assertEquals(CBLError.Code.CONFLICT, err.code)
@@ -260,8 +260,8 @@ class SaveConflictResolutionTests : BaseTest() {
         }
         assertFalse(succeeded)
 
-        assertEquals(doc1a, db.getDocument(docID))
-        assertEquals(2L, db.getDocument(docID).generation())
+        assertEquals(doc1a, baseTestDb.getDocument(docID))
+        assertEquals(2L, baseTestDb.getDocument(docID).generation())
     }
 
     /**
@@ -275,30 +275,30 @@ class SaveConflictResolutionTests : BaseTest() {
     fun testCancelConflictHandlerCalledTwice() {
         val doc = MutableDocument(docID)
         doc.setString("location", "Olympia")
-        save(doc)
+        saveDocInBaseTestDb(doc)
 
-        assertEquals(1, db.getDocument(docID).generation())
+        assertEquals(1, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
-        val doc1b = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
+        val doc1b = baseTestDb.getDocument(docID).toMutable()
 
         doc1a.setString("artist", "Sheep Jones")
-        db.save(doc1a)
+        baseTestDb.save(doc1a)
 
-        assertEquals(2, db.getDocument(docID).generation())
+        assertEquals(2, baseTestDb.getDocument(docID).generation())
 
         doc1b.setString("artist", "Holly Sears")
 
         var count = 0
-        var succeeded = db.save(doc1b) { cur: MutableDocument, old: Document? ->
+        var succeeded = baseTestDb.save(doc1b) { cur: MutableDocument, old: Document? ->
             count++
-            val doc1c = db.getDocument(docID).toMutable()
+            val doc1c = baseTestDb.getDocument(docID).toMutable()
             if (!doc1c.getBoolean("second update")) {
                 assertEquals(2L, cur.generation())
                 assertEquals(2L, old?.generation())
                 doc1c.setBoolean("second update", true)
-                save(doc1c)
-                assertEquals(3L, db.getDocument(docID).generation())
+                saveDocInBaseTestDb(doc1c)
+                assertEquals(3L, baseTestDb.getDocument(docID).generation())
             }
             val data = old?.toMap()?.toMutableMap() ?: mutableMapOf()
             for (key in cur.keys) { data[key] = cur.getValue(key) }
@@ -310,7 +310,7 @@ class SaveConflictResolutionTests : BaseTest() {
 
         assertEquals(2, count)
 
-        val newDoc = db.getDocument(docID)
+        val newDoc = baseTestDb.getDocument(docID)
         assertEquals(4, newDoc.generation())
         assertEquals(newDoc.getString("location"), "Olympia")
         assertEquals(newDoc.getString("artist"), "Holly Sears")
@@ -326,19 +326,19 @@ class SaveConflictResolutionTests : BaseTest() {
     fun testConflictHandlerWhenDocumentIsPurged() {
         val doc = MutableDocument(docID)
         doc.setString("location", "Olympia")
-        save(doc)
+        saveDocInBaseTestDb(doc)
 
-        assertEquals(1L, db.getDocument(docID).generation())
+        assertEquals(1L, baseTestDb.getDocument(docID).generation())
 
-        val doc1a = db.getDocument(docID).toMutable()
+        val doc1a = baseTestDb.getDocument(docID).toMutable()
 
-        db.purge(docID)
+        baseTestDb.purge(docID)
 
         doc1a.setString("artist", "Sheep Jones")
 
         var succeeded = false
         try {
-            succeeded = db.save(doc1a) { _: MutableDocument, _: Document? -> true }
+            succeeded = baseTestDb.save(doc1a) { _: MutableDocument, _: Document? -> true }
             fail("save should not succeed!")
         } catch (err: CouchbaseLiteException) {
             assertEquals(CBLError.Code.NOT_FOUND, err.code)

@@ -17,182 +17,94 @@
 //
 package com.couchbase.lite;
 
-import java.io.BufferedReader;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import java.io.File;
-import java.io.InputStreamReader;
-import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.json.JSONObject;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
-import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.Report;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.couchbase.lite.utils.TestUtils;
 
 
 public abstract class BaseTest extends PlatformBaseTest {
-    public static final String TEST_DB = "testdb";
-
     private static final int BUSY_WAIT_MS = 100;
     private static final int BUSY_RETRIES = 5;
 
-    @FunctionalInterface
-    public interface DocValidator extends Fn.ConsumerThrows<Document, CouchbaseLiteException> {}
+    private final AtomicReference<AssertionError> testFailure = new AtomicReference<>();
 
-    protected Database db;
-    protected ExecutionService.CloseableExecutor executor;
+    protected ExecutionService.CloseableExecutor testSerialExecutor;
 
-    private AtomicReference<AssertionError> testFailure;
-    private File dbDir;
+    @BeforeClass
+    public static void classSetUp() {
+        android.util.Log.d("###", "Before class");
+        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getDbDirectoryPath()));
+        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getTmpDirectoryPath()));
+    }
+
+    @AfterClass
+    public static void classTearDown() {
+        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getDbDirectoryPath()));
+        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getTmpDirectoryPath()));
+        android.util.Log.d("###", "After class");
+    }
 
     @Before
     public void setUp() throws CouchbaseLiteException {
-        initCouchbaseLite();
-
         Database.log.getConsole().setLevel(LogLevel.DEBUG);
         //setupFileLogging(); // if needed
 
-        executor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
+        testFailure.set(null);
 
-        testFailure = new AtomicReference<>();
-
-        dbDir = new File(getDatabaseDirectoryPath());
-        assertNotNull(dbDir);
-
-        // if database exist, delete it
-        deleteDb(TEST_DB, dbDir);
-
-        // clean dbDir
-        FileUtils.deleteContents(dbDir);
-
-        db = new Database(TEST_DB);
+        testSerialExecutor = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
     }
 
     @After
     public void tearDown() {
-        try { eraseDatabase(db); }
-        catch (CouchbaseLiteException e) {
-            throw new RuntimeException("Failed closing database: " + TEST_DB, e);
-        }
-        finally {
-            try {
-                if (dbDir != null) { FileUtils.eraseFileOrDir(dbDir); }
-            }
-            finally {
-                stopExecutor();
-            }
-        }
+        if (testSerialExecutor != null) { testSerialExecutor.stop(60, TimeUnit.SECONDS); }
     }
 
-    protected void reopenDB() throws CouchbaseLiteException {
-        closeDb(db);
-        db = new Database(TEST_DB);
+    protected final String getUniqueName() { return getUniqueName("cbl-test"); }
+
+    protected final String getUniqueName(@NonNull String prefix) { return prefix + '-' + TestUtils.randomString(12); }
+
+    protected final Database createDb() throws CouchbaseLiteException { return createDb(null); }
+
+    protected final Database createDb(DatabaseConfiguration config) throws CouchbaseLiteException {
+        final String dbName = getUniqueName();
+        return (config == null) ? new Database(dbName) : new Database(dbName, config);
     }
 
-    protected void recreateDB() throws CouchbaseLiteException {
-        if (db != null) { db.delete(); }
-        db = new Database(TEST_DB);
+    protected boolean closeDb(@Nullable Database db) throws CouchbaseLiteException {
+        android.util.Log.d("###", "closing db: " + db);
+        if ((db == null) || (!db.isOpen())) { return true; }
+        boolean ok = retryWhileBusy("Close db " + db.getName(), db::close);
+        android.util.Log.d("###", "closed db: " + db);
+        return ok;
     }
 
-    protected void deleteDatabase(Database db) throws CouchbaseLiteException {
-        deleteDatabase(db.getName(), db.getFilePath().getParentFile());
+    protected boolean deleteDb(@Nullable Database db) throws CouchbaseLiteException {
+        android.util.Log.d("###", "deleting db: " + db);
+        if (db == null) { return true; }
+        boolean ok = (db.isOpen())
+            ? retryWhileBusy("Delete db " + db.getName(), db::delete)
+            : FileUtils.eraseFileOrDir(db.getDbFile());
+        android.util.Log.d("###", "deleted db: " + db);
+        return ok;
     }
 
-    protected void deleteDatabase(String dbName) throws CouchbaseLiteException {
-        deleteDatabase(dbName, dbDir);
-    }
-
-    protected boolean deleteDatabase(String dbName, File dbDir) throws CouchbaseLiteException {
-        return deleteDb(dbName, dbDir);
-    }
-
-    protected void eraseDatabase(Database db) throws CouchbaseLiteException {
-        if (db == null) { return; }
-
-        final String dbName = db.getName();
-        final File dbDir = db.getFilePath();
-
-        try {
-            if (!closeDb(db)) {
-                Report.log(LogLevel.ERROR, "Failed to close db: " + dbName + " @" + dbDir);
-            }
-        }
-        finally {
-            if (dbDir != null) {
-                try {
-                    if (!deleteDb(dbName, dbDir.getParentFile())) {
-                        Report.log(LogLevel.ERROR, "Failed to delete db: " + dbName + " @" + dbDir);
-                    }
-                }
-                finally {
-                    FileUtils.eraseFileOrDir(dbDir);
-                }
-            }
-        }
-    }
-
-    protected void loadJSONResource(String name) throws Exception {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(getAsset(name)))) {
-            int n = 1;
-            String line;
-            while ((line = in.readLine()) != null) {
-                if (line.trim().isEmpty()) { continue; }
-
-                MutableDocument doc = new MutableDocument(String.format(Locale.ENGLISH, "doc-%03d", n++));
-                doc.setData(JsonUtils.fromJson(new JSONObject(line)));
-
-                save(doc);
-            }
-        }
-    }
-
-    protected Document generateDocument(String docID) throws CouchbaseLiteException {
-        long n = db.getCount();
-
-        MutableDocument doc = new MutableDocument(docID);
-        doc.setValue("key", 1);
-        save(doc);
-        assertTrue((n + 1) == db.getCount());
-
-        Document savedDoc = db.getDocument(docID);
-        assertEquals(1, savedDoc.getSequence());
-
-        return savedDoc;
-    }
-
-    protected Document save(MutableDocument doc, DocValidator validator) throws CouchbaseLiteException {
-        validator.accept(doc);
-
-        Document savedDoc = save(doc);
-        validator.accept(doc);
-        validator.accept(savedDoc);
-
-        return savedDoc;
-    }
-
-    protected Document save(MutableDocument doc) throws CouchbaseLiteException {
-        db.save(doc);
-
-        Document savedDoc = db.getDocument(doc.getId());
-        assertNotNull(savedDoc);
-        assertEquals(doc.getId(), savedDoc.getId());
-
-        return savedDoc;
-    }
-
-    protected void runSafely(Runnable test) {
+    protected final void runSafely(Runnable test) {
         try { test.run(); }
         catch (AssertionError failure) {
             Report.log(LogLevel.DEBUG, "Test failed", failure);
@@ -200,7 +112,7 @@ public abstract class BaseTest extends PlatformBaseTest {
         }
     }
 
-    protected void runSafelyInThread(CountDownLatch latch, Runnable test) {
+    protected final void runSafelyInThread(CountDownLatch latch, Runnable test) {
         new Thread(() -> {
             try { test.run(); }
             catch (AssertionError failure) {
@@ -211,32 +123,20 @@ public abstract class BaseTest extends PlatformBaseTest {
         }).start();
     }
 
-    protected void checkForFailure() {
+    protected final void checkForFailure() {
         AssertionError failure = testFailure.get();
         if (failure != null) { throw new AssertionError(failure); }
     }
 
-    protected static void expectError(String domain, int code, Fn.TaskThrows<CouchbaseLiteException> task) {
-        try {
-            task.run();
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(domain, e.getDomain());
-            assertEquals(code, e.getCode());
-        }
-    }
-
-    private boolean closeDb(Database db) throws CouchbaseLiteException {
-        if ((db == null) || (!db.isOpen())) { return true; }
-
-        final String dbName = db.getName();
-
+    private boolean retryWhileBusy(
+        @NonNull String taskDesc,
+        @NonNull Fn.TaskThrows<CouchbaseLiteException> task)
+        throws CouchbaseLiteException {
         int i = 0;
         while (true) {
             try {
-                db.close();
-                Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
+                task.run();
+                Report.log(LogLevel.DEBUG, "Succeeded: " + taskDesc);
                 return true;
             }
             catch (CouchbaseLiteException ex) {
@@ -244,41 +144,10 @@ public abstract class BaseTest extends PlatformBaseTest {
 
                 if (i++ >= BUSY_RETRIES) { return false; }
 
-                Report.log(LogLevel.WARNING, dbName + " cannot be closed because it is busy...");
-                try { Thread.sleep(BUSY_WAIT_MS); }
-                catch (InterruptedException ignore) { return false; }
-            }
-        }
-    }
-
-    private boolean deleteDb(String dbName, File dbDir) throws CouchbaseLiteException {
-        // database exist, delete it
-        if ((dbDir == null) || !dbDir.exists() || !Database.exists(dbName, dbDir)) { return true; }
-
-        // If a test involves a replicator or a live query,
-        // it may take a while for the db to close
-        int i = 0;
-        while (true) {
-            try {
-                Database.delete(dbName, dbDir);
-                Report.log(LogLevel.VERBOSE, dbName + " was deleted successfully.");
-                return true;
-            }
-            catch (CouchbaseLiteException ex) {
-                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
-
-                if (i++ >= BUSY_RETRIES) { return false; }
-
-                Report.log(LogLevel.WARNING, dbName + " cannot be deleted because it is busy...");
+                Report.log(LogLevel.WARNING, "Failed (busy): " + taskDesc);
                 try { Thread.sleep(BUSY_WAIT_MS); }
                 catch (InterruptedException e) { return false; }
             }
         }
-    }
-
-    private void stopExecutor() {
-        ExecutionService.CloseableExecutor exec = executor;
-        executor = null;
-        if (exec != null) { exec.stop(60, TimeUnit.SECONDS); }
     }
 }

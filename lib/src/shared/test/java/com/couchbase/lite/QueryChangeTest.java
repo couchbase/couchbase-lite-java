@@ -44,7 +44,7 @@ public class QueryChangeTest  extends BaseQueryTest{
 
         final Query query = QueryBuilder
                 .select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(db))
+                .from(DataSource.database(baseTestDb))
                 .where(Expression.property("number1").lessThan(Expression.intValue(5)));
 
         final ListenerToken[] token = new ListenerToken[1];
@@ -63,7 +63,7 @@ public class QueryChangeTest  extends BaseQueryTest{
             latch.countDown();
         };
 
-        synchronized (this) { token[0] = query.addChangeListener(executor, listener); }
+        synchronized (this) { token[0] = query.addChangeListener(testSerialExecutor, listener); }
 
         assertTrue(latch.await(2, TimeUnit.SECONDS));
     }

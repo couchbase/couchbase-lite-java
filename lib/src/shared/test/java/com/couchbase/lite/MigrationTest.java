@@ -18,6 +18,7 @@
 package com.couchbase.lite;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 
 import org.junit.After;
@@ -40,12 +41,11 @@ public class MigrationTest extends BaseTest {
 
     @Before
     public void setUp() throws CouchbaseLiteException {
-        dbDir = new File(getDatabaseDirectoryPath());
-        deleteDatabase(DB_NAME, dbDir);
+        dbDir = new File(getDatabaseDirectoryPath(), getUniqueName());
     }
 
     @After
-    public void cleanUp() throws CouchbaseLiteException { eraseDatabase(db);}
+    public void cleanUp() throws CouchbaseLiteException { deleteDb(db);}
 
     // TODO: 1.x DB's attachment is not automatically detected as blob
     // https://github.com/couchbase/couchbase-lite-android/issues/1237
@@ -53,7 +53,7 @@ public class MigrationTest extends BaseTest {
     public void testOpenExsitingDBv1x() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite.cblite2.zip"), dbDir);
 
-        db = new Database(DB_NAME);
+        db = openDatabase();
         assertEquals(2, db.getCount());
         for (int i = 1; i <= 2; i++) {
             Document doc = db.getDocument("doc" + i);
@@ -76,7 +76,7 @@ public class MigrationTest extends BaseTest {
     public void testOpenExsitingDBv1xNoAttachment() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"), dbDir);
 
-        db = new Database(DB_NAME);
+        db = openDatabase();
         assertEquals(2, db.getCount());
         for (int i = 1; i <= 2; i++) {
             Document doc = db.getDocument("doc" + i);
@@ -89,8 +89,7 @@ public class MigrationTest extends BaseTest {
     public void testOpenExsitingDB() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android200-sqlite.cblite2.zip"), dbDir);
 
-        db = new Database(DB_NAME);
-
+        db = openDatabase();
         assertEquals(2, db.getCount());
         for (int i = 1; i <= 2; i++) {
             Document doc = db.getDocument("doc" + i);
@@ -101,5 +100,13 @@ public class MigrationTest extends BaseTest {
             byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
             assertArrayEquals(attach, blob.getContent());
         }
+    }
+
+
+    private Database openDatabase() throws IOException, CouchbaseLiteException {
+        final DatabaseConfiguration config = new DatabaseConfiguration();
+        config.setDirectory(dbDir.getCanonicalPath());
+        return new Database(DB_NAME, config);
+
     }
 }

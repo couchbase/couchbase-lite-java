@@ -23,26 +23,26 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-public class ErrorCaseTest extends BaseTest {
+public class ErrorCaseTest extends BaseDbTest {
     // -- DatabaseTest
 
     @Test
     public void testDeleteSameDocTwice() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = generateDocument(docID);
+        Document doc = createDocInBaseTestDb(docID);
 
         // First time deletion:
-        db.delete(doc);
-        assertEquals(0, db.getCount());
+        baseTestDb.delete(doc);
+        assertEquals(0, baseTestDb.getCount());
 
-        assertNull(db.getDocument(docID));
+        assertNull(baseTestDb.getDocument(docID));
 
         // Second time deletion:
         // NOTE: doc is pointing to old revision. this cause conflict but this generate same revision
-        db.delete(doc);
+        baseTestDb.delete(doc);
 
-        assertNull(db.getDocument(docID));
+        assertNull(baseTestDb.getDocument(docID));
     }
 
     // -- DatabaseTest
@@ -51,7 +51,7 @@ public class ErrorCaseTest extends BaseTest {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
         try {
-            db.delete(doc);
+            baseTestDb.delete(doc);
             fail();
         } catch (CouchbaseLiteException e) {
             if (e.getCode() == CBLError.Code.NOT_FOUND)
@@ -66,9 +66,9 @@ public class ErrorCaseTest extends BaseTest {
     public void testSaveSavedMutableDocument() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
+        Document saved = saveDocInBaseTestDb(doc);
         doc.setValue("age", 20);
-        saved = save(doc);
+        saved = saveDocInBaseTestDb(doc);
         assertEquals(2, saved.generation());
         assertEquals(20, saved.getInt("age"));
         assertEquals("Scott Tiger", saved.getString("name"));
@@ -78,22 +78,22 @@ public class ErrorCaseTest extends BaseTest {
     public void testDeleteSavedMutableDocument() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
-        db.delete(doc);
-        assertNull(db.getDocument("doc1"));
+        Document saved = saveDocInBaseTestDb(doc);
+        baseTestDb.delete(doc);
+        assertNull(baseTestDb.getDocument("doc1"));
     }
 
     @Test
     public void testDeleteDocAfterPurgeDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
+        Document saved = saveDocInBaseTestDb(doc);
 
         // purge doc
-        db.purge(saved);
+        baseTestDb.purge(saved);
 
         try {
-            db.delete(saved);
+            baseTestDb.delete(saved);
             fail();
         } catch (CouchbaseLiteException e) {
             if (e.getCode() == CBLError.Code.NOT_FOUND)
@@ -107,39 +107,39 @@ public class ErrorCaseTest extends BaseTest {
     public void testDeleteDocAfterDeleteDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
+        Document saved = saveDocInBaseTestDb(doc);
 
         // delete doc
-        db.delete(saved);
+        baseTestDb.delete(saved);
 
         // delete doc -> conflict resolver -> no-op
-        db.delete(saved);
+        baseTestDb.delete(saved);
     }
 
     @Test
     public void testPurgeDocAfterDeleteDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
+        Document saved = saveDocInBaseTestDb(doc);
 
         // delete doc
-        db.delete(saved);
+        baseTestDb.delete(saved);
 
         // purge doc
-        db.purge(saved);
+        baseTestDb.purge(saved);
     }
 
     @Test
     public void testPurgeDocAfterPurgeDoc() throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
         doc.setValue("name", "Scott Tiger");
-        Document saved = save(doc);
+        Document saved = saveDocInBaseTestDb(doc);
 
         // purge doc
-        db.purge(saved);
+        baseTestDb.purge(saved);
 
         try {
-            db.purge(saved);
+            baseTestDb.purge(saved);
             fail();
         } catch (CouchbaseLiteException e) {
             if (e.getCode() == CBLError.Code.NOT_FOUND)
