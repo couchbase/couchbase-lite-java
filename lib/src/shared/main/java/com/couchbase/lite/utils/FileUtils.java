@@ -20,6 +20,9 @@ package com.couchbase.lite.utils;
 import android.support.annotation.NonNull;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -28,6 +31,12 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 public final class FileUtils {
     private FileUtils() { }
+
+    public static void copyFile(InputStream in, OutputStream out) throws IOException {
+        final byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) { out.write(buffer, 0, read); }
+    }
 
     public static boolean eraseFileOrDir(@NonNull String fileOrDirectory) {
         Preconditions.assertNotNull(fileOrDirectory, "file or directory");
@@ -46,11 +55,12 @@ public final class FileUtils {
         final File[] contents = fileOrDirectory.listFiles();
         if (contents == null) { return true; }
 
+        boolean succeeded = true;
         for (File file : contents) {
-            if (!deleteRecursive(file)) { return false; }
+            if (!deleteRecursive(file)) { succeeded = false; }
         }
 
-        return true;
+        return succeeded;
     }
 
     public static boolean setPermissionRecursive(@NonNull File fileOrDirectory, boolean readable, boolean writable) {

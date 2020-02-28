@@ -88,7 +88,9 @@ abstract class AbstractDatabase {
         + " for document (%s) does not match the IDs of the conflicting documents (%s)";
 
     private static final LogDomain DOMAIN = LogDomain.DATABASE;
-    private static final String DB_EXTENSION = ".cblite2";
+
+    @VisibleForTesting
+    static final String DB_EXTENSION = ".cblite2";
 
     private static final int MAX_CHANGES = 100;
 
@@ -720,7 +722,7 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             if (c4db == null) { return; }
 
-            Log.i(DOMAIN, "Closing %s at path %s", this, path);
+            Log.i(DOMAIN, "Closing %s at path %s", this, c4db.getPath());
 
             verifyQuiescent();
 
@@ -739,11 +741,12 @@ abstract class AbstractDatabase {
         synchronized (lock) {
             mustBeOpen();
 
-            Log.i(DOMAIN, "Deleting %s at path %s", this, path);
+            Log.i(DOMAIN, "Deleting %s at path %s", this, c4db.getPath());
 
             verifyQuiescent();
 
-            deleteC4DB();
+            try { c4db.delete(); }
+            catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
             shutdown(SHUTDOWN_DELAY_SECS);
         }
@@ -1079,10 +1082,6 @@ abstract class AbstractDatabase {
     }
 
     //////// DOCUMENTS:
-    private void deleteC4DB() throws CouchbaseLiteException {
-        try { getC4Database().delete(); }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
-    }
 
     // called from finalizer
     private void freeC4DB() {
@@ -1093,8 +1092,6 @@ abstract class AbstractDatabase {
 
         if (db == null) { return; }
         path = db.getPath();
-
-        db.free();
     }
 
     // --- Database changes:

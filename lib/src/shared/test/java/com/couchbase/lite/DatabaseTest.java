@@ -800,6 +800,8 @@ public class DatabaseTest extends BaseDbTest {
 
         final String dbDirPath = getScratchDirectoryPath(uniqueName);
         final File dbDir = new File(dbDirPath);
+        // ??? This either should exist, or not.
+        if (!dbDir.exists()) { dbDir.mkdirs(); }
         assertTrue(dbDir.exists());
 
         assertFalse(Database.exists(uniqueName, dbDir));
