@@ -37,33 +37,38 @@ import com.couchbase.lite.utils.Fn;
 import com.couchbase.lite.utils.Report;
 import com.couchbase.lite.utils.TestUtils;
 
+import static junit.framework.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 
 public abstract class BaseTest extends PlatformBaseTest {
+    protected static final String TEST_DATE = "2019-02-21T05:37:22.014Z";
+    protected static final String BLOB_CONTENT = "Knox on fox in socks in box. Socks on Knox and Knox in box.";
+
+
     private static final int BUSY_WAIT_MS = 100;
-    private static final int BUSY_RETRIES = 5;
+    private static final int BUSY_RETRIES = 3;
 
     private final AtomicReference<AssertionError> testFailure = new AtomicReference<>();
 
     protected ExecutionService.CloseableExecutor testSerialExecutor;
 
-    @BeforeClass
-    public static void classSetUp() {
-        android.util.Log.d("###", "Before class");
-        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getDbDirectoryPath()));
-        FileUtils.deleteContents(new File(CouchbaseLiteInternal.getTmpDirectoryPath()));
-    }
-
     @AfterClass
     public static void classTearDown() {
         FileUtils.deleteContents(new File(CouchbaseLiteInternal.getDbDirectoryPath()));
         FileUtils.deleteContents(new File(CouchbaseLiteInternal.getTmpDirectoryPath()));
-        android.util.Log.d("###", "After class");
     }
 
     @Before
+    @Override
     public void setUp() throws CouchbaseLiteException {
+        super.setUp();
+
         Database.log.getConsole().setLevel(LogLevel.DEBUG);
         //setupFileLogging(); // if needed
+
+        // reset the directories
+        CouchbaseLiteInternal.setupDirectories(null);
 
         testFailure.set(null);
 
@@ -71,37 +76,73 @@ public abstract class BaseTest extends PlatformBaseTest {
     }
 
     @After
+    @Override
     public void tearDown() {
-        if (testSerialExecutor != null) { testSerialExecutor.stop(60, TimeUnit.SECONDS); }
+        try {
+            if (testSerialExecutor != null) { testSerialExecutor.stop(2, TimeUnit.SECONDS); }
+        }
+        finally { super.tearDown(); }
     }
 
     protected final String getUniqueName() { return getUniqueName("cbl-test"); }
 
-    protected final String getUniqueName(@NonNull String prefix) { return prefix + '-' + TestUtils.randomString(12); }
+    protected final String getUniqueName(@NonNull String prefix) { return prefix + '-' + TestUtils.randomString(24); }
 
+    // Prefer this method to any other way of creating a new database
     protected final Database createDb() throws CouchbaseLiteException { return createDb(null); }
 
-    protected final Database createDb(DatabaseConfiguration config) throws CouchbaseLiteException {
+    // Prefer this method to any other way of creating a new database
+    protected final Database createDb(@Nullable DatabaseConfiguration config) throws CouchbaseLiteException {
+        if (config == null) { config = new DatabaseConfiguration(); }
         final String dbName = getUniqueName();
-        return (config == null) ? new Database(dbName) : new Database(dbName, config);
+        final File dbDir = new File(config.getDirectory(), dbName + DB_EXTENSION);
+        assertFalse(dbDir.exists());
+        final Database db = new Database(dbName, config);
+        assertTrue(dbDir.exists());
+        return db;
     }
 
-    protected boolean closeDb(@Nullable Database db) throws CouchbaseLiteException {
-        android.util.Log.d("###", "closing db: " + db);
+    protected final Database duplicateDb(@NonNull Database db) throws CouchbaseLiteException {
+        return duplicateDb(db, new DatabaseConfiguration());
+    }
+
+    protected final Database duplicateDb(@NonNull Database db, @Nullable DatabaseConfiguration config)
+        throws CouchbaseLiteException {
+        return new Database(db.getName(), config);
+    }
+
+    protected final Database reopenDb(@NonNull Database db) throws CouchbaseLiteException {
+        return reopenDb(db, null);
+    }
+
+    protected final Database reopenDb(@NonNull Database db, @Nullable DatabaseConfiguration config)
+        throws CouchbaseLiteException {
+        final String dbName = db.getName();
+        assertTrue(closeDb(db));
+        return new Database(dbName, (config != null) ? config : new DatabaseConfiguration());
+    }
+
+    protected final Database recreateDb(@NonNull Database db) throws CouchbaseLiteException {
+        return recreateDb(db, null);
+    }
+
+    protected final Database recreateDb(@NonNull Database db, @Nullable DatabaseConfiguration config)
+        throws CouchbaseLiteException {
+        final String dbName = db.getName();
+        assertTrue(deleteDb(db));
+        return new Database(dbName, (config != null) ? config : new DatabaseConfiguration());
+    }
+
+    protected final boolean closeDb(@Nullable Database db) {
         if ((db == null) || (!db.isOpen())) { return true; }
-        boolean ok = retryWhileBusy("Close db " + db.getName(), db::close);
-        android.util.Log.d("###", "closed db: " + db);
-        return ok;
+        return retryWhileBusy("Close db " + db.getName(), db::close);
     }
 
-    protected boolean deleteDb(@Nullable Database db) throws CouchbaseLiteException {
-        android.util.Log.d("###", "deleting db: " + db);
+    protected final boolean deleteDb(@Nullable Database db) {
         if (db == null) { return true; }
-        boolean ok = (db.isOpen())
+        return (db.isOpen())
             ? retryWhileBusy("Delete db " + db.getName(), db::delete)
             : FileUtils.eraseFileOrDir(db.getDbFile());
-        android.util.Log.d("###", "deleted db: " + db);
-        return ok;
     }
 
     protected final void runSafely(Runnable test) {
@@ -128,10 +169,7 @@ public abstract class BaseTest extends PlatformBaseTest {
         if (failure != null) { throw new AssertionError(failure); }
     }
 
-    private boolean retryWhileBusy(
-        @NonNull String taskDesc,
-        @NonNull Fn.TaskThrows<CouchbaseLiteException> task)
-        throws CouchbaseLiteException {
+    private boolean retryWhileBusy(@NonNull String taskDesc, @NonNull Fn.TaskThrows<CouchbaseLiteException> task) {
         int i = 0;
         while (true) {
             try {
@@ -140,7 +178,10 @@ public abstract class BaseTest extends PlatformBaseTest {
                 return true;
             }
             catch (CouchbaseLiteException ex) {
-                if (ex.getCode() != CBLError.Code.BUSY) { throw ex; }
+                if (ex.getCode() != CBLError.Code.BUSY) {
+                    Report.log(LogLevel.WARNING, "Failed: " + taskDesc, ex);
+                    return false;
+                }
 
                 if (i++ >= BUSY_RETRIES) { return false; }
 

@@ -36,9 +36,9 @@ public class ReplicatorOfflineTest extends BaseReplicatorTest {
         Endpoint endpoint = getRemoteTargetEndpoint();
         ReplicatorConfiguration config = makeConfig(true, false, true, endpoint);
         config.setContinuous(false);
-        repl = new Replicator(config);
+        baseTestReplicator = new Replicator(config);
 
-        assertThrows(IllegalStateException.class, () -> repl.getConfig().setContinuous(true));
+        assertThrows(IllegalStateException.class, () -> baseTestReplicator.getConfig().setContinuous(true));
     }
 
     @Test

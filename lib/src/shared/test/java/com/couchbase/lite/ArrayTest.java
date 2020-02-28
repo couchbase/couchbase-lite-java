@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
@@ -31,20 +32,20 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
 import com.couchbase.lite.utils.Fn;
+import com.couchbase.lite.utils.TestUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class ArrayTest extends BaseDbTest {
-    static final String kArrayTestDate = "2007-06-30T08:34:09.001Z";
-    static final String kArrayTestBlob = "i'm blob";
-
     @Test
     public void testCreate() throws CouchbaseLiteException {
         MutableArray array = new MutableArray();
@@ -115,7 +116,7 @@ public class ArrayTest extends BaseDbTest {
         MutableDocument doc = new MutableDocument("doc1");
         save(doc, "array", array, a -> {
             assertEquals(1, a.count());
-            assertEquals(null, a.getValue(0));
+            assertNull(a.getValue(0));
         });
     }
 
@@ -139,13 +140,14 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(1, ((Number) a.getValue(4)).intValue());
                 assertEquals(-1, ((Number) a.getValue(5)).intValue());
                 assertEquals(1.1, a.getValue(6));
-                assertEquals(kArrayTestDate, a.getValue(7));
-                assertEquals(null, a.getValue(8));
+                assertEquals(TEST_DATE, a.getValue(7));
+                assertNull(a.getValue(8));
 
                 // dictionary
                 Dictionary dict = (Dictionary) a.getValue(9);
-                MutableDictionary subdict = (dict instanceof MutableDictionary) ?
-                    (MutableDictionary) dict : dict.toMutable();
+                MutableDictionary subdict = (dict instanceof MutableDictionary)
+                    ? (MutableDictionary) dict
+                    : dict.toMutable();
 
                 Map<String, Object> expectedMap = new HashMap<>();
                 expectedMap.put("name", "Scott Tiger");
@@ -153,8 +155,9 @@ public class ArrayTest extends BaseDbTest {
 
                 // array
                 Array array1 = (Array) a.getValue(10);
-                MutableArray subarray = array1 instanceof MutableArray ?
-                    (MutableArray) array1 : array1.toMutable();
+                MutableArray subarray = array1 instanceof MutableArray
+                    ? (MutableArray) array1
+                    : array1.toMutable();
 
                 List<Object> expected = new ArrayList<>();
                 expected.add("a");
@@ -163,9 +166,7 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(expected, subarray.toList());
 
                 // blob
-                Blob blob = (Blob) a.getValue(11);
-                assertTrue(Arrays.equals(kArrayTestBlob.getBytes(), blob.getContent()));
-                assertEquals(kArrayTestBlob, new String(blob.getContent()));
+                verifyBlob(a.getValue(11));
             });
         }
     }
@@ -203,8 +204,8 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(1, ((Number) a.getValue(12 + 4)).intValue());
                 assertEquals(-1, ((Number) a.getValue(12 + 5)).intValue());
                 assertEquals(1.1, a.getValue(12 + 6));
-                assertEquals(kArrayTestDate, a.getValue(12 + 7));
-                assertEquals(null, a.getValue(12 + 8));
+                assertEquals(TEST_DATE, a.getValue(12 + 7));
+                assertNull(a.getValue(12 + 8));
 
                 // dictionary
                 Dictionary dict = (Dictionary) a.getValue(12 + 9);
@@ -225,9 +226,7 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(expected, subarray.toList());
 
                 // blob
-                Blob blob = (Blob) a.getValue(12 + 11);
-                assertTrue(Arrays.equals(kArrayTestBlob.getBytes(), blob.getContent()));
-                assertEquals(kArrayTestBlob, new String(blob.getContent()));
+                verifyBlob(a.getValue(12 + 11));
             });
         }
     }
@@ -254,8 +253,8 @@ public class ArrayTest extends BaseDbTest {
             assertEquals(1, ((Number) a.getValue(4)).intValue());
             assertEquals(-1, ((Number) a.getValue(5)).intValue());
             assertEquals(1.1, a.getValue(6));
-            assertEquals(kArrayTestDate, a.getValue(7));
-            assertEquals(null, a.getValue(8));
+            assertEquals(TEST_DATE, a.getValue(7));
+            assertNull(a.getValue(8));
 
             // dictionary
             Dictionary dict = (Dictionary) a.getValue(9);
@@ -276,9 +275,7 @@ public class ArrayTest extends BaseDbTest {
             assertEquals(expected, subarray.toList());
 
             // blob
-            Blob blob = (Blob) a.getValue(11);
-            assertTrue(Arrays.equals(kArrayTestBlob.getBytes(), blob.getContent()));
-            assertEquals(kArrayTestBlob, new String(blob.getContent()));
+            verifyBlob(a.getValue(11));
         });
     }
 
@@ -312,8 +309,8 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(1, ((Number) a.getValue(7)).intValue());
                 assertEquals(-1, ((Number) a.getValue(6)).intValue());
                 assertEquals(1.1, a.getValue(5));
-                assertEquals(kArrayTestDate, a.getValue(4));
-                assertEquals(null, a.getValue(3));
+                assertEquals(TEST_DATE, a.getValue(4));
+                assertNull(a.getValue(3));
 
                 // dictionary
                 Dictionary dict = (Dictionary) a.getValue(2);
@@ -336,9 +333,7 @@ public class ArrayTest extends BaseDbTest {
                 assertEquals(expected, subarray.toList());
 
                 // blob
-                Blob blob = (Blob) a.getValue(0);
-                assertTrue(Arrays.equals(kArrayTestBlob.getBytes(), blob.getContent()));
-                assertEquals(kArrayTestBlob, new String(blob.getContent()));
+                verifyBlob(a.getValue(0));
             });
         }
     }
@@ -440,7 +435,7 @@ public class ArrayTest extends BaseDbTest {
         mArray = mDoc.getArray("array");
         assertNotNull(mArray);
         mArray.insertValue(4, "f");
-        doc = save(mDoc, "array", mArray, a -> {
+        save(mDoc, "array", mArray, a -> {
             assertEquals(5, a.count());
             assertEquals("c", a.getValue(0));
             assertEquals("d", a.getValue(1));
@@ -475,7 +470,7 @@ public class ArrayTest extends BaseDbTest {
             MutableDocument doc = new MutableDocument(docID);
             save(doc, "array", array, a -> {
                 assertEquals(0, a.count());
-                assertEquals(new ArrayList<Object>(), a.toList());
+                assertEquals(new ArrayList<>(), a.toList());
             });
         }
     }
@@ -499,7 +494,7 @@ public class ArrayTest extends BaseDbTest {
 
             save(doc, "array", array, a -> {
                 assertEquals(0, a.count());
-                assertEquals(new ArrayList<Object>(), a.toList());
+                assertEquals(new ArrayList<>(), a.toList());
             });
         }
     }
@@ -545,7 +540,7 @@ public class ArrayTest extends BaseDbTest {
                 assertNull(a.getString(4));
                 assertNull(a.getString(5));
                 assertNull(a.getString(6));
-                assertEquals(kArrayTestDate, a.getString(7));
+                assertEquals(TEST_DATE, a.getString(7));
                 assertNull(a.getString(8));
                 assertNull(a.getString(9));
                 assertNull(a.getString(10));
@@ -583,6 +578,7 @@ public class ArrayTest extends BaseDbTest {
 
     @Test
     public void testGetInteger() throws CouchbaseLiteException {
+        // ??? WTF?
         for (int i = 0; i < 2; i++) {
             MutableArray array = new MutableArray();
             if (i % 2 == 0) { populateData(array); }
@@ -796,18 +792,18 @@ public class ArrayTest extends BaseDbTest {
             String docID = String.format(Locale.ENGLISH, "doc%d", i);
             MutableDocument doc = new MutableDocument(docID);
             save(doc, "array", array, a -> {
-                assertEquals(true, a.getBoolean(0));
-                assertEquals(false, a.getBoolean(1));
-                assertEquals(true, a.getBoolean(2));
-                assertEquals(false, a.getBoolean(3));
-                assertEquals(true, a.getBoolean(4));
-                assertEquals(true, a.getBoolean(5));
-                assertEquals(true, a.getBoolean(6));
-                assertEquals(true, a.getBoolean(7));
-                assertEquals(false, a.getBoolean(8));
-                assertEquals(true, a.getBoolean(9));
-                assertEquals(true, a.getBoolean(10));
-                assertEquals(true, a.getBoolean(11));
+                assertTrue(a.getBoolean(0));
+                assertFalse(a.getBoolean(1));
+                assertTrue(a.getBoolean(2));
+                assertFalse(a.getBoolean(3));
+                assertTrue(a.getBoolean(4));
+                assertTrue(a.getBoolean(5));
+                assertTrue(a.getBoolean(6));
+                assertTrue(a.getBoolean(7));
+                assertFalse(a.getBoolean(8));
+                assertTrue(a.getBoolean(9));
+                assertTrue(a.getBoolean(10));
+                assertTrue(a.getBoolean(11));
             });
         }
     }
@@ -830,7 +826,7 @@ public class ArrayTest extends BaseDbTest {
                 assertNull(a.getDate(4));
                 assertNull(a.getDate(5));
                 assertNull(a.getDate(6));
-                assertEquals(kArrayTestDate, DateUtils.toJson(a.getDate(7)));
+                assertEquals(TEST_DATE, DateUtils.toJson(a.getDate(7)));
                 assertNull(a.getDate(8));
                 assertNull(a.getDate(9));
                 assertNull(a.getDate(10));
@@ -941,7 +937,7 @@ public class ArrayTest extends BaseDbTest {
         // Replace:
         doc.setValue("array", array2);
 
-        // array1 shoud be now detached:
+        // array1 should be now detached:
         array1.addValue("d");
         assertEquals(4, array1.count());
         assertEquals(Arrays.asList("a", "b", "c", "d"), array1.toList());
@@ -954,7 +950,7 @@ public class ArrayTest extends BaseDbTest {
         doc = saveDocInBaseTestDb(doc).toMutable();
 
         // Check current array:
-        assertTrue(doc.getArray("array") != array2);
+        assertNotSame(doc.getArray("array"), array2);
         array2 = doc.getArray("array");
         assertEquals(3, array2.count());
         assertEquals(Arrays.asList("x", "y", "z"), array2.toList());
@@ -974,7 +970,7 @@ public class ArrayTest extends BaseDbTest {
         // Replace:
         doc.setValue("array", "Daniel Tiger");
 
-        // array1 shoud be now detached:
+        // array1 should be now detached:
         array1.addValue("d");
         assertEquals(4, array1.count());
         assertEquals(Arrays.asList("a", "b", "c", "d"), array1.toList());
@@ -1020,7 +1016,7 @@ public class ArrayTest extends BaseDbTest {
 
         final List<Object> c = content;
         save(doc, "array", array, array1 -> {
-            List<Object> r = new ArrayList<Object>();
+            List<Object> r = new ArrayList<>();
             for (Object item : array1) {
                 assertNotNull(item);
                 r.add(item);
@@ -1029,46 +1025,47 @@ public class ArrayTest extends BaseDbTest {
         });
     }
 
-    // TODO: MArray has isMuated() method, but unable to check mutated to mutated.
+    // TODO: MArray has isMutaed() method, but unable to check mutated to mutated.
     // @Test
     public void testArrayEnumerationWithDataModification() throws CouchbaseLiteException {
-        MutableArray array = new MutableArray();
-        for (int i = 0; i < 2; i++) { array.addValue(i); }
+        final MutableArray array1 = new MutableArray();
+        for (int i = 0; i < 2; i++) { array1.addValue(i); }
 
-        Iterator<Object> itr = array.iterator();
-        int count = 0;
-        try {
-            while (itr.hasNext()) {
-                itr.next();
-                if (count++ == 0) { array.addValue(2); }
-            }
-            fail("Expected ConcurrentModificationException");
-        }
-        catch (ConcurrentModificationException e) {
+        TestUtils.assertThrows(
+            ConcurrentModificationException.class,
+            () -> {
+                Iterator<Object> itr = array1.iterator();
+                int count = 0;
 
-        }
-        assertEquals(3, array.count());
-        assertEquals(Arrays.asList(0, 1, 2).toString(), array.toList().toString());
+                while (itr.hasNext()) {
+                    itr.next();
+                    if (count++ == 0) { array1.addValue(2); }
+                }
+            });
+
+        assertEquals(3, array1.count());
+        assertEquals(Arrays.asList(0, 1, 2).toString(), array1.toList().toString());
 
         MutableDocument doc = new MutableDocument("doc1");
-        doc.setValue("array", array);
+        doc.setValue("array", array1);
         doc = saveDocInBaseTestDb(doc).toMutable();
-        array = doc.getArray("array");
 
-        itr = array.iterator();
-        count = 0;
-        try {
-            while (itr.hasNext()) {
-                itr.next();
-                if (count++ == 0) { array.addValue(3); }
-            }
-            fail("Expected ConcurrentModificationException");
-        }
-        catch (ConcurrentModificationException e) {
+        final MutableArray array2 = doc.getArray("array");
+        assertNotNull(array2);
+        TestUtils.assertThrows(
+            ConcurrentModificationException.class,
+            () -> {
+                Iterator<Object> itr = array2.iterator();
+                int n = 0;
 
-        }
-        assertEquals(4, array.count());
-        assertEquals(Arrays.asList(0, 1, 2, 3).toString(), array.toList().toString());
+                while (itr.hasNext()) {
+                    itr.next();
+                    if (n++ == 0) { array2.addValue(3); }
+                }
+            });
+
+        assertEquals(4, array2.count());
+        assertEquals(Arrays.asList(0, 1, 2, 3).toString(), array2.toList().toString());
     }
 
     @Test
@@ -1141,96 +1138,96 @@ public class ArrayTest extends BaseDbTest {
         Array array5 = doc.getArray("array5");
 
         // compare array1, array2, marray1, and marray2
-        assertTrue(array1.equals(array1));
-        assertTrue(array2.equals(array2));
-        assertTrue(array1.equals(array2));
-        assertTrue(array2.equals(array1));
-        assertTrue(array1.equals(array1.toMutable()));
-        assertTrue(array1.equals(array2.toMutable()));
-        assertTrue(array1.toMutable().equals(array1));
-        assertTrue(array2.toMutable().equals(array1));
-        assertTrue(array1.equals(mArray1));
-        assertTrue(array1.equals(mArray2));
-        assertTrue(array2.equals(mArray1));
-        assertTrue(array2.equals(mArray2));
-        assertTrue(mArray1.equals(array1));
-        assertTrue(mArray2.equals(array1));
-        assertTrue(mArray1.equals(array2));
-        assertTrue(mArray2.equals(array2));
-        assertTrue(mArray1.equals(mArray1));
-        assertTrue(mArray2.equals(mArray2));
-        assertTrue(mArray1.equals(mArray1));
-        assertTrue(mArray2.equals(mArray2));
+        assertEquals(array1, array1);
+        assertEquals(array2, array2);
+        assertEquals(array1, array2);
+        assertEquals(array2, array1);
+        assertEquals(array1, array1.toMutable());
+        assertEquals(array1, array2.toMutable());
+        assertEquals(array1.toMutable(), array1);
+        assertEquals(array2.toMutable(), array1);
+        assertEquals(array1, mArray1);
+        assertEquals(array1, mArray2);
+        assertEquals(array2, mArray1);
+        assertEquals(array2, mArray2);
+        assertEquals(mArray1, array1);
+        assertEquals(mArray2, array1);
+        assertEquals(mArray1, array2);
+        assertEquals(mArray2, array2);
+        assertEquals(mArray1, mArray1);
+        assertEquals(mArray2, mArray2);
+        assertEquals(mArray1, mArray1);
+        assertEquals(mArray2, mArray2);
 
         // compare array1, array3, marray1, and marray3
-        assertTrue(array3.equals(array3));
-        assertFalse(array1.equals(array3));
-        assertFalse(array3.equals(array1));
-        assertFalse(array1.equals(array3.toMutable()));
-        assertFalse(array3.toMutable().equals(array1));
-        assertFalse(array1.equals(mArray3));
-        assertFalse(array3.equals(mArray1));
-        assertTrue(array3.equals(mArray3));
-        assertFalse(mArray3.equals(array1));
-        assertFalse(mArray1.equals(array3));
-        assertTrue(mArray3.equals(array3));
-        assertTrue(mArray3.equals(mArray3));
-        assertTrue(mArray3.equals(mArray3));
+        assertEquals(array3, array3);
+        assertNotEquals(array1, array3);
+        assertNotEquals(array3, array1);
+        assertNotEquals(array1, array3.toMutable());
+        assertNotEquals(array3.toMutable(), array1);
+        assertNotEquals(array1, mArray3);
+        assertNotEquals(array3, mArray1);
+        assertEquals(array3, mArray3);
+        assertNotEquals(mArray3, array1);
+        assertNotEquals(mArray1, array3);
+        assertEquals(mArray3, array3);
+        assertEquals(mArray3, mArray3);
+        assertEquals(mArray3, mArray3);
 
         // compare array1, array4, marray1, and marray4
-        assertTrue(array4.equals(array4));
-        assertFalse(array1.equals(array4));
-        assertFalse(array4.equals(array1));
-        assertFalse(array1.equals(array4.toMutable()));
-        assertFalse(array4.toMutable().equals(array1));
-        assertFalse(array1.equals(mArray4));
-        assertFalse(array4.equals(mArray1));
-        assertTrue(array4.equals(mArray4));
-        assertFalse(mArray4.equals(array1));
-        assertFalse(mArray1.equals(array4));
-        assertTrue(mArray4.equals(array4));
-        assertTrue(mArray4.equals(mArray4));
-        assertTrue(mArray4.equals(mArray4));
+        assertEquals(array4, array4);
+        assertNotEquals(array1, array4);
+        assertNotEquals(array4, array1);
+        assertNotEquals(array1, array4.toMutable());
+        assertNotEquals(array4.toMutable(), array1);
+        assertNotEquals(array1, mArray4);
+        assertNotEquals(array4, mArray1);
+        assertEquals(array4, mArray4);
+        assertNotEquals(mArray4, array1);
+        assertNotEquals(mArray1, array4);
+        assertEquals(mArray4, array4);
+        assertEquals(mArray4, mArray4);
+        assertEquals(mArray4, mArray4);
 
         // compare array3, array4, marray3, and marray4
-        assertFalse(array3.equals(array4));
-        assertFalse(array4.equals(array3));
-        assertFalse(array3.equals(array4.toMutable()));
-        assertFalse(array4.toMutable().equals(array3));
-        assertFalse(array3.equals(mArray4));
-        assertFalse(array4.equals(mArray3));
-        assertFalse(mArray4.equals(array3));
-        assertFalse(mArray3.equals(array4));
+        assertNotEquals(array3, array4);
+        assertNotEquals(array4, array3);
+        assertNotEquals(array3, array4.toMutable());
+        assertNotEquals(array4.toMutable(), array3);
+        assertNotEquals(array3, mArray4);
+        assertNotEquals(array4, mArray3);
+        assertNotEquals(mArray4, array3);
+        assertNotEquals(mArray3, array4);
 
         // compare array3, array5, marray3, and marray5
-        assertFalse(array3.equals(array5));
-        assertFalse(array5.equals(array3));
-        assertFalse(array3.equals(array5.toMutable()));
-        assertFalse(array5.toMutable().equals(array3));
-        assertFalse(array3.equals(mArray5));
-        assertFalse(array5.equals(mArray3));
-        assertFalse(mArray5.equals(array3));
-        assertFalse(mArray3.equals(array5));
+        assertNotEquals(array3, array5);
+        assertNotEquals(array5, array3);
+        assertNotEquals(array3, array5.toMutable());
+        assertNotEquals(array5.toMutable(), array3);
+        assertNotEquals(array3, mArray5);
+        assertNotEquals(array5, mArray3);
+        assertNotEquals(mArray5, array3);
+        assertNotEquals(mArray3, array5);
 
         // compare array5, array4, mArray5, and marray4
-        assertFalse(array5.equals(array4));
-        assertFalse(array4.equals(array5));
-        assertFalse(array5.equals(array4.toMutable()));
-        assertFalse(array4.toMutable().equals(array5));
-        assertFalse(array5.equals(mArray4));
-        assertFalse(array4.equals(mArray5));
-        assertFalse(mArray4.equals(array5));
-        assertFalse(mArray5.equals(array4));
+        assertNotEquals(array5, array4);
+        assertNotEquals(array4, array5);
+        assertNotEquals(array5, array4.toMutable());
+        assertNotEquals(array4.toMutable(), array5);
+        assertNotEquals(array5, mArray4);
+        assertNotEquals(array4, mArray5);
+        assertNotEquals(mArray4, array5);
+        assertNotEquals(mArray5, array4);
 
         // against other type
-        assertFalse(array3.equals(null));
-        assertFalse(array3.equals(new Object()));
-        assertFalse(array3.equals(1));
-        assertFalse(array3.equals(new HashMap<>()));
-        assertFalse(array3.equals(new MutableDictionary()));
-        assertFalse(array3.equals(new MutableArray()));
-        assertFalse(array3.equals(doc));
-        assertFalse(array3.equals(mDoc));
+        assertNotEquals(null, array3);
+        assertNotEquals(array3, new Object());
+        assertNotEquals(1, array3);
+        assertNotEquals(array3, new HashMap<>());
+        assertNotEquals(array3, new MutableDictionary());
+        assertNotEquals(array3, new MutableArray());
+        assertNotEquals(array3, doc);
+        assertNotEquals(array3, mDoc);
     }
 
     @Test
@@ -1286,38 +1283,38 @@ public class ArrayTest extends BaseDbTest {
         assertEquals(array2.hashCode(), mArray1.hashCode());
         assertEquals(array2.hashCode(), mArray2.hashCode());
 
-        assertFalse(array3.hashCode() == array1.hashCode());
-        assertFalse(array3.hashCode() == array2.hashCode());
-        assertFalse(array3.hashCode() == array1.toMutable().hashCode());
-        assertFalse(array3.hashCode() == array2.toMutable().hashCode());
-        assertFalse(array3.hashCode() == mArray1.hashCode());
-        assertFalse(array3.hashCode() == mArray2.hashCode());
-        assertFalse(mArray3.hashCode() == array1.hashCode());
-        assertFalse(mArray3.hashCode() == array2.hashCode());
-        assertFalse(mArray3.hashCode() == array1.toMutable().hashCode());
-        assertFalse(mArray3.hashCode() == array2.toMutable().hashCode());
-        assertFalse(mArray3.hashCode() == mArray1.hashCode());
-        assertFalse(mArray3.hashCode() == mArray2.hashCode());
+        assertNotEquals(array3.hashCode(), array1.hashCode());
+        assertNotEquals(array3.hashCode(), array2.hashCode());
+        assertNotEquals(array3.hashCode(), array1.toMutable().hashCode());
+        assertNotEquals(array3.hashCode(), array2.toMutable().hashCode());
+        assertNotEquals(array3.hashCode(), mArray1.hashCode());
+        assertNotEquals(array3.hashCode(), mArray2.hashCode());
+        assertNotEquals(mArray3.hashCode(), array1.hashCode());
+        assertNotEquals(mArray3.hashCode(), array2.hashCode());
+        assertNotEquals(mArray3.hashCode(), array1.toMutable().hashCode());
+        assertNotEquals(mArray3.hashCode(), array2.toMutable().hashCode());
+        assertNotEquals(mArray3.hashCode(), mArray1.hashCode());
+        assertNotEquals(mArray3.hashCode(), mArray2.hashCode());
 
-        assertFalse(array1.hashCode() == array4.hashCode());
-        assertFalse(array1.hashCode() == array5.hashCode());
-        assertFalse(array2.hashCode() == array4.hashCode());
-        assertFalse(array2.hashCode() == array5.hashCode());
-        assertFalse(array3.hashCode() == array4.hashCode());
-        assertFalse(array3.hashCode() == array5.hashCode());
+        assertNotEquals(array1.hashCode(), array4.hashCode());
+        assertNotEquals(array1.hashCode(), array5.hashCode());
+        assertNotEquals(array2.hashCode(), array4.hashCode());
+        assertNotEquals(array2.hashCode(), array5.hashCode());
+        assertNotEquals(array3.hashCode(), array4.hashCode());
+        assertNotEquals(array3.hashCode(), array5.hashCode());
 
-        assertFalse(array3.hashCode() == 0);
-        assertFalse(array3.hashCode() == new Object().hashCode());
-        assertFalse(array3.hashCode() == new Integer(1).hashCode());
-        assertFalse(array3.hashCode() == new HashMap<>().hashCode());
-        assertFalse(array3.hashCode() == new MutableDictionary().hashCode());
-        assertFalse(array3.hashCode() == new MutableArray().hashCode());
-        assertFalse(mArray3.hashCode() == doc.hashCode());
-        assertFalse(mArray3.hashCode() == mDoc.hashCode());
-        assertFalse(mArray3.hashCode() == array1.toMutable().hashCode());
-        assertFalse(mArray3.hashCode() == array2.toMutable().hashCode());
-        assertFalse(mArray3.hashCode() == mArray1.hashCode());
-        assertFalse(mArray3.hashCode() == mArray2.hashCode());
+        assertNotEquals(0, array3.hashCode());
+        assertNotEquals(array3.hashCode(), new Object().hashCode());
+        assertNotEquals(array3.hashCode(), new Integer(1).hashCode());
+        assertNotEquals(array3.hashCode(), new HashMap<>().hashCode());
+        assertNotEquals(array3.hashCode(), new MutableDictionary().hashCode());
+        assertNotEquals(array3.hashCode(), new MutableArray().hashCode());
+        assertNotEquals(mArray3.hashCode(), doc.hashCode());
+        assertNotEquals(mArray3.hashCode(), mDoc.hashCode());
+        assertNotEquals(mArray3.hashCode(), array1.toMutable().hashCode());
+        assertNotEquals(mArray3.hashCode(), array2.toMutable().hashCode());
+        assertNotEquals(mArray3.hashCode(), mArray1.hashCode());
+        assertNotEquals(mArray3.hashCode(), mArray2.hashCode());
     }
 
 
@@ -1349,8 +1346,8 @@ public class ArrayTest extends BaseDbTest {
         assertThrows(IndexOutOfBoundsException.class, () -> assertNull(array.getDictionary(4)));
 
         Dictionary nestedDict = array.getDictionary(3);
-        assertTrue(nestedDict.equals(mNestedDict));
-        assertTrue(array.equals(mArray));
+        assertEquals(nestedDict, mNestedDict);
+        assertEquals(array, mArray);
     }
 
     @Test
@@ -1381,8 +1378,8 @@ public class ArrayTest extends BaseDbTest {
         assertThrows(IndexOutOfBoundsException.class, () -> assertNull(array.getArray(4)));
 
         Array nestedArray = array.getArray(3);
-        assertTrue(nestedArray.equals(mNestedArray));
-        assertTrue(array.equals(mArray));
+        assertEquals(nestedArray, mNestedArray);
+        assertEquals(array, mArray);
     }
 
     @Test
@@ -1830,8 +1827,8 @@ public class ArrayTest extends BaseDbTest {
             assertNotNull(array);
             assertEquals(2, array.count());
 
-            assertEquals(true, array.getBoolean(0));
-            assertEquals(false, array.getBoolean(1));
+            assertTrue(array.getBoolean(0));
+            assertFalse(array.getBoolean(1));
         });
     }
 
@@ -1854,8 +1851,8 @@ public class ArrayTest extends BaseDbTest {
             assertNotNull(array);
             assertEquals(2, array.count());
 
-            assertEquals(true, array.getBoolean(1));
-            assertEquals(false, array.getBoolean(0));
+            assertTrue(array.getBoolean(1));
+            assertFalse(array.getBoolean(0));
         });
     }
 
@@ -1876,10 +1873,10 @@ public class ArrayTest extends BaseDbTest {
             Array array = doc.getArray("array");
             assertNotNull(array);
             assertEquals(4, array.count());
-            assertEquals(true, array.getBoolean(0));
-            assertEquals(false, array.getBoolean(1));
-            assertEquals(false, array.getBoolean(2));
-            assertEquals(true, array.getBoolean(3));
+            assertTrue(array.getBoolean(0));
+            assertFalse(array.getBoolean(1));
+            assertFalse(array.getBoolean(2));
+            assertTrue(array.getBoolean(3));
         });
     }
 
@@ -1893,7 +1890,7 @@ public class ArrayTest extends BaseDbTest {
         list.add(-1);
         list.add(1.1);
 
-        list.add(DateUtils.fromJson(kArrayTestDate));
+        list.add(DateUtils.fromJson(TEST_DATE));
         list.add(null);
 
         // Dictionary
@@ -1909,18 +1906,14 @@ public class ArrayTest extends BaseDbTest {
         list.add(subarray);
 
         // Blob
-        byte[] content = kArrayTestBlob.getBytes();
-        Blob blob = new Blob("text/plain", content);
-        list.add(blob);
+        list.add(new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
 
         return list;
     }
 
     private void populateData(MutableArray array) {
         List<Object> data = arrayOfAllTypes();
-        for (Object o : data) {
-            array.addValue(o);
-        }
+        for (Object o : data) { array.addValue(o); }
     }
 
     private void populateDataByType(MutableArray array) {
@@ -1949,5 +1942,15 @@ public class ArrayTest extends BaseDbTest {
         Array array = doc.getArray(key);
         validator.accept(array);
         return doc;
+    }
+
+    private void verifyBlob(Object obj) {
+        assertTrue(obj instanceof Blob);
+        final Blob blob = (Blob) obj;
+        assertNotNull(blob);
+        final byte[] contents = blob.getContent();
+        assertNotNull(contents);
+        assertArrayEquals(BLOB_CONTENT.getBytes(StandardCharsets.UTF_8), contents);
+        assertEquals(BLOB_CONTENT, new String(contents));
     }
 }

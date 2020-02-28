@@ -21,6 +21,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.junit.After;
+import org.junit.Before;
+
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.ExecutionService;
 import com.couchbase.lite.internal.support.Log;
@@ -32,11 +35,25 @@ import com.couchbase.lite.internal.support.Log;
 public abstract class PlatformBaseTest implements PlatformTest {
     public static final String PRODUCT = "Java";
     public static final String LEGAL_FILE_NAME_CHARS = "`~@#$%&'()_+{}][=-.,;'ABCDEabcde";
+    public static final String DB_EXTENSION = AbstractDatabase.DB_EXTENSION;
+
+    public static void initCouchbase() { CouchbaseLite.init(); }
+
+    public static void deinitCouchbase() { CouchbaseLiteInternal.reset(); }
+
+    // this should probably go in the BaseTest but
+    // there are several tests (C4 tests) that are not subclasses
+    static { initCouchbase(); }
+
 
     private String tmpDirPath;
 
-    @Override
-    public void initCouchbaseLite() { CouchbaseLite.init(); }
+    // Before and After naming conventions
+    @Before
+    public void setUp() throws CouchbaseLiteException { }
+
+    @After
+    public void tearDown() { }
 
     // set up the file logger...
     @Override

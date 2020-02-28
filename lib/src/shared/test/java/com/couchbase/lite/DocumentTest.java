@@ -20,6 +20,7 @@ package com.couchbase.lite;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -31,14 +32,13 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
-import com.couchbase.lite.utils.Fn;
+import com.couchbase.lite.utils.TestUtils;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -46,81 +46,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class DocumentTest extends BaseDbTest {
-    private static final String TEST_DATE = "2017-01-01T00:00:00.000Z";
-    private static final String TEST_BLOB = "i'm blob";
-
-    // used from other package's tests
-    public static void populateData(MutableDocument doc) {
-        doc.setValue("true", true);
-        doc.setValue("false", false);
-        doc.setValue("string", "string");
-        doc.setValue("zero", 0);
-        doc.setValue("one", 1);
-        doc.setValue("minus_one", -1);
-        doc.setValue("one_dot_one", 1.1);
-        doc.setValue("date", DateUtils.fromJson(TEST_DATE));
-        doc.setValue("null", null);
-
-        // Dictionary:
-        MutableDictionary dict = new MutableDictionary();
-        dict.setValue("street", "1 Main street");
-        dict.setValue("city", "Mountain View");
-        dict.setValue("state", "CA");
-        doc.setValue("dict", dict);
-
-        // Array:
-        MutableArray array = new MutableArray();
-        array.addValue("650-123-0001");
-        array.addValue("650-123-0002");
-        doc.setValue("array", array);
-
-        // Blob:
-        byte[] content = TEST_BLOB.getBytes();
-        Blob blob = new Blob("text/plain", content);
-        doc.setValue("blob", blob);
-    }
-
-    // used from other package's tests
-    public static void populateDataByTypedSetter(MutableDocument doc) {
-        doc.setBoolean("true", true);
-        doc.setBoolean("false", false);
-        doc.setString("string", "string");
-        doc.setNumber("zero", 0);
-        doc.setInt("one", 1);
-        doc.setLong("minus_one", -1);
-        doc.setDouble("one_dot_one", 1.1);
-        doc.setDate("date", DateUtils.fromJson(TEST_DATE));
-        doc.setString("null", null);
-
-        // Dictionary:
-        MutableDictionary dict = new MutableDictionary();
-        dict.setString("street", "1 Main street");
-        dict.setString("city", "Mountain View");
-        dict.setString("state", "CA");
-        doc.setDictionary("dict", dict);
-
-        // Array:
-        MutableArray array = new MutableArray();
-        array.addString("650-123-0001");
-        array.addString("650-123-0002");
-        doc.setArray("array", array);
-
-        // Blob:
-        byte[] content = TEST_BLOB.getBytes();
-        Blob blob = new Blob("text/plain", content);
-        doc.setBlob("blob", blob);
-    }
-
-    @Before
-    public void setUp() throws CouchbaseLiteException { super.setUp(); }
-
-    @After
-    public void tearDown() { super.tearDown(); }
-
     @Test
     public void testCreateDoc() throws CouchbaseLiteException {
         MutableDocument doc1a = new MutableDocument();
@@ -131,7 +59,7 @@ public class DocumentTest extends BaseDbTest {
         saveDocInBaseTestDb(doc1a);
         Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertTrue(doc1b.exists());
         assertEquals(doc1a.getId(), doc1b.getId());
     }
@@ -146,23 +74,16 @@ public class DocumentTest extends BaseDbTest {
         saveDocInBaseTestDb(doc1a);
         Document doc1b = baseTestDb.getDocument("doc1");
         assertNotNull(doc1b);
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertTrue(doc1b.exists());
         assertEquals(doc1a.getId(), doc1b.getId());
     }
 
     @Test
     public void testCreateDocWithEmptyStringID() {
-        MutableDocument doc1a = new MutableDocument("");
+        final MutableDocument doc1a = new MutableDocument("");
         assertNotNull(doc1a);
-        try {
-            saveDocInBaseTestDb(doc1a);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.BAD_DOC_ID, e.getCode());
-        }
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.BAD_DOC_ID, () -> saveDocInBaseTestDb(doc1a));
     }
 
     @Test
@@ -175,7 +96,7 @@ public class DocumentTest extends BaseDbTest {
         saveDocInBaseTestDb(doc1a);
         Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertTrue(doc1b.exists());
         assertEquals(doc1a.getId(), doc1b.getId());
     }
@@ -202,7 +123,7 @@ public class DocumentTest extends BaseDbTest {
         saveDocInBaseTestDb(doc1a);
         Document doc1b = baseTestDb.getDocument(doc1a.getId());
         assertNotNull(doc1b);
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertTrue(doc1b.exists());
         assertEquals(doc1a.getId(), doc1b.getId());
         assertEquals(dict, doc1b.toMap());
@@ -230,7 +151,7 @@ public class DocumentTest extends BaseDbTest {
         saveDocInBaseTestDb(doc1a);
         Document doc1b = baseTestDb.getDocument("doc1");
         assertNotNull(doc1b);
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertTrue(doc1b.exists());
         assertEquals(doc1a.getId(), doc1b.getId());
         assertEquals(dict, doc1b.toMap());
@@ -295,7 +216,7 @@ public class DocumentTest extends BaseDbTest {
             assertEquals(0, d.getInt("key"));
             assertEquals(0.0f, d.getFloat("key"), 0.0f);
             assertEquals(0.0, d.getDouble("key"), 0.0);
-            assertEquals(false, d.getBoolean("key"));
+            assertFalse(d.getBoolean("key"));
             assertNull(d.getBlob("key"));
             assertNull(d.getDate("key"));
             assertNull(d.getNumber("key"));
@@ -303,7 +224,7 @@ public class DocumentTest extends BaseDbTest {
             assertNull(d.getString("key"));
             assertNull(d.getArray("key"));
             assertNull(d.getDictionary("key"));
-            assertEquals(new HashMap<>(), d.toMap());
+            assertEquals(new HashMap<String, Object>(), d.toMap());
         });
     }
 
@@ -315,7 +236,7 @@ public class DocumentTest extends BaseDbTest {
 
         Database anotherDb = baseTestDb.copy();
         Document doc1b = anotherDb.getDocument("doc1");
-        assertTrue(doc1a != doc1b);
+        assertNotSame(doc1a, doc1b);
         assertEquals(doc1a.getId(), doc1b.getId());
         assertEquals(doc1a.toMap(), doc1b.toMap());
         anotherDb.close();
@@ -334,12 +255,12 @@ public class DocumentTest extends BaseDbTest {
         Database anotherDb = baseTestDb.copy();
         Document doc1d = anotherDb.getDocument("doc1");
 
-        assertTrue(doc1a != doc1b);
-        assertTrue(doc1a != doc1c);
-        assertTrue(doc1a != doc1d);
-        assertTrue(doc1b != doc1c);
-        assertTrue(doc1b != doc1d);
-        assertTrue(doc1c != doc1d);
+        assertNotSame(doc1a, doc1b);
+        assertNotSame(doc1a, doc1c);
+        assertNotSame(doc1a, doc1d);
+        assertNotSame(doc1b, doc1c);
+        assertNotSame(doc1b, doc1d);
+        assertNotSame(doc1c, doc1d);
 
         assertEquals(doc1a.toMap(), doc1b.toMap());
         assertEquals(doc1a.toMap(), doc1c.toMap());
@@ -794,14 +715,14 @@ public class DocumentTest extends BaseDbTest {
         DocValidator validator4Save = d -> {
             assertEquals(true, d.getValue("boolean1"));
             assertEquals(false, d.getValue("boolean2"));
-            assertEquals(true, d.getBoolean("boolean1"));
-            assertEquals(false, d.getBoolean("boolean2"));
+            assertTrue(d.getBoolean("boolean1"));
+            assertFalse(d.getBoolean("boolean2"));
         };
         DocValidator validator4Update = d -> {
             assertEquals(false, d.getValue("boolean1"));
             assertEquals(true, d.getValue("boolean2"));
-            assertEquals(false, d.getBoolean("boolean1"));
-            assertEquals(true, d.getBoolean("boolean2"));
+            assertFalse(d.getBoolean("boolean1"));
+            assertTrue(d.getBoolean("boolean2"));
         };
 
         // -- setValue
@@ -837,19 +758,19 @@ public class DocumentTest extends BaseDbTest {
             if (i % 2 == 1) { populateData(doc); }
             else { populateDataByTypedSetter(doc); }
             saveDocInBaseTestDb(doc, d -> {
-                assertEquals(false, d.getBoolean("null"));
-                assertEquals(true, d.getBoolean("true"));
-                assertEquals(false, d.getBoolean("false"));
-                assertEquals(true, d.getBoolean("string"));
-                assertEquals(false, d.getBoolean("zero"));
-                assertEquals(true, d.getBoolean("one"));
-                assertEquals(true, d.getBoolean("minus_one"));
-                assertEquals(true, d.getBoolean("one_dot_one"));
-                assertEquals(true, d.getBoolean("date"));
-                assertEquals(true, d.getBoolean("dict"));
-                assertEquals(true, d.getBoolean("array"));
-                assertEquals(true, d.getBoolean("blob"));
-                assertEquals(false, d.getBoolean("non_existing_key"));
+                assertFalse(d.getBoolean("null"));
+                assertTrue(d.getBoolean("true"));
+                assertFalse(d.getBoolean("false"));
+                assertTrue(d.getBoolean("string"));
+                assertFalse(d.getBoolean("zero"));
+                assertTrue(d.getBoolean("one"));
+                assertTrue(d.getBoolean("minus_one"));
+                assertTrue(d.getBoolean("one_dot_one"));
+                assertTrue(d.getBoolean("date"));
+                assertTrue(d.getBoolean("dict"));
+                assertTrue(d.getBoolean("array"));
+                assertTrue(d.getBoolean("blob"));
+                assertFalse(d.getBoolean("non_existing_key"));
             });
         }
     }
@@ -912,8 +833,9 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testSetBlob() throws CouchbaseLiteException {
-        final Blob blob = new Blob("text/plain", TEST_BLOB.getBytes());
-        final Blob nuBlob = new Blob("text/plain", "1234567890".getBytes());
+        final String newBlobContent = TestUtils.randomString(100);
+        final Blob newBlob = new Blob("text/plain", newBlobContent.getBytes(StandardCharsets.UTF_8));
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         DocValidator validator4Save = d -> {
             assertEquals(blob.getProperties().get("length"), d.getBlob("blob").getProperties().get("length"));
@@ -930,27 +852,27 @@ public class DocumentTest extends BaseDbTest {
             assertEquals(
                 blob.getProperties().get("digest"),
                 ((Blob) d.getValue("blob")).getProperties().get("digest"));
-            assertEquals(TEST_BLOB, new String(d.getBlob("blob").getContent()));
-            assertTrue(Arrays.equals(TEST_BLOB.getBytes(), d.getBlob("blob").getContent()));
+            assertEquals(BLOB_CONTENT, new String(d.getBlob("blob").getContent()));
+            assertArrayEquals(BLOB_CONTENT.getBytes(StandardCharsets.UTF_8), d.getBlob("blob").getContent());
         };
 
         DocValidator validator4Update = d -> {
-            assertEquals(nuBlob.getProperties().get("length"), d.getBlob("blob").getProperties().get("length"));
+            assertEquals(newBlob.getProperties().get("length"), d.getBlob("blob").getProperties().get("length"));
             assertEquals(
-                nuBlob.getProperties().get("content-type"),
+                newBlob.getProperties().get("content-type"),
                 d.getBlob("blob").getProperties().get("content-type"));
-            assertEquals(nuBlob.getProperties().get("digest"), d.getBlob("blob").getProperties().get("digest"));
+            assertEquals(newBlob.getProperties().get("digest"), d.getBlob("blob").getProperties().get("digest"));
             assertEquals(
-                nuBlob.getProperties().get("length"),
+                newBlob.getProperties().get("length"),
                 ((Blob) d.getValue("blob")).getProperties().get("length"));
             assertEquals(
-                nuBlob.getProperties().get("content-type"),
+                newBlob.getProperties().get("content-type"),
                 ((Blob) d.getValue("blob")).getProperties().get("content-type"));
             assertEquals(
-                nuBlob.getProperties().get("digest"),
+                newBlob.getProperties().get("digest"),
                 ((Blob) d.getValue("blob")).getProperties().get("digest"));
-            assertEquals("1234567890", new String(d.getBlob("blob").getContent()));
-            assertTrue(Arrays.equals("1234567890".getBytes(), d.getBlob("blob").getContent()));
+            assertEquals(newBlobContent, new String(d.getBlob("blob").getContent()));
+            assertArrayEquals(newBlobContent.getBytes(StandardCharsets.UTF_8), d.getBlob("blob").getContent());
         };
 
         // --setValue
@@ -960,7 +882,7 @@ public class DocumentTest extends BaseDbTest {
 
         // Update:
         mDoc = doc.toMutable();
-        mDoc.setValue("blob", nuBlob);
+        mDoc.setValue("blob", newBlob);
         saveDocInBaseTestDb(mDoc, validator4Update);
 
         // --setBlob
@@ -970,7 +892,7 @@ public class DocumentTest extends BaseDbTest {
 
         // Update:
         mDoc2 = doc2.toMutable();
-        mDoc2.setBlob("blob", nuBlob);
+        mDoc2.setBlob("blob", newBlob);
         saveDocInBaseTestDb(mDoc2, validator4Update);
     }
 
@@ -993,10 +915,8 @@ public class DocumentTest extends BaseDbTest {
                 assertNull(d.getBlob("date"));
                 assertNull(d.getBlob("dict"));
                 assertNull(d.getBlob("array"));
-                assertEquals(TEST_BLOB, new String(d.getBlob("blob").getContent()));
-                assertTrue(Arrays.equals(
-                    TEST_BLOB.getBytes(),
-                    d.getBlob("blob").getContent()));
+                assertEquals(BLOB_CONTENT, new String(d.getBlob("blob").getContent()));
+                assertArrayEquals(BLOB_CONTENT.getBytes(StandardCharsets.UTF_8), d.getBlob("blob").getContent());
                 assertNull(d.getBlob("non_existing_key"));
             });
         }
@@ -1017,7 +937,7 @@ public class DocumentTest extends BaseDbTest {
 
             Document doc = saveDocInBaseTestDb(mDoc);
 
-            assertTrue(mDict != doc.getValue("dict"));
+            assertNotSame(mDict, doc.getValue("dict"));
             assertEquals(doc.getValue("dict"), doc.getDictionary("dict"));
 
             Dictionary dict = (Dictionary) doc.getValue("dict");
@@ -1036,7 +956,7 @@ public class DocumentTest extends BaseDbTest {
 
             doc = saveDocInBaseTestDb(mDoc);
 
-            assertTrue(mDict != doc.getValue("dict"));
+            assertNotSame(mDict, doc.getValue("dict"));
             assertEquals(doc.getValue("dict"), doc.getDictionary("dict"));
             assertEquals(map, doc.getDictionary("dict").toMap());
         }
@@ -1087,11 +1007,11 @@ public class DocumentTest extends BaseDbTest {
             assertEquals(array.toList(), ((MutableArray) mDoc.getValue("array")).toList());
 
             Document doc = saveDocInBaseTestDb(mDoc);
-            assertTrue(array != doc.getValue("array"));
+            assertNotSame(array, doc.getValue("array"));
             assertEquals(doc.getValue("array"), doc.getArray("array"));
 
             Array mArray = (Array) doc.getValue("array");
-            mArray = array instanceof MutableArray ? array : array.toMutable();
+            mArray = mArray instanceof MutableArray ? mArray : mArray.toMutable();
             assertEquals(array.toList(), mArray.toList());
 
             // Update:
@@ -1100,7 +1020,7 @@ public class DocumentTest extends BaseDbTest {
             array.addValue("item4");
             array.addValue("item5");
             doc = saveDocInBaseTestDb(mDoc);
-            assertTrue(array != doc.getValue("array"));
+            assertNotSame(array, doc.getValue("array"));
             assertEquals(doc.getValue("array"), doc.getArray("array"));
             List<String> list = Arrays.asList("item1", "item2", "item3", "item4", "item5");
             assertEquals(list, doc.getArray("array").toList());
@@ -1187,7 +1107,7 @@ public class DocumentTest extends BaseDbTest {
         doc.setValue("address", nuDict);
 
         // Check whether the old address dictionary is still accessible:
-        assertTrue(address != doc.getDictionary("address"));
+        assertNotSame(address, doc.getDictionary("address"));
         assertEquals("1 Main street", address.getString("street"));
         assertEquals("Mountain View", address.getString("city"));
         assertEquals("CA", address.getString("state"));
@@ -1195,7 +1115,7 @@ public class DocumentTest extends BaseDbTest {
 
         // The old address dictionary should be detached:
         MutableDictionary nuAddress = doc.getDictionary("address");
-        assertTrue(address != nuAddress);
+        assertNotSame(address, nuAddress);
 
         // Update nuAddress:
         nuAddress.setValue("zip", "94302");
@@ -1242,7 +1162,7 @@ public class DocumentTest extends BaseDbTest {
 
         // The old members array should be detached:
         MutableArray nuMembers = doc.getArray("members");
-        assertTrue(members != nuMembers);
+        assertNotSame(members, nuMembers);
 
         // Update nuMembers:
         nuMembers.addValue("g");
@@ -1443,9 +1363,9 @@ public class DocumentTest extends BaseDbTest {
         MutableDictionary billing = doc.getDictionary("billing");
 
         // After save: both shipping and billing address are now independent to each other
-        assertTrue(shipping != address);
-        assertTrue(billing != address);
-        assertTrue(shipping != billing);
+        assertNotSame(shipping, address);
+        assertNotSame(billing, address);
+        assertNotSame(shipping, billing);
 
         shipping.setValue("street", "2 Main street");
         billing.setValue("street", "3 Main street");
@@ -1485,9 +1405,9 @@ public class DocumentTest extends BaseDbTest {
         // After save: both mobile and home are not independent to each other
         MutableArray mobile = doc.getArray("mobile");
         MutableArray home = doc.getArray("home");
-        assertTrue(mobile != phones);
-        assertTrue(home != phones);
-        assertTrue(mobile != home);
+        assertNotSame(mobile, phones);
+        assertNotSame(home, phones);
+        assertNotSame(mobile, home);
 
         // Update mobile and home:
         mobile.addValue("650-000-1234");
@@ -1536,9 +1456,7 @@ public class DocumentTest extends BaseDbTest {
         expected.put("array", array);
 
         // Blob:
-        byte[] content = TEST_BLOB.getBytes();
-        Blob blob = new Blob("text/plain", content);
-        expected.put("blob", blob);
+        expected.put("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
 
         assertEquals(expected, doc1.toMap());
     }
@@ -1611,7 +1529,7 @@ public class DocumentTest extends BaseDbTest {
         doc.remove("address");
         assertNull(doc.getValue("type"));
         assertNull(doc.getValue("address"));
-        assertEquals(new HashMap<>(), doc.toMap());
+        assertEquals(new HashMap<String, Object>(), doc.toMap());
     }
 
     @Test
@@ -1657,13 +1575,9 @@ public class DocumentTest extends BaseDbTest {
     public void testDeleteNewDocument() {
         MutableDocument mDoc = new MutableDocument("doc1");
         mDoc.setString("name", "Scott Tiger");
-        try {
-            baseTestDb.delete(mDoc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(e.getCode(), CBLError.Code.NOT_FOUND);
-        }
+
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.delete(mDoc));
+
         assertEquals("Scott Tiger", mDoc.getString("name"));
     }
 
@@ -1761,19 +1675,14 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testPurgeDocument() throws CouchbaseLiteException {
-        String docID = "doc1";
-        MutableDocument doc = new MutableDocument(docID);
+        final String docID = "doc1";
+        final MutableDocument doc = new MutableDocument(docID);
         doc.setValue("type", "profile");
         doc.setValue("name", "Scott");
 
         // Purge before save:
-        try {
-            baseTestDb.purge(doc);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(e.getCode(), CBLError.Code.NOT_FOUND);
-        }
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.purge(doc));
+
         assertEquals("profile", doc.getValue("type"));
         assertEquals("Scott", doc.getValue("name"));
 
@@ -1787,19 +1696,14 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testPurgeDocumentById() throws CouchbaseLiteException {
-        String docID = "doc1";
-        MutableDocument doc = new MutableDocument(docID);
+        final String docID = "doc1";
+        final MutableDocument doc = new MutableDocument(docID);
         doc.setValue("type", "profile");
         doc.setValue("name", "Scott");
 
         // Purge before save:
-        try {
-            baseTestDb.purge(docID);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(e.getCode(), CBLError.Code.NOT_FOUND);
-        }
+        TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.purge(docID));
+
         assertEquals("profile", doc.getValue("type"));
         assertEquals("Scott", doc.getValue("name"));
 
@@ -1949,7 +1853,7 @@ public class DocumentTest extends BaseDbTest {
         mDoc.setValue("string", "str");
         saveDocInBaseTestDb(mDoc);
 
-        reopenDB();
+        reopenBaseTestDb();
 
         Document doc = baseTestDb.getDocument("doc1");
         assertEquals("str", doc.getString("string"));
@@ -1960,7 +1864,7 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testBlob() throws IOException, CouchbaseLiteException {
-        byte[] content = TEST_BLOB.getBytes();
+        byte[] content = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
 
         // store blob
         Blob data = new Blob("text/plain", content);
@@ -1975,28 +1879,19 @@ public class DocumentTest extends BaseDbTest {
         assertEquals("Jim", doc.getValue("name"));
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
-        assertEquals(8, data.length());
-        assertTrue(Arrays.equals(content, data.getContent()));
-        InputStream is = data.getContentStream();
-        try {
+        assertEquals(BLOB_CONTENT.length(), data.length());
+        assertArrayEquals(content, data.getContent());
+        try (InputStream is = data.getContentStream()) {
             assertNotNull(is);
-            byte[] buffer = new byte[10];
+            byte[] buffer = new byte[content.length + 37];
             int bytesRead = is.read(buffer);
-            assertEquals(8, bytesRead);
-        }
-        finally {
-            try {
-                is.close();
-            }
-            catch (IOException e) {
-                fail();
-            }
+            assertEquals(content.length, bytesRead);
         }
     }
 
     @Test
     public void testEmptyBlob() throws IOException, CouchbaseLiteException {
-        byte[] content = "".getBytes();
+        byte[] content = "".getBytes(StandardCharsets.UTF_8);
         Blob data = new Blob("text/plain", content);
         assertNotNull(data);
 
@@ -2008,63 +1903,41 @@ public class DocumentTest extends BaseDbTest {
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
         assertEquals(0, data.length());
-        assertTrue(Arrays.equals(content, data.getContent()));
-        InputStream is = data.getContentStream();
-        try {
+        assertArrayEquals(content, data.getContent());
+        try (InputStream is = data.getContentStream()) {
             assertNotNull(is);
-            byte[] buffer = new byte[10];
+            byte[] buffer = new byte[37];
             int bytesRead = is.read(buffer);
             assertEquals(-1, bytesRead);
-        }
-        finally {
-            try {
-                is.close();
-            }
-            catch (IOException e) {
-                fail();
-            }
         }
     }
 
     @Test
     public void testBlobWithEmptyStream() throws IOException, CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("doc1");
-        byte[] content = "".getBytes();
-        InputStream stream = new ByteArrayInputStream(content);
-        try {
+        byte[] content = "".getBytes(StandardCharsets.UTF_8);
+        try (InputStream stream = new ByteArrayInputStream(content)) {
             Blob data = new Blob("text/plain", stream);
             assertNotNull(data);
             doc.setValue("data", data);
             doc = saveDocInBaseTestDb(doc).toMutable();
         }
-        finally {
-            stream.close();
-        }
 
         assertTrue(doc.getValue("data") instanceof Blob);
         Blob data = (Blob) doc.getValue("data");
         assertEquals(0, data.length());
-        assertTrue(Arrays.equals(content, data.getContent()));
-        InputStream is = data.getContentStream();
-        try {
+        assertArrayEquals(content, data.getContent());
+        try (InputStream is = data.getContentStream()) {
             assertNotNull(is);
-            byte[] buffer = new byte[10];
+            byte[] buffer = new byte[37];
             int bytesRead = is.read(buffer);
             assertEquals(-1, bytesRead);
-        }
-        finally {
-            try {
-                is.close();
-            }
-            catch (IOException e) {
-                fail();
-            }
         }
     }
 
     @Test
     public void testMultipleBlobRead() throws IOException, CouchbaseLiteException {
-        byte[] content = TEST_BLOB.getBytes();
+        byte[] content = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
         Blob data = new Blob("text/plain", content);
         assertNotNull(data);
 
@@ -2073,21 +1946,12 @@ public class DocumentTest extends BaseDbTest {
 
         data = (Blob) doc.getValue("data");
         for (int i = 0; i < 5; i++) {
-            assertTrue(Arrays.equals(content, data.getContent()));
-            InputStream is = data.getContentStream();
-            try {
+            assertArrayEquals(content, data.getContent());
+            try (InputStream is = data.getContentStream()) {
                 assertNotNull(is);
-                byte[] buffer = new byte[10];
+                byte[] buffer = new byte[content.length + 37];
                 int bytesRead = is.read(buffer);
-                assertEquals(8, bytesRead);
-            }
-            finally {
-                try {
-                    is.close();
-                }
-                catch (IOException e) {
-                    fail();
-                }
+                assertEquals(content.length, bytesRead);
             }
         }
 
@@ -2096,28 +1960,19 @@ public class DocumentTest extends BaseDbTest {
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
         for (int i = 0; i < 5; i++) {
-            assertTrue(Arrays.equals(content, data.getContent()));
-            InputStream is = data.getContentStream();
-            try {
+            assertArrayEquals(content, data.getContent());
+            try (InputStream is = data.getContentStream()) {
                 assertNotNull(is);
-                byte[] buffer = new byte[10];
+                byte[] buffer = new byte[content.length + 37];
                 int bytesRead = is.read(buffer);
-                assertEquals(8, bytesRead);
-            }
-            finally {
-                try {
-                    is.close();
-                }
-                catch (IOException e) {
-                    fail();
-                }
+                assertEquals(content.length, bytesRead);
             }
         }
     }
 
     @Test
     public void testReadExistingBlob() throws CouchbaseLiteException {
-        byte[] content = TEST_BLOB.getBytes();
+        byte[] content = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
         Blob data = new Blob("text/plain", content);
         assertNotNull(data);
 
@@ -2129,9 +1984,9 @@ public class DocumentTest extends BaseDbTest {
         Object obj = doc.getValue("data");
         assertTrue(obj instanceof Blob);
         data = (Blob) obj;
-        assertTrue(Arrays.equals(content, data.getContent()));
+        assertArrayEquals(content, data.getContent());
 
-        reopenDB();
+        reopenBaseTestDb();
 
         doc = baseTestDb.getDocument("doc1").toMutable();
         doc.setValue("foo", "bar");
@@ -2139,7 +1994,7 @@ public class DocumentTest extends BaseDbTest {
 
         assertTrue(doc.getValue("data") instanceof Blob);
         data = (Blob) doc.getValue("data");
-        assertTrue(Arrays.equals(content, data.getContent()));
+        assertArrayEquals(content, data.getContent());
     }
 
     @Test
@@ -2176,7 +2031,7 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testToMutable() throws CouchbaseLiteException {
-        byte[] content = TEST_BLOB.getBytes();
+        byte[] content = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
         Blob data = new Blob("text/plain", content);
         MutableDocument mDoc1 = new MutableDocument("doc1");
         mDoc1.setBlob("data", data);
@@ -2210,8 +2065,8 @@ public class DocumentTest extends BaseDbTest {
 
     @Test
     public void testEquality() throws CouchbaseLiteException {
-        byte[] data1 = "data1".getBytes();
-        byte[] data2 = "data2".getBytes();
+        byte[] data1 = "data1".getBytes(StandardCharsets.UTF_8);
+        byte[] data2 = "data2".getBytes(StandardCharsets.UTF_8);
 
         MutableDocument doc1a = new MutableDocument("doc1");
         MutableDocument doc1b = new MutableDocument("doc1");
@@ -2230,25 +2085,25 @@ public class DocumentTest extends BaseDbTest {
         doc1c.setBlob("attachment", new Blob("text/plain", data2));
         doc1c.setString("comment", "This is a comment");
 
-        assertTrue(doc1a.equals(doc1a));
-        assertTrue(doc1a.equals(doc1b));
-        assertFalse(doc1a.equals(doc1c));
+        assertEquals(doc1a, doc1a);
+        assertEquals(doc1a, doc1b);
+        assertNotEquals(doc1a, doc1c);
 
-        assertTrue(doc1b.equals(doc1a));
-        assertTrue(doc1b.equals(doc1b));
-        assertFalse(doc1b.equals(doc1c));
+        assertEquals(doc1b, doc1a);
+        assertEquals(doc1b, doc1b);
+        assertNotEquals(doc1b, doc1c);
 
-        assertFalse(doc1c.equals(doc1a));
-        assertFalse(doc1c.equals(doc1b));
-        assertTrue(doc1c.equals(doc1c));
+        assertNotEquals(doc1c, doc1a);
+        assertNotEquals(doc1c, doc1b);
+        assertEquals(doc1c, doc1c);
 
         Document savedDoc = saveDocInBaseTestDb(doc1c);
         MutableDocument mDoc = savedDoc.toMutable();
-        assertTrue(savedDoc.equals(mDoc));
-        assertTrue(mDoc.equals(savedDoc));
+        assertEquals(savedDoc, mDoc);
+        assertEquals(mDoc, savedDoc);
         mDoc.setInt("answer", 50);
-        assertFalse(savedDoc.equals(mDoc));
-        assertFalse(mDoc.equals(savedDoc));
+        assertNotEquals(savedDoc, mDoc);
+        assertNotEquals(mDoc, savedDoc);
     }
 
     @Test
@@ -2260,58 +2115,59 @@ public class DocumentTest extends BaseDbTest {
         Document sDoc1 = saveDocInBaseTestDb(doc1);
         Document sDoc2 = saveDocInBaseTestDb(doc2);
 
-        assertTrue(doc1.equals(doc1));
-        assertTrue(sDoc1.equals(sDoc1));
-        assertTrue(doc1.equals(sDoc1));
-        assertTrue(sDoc1.equals(doc1));
+        assertEquals(doc1, doc1);
+        assertEquals(sDoc1, sDoc1);
+        assertEquals(doc1, sDoc1);
+        assertEquals(sDoc1, doc1);
 
-        assertTrue(doc2.equals(doc2));
-        assertTrue(sDoc2.equals(sDoc2));
-        assertTrue(doc2.equals(sDoc2));
-        assertTrue(sDoc2.equals(doc2));
+        assertEquals(doc2, doc2);
+        assertEquals(sDoc2, sDoc2);
+        assertEquals(doc2, sDoc2);
+        assertEquals(sDoc2, doc2);
 
-        assertFalse(doc1.equals(doc2));
-        assertFalse(doc2.equals(doc1));
-        assertFalse(sDoc1.equals(sDoc2));
-        assertFalse(sDoc2.equals(sDoc1));
+        assertNotEquals(doc1, doc2);
+        assertNotEquals(doc2, doc1);
+        assertNotEquals(sDoc1, sDoc2);
+        assertNotEquals(sDoc2, sDoc1);
     }
 
     @Test
     public void testEqualityDifferentDB() throws CouchbaseLiteException {
-        Database otherDB = new Database("other");
+        Database sameDB = null;
+        Database otherDB = createDb();
         try {
             MutableDocument doc1a = new MutableDocument("doc1");
             MutableDocument doc1b = new MutableDocument("doc1");
             doc1a.setLong("answer", 42L);
             doc1b.setLong("answer", 42L);
-            assertTrue(doc1a.equals(doc1b));
-            assertTrue(doc1b.equals(doc1a));
+            assertEquals(doc1a, doc1b);
+            assertEquals(doc1b, doc1a);
             Document sDoc1a = saveDocInBaseTestDb(doc1a);
             otherDB.save(doc1b);
+
             Document sDoc1b = otherDB.getDocument(doc1b.getId());
-            assertTrue(doc1a.equals(sDoc1a));
-            assertTrue(sDoc1a.equals(doc1a));
-            assertTrue(doc1b.equals(sDoc1b));
-            assertTrue(sDoc1b.equals(doc1b));
-            assertFalse(sDoc1a.equals(sDoc1b));
-            assertFalse(sDoc1b.equals(sDoc1a));
+            assertEquals(doc1a, sDoc1a);
+            assertEquals(sDoc1a, doc1a);
+            assertEquals(doc1b, sDoc1b);
+            assertEquals(sDoc1b, doc1b);
+            assertNotEquals(sDoc1a, sDoc1b);
+            assertNotEquals(sDoc1b, sDoc1a);
 
             sDoc1a = baseTestDb.getDocument("doc1");
             sDoc1b = otherDB.getDocument("doc1");
-            assertFalse(sDoc1b.equals(sDoc1a));
+            assertNotEquals(sDoc1b, sDoc1a);
 
-            Database sameDB = new Database(baseTestDb.getName());
-            try {
-                Document anotherDoc1a = sameDB.getDocument("doc1");
-                assertTrue(anotherDoc1a.equals(sDoc1a));
-                assertTrue(sDoc1a.equals(anotherDoc1a));
-            }
-            finally {
-                sameDB.close();
-            }
+            sameDB = new Database(baseTestDb.getName());
+
+            Document anotherDoc1a = sameDB.getDocument("doc1");
+            assertEquals(anotherDoc1a, sDoc1a);
+            assertEquals(sDoc1a, anotherDoc1a);
+
+
         }
         finally {
-            otherDB.close();
+            closeDb(sameDB);
+            closeDb(otherDB);
         }
     }
 
@@ -2388,131 +2244,131 @@ public class DocumentTest extends BaseDbTest {
         Document doc5 = saveDocInBaseTestDb(mDoc5);
 
         // compare doc1, doc2, mdoc1, and mdoc2
-        assertTrue(doc1.equals(doc1));
-        assertTrue(doc2.equals(doc2));
-        assertFalse(doc1.equals(doc2));
-        assertFalse(doc2.equals(doc1));
-        assertTrue(doc1.equals(doc1.toMutable()));
-        assertFalse(doc1.equals(doc2.toMutable()));
-        assertTrue(doc1.toMutable().equals(doc1));
-        assertFalse(doc2.toMutable().equals(doc1));
-        assertTrue(doc1.equals(mDoc1)); // mDoc's ID is updated
-        assertFalse(doc1.equals(mDoc2));
-        assertFalse(doc2.equals(mDoc1));
-        assertTrue(doc2.equals(mDoc2));
-        assertTrue(mDoc1.equals(doc1));
-        assertFalse(mDoc2.equals(doc1));
-        assertFalse(mDoc1.equals(doc2));
-        assertTrue(mDoc2.equals(doc2));
-        assertTrue(mDoc1.equals(mDoc1));
-        assertTrue(mDoc2.equals(mDoc2));
-        assertTrue(mDoc1.equals(mDoc1));
-        assertTrue(mDoc2.equals(mDoc2));
+        assertEquals(doc1, doc1);
+        assertEquals(doc2, doc2);
+        assertNotEquals(doc1, doc2);
+        assertNotEquals(doc2, doc1);
+        assertEquals(doc1, doc1.toMutable());
+        assertNotEquals(doc1, doc2.toMutable());
+        assertEquals(doc1.toMutable(), doc1);
+        assertNotEquals(doc2.toMutable(), doc1);
+        assertEquals(doc1, mDoc1); // mDoc's ID is updated
+        assertNotEquals(doc1, mDoc2);
+        assertNotEquals(doc2, mDoc1);
+        assertEquals(doc2, mDoc2);
+        assertEquals(mDoc1, doc1);
+        assertNotEquals(mDoc2, doc1);
+        assertNotEquals(mDoc1, doc2);
+        assertEquals(mDoc2, doc2);
+        assertEquals(mDoc1, mDoc1);
+        assertEquals(mDoc2, mDoc2);
+        assertEquals(mDoc1, mDoc1);
+        assertEquals(mDoc2, mDoc2);
 
         // compare doc1, doc3, mdoc1, and mdoc3
-        assertTrue(doc3.equals(doc3));
-        assertFalse(doc1.equals(doc3));
-        assertFalse(doc3.equals(doc1));
-        assertFalse(doc1.equals(doc3.toMutable()));
-        assertFalse(doc3.toMutable().equals(doc1));
-        assertFalse(doc1.equals(mDoc3));
-        assertFalse(doc3.equals(mDoc1));
-        assertTrue(doc3.equals(mDoc3));
-        assertFalse(mDoc3.equals(doc1));
-        assertFalse(mDoc1.equals(doc3));
-        assertTrue(mDoc3.equals(doc3));
-        assertTrue(mDoc3.equals(mDoc3));
+        assertEquals(doc3, doc3);
+        assertNotEquals(doc1, doc3);
+        assertNotEquals(doc3, doc1);
+        assertNotEquals(doc1, doc3.toMutable());
+        assertNotEquals(doc3.toMutable(), doc1);
+        assertNotEquals(doc1, mDoc3);
+        assertNotEquals(doc3, mDoc1);
+        assertEquals(doc3, mDoc3);
+        assertNotEquals(mDoc3, doc1);
+        assertNotEquals(mDoc1, doc3);
+        assertEquals(mDoc3, doc3);
+        assertEquals(mDoc3, mDoc3);
 
         // compare doc1, doc4, mdoc1, and mdoc4
-        assertTrue(doc4.equals(doc4));
-        assertFalse(doc1.equals(doc4));
-        assertFalse(doc4.equals(doc1));
-        assertFalse(doc1.equals(doc4.toMutable()));
-        assertFalse(doc4.toMutable().equals(doc1));
-        assertFalse(doc1.equals(mDoc4));
-        assertFalse(doc4.equals(mDoc1));
-        assertTrue(doc4.equals(mDoc4));
-        assertFalse(mDoc4.equals(doc1));
-        assertFalse(mDoc1.equals(doc4));
-        assertTrue(mDoc4.equals(doc4));
-        assertTrue(mDoc4.equals(mDoc4));
+        assertEquals(doc4, doc4);
+        assertNotEquals(doc1, doc4);
+        assertNotEquals(doc4, doc1);
+        assertNotEquals(doc1, doc4.toMutable());
+        assertNotEquals(doc4.toMutable(), doc1);
+        assertNotEquals(doc1, mDoc4);
+        assertNotEquals(doc4, mDoc1);
+        assertEquals(doc4, mDoc4);
+        assertNotEquals(mDoc4, doc1);
+        assertNotEquals(mDoc1, doc4);
+        assertEquals(mDoc4, doc4);
+        assertEquals(mDoc4, mDoc4);
 
         // compare doc3, doc4, mdoc3, and mdoc4
-        assertFalse(doc3.equals(doc4));
-        assertFalse(doc4.equals(doc3));
-        assertFalse(doc3.equals(doc4.toMutable()));
-        assertFalse(doc4.toMutable().equals(doc3));
-        assertFalse(doc3.equals(mDoc4));
-        assertFalse(doc4.equals(mDoc3));
-        assertFalse(mDoc4.equals(doc3));
-        assertFalse(mDoc3.equals(doc4));
+        assertNotEquals(doc3, doc4);
+        assertNotEquals(doc4, doc3);
+        assertNotEquals(doc3, doc4.toMutable());
+        assertNotEquals(doc4.toMutable(), doc3);
+        assertNotEquals(doc3, mDoc4);
+        assertNotEquals(doc4, mDoc3);
+        assertNotEquals(mDoc4, doc3);
+        assertNotEquals(mDoc3, doc4);
 
         // compare doc3, doc5, mdoc3, and mdoc5
-        assertFalse(doc3.equals(doc5));
-        assertFalse(doc5.equals(doc3));
-        assertFalse(doc3.equals(doc5.toMutable()));
-        assertFalse(doc5.toMutable().equals(doc3));
-        assertFalse(doc3.equals(mDoc5));
-        assertFalse(doc5.equals(mDoc3));
-        assertFalse(mDoc5.equals(doc3));
-        assertFalse(mDoc3.equals(doc5));
+        assertNotEquals(doc3, doc5);
+        assertNotEquals(doc5, doc3);
+        assertNotEquals(doc3, doc5.toMutable());
+        assertNotEquals(doc5.toMutable(), doc3);
+        assertNotEquals(doc3, mDoc5);
+        assertNotEquals(doc5, mDoc3);
+        assertNotEquals(mDoc5, doc3);
+        assertNotEquals(mDoc3, doc5);
 
         // compare doc5, doc4, mDoc5, and mdoc4
-        assertFalse(doc5.equals(doc4));
-        assertFalse(doc4.equals(doc5));
-        assertFalse(doc5.equals(doc4.toMutable()));
-        assertFalse(doc4.toMutable().equals(doc5));
-        assertFalse(doc5.equals(mDoc4));
-        assertFalse(doc4.equals(mDoc5));
-        assertFalse(mDoc4.equals(doc5));
-        assertFalse(mDoc5.equals(doc4));
+        assertNotEquals(doc5, doc4);
+        assertNotEquals(doc4, doc5);
+        assertNotEquals(doc5, doc4.toMutable());
+        assertNotEquals(doc4.toMutable(), doc5);
+        assertNotEquals(doc5, mDoc4);
+        assertNotEquals(doc4, mDoc5);
+        assertNotEquals(mDoc4, doc5);
+        assertNotEquals(mDoc5, doc4);
 
         // compare doc1, mDoc1, and mdoc6
-        assertFalse(doc1.equals(mDoc6));
-        assertFalse(mDoc6.equals(doc1));
-        assertFalse(mDoc6.equals(doc1.toMutable()));
-        assertFalse(mDoc1.equals(mDoc6));
-        assertFalse(mDoc6.equals(mDoc1));
+        assertNotEquals(doc1, mDoc6);
+        assertNotEquals(mDoc6, doc1);
+        assertNotEquals(mDoc6, doc1.toMutable());
+        assertNotEquals(mDoc1, mDoc6);
+        assertNotEquals(mDoc6, mDoc1);
 
         // compare doc4, mDoc4, and mdoc6
-        assertTrue(mDoc6.equals(mDoc6));
-        assertFalse(doc4.equals(mDoc6));
-        assertFalse(mDoc6.equals(doc4));
-        assertFalse(mDoc6.equals(doc4.toMutable()));
-        assertFalse(mDoc4.equals(mDoc6));
-        assertFalse(mDoc6.equals(mDoc4));
+        assertEquals(mDoc6, mDoc6);
+        assertNotEquals(doc4, mDoc6);
+        assertNotEquals(mDoc6, doc4);
+        assertNotEquals(mDoc6, doc4.toMutable());
+        assertNotEquals(mDoc4, mDoc6);
+        assertNotEquals(mDoc6, mDoc4);
 
         // compare doc5, mDoc5, and mdoc7
-        assertTrue(mDoc7.equals(mDoc7));
-        assertFalse(doc5.equals(mDoc7));
-        assertFalse(mDoc7.equals(doc5));
-        assertFalse(mDoc7.equals(doc5.toMutable()));
-        assertFalse(mDoc5.equals(mDoc7));
-        assertFalse(mDoc7.equals(mDoc5));
+        assertEquals(mDoc7, mDoc7);
+        assertNotEquals(doc5, mDoc7);
+        assertNotEquals(mDoc7, doc5);
+        assertNotEquals(mDoc7, doc5.toMutable());
+        assertNotEquals(mDoc5, mDoc7);
+        assertNotEquals(mDoc7, mDoc5);
 
         // compare mDoc6 and mDoc7
-        assertTrue(mDoc6.equals(mDoc6));
-        assertFalse(mDoc6.equals(mDoc7));
-        assertFalse(mDoc6.equals(mDoc8));
-        assertFalse(mDoc6.equals(mDoc9));
-        assertFalse(mDoc7.equals(mDoc6));
-        assertTrue(mDoc7.equals(mDoc7));
-        assertFalse(mDoc7.equals(mDoc8));
-        assertFalse(mDoc7.equals(mDoc9));
+        assertEquals(mDoc6, mDoc6);
+        assertNotEquals(mDoc6, mDoc7);
+        assertNotEquals(mDoc6, mDoc8);
+        assertNotEquals(mDoc6, mDoc9);
+        assertNotEquals(mDoc7, mDoc6);
+        assertEquals(mDoc7, mDoc7);
+        assertNotEquals(mDoc7, mDoc8);
+        assertNotEquals(mDoc7, mDoc9);
 
         // compare mDoc8 and mDoc9
-        assertTrue(mDoc8.equals(mDoc8));
-        assertFalse(mDoc8.equals(mDoc9));
-        assertFalse(mDoc9.equals(mDoc8));
-        assertTrue(mDoc9.equals(mDoc9));
+        assertEquals(mDoc8, mDoc8);
+        assertNotEquals(mDoc8, mDoc9);
+        assertNotEquals(mDoc9, mDoc8);
+        assertEquals(mDoc9, mDoc9);
 
         // against other type
-        assertFalse(doc3.equals(null));
-        assertFalse(doc3.equals(new Object()));
-        assertFalse(doc3.equals(1));
-        assertFalse(doc3.equals(new HashMap<>()));
-        assertFalse(doc3.equals(new MutableDocument()));
-        assertFalse(doc3.equals(new MutableArray()));
+        assertNotEquals(null, doc3);
+        assertNotEquals(doc3, new Object());
+        assertNotEquals(1, doc3);
+        assertNotEquals(doc3, new HashMap<>());
+        assertNotEquals(doc3, new MutableDocument());
+        assertNotEquals(doc3, new MutableArray());
     }
 
     @Test

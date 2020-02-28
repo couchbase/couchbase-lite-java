@@ -17,6 +17,7 @@ package com.couchbase.lite;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.couchbase.lite.utils.Report;
 import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertEquals;
@@ -43,7 +45,6 @@ import static org.junit.Assert.fail;
 // If a test opens a new database it guarantee that it is deleted.
 // If a test opens a copy of the baseTestDb, it must close (but NOT delete)
 public class DatabaseTest extends BaseDbTest {
-    private final static String DATABASE_TEST_BLOB = "i'm blob";
 
     //---------------------------------------------
     //  Get Document
@@ -67,7 +68,7 @@ public class DatabaseTest extends BaseDbTest {
         createDocInBaseTestDb(docID);
 
         // open db with same db name and default option
-        Database otherDb = openBaseTestDbCopy(0);
+        Database otherDb = duplicateBaseTestDb();
         try {
             assertNotSame(baseTestDb, otherDb);
 
@@ -175,7 +176,7 @@ public class DatabaseTest extends BaseDbTest {
         MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
 
         // Create db with default
-        Database otherDb = openBaseTestDbCopy();
+        Database otherDb = duplicateBaseTestDb();
         try {
             assertNotSame(otherDb, baseTestDb);
             assertEquals(1, otherDb.getCount());
@@ -284,7 +285,7 @@ public class DatabaseTest extends BaseDbTest {
 
         // Create db with same name:
         // Create db with default
-        Database otherDb = openBaseTestDbCopy();
+        Database otherDb = duplicateBaseTestDb();
         try {
             assertNotSame(otherDb, baseTestDb);
             assertEquals(1, otherDb.getCount());
@@ -372,7 +373,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test
     public void testPurgePreSaveDoc() {
         MutableDocument doc = new MutableDocument("doc1");
-        assertEquals(1, baseTestDb.getCount());
+        assertEquals(0, baseTestDb.getCount());
         TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.NOT_FOUND, () -> baseTestDb.purge(doc));
         assertEquals(0, baseTestDb.getCount());
     }
@@ -394,7 +395,7 @@ public class DatabaseTest extends BaseDbTest {
         Document doc = createDocInBaseTestDb(docID);
 
         // Create db with default:
-        Database otherDb = openBaseTestDbCopy();
+        Database otherDb = duplicateBaseTestDb();
         try {
             assertNotSame(otherDb, baseTestDb);
             assertEquals(1, otherDb.getCount());
@@ -542,7 +543,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testCloseThenAccessBlob() throws CouchbaseLiteException {
         // Store doc with blob:
         MutableDocument mDoc = createDocInBaseTestDb("doc1").toMutable();
-        mDoc.setValue("blob", new Blob("text/plain", DATABASE_TEST_BLOB.getBytes()));
+        mDoc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
         Document doc = saveDocInBaseTestDb(mDoc);
 
         // Close db:
@@ -551,7 +552,7 @@ public class DatabaseTest extends BaseDbTest {
         // content should be accessible & modifiable without error
         assertTrue(doc.getValue("blob") instanceof Blob);
         Blob blob = doc.getBlob("blob");
-        assertEquals(8, blob.length());
+        assertEquals(BLOB_CONTENT.length(), blob.length());
 
         // trying to get the content, however, should fail
         blob.getContent();
@@ -635,7 +636,7 @@ public class DatabaseTest extends BaseDbTest {
         // Store doc with blob:
         String docID = "doc1";
         MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
-        doc.setValue("blob", new Blob("text/plain", DATABASE_TEST_BLOB.getBytes()));
+        doc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
         saveDocInBaseTestDb(doc);
 
         // Delete db:
@@ -647,7 +648,7 @@ public class DatabaseTest extends BaseDbTest {
 
         assertTrue(obj instanceof Blob);
         Blob blob = (Blob) obj;
-        assertEquals(8, blob.length());
+        assertEquals(BLOB_CONTENT.length(), blob.length());
 
         // NOTE content still exists in memory for this case.
         assertNotNull(blob.getContent());
@@ -690,7 +691,7 @@ public class DatabaseTest extends BaseDbTest {
 
     @Test
     public void testDeleteDBOpenedByOtherInstance() throws CouchbaseLiteException {
-        Database otherDb = openBaseTestDbCopy(0);
+        Database otherDb = duplicateBaseTestDb(0);
         try {
             assertNotSame(baseTestDb, otherDb);
             // delete db
@@ -709,25 +710,17 @@ public class DatabaseTest extends BaseDbTest {
     public void testDeleteWithDefaultDirDB() throws CouchbaseLiteException {
         final String dbName = baseTestDb.getName();
 
-        final File dbDir = new File(baseTestDb.getPath());
-        try {
-            assertNotNull(dbDir);
-            assertTrue(dbDir.exists());
-            // close db before delete
-            baseTestDb.close();
+        final File path = new File(baseTestDb.getPath());
 
-            // Java/Android should not allow null as directory parameter
-            try {
-                Database.delete(dbName, null);
-                fail();
-            }
-            catch (IllegalArgumentException expected) { }
-            assertTrue(dbDir.exists());
-        }
-        finally {
-            Database.delete(dbName, dbDir.getParentFile());
-            assertFalse(dbDir.exists());
-        }
+        assertNotNull(path);
+        assertTrue(path.exists());
+
+        // close db before delete
+        baseTestDb.close();
+
+        Database.delete(dbName, null);
+
+        assertFalse(path.exists());
     }
 
     @Test
@@ -736,33 +729,30 @@ public class DatabaseTest extends BaseDbTest {
         assertNotNull(path);
         assertTrue(path.exists());
 
-        Database.delete(baseTestDb.getName(), null);
-        assertFalse(path.exists());
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.BUSY,
+            () -> Database.delete(baseTestDb.getName(), null));
     }
 
     @Test
     public void testStaticDeleteDb() throws CouchbaseLiteException {
-        final String uniqueName = getUniqueName();
-
-        final String dbDirPath = getScratchDirectoryPath(uniqueName);
-        final File dbDirFile = new File(dbDirPath);
+        final String dbDirPath = getScratchDirectoryPath(getUniqueName());
 
         // create db in a custom directory
-        final DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(dbDirPath);
-
-
-        final Database db = new Database(uniqueName, config);
+        final Database db = createDb(new DatabaseConfiguration().setDirectory(dbDirPath));
         try {
-            final File path = new File(db.getPath());
-            assertNotNull(path);
-            assertTrue(path.exists());
+            final String dbName = db.getName();
+
+            final File dbPath = new File(db.getPath());
+            assertTrue(dbPath.exists());
 
             // close db before delete
             db.close();
 
-            Database.delete(uniqueName, dbDirFile);
-            assertFalse(path.exists());
+            Database.delete(dbName, new File(dbDirPath));
+
+            assertFalse(dbPath.exists());
         }
         finally {
             deleteDb(db);
@@ -771,10 +761,10 @@ public class DatabaseTest extends BaseDbTest {
 
     @Test
     public void testDeleteOpeningDBByStaticMethod() throws CouchbaseLiteException {
-        Database db = openBaseTestDbCopy();
+        Database db = duplicateBaseTestDb();
+
         final String dbName = db.getName();
         final File dbDir = db.getFilePath().getParentFile();
-
         try {
             TestUtils.assertThrowsCBL(CBLError.Domain.CBLITE, CBLError.Code.BUSY, () -> Database.delete(dbName, dbDir));
         }
@@ -783,7 +773,7 @@ public class DatabaseTest extends BaseDbTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = CouchbaseLiteException.class)
     public void testDeleteNonExistingDBWithDefaultDir() throws CouchbaseLiteException {
         Database.delete("notexistdb", baseTestDb.getFilePath());
     }
@@ -798,9 +788,7 @@ public class DatabaseTest extends BaseDbTest {
 
     // NOTE: Android/Java does not allow to use null as directory parameters
     @Test(expected = IllegalArgumentException.class)
-    public void testDatabaseExistsWithDefaultDir() {
-        Database.exists(baseTestDb.getName(), null);
-    }
+    public void testDatabaseExistsWithDefaultDir() { Database.exists(baseTestDb.getName(), null); }
 
     //---------------------------------------------
     //  Database Existing
@@ -812,16 +800,16 @@ public class DatabaseTest extends BaseDbTest {
 
         final String dbDirPath = getScratchDirectoryPath(uniqueName);
         final File dbDir = new File(dbDirPath);
-        assertTrue(dbDir.mkdirs());
         assertTrue(dbDir.exists());
 
         assertFalse(Database.exists(uniqueName, dbDir));
 
         // create db with custom directory
         final Database db = new Database(uniqueName, new DatabaseConfiguration().setDirectory(dbDirPath));
-        final File dbPath = db.getFilePath();
         try {
             assertTrue(Database.exists(uniqueName, dbDir));
+
+            final String dbPath = db.getPath();
 
             db.close();
             assertTrue(Database.exists(uniqueName, dbDir));
@@ -829,16 +817,16 @@ public class DatabaseTest extends BaseDbTest {
             Database.delete(uniqueName, dbDir);
             assertFalse(Database.exists(uniqueName, dbDir));
 
-            assertFalse(dbPath.exists());
+            assertFalse(new File(dbPath).exists());
         }
         finally {
             deleteDb(db);
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDatabaseExistsAgainstNonExistDBWithDefaultDir() {
-        Database.exists("notexistdb", baseTestDb.getFilePath());
+        assertFalse(Database.exists("notexistdb", baseTestDb.getFilePath()));
     }
 
     @Test
@@ -898,7 +886,7 @@ public class DatabaseTest extends BaseDbTest {
 
     // REF: https://github.com/couchbase/couchbase-lite-android/issues/1231
     @Test
-    public void testOverwriteDocWithNewDocInstgance() throws CouchbaseLiteException {
+    public void testOverwriteDocWithNewDocInstance() throws CouchbaseLiteException {
         MutableDocument mDoc1 = new MutableDocument("abc");
         mDoc1.setValue("someKey", "someVar");
         Document doc1 = saveDocInBaseTestDb(mDoc1);
@@ -930,9 +918,7 @@ public class DatabaseTest extends BaseDbTest {
             String docID = "doc_" + i;
             MutableDocument doc = new MutableDocument(docID);
             doc.setValue("name", docID);
-            byte[] data = docID.getBytes();
-            Blob blob = new Blob("text/plain", data);
-            doc.setValue("data", blob);
+            doc.setValue("data", new Blob("text/plain", docID.getBytes()));
             saveDocInBaseTestDb(doc);
         }
 
@@ -946,20 +932,20 @@ public class DatabaseTest extends BaseDbTest {
         // Verify:
         assertTrue(Database.exists(dbName, new File(config.getDirectory())));
 
-        Database nudb = new Database(dbName, config);
+        Database newDb = new Database(dbName, config);
         try {
-            assertNotNull(nudb);
-            assertEquals(nDocs, nudb.getCount());
+            assertNotNull(newDb);
+            assertEquals(nDocs, newDb.getCount());
 
             ResultSet rs = QueryBuilder.select(SelectResult.expression(Meta.id))
-                .from(DataSource.database(nudb))
+                .from(DataSource.database(newDb))
                 .execute();
 
             for (Result r : rs) {
                 String docID = r.getString(0);
                 assertNotNull(docID);
 
-                Document doc = nudb.getDocument(docID);
+                Document doc = newDb.getDocument(docID);
                 assertNotNull(doc);
                 assertEquals(docID, doc.getString("name"));
 
@@ -970,7 +956,7 @@ public class DatabaseTest extends BaseDbTest {
             }
         }
         finally {
-            closeDb(nudb);
+            closeDb(newDb);
         }
     }
 
@@ -1032,8 +1018,8 @@ public class DatabaseTest extends BaseDbTest {
         FullTextIndexItem detailItem = FullTextIndexItem.property("detail");
 
         // Create value index with first name:
-        Index fNameindex = IndexBuilder.valueIndex(fNameItem);
-        baseTestDb.createIndex("myindex", fNameindex);
+        Index fNameIndex = IndexBuilder.valueIndex(fNameItem);
+        baseTestDb.createIndex("myindex", fNameIndex);
 
         // Create value index with last name:
         ValueIndex lNameindex = IndexBuilder.valueIndex(lNameItem);
@@ -1087,14 +1073,15 @@ public class DatabaseTest extends BaseDbTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1416
     @Test
     public void testDeleteAndOpenDB() throws CouchbaseLiteException {
-        final String dbName = getUniqueName();
+        //final String dbName = getUniqueName();
         final DatabaseConfiguration config = new DatabaseConfiguration();
 
         Database database1 = null;
         Database database2 = null;
         try {
             // open a database
-            database1 = new Database(dbName, config);
+            database1 = createDb(config);
+            final String dbName = database1.getName();
 
             // delete it
             database1.delete();
@@ -1102,7 +1089,7 @@ public class DatabaseTest extends BaseDbTest {
             // open it again
             database2 = new Database(dbName, config);
 
-            // inserting documents
+            // insert documents
             final Database db = database2;
             database2.inBatch(() -> {
                 // just create 100 documents
@@ -1265,18 +1252,12 @@ public class DatabaseTest extends BaseDbTest {
 
     private Database openDatabase() throws CouchbaseLiteException { return verifyDb(createDb()); }
 
-    // helper method to open database
-    private Database openBaseTestDbCopy() throws CouchbaseLiteException {
-        return openBaseTestDbCopy(-1);
+    private Database duplicateBaseTestDb() throws CouchbaseLiteException {
+        return verifyDb(duplicateDb(baseTestDb));
     }
 
-    private Database openBaseTestDbCopy(int count) throws CouchbaseLiteException {
-        return reopenDatabase(baseTestDb.getName(), count);
-    }
-
-    // This method opens a *named* database.  Use with extreme caution.
-    private Database reopenDatabase(String dbName, int count) throws CouchbaseLiteException {
-        Database db = verifyDb(new Database(dbName));
+    private Database duplicateBaseTestDb(int count) throws CouchbaseLiteException {
+        Database db = duplicateBaseTestDb();
 
         final long actualCount = db.getCount();
         if (count != actualCount) {
@@ -1287,11 +1268,10 @@ public class DatabaseTest extends BaseDbTest {
         return db;
     }
 
-    private Database verifyDb(Database db) throws CouchbaseLiteException {
-        final String dbName = db.getName();
+    private Database verifyDb(Database db) {
         try {
             assertNotNull(db);
-            assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(".cblite2"));
+            assertTrue(new File(db.getPath()).getCanonicalPath().endsWith(DB_EXTENSION));
 
             return db;
         }
@@ -1385,7 +1365,7 @@ public class DatabaseTest extends BaseDbTest {
             assertEquals(3, savedDoc.getSequence());
         }
 
-        recreateDB();
+        recreateBastTestDb();
     }
 
     private void testSaveDocWithDeletedConflictUsingConcurrencyControl(ConcurrencyControl cc)
@@ -1417,7 +1397,7 @@ public class DatabaseTest extends BaseDbTest {
             assertNull(baseTestDb.getDocument(doc.getId()));
         }
 
-        recreateDB();
+        recreateBastTestDb();
     }
 
     private void testSaveDocWithNoParentConflictUsingConcurrencyControl(ConcurrencyControl cc)
@@ -1447,7 +1427,7 @@ public class DatabaseTest extends BaseDbTest {
             assertEquals(1, savedDoc.getSequence());
         }
 
-        recreateDB();
+        recreateBastTestDb();
     }
 
     private void testDeleteDocWithConflictUsingConcurrencyControl(ConcurrencyControl cc) throws CouchbaseLiteException {
@@ -1484,7 +1464,7 @@ public class DatabaseTest extends BaseDbTest {
             assertEquals(2, savedDoc.getSequence());
         }
 
-        recreateDB();
+        recreateBastTestDb();
     }
 
 }

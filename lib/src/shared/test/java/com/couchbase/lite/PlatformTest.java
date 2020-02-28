@@ -27,8 +27,11 @@ import java.io.InputStream;
  */
 public interface PlatformTest {
 
-    /* For calling CouchbaseLite.init() method. */
-    void initCouchbaseLite();
+    /* @Before naming convention */
+    void setUp() throws CouchbaseLiteException;
+
+    /* @After naming convention */
+    void tearDown();
 
     /* Set up any test specific logging */
     void setupFileLogging();

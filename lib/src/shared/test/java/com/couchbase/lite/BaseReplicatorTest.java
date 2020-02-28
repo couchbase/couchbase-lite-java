@@ -17,39 +17,69 @@
 //
 package com.couchbase.lite;
 
+import org.junit.After;
+import org.junit.Before;
+
+import com.couchbase.lite.utils.Report;
+
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PULL;
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH;
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 public abstract class BaseReplicatorTest extends BaseDbTest {
-    protected Replicator repl;
+    protected Replicator baseTestReplicator;
 
-    protected final ReplicatorConfiguration makeConfig(
-        boolean push,
-        boolean pull,
-        boolean continuous,
-        Endpoint target) {
-        return makeConfig(push, pull, continuous, this.baseTestDb, target);
+    protected Database otherDB;
+
+    @Before
+    @Override
+    public void setUp() throws CouchbaseLiteException {
+        super.setUp();
+
+        otherDB = createDb();
+
+        assertNotNull(otherDB);
+        assertTrue(otherDB.isOpen());
+    }
+
+    @After
+    @Override
+    public void tearDown() {
+        try {
+            if ((otherDB != null) && !otherDB.isOpen()) { deleteDb(otherDB); }
+            else { Report.log(LogLevel.INFO, "expected otherDB to be open"); }
+        }
+        finally { super.tearDown(); }
     }
 
     protected final ReplicatorConfiguration makeConfig(
         boolean push,
         boolean pull,
         boolean continuous,
-        Database db,
         Endpoint target) {
-        return makeConfig(push, pull, continuous, db, target, null);
+        return makeConfig(push, pull, continuous, baseTestDb, target);
     }
 
     protected final ReplicatorConfiguration makeConfig(
         boolean push,
         boolean pull,
         boolean continuous,
-        Database db,
+        Database source,
+        Endpoint target) {
+        return makeConfig(push, pull, continuous, source, target, null);
+    }
+
+    protected final ReplicatorConfiguration makeConfig(
+        boolean push,
+        boolean pull,
+        boolean continuous,
+        Database source,
         Endpoint target,
         ConflictResolver resolver) {
-        ReplicatorConfiguration config = new ReplicatorConfiguration(db, target);
+        ReplicatorConfiguration config = new ReplicatorConfiguration(source, target);
         config.setReplicatorType(push && pull ? PUSH_AND_PULL : (push ? PUSH : PULL));
         config.setContinuous(continuous);
         if (resolver != null) { config.setConflictResolver(resolver); }

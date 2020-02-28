@@ -1111,11 +1111,12 @@ public class QueryTest extends BaseQueryTest {
     public void testSelectAll() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource.As ds = DataSource.database(baseTestDb);
+        final DataSource.As ds = DataSource.database(baseTestDb);
+        final String dbName = baseTestDb.getName();
 
-        Expression exprTestDBNum1 = Expression.property("number1").from("testdb");
+        Expression exprTestDBNum1 = Expression.property("number1").from(dbName);
         SelectResult srTestDBNum1 = SelectResult.expression(exprTestDBNum1);
-        SelectResult srTestDBAll = SelectResult.all().from("testdb");
+        SelectResult srTestDBAll = SelectResult.all().from(dbName);
 
         // SELECT *
         Query query = QueryBuilder.select(SR_ALL).from(ds);
@@ -1148,12 +1149,12 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(100, numRows);
 
         // SELECT testdb.*
-        query = QueryBuilder.select(srTestDBAll).from(ds.as("testdb"));
+        query = QueryBuilder.select(srTestDBAll).from(ds.as(dbName));
 
         numRows = verifyQuery(query, (n, result) -> {
             assertEquals(1, result.count());
             Dictionary a1 = result.getDictionary(0);
-            Dictionary a2 = result.getDictionary("testdb");
+            Dictionary a2 = result.getDictionary(dbName);
             assertEquals(n, a1.getInt("number1"));
             assertEquals(100 - n, a1.getInt("number2"));
             assertEquals(n, a2.getInt("number1"));
@@ -1162,12 +1163,12 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(100, numRows);
 
         // SELECT testdb.*, testdb.number1
-        query = QueryBuilder.select(srTestDBAll, srTestDBNum1).from(ds.as("testdb"));
+        query = QueryBuilder.select(srTestDBAll, srTestDBNum1).from(ds.as(dbName));
 
         numRows = verifyQuery(query, (n, result) -> {
             assertEquals(2, result.count());
             Dictionary a1 = result.getDictionary(0);
-            Dictionary a2 = result.getDictionary("testdb");
+            Dictionary a2 = result.getDictionary(dbName);
             assertEquals(n, a1.getInt("number1"));
             assertEquals(100 - n, a1.getInt("number2"));
             assertEquals(n, a2.getInt("number1"));
@@ -1395,53 +1396,10 @@ public class QueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testLiveQueryNoUpdate() throws Exception {
-        _testLiveQueryNoUpdate(false);
-    }
+    public void testLiveQueryNoUpdate() throws Exception { testLiveQueryNoUpdate(false); }
 
     @Test
-    public void testLiveQueryNoUpdateConsumeAll() throws Exception {
-        _testLiveQueryNoUpdate(true);
-    }
-
-    private void _testLiveQueryNoUpdate(final boolean consumeAll) throws Exception {
-        loadNumberedDocs(100);
-
-        Query query = QueryBuilder
-            .select()
-            .from(DataSource.database(baseTestDb))
-            .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
-            .orderBy(Ordering.property("number1").ascending());
-
-        final CountDownLatch latch = new CountDownLatch(2);
-        QueryChangeListener listener = change -> {
-            ResultSet rs = change.getResults();
-            if (consumeAll) {
-                while (rs.next() != null) { }
-            }
-            latch.countDown();
-            // should come only once!
-        };
-        ListenerToken token = query.addChangeListener(testSerialExecutor, listener);
-        try {
-            // create one doc
-            executeAsync(500, () -> {
-                try {
-                    createDocNumbered(111, 100);
-                }
-                catch (CouchbaseLiteException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-
-            // wait till listener is called
-            assertFalse(latch.await(5, TimeUnit.SECONDS));
-            assertEquals(1, latch.getCount());
-        }
-        finally {
-            query.removeChangeListener(token);
-        }
-    }
+    public void testLiveQueryNoUpdateConsumeAll() throws Exception { testLiveQueryNoUpdate(true); }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1356
     @Test
@@ -1552,12 +1510,12 @@ public class QueryTest extends BaseQueryTest {
         exam1.setString("exam type", "final");
         exam1.setString("question", "There are 45 states in the US.");
         exam1.setBoolean("answer", false);
+        baseTestDb.save(exam1);
+
         MutableDocument exam2 = new MutableDocument("exam2");
         exam2.setString("exam type", "final");
         exam2.setString("question", "There are 100 senators in the US.");
         exam2.setBoolean("answer", true);
-
-        baseTestDb.save(exam1);
         baseTestDb.save(exam2);
 
         Query query = QueryBuilder.select(SelectResult.all())
@@ -1565,9 +1523,12 @@ public class QueryTest extends BaseQueryTest {
             .where(Expression.property("exam type").equalTo(Expression.string("final"))
                 .and(Expression.property("answer").equalTo(Expression.booleanValue(true))));
 
+        final String dbName = baseTestDb.getName();
         verifyQuery(query, (n, result) -> {
             Map<String, Object> maps = result.toMap();
-            Map<String, Object> map = (Map<String, Object>) maps.get("testdb");
+            assertNotNull(maps);
+            Map<String, Object> map = (Map<String, Object>) maps.get(dbName);
+            assertNotNull(map);
             if ("There are 45 states in the US.".equals(map.get("question"))) {
                 assertFalse((Boolean) map.get("answer"));
             }
@@ -1623,14 +1584,6 @@ public class QueryTest extends BaseQueryTest {
         // STEP 4: query documents again after deletion
         rows = verifyQuery(query, (n, result) -> assertEquals(task2.getId(), result.getString(0)));
         assertEquals(1, rows);
-    }
-
-    private Document createTaskDocument(String title, boolean complete) throws CouchbaseLiteException {
-        MutableDocument doc = new MutableDocument();
-        doc.setString("type", "task");
-        doc.setString("title", title);
-        doc.setBoolean("complete", complete);
-        return saveDocInBaseTestDb(doc);
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1389
@@ -1944,10 +1897,11 @@ public class QueryTest extends BaseQueryTest {
     public void testFunctionCountAll() throws Exception {
         loadNumberedDocs(100);
 
-        DataSource.As ds = DataSource.database(baseTestDb);
+        final DataSource.As ds = DataSource.database(baseTestDb);
+        final String dbName = baseTestDb.getName();
 
         Expression countAll = Function.count(Expression.all());
-        Expression countAllFrom = Function.count(Expression.all().from("testdb"));
+        Expression countAllFrom = Function.count(Expression.all().from(dbName));
         SelectResult srCountAll = SelectResult.expression(countAll);
         SelectResult srCountAllFrom = SelectResult.expression(countAllFrom);
 
@@ -1960,7 +1914,7 @@ public class QueryTest extends BaseQueryTest {
         assertEquals(1, numRows);
 
         // SELECT count(testdb.*)
-        query = QueryBuilder.select(srCountAllFrom).from(ds.as("testdb"));
+        query = QueryBuilder.select(srCountAllFrom).from(ds.as(dbName));
         numRows = verifyQuery(query, (n, result) -> {
             assertEquals(1, result.count());
             assertEquals(100L, (long) result.getValue(0));
@@ -2876,6 +2830,42 @@ public class QueryTest extends BaseQueryTest {
         });
     }
 
+    // ??? This is a ridiculously expensive test
+    private void testLiveQueryNoUpdate(final boolean consumeAll) throws Exception {
+        loadNumberedDocs(100);
+
+        Query query = QueryBuilder
+            .select()
+            .from(DataSource.database(baseTestDb))
+            .where(EXPR_NUMBER1.lessThan(Expression.intValue(10)))
+            .orderBy(Ordering.property("number1").ascending());
+
+        final CountDownLatch latch = new CountDownLatch(2);
+        QueryChangeListener listener = change -> {
+            ResultSet rs = change.getResults();
+            if (consumeAll) {
+                while (rs.next() != null) { }
+            }
+            latch.countDown();
+            // should come only once!
+        };
+        ListenerToken token = query.addChangeListener(testSerialExecutor, listener);
+        try {
+            // create one doc
+            executeAsync(500, () -> {
+                try { createDocNumbered(111, 100); }
+                catch (CouchbaseLiteException e) { throw new RuntimeException(e); }
+            });
+
+            // wait till listener is called
+            assertFalse(latch.await(5, TimeUnit.SECONDS));
+            assertEquals(1, latch.getCount());
+        }
+        finally {
+            query.removeChangeListener(token);
+        }
+    }
+
     private void runTestWithNumbers(List<Map<String, Object>> numbers, Object[][] cases) throws Exception {
         for (Object[] c : cases) {
             Expression w = (Expression) c[0];
@@ -2938,5 +2928,13 @@ public class QueryTest extends BaseQueryTest {
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
         df.setTimeZone(tz);
         return df.format(new Date(timestamp)).replace(".000", "");
+    }
+
+    private Document createTaskDocument(String title, boolean complete) throws CouchbaseLiteException {
+        MutableDocument doc = new MutableDocument();
+        doc.setString("type", "task");
+        doc.setString("title", title);
+        doc.setBoolean("complete", complete);
+        return saveDocInBaseTestDb(doc);
     }
 }

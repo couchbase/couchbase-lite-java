@@ -23,8 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.FLArrayIterator;
 import com.couchbase.lite.internal.fleece.FLConstants;
@@ -39,23 +41,12 @@ import static org.junit.Assert.fail;
 
 
 public class C4QueryTest extends C4QueryBaseTest {
-    //-------------------------------------------------------------------------
-    // public methods
-    //-------------------------------------------------------------------------
-
+    @Before
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
-        importJSONLines("names_100.json");
-    }
 
-    @Override
-    public void tearDown() throws Exception {
-        if (query != null) {
-            query.free();
-            query = null;
-        }
-        super.tearDown();
+        importJSONLinesSafely("names_100.json");
     }
 
     //-------------------------------------------------------------------------
@@ -66,7 +57,7 @@ public class C4QueryTest extends C4QueryBaseTest {
     @Test
     public void testDatabaseErrorMessages() {
         try {
-            db.createQuery("[\"=\"]");
+            c4Database.createQuery("[\"=\"]");
             fail();
         }
         catch (LiteCoreException e) {
@@ -235,7 +226,7 @@ public class C4QueryTest extends C4QueryBaseTest {
     // - DB Query expression index
     @Test
     public void testDBQueryExpressionIndex() throws LiteCoreException {
-        db.createIndex("length", json5("[['length()', ['.name.first']]]"), C4Constants.IndexType.VALUE, null, true);
+        c4Database.createIndex("length", json5("[['length()', ['.name.first']]]"), C4Constants.IndexType.VALUE, null, true);
         compile(json5("['=', ['length()', ['.name.first']], 9]"));
         assertEquals(Arrays.asList("0000015", "0000099"), run());
     }
@@ -244,17 +235,17 @@ public class C4QueryTest extends C4QueryBaseTest {
     @Test
     public void testDeleteIndexedDoc() throws LiteCoreException {
         // Create the same index as the above test:
-        db.createIndex("length", json5("[['length()', ['.name.first']]]"), C4Constants.IndexType.VALUE, null, true);
+        c4Database.createIndex("length", json5("[['length()', ['.name.first']]]"), C4Constants.IndexType.VALUE, null, true);
 
         // Delete doc "0000015":
         {
             boolean commit = false;
-            db.beginTransaction();
+            c4Database.beginTransaction();
             try {
-                C4Document doc = db.get("0000015", true);
+                C4Document doc = c4Database.get("0000015", true);
                 assertNotNull(doc);
                 String[] history = {doc.getRevID()};
-                C4Document updatedDoc = db.put((byte[]) null, doc.getDocID(),
+                C4Document updatedDoc = c4Database.put((byte[]) null, doc.getDocID(),
                     C4Constants.RevisionFlags.DELETED, false,
                     false, history, true, 0, 0);
                 assertNotNull(updatedDoc);
@@ -263,7 +254,7 @@ public class C4QueryTest extends C4QueryBaseTest {
                 commit = true;
             }
             finally {
-                db.endTransaction(commit);
+                c4Database.endTransaction(commit);
             }
 
         }
@@ -297,7 +288,7 @@ public class C4QueryTest extends C4QueryBaseTest {
     // - Full-text query
     @Test
     public void testFullTextQuery() throws LiteCoreException {
-        db.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
         compile(json5("['MATCH', 'byStreet', 'Hwy']"));
         assertEquals(Arrays.asList(
             Arrays.asList(Arrays.asList(13L, 0L, 0L, 10L, 3L)),
@@ -312,7 +303,7 @@ public class C4QueryTest extends C4QueryBaseTest {
     // - Full-text multiple properties
     @Test
     public void testFullTextMultipleProperties() throws LiteCoreException {
-        db.createIndex(
+        c4Database.createIndex(
             "byAddress",
             "[[\".contact.address.street\"], [\".contact.address.city\"], [\".contact.address.state\"]]",
             C4Constants.IndexType.FULL_TEXT,
@@ -347,7 +338,7 @@ public class C4QueryTest extends C4QueryBaseTest {
         // Search for 'Santa' in the street name, _or_ 'Saint' in either:
         compile(json5("['MATCH', 'byAddress', 'contact.address.street:Santa OR Saint']"));
         assertEquals(Arrays.asList(
-            Arrays.asList(Arrays.asList(20L, 1l, 1L, 0L, 5L)),
+            Arrays.asList(Arrays.asList(20L, 1L, 1L, 0L, 5L)),
             Arrays.asList(Arrays.asList(44L, 0L, 0L, 3L, 5L)),
             Arrays.asList(
                 Arrays.asList(68L, 0L, 0L, 3L, 5L),
@@ -360,8 +351,8 @@ public class C4QueryTest extends C4QueryBaseTest {
     // - Multiple Full-text indexes
     @Test
     public void testMultipleFullTextIndexes() throws LiteCoreException {
-        db.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
-        db.createIndex("byCity", "[[\".contact.address.city\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byCity", "[[\".contact.address.city\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
         compile(json5("['AND', ['MATCH', 'byStreet', 'Hwy'], ['MATCH', 'byCity',   'Santa']]"));
         assertEquals(Arrays.asList("0000015"), run());
         assertEquals(Arrays.asList(
@@ -372,8 +363,8 @@ public class C4QueryTest extends C4QueryBaseTest {
     // - Full-text query in multiple ANDs
     @Test
     public void testFullTextQueryInMultipleANDs() throws LiteCoreException {
-        db.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
-        db.createIndex("byCity", "[[\".contact.address.city\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byCity", "[[\".contact.address.city\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
         compile(json5(
             "['AND', ['AND', ['=', ['.gender'], 'male'], ['MATCH', 'byCity', 'Santa']], ['=', ['.name.first'], "
                 + "'Cleveland']]"));
@@ -387,11 +378,8 @@ public class C4QueryTest extends C4QueryBaseTest {
     @Test
     public void testMultipleFullTextQueries() throws LiteCoreException {
         // You can't query the same FTS index multiple times in a query (says SQLite)
-        db.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
-        try {
-            C4Query query = db
-                .createQuery(json5("['AND', ['MATCH', 'byStreet', 'Hwy'], ['MATCH', 'byStreet', 'Blvd']]"));
-        }
+        c4Database.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        try { c4Database.createQuery(json5("['AND', ['MATCH', 'byStreet', 'Hwy'], ['MATCH', 'byStreet', 'Blvd']]")); }
         catch (LiteCoreException e) {
             assertEquals(C4Constants.ErrorDomain.LITE_CORE, e.domain);
             assertEquals(C4Constants.LiteCoreError.INVALID_QUERY, e.code);
@@ -402,10 +390,10 @@ public class C4QueryTest extends C4QueryBaseTest {
     @Test
     public void testBuriedFullTextQueries() throws LiteCoreException {
         // You can't put an FTS match inside an expression other than a top-level AND (says SQLite)
-        db.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
+        c4Database.createIndex("byStreet", "[[\".contact.address.street\"]]", C4Constants.IndexType.FULL_TEXT, null, true);
         try {
-            C4Query query = db.createQuery(json5(
-                "['OR', ['MATCH', 'byStreet', 'Hwy'], ['=', ['.', 'contact', 'address', 'state'], 'CA']]"));
+            c4Database.createQuery(
+                json5("['OR', ['MATCH', 'byStreet', 'Hwy'], ['=', ['.', 'contact', 'address', 'state'], 'CA']]"));
         }
         catch (LiteCoreException e) {
             assertEquals(C4Constants.ErrorDomain.LITE_CORE, e.domain);
@@ -458,7 +446,7 @@ public class C4QueryTest extends C4QueryBaseTest {
         while (e.next()) {
             FLArrayIterator itr = e.getColumns();
             FLValue col = itr.getValueAt(0);
-            assertTrue(col.getType() == FLConstants.ValueType.DICT);
+            assertEquals(col.getType(), FLConstants.ValueType.DICT);
             FLDict name = col.asFLDict();
             assertEquals(expectedFirst.get(i), name.get("first").asString());
             assertEquals(expectedLast.get(i), name.get("last").asString());
@@ -575,9 +563,9 @@ public class C4QueryTest extends C4QueryBaseTest {
 
     // - Query parser error messages
     @Test
-    public void testQueryParserErrorMessages() throws LiteCoreException {
+    public void testQueryParserErrorMessages() {
         try {
-            query = new C4Query(db.getHandle(), "[\"=\"]");
+            query = new C4Query(c4Database.getHandle(), "[\"=\"]");
             fail();
         }
         catch (LiteCoreException ex) {
@@ -592,8 +580,9 @@ public class C4QueryTest extends C4QueryBaseTest {
         compile(json5("['=', ['.', 'contact', 'address', 'state'], 'CA']"));
         String explanation = query.explain().substring(0, 129);
         assertEquals(
-            "SELECT key, sequence FROM kv_default AS _doc WHERE (fl_value(_doc.body, 'contact.address.state') = 'CA')"
-                + " AND (_doc.flags & 1 = 0)",
+            "SELECT key, sequence"
+                + " FROM kv_default AS _doc"
+                + " WHERE (fl_value(_doc.body, 'contact.address.state') = 'CA') AND (_doc.flags & 1 = 0)",
             explanation);
         C4QueryEnumerator e = query.run(new C4QueryOptions(), null);
         assertNotNull(e);
@@ -601,14 +590,9 @@ public class C4QueryTest extends C4QueryBaseTest {
         assertNull(refreshed);
 
         boolean commit = false;
-        db.beginTransaction();
-        try {
-
-            commit = true;
-        }
-        finally {
-            db.endTransaction(commit);
-        }
+        c4Database.beginTransaction();
+        try { commit = true; }
+        finally { c4Database.endTransaction(commit); }
         e.free();
 
     }

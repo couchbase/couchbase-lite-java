@@ -32,15 +32,18 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.PlatformBaseTest;
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
 import com.couchbase.lite.internal.utils.StopWatch;
 import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -52,48 +55,62 @@ public class C4BaseTest extends PlatformBaseTest {
     public static final String REV_ID_2 = "2-c001d00d";
     public static final String REV_ID_3 = "3-deadbeef";
 
-    protected File dir;
-    protected C4Database db;
+    protected C4Database c4Database;
 
-    protected byte[] kFleeceBody;
+    protected File dbDir;
+    protected String tmpDir;
+    protected File rootDir;
 
-    private String tmpDir;
-    private File rootDir;
+    protected byte[] fleeceBody;
 
     @Before
-    public void setUp() throws Exception {
-        initCouchbaseLite();
+    @Override
+    public void setUp() throws CouchbaseLiteException {
+        super.setUp();
 
-        tmpDir = getScratchDirectoryPath("C4Test");
-        C4.setenv("TMPDIR", tmpDir, 1);
+        final String tmpDirName = "c4-test-" + TestUtils.randomString(24);
 
-        rootDir = new File(getDatabaseDirectoryPath(), "C4Test");
-        FileUtils.eraseFileOrDir(rootDir);
-        if (!rootDir.mkdirs()) { throw new IOException("Can't create directory: " + rootDir); }
+        tmpDir = getScratchDirectoryPath(tmpDirName);
+        rootDir = new File(getDatabaseDirectoryPath(), tmpDirName);
+        dbDir = new File(rootDir, "cbl_core_test.sqlite3");
 
-        dir = new File(rootDir, "cbl_core_test.sqlite3");
-        db = new C4Database(
-            dir.getCanonicalPath(),
-            getFlags(),
-            null,
-            getVersioning(),
-            encryptionAlgorithm(),
-            encryptionKey());
+        try {
+            if (!rootDir.mkdirs()) { throw new IOException("Can't create directory: " + rootDir); }
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("ans*wer", 42);
-        kFleeceBody = createFleeceBody(body);
+            C4.setenv("TMPDIR", tmpDir, 1);
+
+            c4Database = new C4Database(
+                dbDir.getCanonicalPath(),
+                getFlags(),
+                null,
+                getVersioning(),
+                encryptionAlgorithm(),
+                encryptionKey());
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("ans*wer", 42);
+            fleeceBody = createFleeceBody(body);
+        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (IOException e) { throw new IllegalStateException("IO error setting up directories", e); }
     }
 
     @After
-    public void tearDown() throws Exception {
-        if (db != null) {
-            db.close();
-            db.free();
-            db = null;
+    @Override
+    public void tearDown() {
+        try {
+            if (c4Database != null) {
+                final C4Database db = c4Database;
+                c4Database = null;
+
+                try { db.close(); }
+                catch (LiteCoreException e) { throw new IllegalStateException("Failed closing db", e); }
+                finally { db.free(); }
+            }
+            if (rootDir != null) { FileUtils.eraseFileOrDir(rootDir); }
+            if (tmpDir != null) { FileUtils.eraseFileOrDir(tmpDir); }
         }
-        if (rootDir != null) { FileUtils.eraseFileOrDir(rootDir); }
-        if (tmpDir != null) { FileUtils.eraseFileOrDir(tmpDir); }
+        finally { super.tearDown(); }
     }
 
     protected void createRev(String docID, String revID, byte[] body) throws LiteCoreException {
@@ -116,6 +133,12 @@ public class C4BaseTest extends PlatformBaseTest {
         return importJSONLines(getAsset(name), idPrefix);
     }
 
+    protected long importJSONLinesSafely(String name) throws CouchbaseLiteException {
+        try { return importJSONLines(name); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (IOException e) { throw new IllegalStateException("IO error importing JSON", e); }
+    }
+
     protected void createRev(C4Database db, String docID, String revID, byte[] body)
         throws LiteCoreException {
         createRev(db, docID, revID, body, 0);
@@ -123,45 +146,47 @@ public class C4BaseTest extends PlatformBaseTest {
 
     protected void createRev(String docID, String revID, byte[] body, int flags)
         throws LiteCoreException {
-        createRev(this.db, docID, revID, body, flags);
+        createRev(this.c4Database, docID, revID, body, flags);
     }
 
     protected void reopenDB() throws LiteCoreException {
-        if (db != null) {
-            db.close();
-            db.free();
-            db = null;
+        if (c4Database != null) {
+            c4Database.close();
+            c4Database.free();
+            c4Database = null;
         }
-        db = new C4Database(dir.getPath(), getFlags(), null, getVersioning(),
+        c4Database = new C4Database(
+            dbDir.getPath(), getFlags(), null, getVersioning(),
             encryptionAlgorithm(), encryptionKey());
-        assertNotNull(db);
+        assertNotNull(c4Database);
     }
 
     protected void reopenDBReadOnly() throws LiteCoreException {
-        if (db != null) {
-            db.close();
-            db.free();
-            db = null;
+        if (c4Database != null) {
+            c4Database.close();
+            c4Database.free();
+            c4Database = null;
         }
         int flag = getFlags() & ~C4Constants.DatabaseFlags.CREATE | C4Constants.DatabaseFlags.READ_ONLY;
-        db = new C4Database(dir.getPath(), flag, null, getVersioning(),
+        c4Database = new C4Database(
+            dbDir.getPath(), flag, null, getVersioning(),
             encryptionAlgorithm(), encryptionKey());
-        assertNotNull(db);
+        assertNotNull(c4Database);
     }
 
     protected byte[] json2fleece(String json) throws LiteCoreException {
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         FLSliceResult body = null;
         try {
-            body = db.encodeJSON(json5(json).getBytes());
+            body = c4Database.encodeJSON(json5(json).getBytes(StandardCharsets.UTF_8));
             byte[] bytes = body.getBuf();
             commit = true;
             return bytes;
         }
         finally {
             if (body != null) { body.free(); }
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
     }
 
@@ -183,8 +208,8 @@ public class C4BaseTest extends PlatformBaseTest {
         StringBuilder json = new StringBuilder();
         json.append("{attached: [");
         for (String attachment : attachments) {
-            C4BlobStore store = db.getBlobStore();
-            C4BlobKey key = store.create(attachment.getBytes());
+            C4BlobStore store = c4Database.getBlobStore();
+            C4BlobKey key = store.create(attachment.getBytes(StandardCharsets.UTF_8));
             keys.add(key);
             String keyStr = key.toString();
             json.append("{'");
@@ -202,11 +227,11 @@ public class C4BaseTest extends PlatformBaseTest {
         }
         json.append("]}");
         String jsonStr = json5(json.toString());
-        FLSliceResult body = db.encodeJSON(jsonStr.getBytes());
+        FLSliceResult body = c4Database.encodeJSON(jsonStr.getBytes(StandardCharsets.UTF_8));
 
         // Save document:
         C4Document doc
-            = db.put(
+            = c4Database.put(
             body,
             docID,
             C4Constants.RevisionFlags.HAS_ATTACHMENTS,
@@ -269,16 +294,16 @@ public class C4BaseTest extends PlatformBaseTest {
         StopWatch st = new StopWatch();
         long numDocs = 0;
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    FLSliceResult body = db.encodeJSON(line.getBytes(StandardCharsets.UTF_8));
+                    FLSliceResult body = c4Database.encodeJSON(line.getBytes(StandardCharsets.UTF_8));
                     try {
                         String docID = String.format(Locale.ENGLISH, "%s%07d", idPrefix, numDocs + 1);
 
-                        C4Document doc = db.put(body, docID, 0,
+                        C4Document doc = c4Database.put(body, docID, 0,
                             false, false,
                             new String[0], true, 0, 0);
                         try {
@@ -307,7 +332,7 @@ public class C4BaseTest extends PlatformBaseTest {
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
 
         return numDocs;

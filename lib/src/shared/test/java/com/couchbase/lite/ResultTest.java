@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
+import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -35,55 +37,22 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class ResultTest extends BaseQueryTest {
-    final static String kDocumentTestDate = "2017-01-01T00:00:00.000Z";
-    final static String kDocumentTestBlob = "i'm blob";
-
-    final static SelectResult SR_NULL = SelectResult.property("null");
-    final static SelectResult SR_TRUE = SelectResult.property("true");
-    final static SelectResult SR_FALSE = SelectResult.property("false");
-    final static SelectResult SR_STRING = SelectResult.property("string");
-    final static SelectResult SR_ZERO = SelectResult.property("zero");
-    final static SelectResult SR_ONE = SelectResult.property("one");
-    final static SelectResult SR_MINUS_ONE = SelectResult.property("minus_one");
-    final static SelectResult SR_ONE_DOT_ONE = SelectResult.property("one_dot_one");
-    final static SelectResult SR_DATE = SelectResult.property("date");
-    final static SelectResult SR_DICT = SelectResult.property("dict");
-    final static SelectResult SR_ARRAY = SelectResult.property("array");
-    final static SelectResult SR_BLOB = SelectResult.property("blob");
-    final static SelectResult SR_NO_KEY = SelectResult.property("non_existing_key");
-
-    private static Query generateQuery(Database db, String docID) {
-        Expression exDocID = Expression.string(docID);
-        return QueryBuilder.select(
-            SR_NULL,
-            SR_TRUE,
-            SR_FALSE,
-            SR_STRING,
-            SR_ZERO,
-            SR_ONE,
-            SR_MINUS_ONE,
-            SR_ONE_DOT_ONE,
-            SR_DATE,
-            SR_DICT,
-            SR_ARRAY,
-            SR_BLOB,
-            SR_NO_KEY)
-            .from(DataSource.database(db))
-            .where(Meta.id.equalTo(exDocID));
-    }
-
-    private String prepareData(int i) throws CouchbaseLiteException {
-        String docID = String.format(Locale.ENGLISH, "doc%d", i);
-        MutableDocument mDoc = new MutableDocument(docID);
-        if (i % 2 == 1) { DocumentTest.populateData(mDoc); }
-        else { DocumentTest.populateDataByTypedSetter(mDoc); }
-        saveDocInBaseTestDb(mDoc);
-        return docID;
-    }
+    private static final SelectResult SR_NULL = SelectResult.property("null");
+    private static final SelectResult SR_TRUE = SelectResult.property("true");
+    private static final SelectResult SR_FALSE = SelectResult.property("false");
+    private static final SelectResult SR_STRING = SelectResult.property("string");
+    private static final SelectResult SR_ZERO = SelectResult.property("zero");
+    private static final SelectResult SR_ONE = SelectResult.property("one");
+    private static final SelectResult SR_MINUS_ONE = SelectResult.property("minus_one");
+    private static final SelectResult SR_ONE_DOT_ONE = SelectResult.property("one_dot_one");
+    private static final SelectResult SR_DATE = SelectResult.property("date");
+    private static final SelectResult SR_DICT = SelectResult.property("dict");
+    private static final SelectResult SR_ARRAY = SelectResult.property("array");
+    private static final SelectResult SR_BLOB = SelectResult.property("blob");
+    private static final SelectResult SR_NO_KEY = SelectResult.property("non_existing_key");
 
     @Test
     public void testGetValueByKey() throws Exception {
@@ -103,20 +72,17 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(1L, r.getValue("one"));
                 assertEquals(-1L, r.getValue("minus_one"));
                 assertEquals(1.1, r.getValue("one_dot_one"));
-                assertEquals(kDocumentTestDate, r.getValue("date"));
+                assertEquals(TEST_DATE, r.getValue("date"));
                 assertTrue(r.getValue("dict") instanceof Dictionary);
                 assertTrue(r.getValue("array") instanceof Array);
                 assertTrue(r.getValue("blob") instanceof Blob);
                 assertNull(r.getValue("non_existing_key"));
 
-                try {
-                    r.getValue(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getValue(null));
 
                 assertNull(r.getValue("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -139,25 +105,17 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(1L, r.getValue(5));
                 assertEquals(-1L, r.getValue(6));
                 assertEquals(1.1, r.getValue(7));
-                assertEquals(kDocumentTestDate, r.getValue(8));
+                assertEquals(TEST_DATE, r.getValue(8));
                 assertTrue(r.getValue(9) instanceof Dictionary);
                 assertTrue(r.getValue(10) instanceof Array);
                 assertTrue(r.getValue(11) instanceof Blob);
                 assertNull(r.getValue(12));
 
-                try {
-                    r.getValue(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) {
-                }
-                try {
-                    r.getValue(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) {
-                }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getValue(-1));
+
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getValue(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -179,20 +137,17 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getString("one"));
                 assertNull(r.getString("minus_one"));
                 assertNull(r.getString("one_dot_one"));
-                assertEquals(kDocumentTestDate, r.getString("date"));
+                assertEquals(TEST_DATE, r.getString("date"));
                 assertNull(r.getString("dict"));
                 assertNull(r.getString("array"));
                 assertNull(r.getString("blob"));
                 assertNull(r.getString("non_existing_key"));
 
-                try {
-                    r.getString(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getString(null));
 
                 assertNull(r.getString("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -214,24 +169,17 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getString(5));
                 assertNull(r.getString(6));
                 assertNull(r.getString(7));
-                assertEquals(kDocumentTestDate, r.getString(8));
+                assertEquals(TEST_DATE, r.getString(8));
                 assertNull(r.getString(9));
                 assertNull(r.getString(10));
                 assertNull(r.getString(11));
                 assertNull(r.getString(12));
 
-                try {
-                    r.getString(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getString(-1));
 
-                try {
-                    r.getString(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getString(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -260,15 +208,11 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getNumber("blob"));
                 assertNull(r.getNumber("non_existing_key"));
 
-                try {
-                    r.getNumber(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) {
-                }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getNumber(null));
 
                 assertNull(r.getNumber("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -296,18 +240,11 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getNumber(11));
                 assertNull(r.getNumber(12));
 
-                try {
-                    r.getNumber(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getNumber(-1));
 
-                try {
-                    r.getNumber(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getNumber(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -336,14 +273,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0, r.getInt("blob"));
                 assertEquals(0, r.getInt("non_existing_key"));
 
-                try {
-                    r.getInt(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getInt(null));
 
                 assertEquals(0, r.getInt("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -371,22 +305,14 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0, r.getInt(11));
                 assertEquals(0, r.getInt(12));
 
-                try {
-                    r.getInt(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getInt(-1));
 
-                try {
-                    r.getInt(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getInt(100));
             });
+
             assertEquals(1, rows);
         }
     }
-
 
     @Test
     public void testGetLongByKey() throws Exception {
@@ -411,14 +337,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0, r.getLong("blob"));
                 assertEquals(0, r.getLong("non_existing_key"));
 
-                try {
-                    r.getLong(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getLong(null));
 
                 assertEquals(0, r.getLong("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -446,18 +369,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0, r.getLong(11));
                 assertEquals(0, r.getLong(12));
 
-                try {
-                    r.getLong(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getLong(-1));
 
-                try {
-                    r.getLong(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getLong(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -485,11 +401,7 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0.0f, r.getFloat("blob"), 0.0f);
                 assertEquals(0.0f, r.getFloat("non_existing_key"), 0.0f);
 
-                try {
-                    r.getFloat(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getFloat(null));
 
                 assertEquals(0.0f, r.getFloat("not_in_query_select"), 0.0f);
             });
@@ -520,18 +432,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0.0f, r.getFloat(11), 0.0f);
                 assertEquals(0.0f, r.getFloat(12), 0.0f);
 
-                try {
-                    r.getFloat(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getFloat(-1));
 
-                try {
-                    r.getFloat(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getFloat(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -559,14 +464,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0.0, r.getDouble("blob"), 0.0);
                 assertEquals(0.0, r.getDouble("non_existing_key"), 0.0);
 
-                try {
-                    r.getDouble(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getDouble(null));
 
                 assertEquals(0.0, r.getDouble("not_in_query_select"), 0.0);
             });
+
             assertEquals(1, rows);
         }
     }
@@ -594,18 +496,11 @@ public class ResultTest extends BaseQueryTest {
                 assertEquals(0.0, r.getDouble(11), 0.0);
                 assertEquals(0.0, r.getDouble(12), 0.0);
 
-                try {
-                    r.getDouble(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDouble(-1));
 
-                try {
-                    r.getDouble(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDouble(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -633,14 +528,11 @@ public class ResultTest extends BaseQueryTest {
                 assertTrue(r.getBoolean("blob"));
                 assertFalse(r.getBoolean("non_existing_key"));
 
-                try {
-                    r.getBoolean(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getBoolean(null));
 
                 assertFalse(r.getBoolean("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -668,18 +560,11 @@ public class ResultTest extends BaseQueryTest {
                 assertTrue(r.getBoolean(11));
                 assertFalse(r.getBoolean(12));
 
-                try {
-                    r.getBoolean(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getBoolean(-1));
 
-                try {
-                    r.getBoolean(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getBoolean(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -701,20 +586,17 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getDate("one"));
                 assertNull(r.getDate("minus_one"));
                 assertNull(r.getDate("one_dot_one"));
-                assertEquals(kDocumentTestDate, DateUtils.toJson(r.getDate("date")));
+                assertEquals(TEST_DATE, DateUtils.toJson(r.getDate("date")));
                 assertNull(r.getDate("dict"));
                 assertNull(r.getDate("array"));
                 assertNull(r.getDate("blob"));
                 assertNull(r.getDate("non_existing_key"));
 
-                try {
-                    r.getDate(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getDate(null));
 
                 assertNull(r.getDate("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -736,24 +618,17 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getDate(5));
                 assertNull(r.getDate(6));
                 assertNull(r.getDate(7));
-                assertEquals(kDocumentTestDate, DateUtils.toJson(r.getDate(8)));
+                assertEquals(TEST_DATE, DateUtils.toJson(r.getDate(8)));
                 assertNull(r.getDate(9));
                 assertNull(r.getDate(10));
                 assertNull(r.getDate(11));
                 assertNull(r.getDate(12));
 
-                try {
-                    r.getDate(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDate(-1));
 
-                try {
-                    r.getDate(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDate(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -778,18 +653,15 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getBlob("date"));
                 assertNull(r.getBlob("dict"));
                 assertNull(r.getBlob("array"));
-                assertEquals(kDocumentTestBlob, new String(r.getBlob("blob").getContent()));
-                assertArrayEquals(kDocumentTestBlob.getBytes(), r.getBlob("blob").getContent());
+                assertEquals(BLOB_CONTENT, new String(r.getBlob("blob").getContent()));
+                assertArrayEquals(BLOB_CONTENT.getBytes(StandardCharsets.UTF_8), r.getBlob("blob").getContent());
                 assertNull(r.getBlob("non_existing_key"));
 
-                try {
-                    r.getBlob(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getBlob(null));
 
                 assertNull(r.getBlob("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -814,22 +686,15 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getBlob(8));
                 assertNull(r.getBlob(9));
                 assertNull(r.getBlob(10));
-                assertEquals(kDocumentTestBlob, new String(r.getBlob(11).getContent()));
-                assertArrayEquals(kDocumentTestBlob.getBytes(), r.getBlob(11).getContent());
+                assertEquals(BLOB_CONTENT, new String(r.getBlob(11).getContent()));
+                assertArrayEquals(BLOB_CONTENT.getBytes(StandardCharsets.UTF_8), r.getBlob(11).getContent());
                 assertNull(r.getBlob(12));
 
-                try {
-                    r.getBlob(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getBlob(-1));
 
-                try {
-                    r.getBlob(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getBlob(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -862,14 +727,11 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getDictionary("blob"));
                 assertNull(r.getDictionary("non_existing_key"));
 
-                try {
-                    r.getDictionary(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getDictionary(null));
 
                 assertNull(r.getDictionary("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -902,18 +764,11 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getDictionary(11));
                 assertNull(r.getDictionary(12));
 
-                try {
-                    r.getDictionary(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDictionary(-1));
 
-                try {
-                    r.getDictionary(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) { }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getDictionary(100));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -943,11 +798,7 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getArray("blob"));
                 assertNull(r.getArray("non_existing_key"));
 
-                try {
-                    r.getArray(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.getArray(null));
 
                 assertNull(r.getArray("not_in_query_select"));
             });
@@ -975,23 +826,14 @@ public class ResultTest extends BaseQueryTest {
                 assertNull(r.getArray(8));
                 assertNull(r.getArray(9));
                 assertNotNull(r.getArray(10));
-                List<Object> list = Arrays.asList((Object) "650-123-0001", (Object) "650-123-0002");
+                List<Object> list = Arrays.asList("650-123-0001", "650-123-0002");
                 assertEquals(list, r.getArray(10).toList());
                 assertNull(r.getArray(11));
                 assertNull(r.getArray(12));
 
-                try {
-                    r.getArray(-1);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) {
-                }
-                try {
-                    r.getArray(100);
-                    fail();
-                }
-                catch (ArrayIndexOutOfBoundsException ignored) {
-                }
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getArray(-1));
+
+                TestUtils.assertThrows(ArrayIndexOutOfBoundsException.class, () -> r.getArray(100));
             });
             assertEquals(1, rows);
         }
@@ -1032,8 +874,8 @@ public class ResultTest extends BaseQueryTest {
                     assertTrue(expected.contains(itr.next()));
                     i1++;
                 }
-                assertEquals(expected.size(), i1);
 
+                assertEquals(expected.size(), i1);
             });
             assertEquals(1, rows);
         }
@@ -1058,14 +900,11 @@ public class ResultTest extends BaseQueryTest {
                 // not exists -> false
                 assertFalse(r.contains("non_existing_key"));
 
-                try {
-                    r.contains(null);
-                    fail();
-                }
-                catch (IllegalArgumentException ignored) { }
+                TestUtils.assertThrows(IllegalArgumentException.class, () -> r.contains(null));
 
                 assertFalse(r.contains("not_in_query_select"));
             });
+
             assertEquals(1, rows);
         }
     }
@@ -1094,5 +933,34 @@ public class ResultTest extends BaseQueryTest {
             assertNotNull(emptyDict);
             assertTrue(emptyDict.isEmpty());
         }
+    }
+
+    private Query generateQuery(Database db, String docID) {
+        Expression exDocID = Expression.string(docID);
+        return QueryBuilder.select(
+            SR_NULL,
+            SR_TRUE,
+            SR_FALSE,
+            SR_STRING,
+            SR_ZERO,
+            SR_ONE,
+            SR_MINUS_ONE,
+            SR_ONE_DOT_ONE,
+            SR_DATE,
+            SR_DICT,
+            SR_ARRAY,
+            SR_BLOB,
+            SR_NO_KEY)
+            .from(DataSource.database(db))
+            .where(Meta.id.equalTo(exDocID));
+    }
+
+    private String prepareData(int i) throws CouchbaseLiteException {
+        String docID = String.format(Locale.ENGLISH, "doc%d", i);
+        MutableDocument mDoc = new MutableDocument(docID);
+        if (i % 2 == 1) { populateData(mDoc); }
+        else { populateDataByTypedSetter(mDoc); }
+        saveDocInBaseTestDb(mDoc);
+        return docID;
     }
 }

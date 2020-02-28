@@ -22,13 +22,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import com.couchbase.lite.LogLevel;
-import com.couchbase.lite.utils.Report;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.LogLevel;
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.utils.StopWatch;
+import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -42,8 +44,8 @@ public class C4AllDocsPerformanceTest extends C4BaseTest {
     private static final int DOC_NUM = 1000; // 100000
 
     @Before
-    public void setUp() throws Exception {
-
+    @Override
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
         char[] chars = new char[DOC_SIZE];
@@ -51,35 +53,34 @@ public class C4AllDocsPerformanceTest extends C4BaseTest {
         final String content = new String(chars);
 
         boolean commit = false;
-        db.beginTransaction();
         try {
-            Random random = new Random();
-            for (int i = 0; i < DOC_NUM; i++) {
-                String docID = String.format(
-                    "doc-%08x-%08x-%08x-%04x",
-                    random.nextLong(),
-                    random.nextLong(),
-                    random.nextLong(),
-                    i);
-                String json = String.format("{\"content\":\"%s\"}", content);
-                List<String> list = new ArrayList<String>();
-                list.add("1-deadbeefcafebabe80081e50");
-                String[] history = list.toArray(new String[list.size()]);
-                C4Document doc = db.put(json2fleece(json), docID, 0, true, false, history, true, 0, 0);
-                assertNotNull(doc);
-                doc.free();
+            c4Database.beginTransaction();
+            try {
+                Random random = new Random();
+                for (int i = 0; i < DOC_NUM; i++) {
+                    String docID = String.format(
+                        "doc-%08x-%08x-%08x-%04x",
+                        random.nextLong(),
+                        random.nextLong(),
+                        random.nextLong(),
+                        i);
+                    String json = String.format("{\"content\":\"%s\"}", content);
+                    List<String> list = new ArrayList<>();
+                    list.add("1-deadbeefcafebabe80081e50");
+                    String[] history = list.toArray(new String[0]);
+                    C4Document doc = c4Database.put(json2fleece(json), docID, 0, true, false, history, true, 0, 0);
+                    assertNotNull(doc);
+                    doc.free();
+                }
+                commit = true;
             }
-            commit = true;
+            finally {
+                c4Database.endTransaction(commit);
+            }
         }
-        finally {
-            db.endTransaction(commit);
-        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
-        assertEquals(DOC_NUM, db.getDocumentCount());
-    }
-
-    static C4Document nextDocument(C4DocEnumerator e) throws LiteCoreException {
-        return e.next() ? e.getDocument() : null;
+        assertEquals(DOC_NUM, c4Database.getDocumentCount());
     }
 
     // - AllDocsPerformance
@@ -91,7 +92,7 @@ public class C4AllDocsPerformanceTest extends C4BaseTest {
         // No start or end ID:
         int iteratorFlags = C4Constants.EnumeratorFlags.DEFAULT;
         iteratorFlags &= ~C4Constants.EnumeratorFlags.INCLUDE_BODIES;
-        C4DocEnumerator e = db.enumerateAllDocs(iteratorFlags);
+        C4DocEnumerator e = c4Database.enumerateAllDocs(iteratorFlags);
         C4Document doc;
         int i = 0;
         while ((doc = nextDocument(e)) != null) {
@@ -105,6 +106,12 @@ public class C4AllDocsPerformanceTest extends C4BaseTest {
         assertEquals(DOC_NUM, i);
 
         double elapsed = st.getElapsedTimeMillis();
-        Report.log(LogLevel.INFO, String.format("Enumerating %d docs took %.3f ms (%.3f ms/doc)", i, elapsed, elapsed / i));
+        Report.log(
+            LogLevel.INFO,
+            String.format("Enumerating %d docs took %.3f ms (%.3f ms/doc)", i, elapsed, elapsed / i));
+    }
+
+    private C4Document nextDocument(C4DocEnumerator e) throws LiteCoreException {
+        return e.next() ? e.getDocument() : null;
     }
 }

@@ -21,8 +21,8 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Fn;
-import com.couchbase.lite.utils.TestUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
@@ -82,18 +82,20 @@ public class LogTest extends BaseDbTest {
     private String scratchDirPath;
 
     @Before
+    @Override
     public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
-        scratchDirPath = getScratchDirectoryPath("logtest-" + System.currentTimeMillis());
+        scratchDirPath = getScratchDirectoryPath(getUniqueName("logtest"));
 
         Database.log.reset();
     }
 
     @After
+    @Override
     public void tearDown() {
-        super.tearDown();
-        recursiveDelete(getTempDir());
+        try { FileUtils.deleteContents(getTempDir()); }
+        finally { super.tearDown(); }
     }
 
     @Test
@@ -609,14 +611,4 @@ public class LogTest extends BaseDbTest {
 
     @Nullable
     private File getTempDir() { return (scratchDirPath == null) ? null : new File(scratchDirPath); }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void recursiveDelete(@Nullable File root) {
-        if (root == null) { return; }
-        File[] files = root.listFiles();
-        if (files != null) {
-            for (File file : files) { recursiveDelete(file); }
-        }
-        root.delete();
-    }
 }

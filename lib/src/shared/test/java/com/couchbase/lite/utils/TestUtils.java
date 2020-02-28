@@ -29,7 +29,8 @@ public final class TestUtils {
     private TestUtils() {}
 
     public static final String ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    public static final String ALPHANUMERIC = "0123456789" + ALPHA + ALPHA.toLowerCase(Locale.ROOT);
+    public static final String NUMERIC = "0123456789";
+    public static final String ALPHANUMERIC = NUMERIC + ALPHA + ALPHA.toLowerCase(Locale.ROOT);
 
     private static final char[] CHARS = ALPHANUMERIC.toCharArray();
     private static final Random RANDOM = new Random(System.currentTimeMillis());
@@ -50,10 +51,11 @@ public final class TestUtils {
             catch (ClassCastException e1) { fail("Expecting exception: " + ex + " but got " + e); }
         }
     }
+
     public static void assertThrowsCBL(String domain, int code, Fn.TaskThrows<CouchbaseLiteException> task) {
         try {
             task.run();
-            fail();
+            fail("Expected a CouchbaseLiteException");
         }
         catch (CouchbaseLiteException e) {
             assertEquals(code, e.getCode());

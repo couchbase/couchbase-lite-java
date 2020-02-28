@@ -23,12 +23,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.couchbase.lite.utils.IOUtils;
+import com.couchbase.lite.utils.TestUtils;
 
 import static com.couchbase.lite.utils.TestUtils.assertThrows;
 import static org.junit.Assert.assertArrayEquals;
@@ -41,18 +44,23 @@ import static org.junit.Assert.fail;
 
 // There are other blob tests in test suites...
 public class BlobTest extends BaseDbTest {
-    private static final String BLOB_1 = "i'm blob";
-    private static final String BLOB_2 = "i'm blob too";
+    private String localBlobContent;
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
+    @Before
+    @Override
+    public void setUp() throws CouchbaseLiteException {
+        super.setUp();
+        localBlobContent = TestUtils.randomString(100);
+    }
+
     @Test
     public void testEquals() throws CouchbaseLiteException {
-
-        byte[] content1a = BLOB_1.getBytes();
-        byte[] content1b = BLOB_1.getBytes();
-        byte[] content2a = BLOB_2.getBytes();
+        byte[] content1a = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+        byte[] content1b = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+        byte[] content2a = localBlobContent.getBytes(StandardCharsets.UTF_8);
 
         // store blob
         Blob data1a = new Blob("text/plain", content1a);
@@ -90,9 +98,9 @@ public class BlobTest extends BaseDbTest {
 
     @Test
     public void testHashCode() throws CouchbaseLiteException {
-        byte[] content1a = BLOB_1.getBytes();
-        byte[] content1b = BLOB_1.getBytes();
-        byte[] content2a = BLOB_2.getBytes();
+        byte[] content1a = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+        byte[] content1b = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+        byte[] content2a = localBlobContent.getBytes(StandardCharsets.UTF_8);
 
         // store blob
         Blob data1a = new Blob("text/plain", content1a);
@@ -206,11 +214,8 @@ public class BlobTest extends BaseDbTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1611
     @Test
     public void testGetNonCachedContent6MBFile() throws IOException, CouchbaseLiteException {
-        byte[] bytes;
-
-        try (InputStream is = getAsset("iTunesMusicLibrary.json")) {
-            bytes = IOUtils.toByteArray(is);
-        }
+        final byte[] bytes;
+        try (InputStream is = getAsset("iTunesMusicLibrary.json")) { bytes = IOUtils.toByteArray(is); }
 
         Blob blob = new Blob("application/json", bytes);
         MutableDocument mDoc = new MutableDocument("doc1");
@@ -223,7 +228,6 @@ public class BlobTest extends BaseDbTest {
         Blob savedBlob = reloadedDoc.getBlob("blob");
         byte[] content = savedBlob.getContent();
         assertArrayEquals(content, bytes);
-
     }
 
     @SuppressWarnings("ConstantConditions")

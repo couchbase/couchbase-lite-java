@@ -33,9 +33,9 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
-private const val TIMEOUT_SEC = 5L;
+private const val TIMEOUT_SEC = 5L
 private const val CAPACITY = AbstractExecutionService.MIN_CAPACITY * 2
-private const val THREADS = 3;
+private const val THREADS = 3
 
 class ExecutionServiceTest : PlatformBaseTest() {
     private val queue = ArrayBlockingQueue<Runnable>(CAPACITY)
@@ -63,8 +63,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
     private lateinit var cblService: ExecutionService
 
     @Before
-    fun setUp() {
-        initCouchbaseLite()
+    override fun setUp() {
         cblService = CouchbaseLiteInternal.getExecutionService()
     }
 
@@ -183,15 +182,15 @@ class ExecutionServiceTest : PlatformBaseTest() {
 
             // should be stalled.
             assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
-            assertEquals(nTasks - 1L, finishLatch.count);
+            assertEquals(nTasks - 1L, finishLatch.count)
 
             executor.execute { finishLatch.countDown() }
 
             assertTrue(finishLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS))
         }
         catch (e: AssertionError) {
-            tinyService.dumpExecutorState();
-            throw e;
+            tinyService.dumpExecutorState()
+            throw e
         }
     }
 
@@ -353,7 +352,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
         val blockLatch = CountDownLatch(1)
         tinyExecutor.execute { blockLatch.await(TIMEOUT_SEC, TimeUnit.SECONDS) }
 
-        val nTasks = 10;
+        val nTasks = 10
         val startLatch = CountDownLatch(1)
         val firstStartedLatch = CountDownLatch(1)
         val firstFinishedLatch = CountDownLatch(1)
@@ -393,7 +392,7 @@ class ExecutionServiceTest : PlatformBaseTest() {
 
         // the queue is stalled even though resources are available.
         assertFalse(finishLatch.await(1, TimeUnit.SECONDS))
-        assertEquals(nTasks - 1L, finishLatch.count);
+        assertEquals(nTasks - 1L, finishLatch.count)
 
         // This should restart the queue
         executor.execute { finishLatch.countDown() }

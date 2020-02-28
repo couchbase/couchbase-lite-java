@@ -18,6 +18,8 @@
 package com.couchbase.lite.internal.core;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -26,10 +28,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogLevel;
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
-import com.couchbase.lite.internal.utils.Utils;
+import com.couchbase.lite.utils.FileUtils;
 import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -50,21 +54,36 @@ public class C4BlobStoreTest extends C4BaseTest {
     private C4BlobKey bogusKey;
 
     @Before
-    public void setUp() throws Exception {
+    @Override
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
-        blobDir = new File(getScratchDirectoryPath("cbl_blob_test"));
-        blobStore = C4BlobStore.open(blobDir.getCanonicalPath(), C4Constants.DatabaseFlags.CREATE);
-        bogusKey = new C4BlobKey("sha1-VVVVVVVVVVVVVVVVVVVVVVVVVVU=");
+
+        blobDir = new File(tmpDir);
+
+        try {
+            blobStore = C4BlobStore.open(blobDir.getCanonicalPath(), C4Constants.DatabaseFlags.CREATE);
+            bogusKey = new C4BlobKey("sha1-VVVVVVVVVVVVVVVVVVVVVVVVVVU=");
+        }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (IOException e) { throw new IllegalStateException("IO error setting up directories", e); }
     }
 
     @After
-    public void tearDown() throws Exception {
-        if (blobStore != null) {
-            blobStore.delete();
-            blobStore.free();
+    @Override
+    public void tearDown() {
+        try {
+            if (blobStore != null) {
+                final C4BlobStore store = blobStore;
+                blobStore = null;
+
+                try { store.delete(); }
+                catch (LiteCoreException e) { throw new IllegalStateException("Failed deleting blob store", e); }
+                finally { store.free(); }
+            }
+
+            if (blobDir != null) { FileUtils.eraseFileOrDir(blobDir); }
         }
-        if ((blobDir != null) && (blobDir.exists())) { Utils.deleteRecursive(blobDir); }
-        super.tearDown();
+        finally { super.tearDown(); }
     }
 
     // - parse blob keys
@@ -112,20 +131,20 @@ public class C4BlobStoreTest extends C4BaseTest {
         String blobToStore = "This is a blob to store in the store!";
 
         // Add blob to the store:
-        C4BlobKey key = blobStore.create(blobToStore.getBytes());
+        C4BlobKey key = blobStore.create(blobToStore.getBytes(StandardCharsets.UTF_8));
         assertNotNull(key);
         assertEquals("sha1-QneWo5IYIQ0ZrbCG0hXPGC6jy7E=", key.toString());
 
         // Read it back and compare
         long blobSize = blobStore.getSize(key);
-        assertTrue(blobSize >= blobToStore.getBytes().length);
+        assertTrue(blobSize >= blobToStore.getBytes(StandardCharsets.UTF_8).length);
         // TODO: Encryption
-        assertEquals(blobToStore.getBytes().length, blobSize);
+        assertEquals(blobToStore.getBytes(StandardCharsets.UTF_8).length, blobSize);
 
         FLSliceResult res = blobStore.getContents(key);
         assertNotNull(res);
-        assertArrayEquals(blobToStore.getBytes(), res.getBuf());
-        assertEquals(blobToStore.getBytes().length, res.getBuf().length);
+        assertArrayEquals(blobToStore.getBytes(StandardCharsets.UTF_8), res.getBuf());
+        assertEquals(blobToStore.getBytes(StandardCharsets.UTF_8).length, res.getBuf().length);
         res.free();
 
         String p = blobStore.getFilePath(key);
@@ -135,7 +154,7 @@ public class C4BlobStoreTest extends C4BaseTest {
         assertEquals(p.length() - filename.length(), p.indexOf(filename));
 
         // Try storing it again
-        C4BlobKey key2 = blobStore.create(blobToStore.getBytes());
+        C4BlobKey key2 = blobStore.create(blobToStore.getBytes(StandardCharsets.UTF_8));
         assertNotNull(key2);
         assertEquals(key.toString(), key2.toString());
 
@@ -148,7 +167,7 @@ public class C4BlobStoreTest extends C4BaseTest {
         String blobToStore = "This is a blob to store in the store!";
 
         // Add blob to the store:
-        C4BlobKey key = blobStore.create(blobToStore.getBytes());
+        C4BlobKey key = blobStore.create(blobToStore.getBytes(StandardCharsets.UTF_8));
         assertNotNull(key);
 
         // Delete it
@@ -183,13 +202,13 @@ public class C4BlobStoreTest extends C4BaseTest {
         String blob = "This is a blob to store in the store!";
 
         // Add blob to the store:
-        C4BlobKey key = blobStore.create(blob.getBytes());
+        C4BlobKey key = blobStore.create(blob.getBytes(StandardCharsets.UTF_8));
         assertNotNull(key);
 
         C4BlobReadStream stream = blobStore.openReadStream(key);
         assertNotNull(stream);
 
-        assertEquals(blob.getBytes().length, stream.getLength());
+        assertEquals(blob.getBytes(StandardCharsets.UTF_8).length, stream.getLength());
 
         // Read it back, 6 bytes at a time:
         StringBuilder readBack = new StringBuilder();
@@ -217,7 +236,7 @@ public class C4BlobStoreTest extends C4BaseTest {
         assertNotNull(stream);
 
         for (int i = 0; i < 1000; i++) {
-            stream.write(String.format(Locale.ENGLISH, "This is line %03d.\n", i).getBytes());
+            stream.write(String.format(Locale.ENGLISH, "This is line %03d.\n", i).getBytes(StandardCharsets.UTF_8));
         }
 
         // Get the blob key, and install it:
@@ -246,7 +265,7 @@ public class C4BlobStoreTest extends C4BaseTest {
             byte[] readBuf = reader.read(18);
             assertNotNull(readBuf);
             assertEquals(18, readBuf.length);
-            assertArrayEquals(readBuf, buf.getBytes());
+            assertArrayEquals(readBuf, buf.getBytes(StandardCharsets.UTF_8));
         }
         stream.close();
         reader.close();
@@ -271,7 +290,7 @@ public class C4BlobStoreTest extends C4BaseTest {
             String chars = "ABCDEFGHIJKLMNOPQRSTUVWXY";
             for (int i = 0; i < size; i++) {
                 int c = i % chars.length();
-                stream.write(chars.substring(c, c + 1).getBytes());
+                stream.write(chars.substring(c, c + 1).getBytes(StandardCharsets.UTF_8));
             }
 
             // Get the blob key, and install it:
@@ -286,7 +305,8 @@ public class C4BlobStoreTest extends C4BaseTest {
             assertEquals(size, contents.getBuf().length);
             byte[] buf = contents.getBuf();
             for (int i = 0; i < size; i++) {
-                assertEquals(chars.substring(i % chars.length(), i % chars.length() + 1).getBytes()[0], buf[i]);
+                assertEquals(chars.substring(i % chars.length(), i % chars.length() + 1)
+                    .getBytes(StandardCharsets.UTF_8)[0], buf[i]);
             }
             contents.free();
 
@@ -301,7 +321,7 @@ public class C4BlobStoreTest extends C4BaseTest {
         assertNotNull(stream);
 
         String buf = "This is line oops\n";
-        stream.write(buf.getBytes());
+        stream.write(buf.getBytes(StandardCharsets.UTF_8));
 
         stream.close();
     }

@@ -19,6 +19,7 @@ package com.couchbase.lite;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import org.junit.After;
@@ -37,26 +38,32 @@ public class MigrationTest extends BaseTest {
 
 
     private File dbDir;
-    private Database db;
+    private Database migrationTestDb;
 
     @Before
+    @Override
     public void setUp() throws CouchbaseLiteException {
+        super.setUp();
         dbDir = new File(getDatabaseDirectoryPath(), getUniqueName());
     }
 
     @After
-    public void cleanUp() throws CouchbaseLiteException { deleteDb(db);}
+    @Override
+    public void tearDown() {
+        try { deleteDb(migrationTestDb); }
+        finally { super.tearDown(); }
+    }
 
     // TODO: 1.x DB's attachment is not automatically detected as blob
     // https://github.com/couchbase/couchbase-lite-android/issues/1237
     @Test
-    public void testOpenExsitingDBv1x() throws Exception {
+    public void testOpenExistingDBv1x() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite.cblite2.zip"), dbDir);
 
-        db = openDatabase();
-        assertEquals(2, db.getCount());
+        migrationTestDb = openDatabase();
+        assertEquals(2, migrationTestDb.getCount());
         for (int i = 1; i <= 2; i++) {
-            Document doc = db.getDocument("doc" + i);
+            Document doc = migrationTestDb.getDocument("doc" + i);
             assertNotNull(doc);
             assertEquals(String.valueOf(i), doc.getString("key"));
 
@@ -66,38 +73,38 @@ public class MigrationTest extends BaseTest {
 
             Blob blob = attachments.getBlob(key);
             assertNotNull(blob);
-            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
+            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes(StandardCharsets.UTF_8);
             assertArrayEquals(attach, blob.getContent());
         }
     }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1237
     @Test
-    public void testOpenExsitingDBv1xNoAttachment() throws Exception {
+    public void testOpenExistingDBv1xNoAttachment() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"), dbDir);
 
-        db = openDatabase();
-        assertEquals(2, db.getCount());
+        migrationTestDb = openDatabase();
+        assertEquals(2, migrationTestDb.getCount());
         for (int i = 1; i <= 2; i++) {
-            Document doc = db.getDocument("doc" + i);
+            Document doc = migrationTestDb.getDocument("doc" + i);
             assertNotNull(doc);
             assertEquals(String.valueOf(i), doc.getString("key"));
         }
     }
 
     @Test
-    public void testOpenExsitingDB() throws Exception {
+    public void testOpenExistingDB() throws Exception {
         ZipUtils.unzip(getAsset("replacedb/android200-sqlite.cblite2.zip"), dbDir);
 
-        db = openDatabase();
-        assertEquals(2, db.getCount());
+        migrationTestDb = openDatabase();
+        assertEquals(2, migrationTestDb.getCount());
         for (int i = 1; i <= 2; i++) {
-            Document doc = db.getDocument("doc" + i);
+            Document doc = migrationTestDb.getDocument("doc" + i);
             assertNotNull(doc);
             assertEquals(String.valueOf(i), doc.getString("key"));
             Blob blob = doc.getBlob("attach" + i);
             assertNotNull(blob);
-            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes();
+            byte[] attach = String.format(Locale.ENGLISH, "attach%d", i).getBytes(StandardCharsets.UTF_8);
             assertArrayEquals(attach, blob.getContent());
         }
     }

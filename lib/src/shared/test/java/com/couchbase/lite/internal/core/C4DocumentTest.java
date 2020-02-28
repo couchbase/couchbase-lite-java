@@ -41,9 +41,6 @@ public class C4DocumentTest extends C4BaseTest {
         void verify(C4Document doc) throws LiteCoreException;
     }
 
-    @Override
-    public void setUp() throws Exception { super.setUp(); }
-
     // - "Invalid docID"
 
     @Test
@@ -66,11 +63,11 @@ public class C4DocumentTest extends C4BaseTest {
     // - "Document PossibleAncestors"
     @Test
     public void testPossibleAncestors() throws LiteCoreException {
-        createRev(DOC_ID, REV_ID_1, kFleeceBody);
-        createRev(DOC_ID, REV_ID_2, kFleeceBody);
-        createRev(DOC_ID, REV_ID_3, kFleeceBody);
+        createRev(DOC_ID, REV_ID_1, fleeceBody);
+        createRev(DOC_ID, REV_ID_2, fleeceBody);
+        createRev(DOC_ID, REV_ID_3, fleeceBody);
 
-        C4Document doc = db.get(DOC_ID, true);
+        C4Document doc = c4Database.get(DOC_ID, true);
         assertNotNull(doc);
 
         String newRevID = "3-f00f00";
@@ -96,7 +93,7 @@ public class C4DocumentTest extends C4BaseTest {
     public void testCreateVersionedDoc() throws LiteCoreException {
         // Try reading doc with mustExist=true, which should fail:
         try {
-            C4Document doc = db.get(DOC_ID, true);
+            C4Document doc = c4Database.get(DOC_ID, true);
             doc.free();
             fail();
         }
@@ -106,7 +103,7 @@ public class C4DocumentTest extends C4BaseTest {
         }
 
         // Now get the doc with mustExist=false, which returns an empty doc:
-        C4Document doc = db.get(DOC_ID, false);
+        C4Document doc = c4Database.get(DOC_ID, false);
         assertNotNull(doc);
         assertEquals(0, doc.getFlags());
         assertEquals(DOC_ID, doc.getDocID());
@@ -115,41 +112,41 @@ public class C4DocumentTest extends C4BaseTest {
         doc.free();
 
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
-            doc = db.put(kFleeceBody, DOC_ID, 0, true, false, new String[] {REV_ID_1}, true, 0, 0);
+            doc = c4Database.put(fleeceBody, DOC_ID, 0, true, false, new String[] {REV_ID_1}, true, 0, 0);
             assertNotNull(doc);
             assertEquals(REV_ID_1, doc.getRevID());
             assertEquals(REV_ID_1, doc.getSelectedRevID());
-            assertArrayEquals(kFleeceBody, doc.getSelectedBody());
+            assertArrayEquals(fleeceBody, doc.getSelectedBody());
             doc.free();
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
 
         // Reload the doc:
-        doc = db.get(DOC_ID, true);
+        doc = c4Database.get(DOC_ID, true);
         assertNotNull(doc);
         assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
         assertEquals(DOC_ID, doc.getDocID());
         assertEquals(REV_ID_1, doc.getRevID());
         assertEquals(REV_ID_1, doc.getSelectedRevID());
         assertEquals(1, doc.getSelectedSequence());
-        assertArrayEquals(kFleeceBody, doc.getSelectedBody());
+        assertArrayEquals(fleeceBody, doc.getSelectedBody());
 
         doc.free();
 
         // Get the doc by its sequence:
-        doc = db.getBySequence(1);
+        doc = c4Database.getBySequence(1);
         assertNotNull(doc);
         assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
         assertEquals(DOC_ID, doc.getDocID());
         assertEquals(REV_ID_1, doc.getRevID());
         assertEquals(REV_ID_1, doc.getSelectedRevID());
         assertEquals(1, doc.getSelectedSequence());
-        assertArrayEquals(kFleeceBody, doc.getSelectedBody());
+        assertArrayEquals(fleeceBody, doc.getSelectedBody());
 
         doc.free();
     }
@@ -160,12 +157,12 @@ public class C4DocumentTest extends C4BaseTest {
         byte[] kFleeceBody2 = json2fleece("{'ok':'go'}");
         byte[] kFleeceBody3 = json2fleece("{'ubu':'roi'}");
 
-        createRev(DOC_ID, REV_ID_1, kFleeceBody);
+        createRev(DOC_ID, REV_ID_1, fleeceBody);
         createRev(DOC_ID, REV_ID_2, kFleeceBody2, C4Constants.RevisionFlags.KEEP_BODY);
         createRev(DOC_ID, REV_ID_2, kFleeceBody2); // test redundant insert
 
         // Reload the doc:
-        C4Document doc = db.get(DOC_ID, true);
+        C4Document doc = c4Database.get(DOC_ID, true);
         assertNotNull(doc);
         assertEquals(C4Constants.DocumentFlags.EXISTS, doc.getFlags());
         assertEquals(DOC_ID, doc.getDocID());
@@ -187,7 +184,7 @@ public class C4DocumentTest extends C4BaseTest {
         createRev(DOC_ID, REV_ID_3, kFleeceBody3);
 
         // Revision 2 should keep its body due to the kRevKeepBody flag:
-        doc = db.get(DOC_ID, true);
+        doc = c4Database.get(DOC_ID, true);
         assertNotNull(doc);
         assertTrue(doc.selectParentRevision());
         assertEquals(DOC_ID, doc.getDocID());
@@ -200,16 +197,16 @@ public class C4DocumentTest extends C4BaseTest {
 
         // Purge doc
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
-            doc = db.get(DOC_ID, true);
+            doc = c4Database.get(DOC_ID, true);
             int nPurged = doc.purgeRevision(REV_ID_3);
             assertEquals(3, nPurged);
             doc.save(20);
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
 
         doc.free();
@@ -219,22 +216,22 @@ public class C4DocumentTest extends C4BaseTest {
     @Test
     public void testMaxRevTreeDepth() throws LiteCoreException {
         // NOTE: c4db_getMaxRevTreeDepth and c4db_setMaxRevTreeDepth are not supported by JNI.
-        assertEquals(20, db.getMaxRevTreeDepth());
-        db.setMaxRevTreeDepth(30);
-        assertEquals(30, db.getMaxRevTreeDepth());
+        assertEquals(20, c4Database.getMaxRevTreeDepth());
+        c4Database.setMaxRevTreeDepth(30);
+        assertEquals(30, c4Database.getMaxRevTreeDepth());
         reopenDB();
-        assertEquals(30, db.getMaxRevTreeDepth());
+        assertEquals(30, c4Database.getMaxRevTreeDepth());
 
         final int kNumRevs = 10000;
         StopWatch st = new StopWatch();
-        C4Document doc = db.get(DOC_ID, false);
+        C4Document doc = c4Database.get(DOC_ID, false);
         assertNotNull(doc);
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             for (int i = 0; i < kNumRevs; i++) {
                 String[] history = {doc.getRevID()};
-                C4Document savedDoc = db.put(kFleeceBody, doc.getDocID(), 0, false, false, history, true, 30, 0);
+                C4Document savedDoc = c4Database.put(fleeceBody, doc.getDocID(), 0, false, false, history, true, 30, 0);
                 assertNotNull(savedDoc);
                 doc.free();
                 doc = savedDoc;
@@ -242,7 +239,7 @@ public class C4DocumentTest extends C4BaseTest {
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
         Report.log(
             LogLevel.INFO,
@@ -262,10 +259,10 @@ public class C4DocumentTest extends C4BaseTest {
     @Test
     public void testPut() throws LiteCoreException {
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             // Creating doc given ID:
-            C4Document doc = db.put(kFleeceBody, DOC_ID, 0, false, false, new String[0], true, 0, 0);
+            C4Document doc = c4Database.put(fleeceBody, DOC_ID, 0, false, false, new String[0], true, 0, 0);
             assertNotNull(doc);
             assertEquals(DOC_ID, doc.getDocID());
             String kExpectedRevID = "1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032";
@@ -277,7 +274,7 @@ public class C4DocumentTest extends C4BaseTest {
             // Update doc:
             String[] history = {kExpectedRevID};
 
-            doc = db.put(json2fleece("{'ok':'go'}"), DOC_ID, 0, false, false, history, true, 0, 0);
+            doc = c4Database.put(json2fleece("{'ok':'go'}"), DOC_ID, 0, false, false, history, true, 0, 0);
             assertNotNull(doc);
             // NOTE: With current JNI binding, unable to check commonAncestorIndex value
             String kExpectedRevID2 = "2-201796aeeaa6ddbb746d6cab141440f23412ac51";
@@ -289,7 +286,7 @@ public class C4DocumentTest extends C4BaseTest {
             // Insert existing rev that conflicts:
             String kConflictRevID = "2-deadbeef";
             String[] history2 = {kConflictRevID, kExpectedRevID};
-            doc = db.put(json2fleece("{'from':'elsewhere'}"), DOC_ID, 0, true, true, history2, true, 0, 1);
+            doc = c4Database.put(json2fleece("{'from':'elsewhere'}"), DOC_ID, 0, true, true, history2, true, 0, 1);
             assertNotNull(doc);
             // NOTE: With current JNI binding, unable to check commonAncestorIndex value
             assertEquals(kExpectedRevID2, doc.getRevID());
@@ -300,7 +297,7 @@ public class C4DocumentTest extends C4BaseTest {
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
     }
 
@@ -310,14 +307,14 @@ public class C4DocumentTest extends C4BaseTest {
         C4Document doc;
 
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
-            doc = db.create(DOC_ID, kFleeceBody, 0);
+            doc = c4Database.create(DOC_ID, fleeceBody, 0);
             assertNotNull(doc);
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
 
         String kExpectedRevID = "1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032";
@@ -327,12 +324,12 @@ public class C4DocumentTest extends C4BaseTest {
         assertEquals(DOC_ID, doc.getDocID());
 
         // Read the doc into another C4Document:
-        C4Document doc2 = db.get(DOC_ID, false);
+        C4Document doc2 = c4Database.get(DOC_ID, false);
         assertNotNull(doc2);
         assertEquals(kExpectedRevID, doc2.getRevID());
 
         commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             C4Document updatedDoc = doc.update(json2fleece("{'ok':'go'}"), 0);
             assertNotNull(updatedDoc);
@@ -343,7 +340,7 @@ public class C4DocumentTest extends C4BaseTest {
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
 
         String kExpectedRev2ID = "2-201796aeeaa6ddbb746d6cab141440f23412ac51";
@@ -353,7 +350,7 @@ public class C4DocumentTest extends C4BaseTest {
         assertEquals(DOC_ID, doc.getDocID());
 
         // Now try to update the other C4Document, which will fail:
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             doc2.update(json2fleece("{'ok':'no way'}"), 0);
             fail();
@@ -363,13 +360,13 @@ public class C4DocumentTest extends C4BaseTest {
             assertEquals(C4Constants.LiteCoreError.CONFLICT, e.code);
         }
         finally {
-            db.endTransaction(false);
+            c4Database.endTransaction(false);
         }
 
         // Try to create a new doc with the same ID, which will fail:
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
-            db.create(DOC_ID, json2fleece("{'ok':'no way'}"), 0);
+            c4Database.create(DOC_ID, json2fleece("{'ok':'no way'}"), 0);
             fail();
         }
         catch (LiteCoreException e) {
@@ -377,7 +374,7 @@ public class C4DocumentTest extends C4BaseTest {
             assertEquals(C4Constants.LiteCoreError.CONFLICT, e.code);
         }
         finally {
-            db.endTransaction(false);
+            c4Database.endTransaction(false);
         }
 
         doc.free();
@@ -416,16 +413,16 @@ public class C4DocumentTest extends C4BaseTest {
         final byte[] kFleeceBody2 = json2fleece("{'ok':'go'}");
         final byte[] kFleeceBody3 = json2fleece("{'ubu':'roi'}");
 
-        createRev(DOC_ID, REV_ID_1, kFleeceBody);
+        createRev(DOC_ID, REV_ID_1, fleeceBody);
         createRev(DOC_ID, REV_ID_2, kFleeceBody2, C4Constants.RevisionFlags.KEEP_BODY);
         createRev(DOC_ID, "3-aaaaaa", kFleeceBody3);
 
         boolean commit = false;
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
             // "Pull" a conflicting revision:
             String[] history = {"4-dddd", "3-ababab", REV_ID_2};
-            C4Document doc = db.put(kFleeceBody3, DOC_ID, 0, true,
+            C4Document doc = c4Database.put(kFleeceBody3, DOC_ID, 0, true,
                 true, history, true, 0, 0);
             assertNotNull(doc);
 
@@ -457,14 +454,14 @@ public class C4DocumentTest extends C4BaseTest {
             commit = true;
         }
         finally {
-            db.endTransaction(commit);
+            c4Database.endTransaction(commit);
         }
     }
 
     private void testInvalidDocID(String docID) throws LiteCoreException {
-        db.beginTransaction();
+        c4Database.beginTransaction();
         try {
-            db.put(kFleeceBody, docID, 0, false, false,
+            c4Database.put(fleeceBody, docID, 0, false, false,
                 new String[0], true, 0, 0);
             fail();
         }
@@ -473,7 +470,7 @@ public class C4DocumentTest extends C4BaseTest {
             assertEquals(C4Constants.LiteCoreError.BAD_DOC_ID, e.code);
         }
         finally {
-            db.endTransaction(false);
+            c4Database.endTransaction(false);
         }
     }
 }

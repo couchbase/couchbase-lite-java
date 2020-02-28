@@ -31,6 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -49,20 +50,24 @@ import static org.junit.Assert.assertTrue;
 
 
 public class C4MutableFleeceTest extends C4BaseTest {
-
     private MValue.Delegate delegate;
 
     @Before
-    public void setUp() throws Exception {
+    @Override
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
+
         delegate = MValue.getRegisteredDelegate();
         MValue.registerDelegate(new MValueDelegate());
     }
 
     @After
-    public void tearDown() throws Exception {
-        if (delegate != null) { MValue.registerDelegate(delegate); }
-        super.tearDown();
+    @Override
+    public void tearDown() {
+        try {
+            if (delegate != null) { MValue.registerDelegate(delegate); }
+        }
+        finally { super.tearDown(); }
     }
 
     static AllocSlice encode(Object obj) throws LiteCoreException {
@@ -207,7 +212,7 @@ public class C4MutableFleeceTest extends C4BaseTest {
             assertNotNull(array.get(1));
             obj = array.get(1);
             assertTrue(obj instanceof List);
-            assertEquals(Arrays.asList("boo", false), (List<Object>) obj);
+            assertEquals(Arrays.asList("boo", false), obj);
             array.set(0, Arrays.asList(3.14, 2.17));
             array.add(2, "NEW");
             assertEquals(Arrays.asList(3.14, 2.17), array.get(0));
@@ -223,8 +228,8 @@ public class C4MutableFleeceTest extends C4BaseTest {
             expected.add(42L);
             assertEquals(expected, array);
 
-            obj = (List<Object>) array.get(1);
-            assertTrue(obj instanceof List);
+            obj = array.get(1);
+            assertNotNull(obj);
             List<Object> nested = (List<Object>) obj;
             nested.set(1, true);
 

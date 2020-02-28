@@ -17,6 +17,7 @@
 //
 package com.couchbase.lite.internal.core;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,19 +40,9 @@ import static org.junit.Assert.assertTrue;
 
 public class C4FleeceTest extends C4BaseTest {
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        super.tearDown();
-    }
-
     @Test
     public void testEncodeBytes() throws LiteCoreException {
-        byte[] input = "Hello World!".getBytes();
+        byte[] input = "Hello World!".getBytes(StandardCharsets.UTF_8);
 
         FLEncoder enc = new FLEncoder();
         try {
@@ -73,7 +64,7 @@ public class C4FleeceTest extends C4BaseTest {
 
     @Test
     public void testEncodeMapWithBytes() throws LiteCoreException {
-        byte[] input = "Hello World!".getBytes();
+        byte[] input = "Hello World!".getBytes(StandardCharsets.UTF_8);
         Map<String, Object> map = new HashMap<>();
         map.put("bytes", input);
 

@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.After;
+
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.fleece.AllocSlice;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -29,33 +31,35 @@ import static org.junit.Assert.assertNotNull;
 
 
 public class C4QueryBaseTest extends C4BaseTest {
-
-    //-------------------------------------------------------------------------
-    // protected variables
-    //-------------------------------------------------------------------------
     protected C4Query query;
 
-    //-------------------------------------------------------------------------
-    // protected methods
-    //-------------------------------------------------------------------------
+    @After
+    @Override
+    public void tearDown() {
+        try {
+            if (query != null) { query.free(); }
+        }
+        finally { super.tearDown(); }
+    }
 
-    protected C4Query compileSelect(String queryStr) throws LiteCoreException {
+    protected final C4Query compileSelect(String queryStr) throws LiteCoreException {
         if (query != null) {
             query.free();
             query = null;
         }
-        query = db.createQuery(queryStr);
+        query = c4Database.createQuery(queryStr);
         assertNotNull(query);
         return query;
     }
 
-    protected C4Query compile(String whereExpr) throws LiteCoreException { return compile(whereExpr, null); }
+    protected final C4Query compile(String whereExpr) throws LiteCoreException { return compile(whereExpr, null); }
 
-    protected C4Query compile(String whereExpr, String sortExpr) throws LiteCoreException {
+    protected final C4Query compile(String whereExpr, String sortExpr) throws LiteCoreException {
         return compile(whereExpr, sortExpr, false);
     }
 
-    protected C4Query compile(String whereExpr, String sortExpr, boolean addOffsetLimit) throws LiteCoreException {
+    protected final C4Query compile(String whereExpr, String sortExpr, boolean addOffsetLimit)
+        throws LiteCoreException {
         StringBuffer json = new StringBuffer();
         json.append("[\"SELECT\", {\"WHERE\": ");
         json.append(whereExpr);
@@ -70,14 +74,14 @@ public class C4QueryBaseTest extends C4BaseTest {
             query.free();
             query = null;
         }
-        query = db.createQuery(json.toString());
+        query = c4Database.createQuery(json.toString());
         assertNotNull(query);
         return query;
     }
 
     protected List<String> run() throws LiteCoreException { return run(null); }
 
-    protected List<String> run(Map<String, Object> params) throws LiteCoreException {
+    protected final List<String> run(Map<String, Object> params) throws LiteCoreException {
         List<String> docIDs = new ArrayList<>();
         C4QueryOptions opts = new C4QueryOptions();
         AllocSlice encodedParams = encodeParameters(params);
@@ -93,9 +97,9 @@ public class C4QueryBaseTest extends C4BaseTest {
         }
     }
 
-    protected List<List<List<Long>>> runFTS() throws LiteCoreException { return runFTS(null);}
+    protected final List<List<List<Long>>> runFTS() throws LiteCoreException { return runFTS(null);}
 
-    protected List<List<List<Long>>> runFTS(Map<String, Object> params) throws LiteCoreException {
+    protected final List<List<List<Long>>> runFTS(Map<String, Object> params) throws LiteCoreException {
         List<List<List<Long>>> matches = new ArrayList<>();
         C4QueryOptions opts = new C4QueryOptions();
         AllocSlice encodedParams = encodeParameters(params);

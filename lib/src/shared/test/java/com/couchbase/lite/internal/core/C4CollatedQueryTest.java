@@ -20,8 +20,10 @@ package com.couchbase.lite.internal.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 
 import static org.junit.Assert.assertEquals;
@@ -31,20 +33,11 @@ public class C4CollatedQueryTest extends C4QueryBaseTest {
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-
+    @Before
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
-        importJSONLines("iTunesMusicLibrary.json");
-    }
-
-    @Override
-    public void tearDown() throws Exception {
-        if (query != null) {
-            query.free();
-            query = null;
-        }
-        super.tearDown();
+        importJSONLinesSafely("iTunesMusicLibrary.json");
     }
 
     protected List<String> run() throws LiteCoreException {

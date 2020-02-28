@@ -18,16 +18,19 @@
 package com.couchbase.lite;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 
+import com.couchbase.lite.internal.utils.DateUtils;
 import com.couchbase.lite.internal.utils.JsonUtils;
 import com.couchbase.lite.utils.Fn;
-import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,36 +44,34 @@ public abstract class BaseDbTest extends BaseTest {
     protected Database baseTestDb;
 
     @Before
+    @Override
     public void setUp() throws CouchbaseLiteException {
-        baseTestDb = new Database(getUniqueName());
+        super.setUp();
+
+        baseTestDb = createDb();
+
+        assertNotNull(baseTestDb);
+        assertTrue(baseTestDb.isOpen());
     }
 
     @After
+    @Override
     public void tearDown() {
         try { deleteDb(baseTestDb); }
-        catch (CouchbaseLiteException e) { Report.log(LogLevel.INFO, "Failed to delete test Db", e);}
+        finally { super.tearDown(); }
     }
 
-    protected void reopenDB() throws CouchbaseLiteException {
-        final String dbName = baseTestDb.getName();
-        closeDb(baseTestDb);
-        baseTestDb = new Database(dbName);
-    }
+    protected final void reopenBaseTestDb() throws CouchbaseLiteException { baseTestDb = reopenDb(baseTestDb); }
 
-    protected void recreateDB() throws CouchbaseLiteException {
-        final String dbName = baseTestDb.getName();
-        if (baseTestDb != null) { deleteDb(baseTestDb); }
-        baseTestDb = new Database(dbName);
-    }
+    protected final void recreateBastTestDb() throws CouchbaseLiteException { baseTestDb = recreateDb(baseTestDb); }
 
-
-    protected Document createDocInBaseTestDb(String docID) throws CouchbaseLiteException {
-        long n = baseTestDb.getCount();
+    protected final Document createDocInBaseTestDb(String docID) throws CouchbaseLiteException {
+        final long n = baseTestDb.getCount() + 1;
 
         MutableDocument doc = new MutableDocument(docID);
         doc.setValue("key", 1);
         saveDocInBaseTestDb(doc);
-        assertTrue((n + 1) == baseTestDb.getCount());
+        assertEquals(n, baseTestDb.getCount());
 
         Document savedDoc = baseTestDb.getDocument(docID);
         assertEquals(1, savedDoc.getSequence());
@@ -78,17 +79,7 @@ public abstract class BaseDbTest extends BaseTest {
         return savedDoc;
     }
 
-    protected Document saveDocInBaseTestDb(MutableDocument doc, DocValidator validator) throws CouchbaseLiteException {
-        validator.accept(doc);
-
-        Document savedDoc = saveDocInBaseTestDb(doc);
-        validator.accept(doc);
-        validator.accept(savedDoc);
-
-        return savedDoc;
-    }
-
-    protected Document saveDocInBaseTestDb(MutableDocument doc) throws CouchbaseLiteException {
+    protected final Document saveDocInBaseTestDb(MutableDocument doc) throws CouchbaseLiteException {
         baseTestDb.save(doc);
 
         Document savedDoc = baseTestDb.getDocument(doc.getId());
@@ -98,7 +89,76 @@ public abstract class BaseDbTest extends BaseTest {
         return savedDoc;
     }
 
-    protected void loadJSONResource(String name) throws Exception {
+    protected final Document saveDocInBaseTestDb(MutableDocument doc, DocValidator validator)
+        throws CouchbaseLiteException {
+        validator.accept(doc);
+
+        Document savedDoc = saveDocInBaseTestDb(doc);
+        validator.accept(doc);
+        validator.accept(savedDoc);
+
+        return savedDoc;
+    }
+
+    // used from other package's tests
+    protected final void populateData(MutableDocument doc) {
+        doc.setValue("true", true);
+        doc.setValue("false", false);
+        doc.setValue("string", "string");
+        doc.setValue("zero", 0);
+        doc.setValue("one", 1);
+        doc.setValue("minus_one", -1);
+        doc.setValue("one_dot_one", 1.1);
+        doc.setValue("date", DateUtils.fromJson(TEST_DATE));
+        doc.setValue("null", null);
+
+        // Dictionary:
+        MutableDictionary dict = new MutableDictionary();
+        dict.setValue("street", "1 Main street");
+        dict.setValue("city", "Mountain View");
+        dict.setValue("state", "CA");
+        doc.setValue("dict", dict);
+
+        // Array:
+        MutableArray array = new MutableArray();
+        array.addValue("650-123-0001");
+        array.addValue("650-123-0002");
+        doc.setValue("array", array);
+
+        // Blob:
+        doc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    // used from other package's tests
+    protected final void populateDataByTypedSetter(MutableDocument doc) {
+        doc.setBoolean("true", true);
+        doc.setBoolean("false", false);
+        doc.setString("string", "string");
+        doc.setNumber("zero", 0);
+        doc.setInt("one", 1);
+        doc.setLong("minus_one", -1);
+        doc.setDouble("one_dot_one", 1.1);
+        doc.setDate("date", DateUtils.fromJson(TEST_DATE));
+        doc.setString("null", null);
+
+        // Dictionary:
+        MutableDictionary dict = new MutableDictionary();
+        dict.setString("street", "1 Main street");
+        dict.setString("city", "Mountain View");
+        dict.setString("state", "CA");
+        doc.setDictionary("dict", dict);
+
+        // Array:
+        MutableArray array = new MutableArray();
+        array.addString("650-123-0001");
+        array.addString("650-123-0002");
+        doc.setArray("array", array);
+
+        // Blob:
+        doc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    protected final void loadJSONResource(String name) throws IOException, JSONException, CouchbaseLiteException {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(getAsset(name)))) {
             int n = 1;
             String line;

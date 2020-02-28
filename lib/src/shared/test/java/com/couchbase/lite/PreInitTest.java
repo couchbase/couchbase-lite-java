@@ -15,15 +15,18 @@
 //
 package com.couchbase.lite;
 
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.CouchbaseLiteInternal;
 
+public class PreInitTest extends PlatformBaseTest {
 
-public class PreInitTest {
-    @Before
-    public void setup() { CouchbaseLiteInternal.reset(); }
+    @BeforeClass
+    public static void classSetUp() { deinitCouchbase(); }
+
+    @AfterClass
+    public static void classTearDown() { initCouchbase(); }
 
     @Test(expected = IllegalStateException.class)
     public void testCreateDatabaseBeforeInit() throws CouchbaseLiteException {
@@ -31,17 +34,11 @@ public class PreInitTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetConsoleBeforeInit() {
-        new Log().getConsole();
-    }
+    public void testGetConsoleBeforeInit() { new Log().getConsole(); }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetFileBeforeInit() {
-        new Log().getFile();
-    }
+    public void testGetFileBeforeInit() { new Log().getFile(); }
 
     @Test(expected = IllegalStateException.class)
-    public void testCreateDBConfigBeforeInit() {
-        new DatabaseConfiguration();
-    }
+    public void testCreateDBConfigBeforeInit() { new DatabaseConfiguration(); }
 }

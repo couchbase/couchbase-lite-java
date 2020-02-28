@@ -1,10 +1,15 @@
 package com.couchbase.lite.internal.core;
 
+import java.io.IOException;
 import java.util.Arrays;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.internal.CBLStatus;
 
 import static org.junit.Assert.assertEquals;
 
@@ -14,19 +19,12 @@ public class C4PathsQueryTest extends C4QueryBaseTest {
     // public methods
     //-------------------------------------------------------------------------
 
+    @Before
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
-        importJSONLines("paths.json");
-    }
 
-    @Override
-    public void tearDown() throws Exception {
-        if (query != null) {
-            query.free();
-            query = null;
-        }
-        super.tearDown();
+        importJSONLinesSafely("paths.json");
     }
 
     // - DB Query ANY w/paths

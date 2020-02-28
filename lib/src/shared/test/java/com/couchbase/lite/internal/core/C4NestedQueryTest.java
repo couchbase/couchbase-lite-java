@@ -17,11 +17,16 @@
 //
 package com.couchbase.lite.internal.core;
 
+import java.io.IOException;
 import java.util.Arrays;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
+import com.couchbase.lite.internal.CBLStatus;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,24 +36,16 @@ public class C4NestedQueryTest extends C4QueryBaseTest {
     // public methods
     //-------------------------------------------------------------------------
 
+    @Before
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
-        importJSONLines("nested.json");
-    }
-
-    @Override
-    public void tearDown() throws Exception {
-        if (query != null) {
-            query.free();
-            query = null;
-        }
-        super.tearDown();
+        importJSONLinesSafely("nested.json");
     }
 
     // - DB Query ANY nested
     @Test
-    public void testDBQueryANYNested() throws LiteCoreException, Exception {
+    public void testDBQueryANYNested() throws LiteCoreException {
         compile(json5("['ANY', 'Shape', ['.', 'shapes'], ['=', ['?', 'Shape', 'color'], 'red']]"));
         assertEquals(Arrays.asList("0000001", "0000003"), run());
     }

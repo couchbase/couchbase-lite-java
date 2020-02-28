@@ -26,11 +26,12 @@ import static org.junit.Assert.assertEquals;
 
 
 public abstract class BaseQueryTest extends BaseDbTest {
-    interface QueryResult {
+    @FunctionalInterface
+    public interface QueryResult {
         void check(int n, Result result) throws Exception;
     }
 
-    protected static class SafeTest implements Runnable {
+    protected static final class SafeTest implements Runnable {
         private final Fn.TaskThrows<CouchbaseLiteException> test;
         private AssertionError fail;
         private CouchbaseLiteException err;
@@ -53,7 +54,7 @@ public abstract class BaseQueryTest extends BaseDbTest {
         }
     }
 
-    protected String createDocNumbered(int i, int num) throws CouchbaseLiteException {
+    protected final String createDocNumbered(int i, int num) throws CouchbaseLiteException {
         String docID = String.format(Locale.ENGLISH, "doc%d", i);
         MutableDocument doc = new MutableDocument(docID);
         doc.setValue("number1", i);
@@ -62,11 +63,12 @@ public abstract class BaseQueryTest extends BaseDbTest {
         return docID;
     }
 
-    protected List<Map<String, Object>> loadNumberedDocs(final int num) throws Exception {
+    protected final List<Map<String, Object>> loadNumberedDocs(final int num) throws Exception {
         return loadNumberedDocs(1, num);
     }
 
-    protected List<Map<String, Object>> loadNumberedDocs(final int from, final int to) throws CouchbaseLiteException {
+    protected final List<Map<String, Object>> loadNumberedDocs(final int from, final int to)
+        throws CouchbaseLiteException {
         final List<Map<String, Object>> numbers = new ArrayList<>();
 
         SafeTest test = new SafeTest(() -> {
@@ -80,7 +82,7 @@ public abstract class BaseQueryTest extends BaseDbTest {
         return numbers;
     }
 
-    protected int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
+    protected final int verifyQuery(Query query, boolean runBoth, QueryResult result) throws Exception {
         int counter1 = verifyQueryWithEnumerator(query, result);
         if (runBoth) {
             int counter2 = verifyQueryWithIterable(query, result);
@@ -89,28 +91,22 @@ public abstract class BaseQueryTest extends BaseDbTest {
         return counter1;
     }
 
-    protected int verifyQuery(Query query, QueryResult result) throws Exception {
+    protected final int verifyQuery(Query query, QueryResult result) throws Exception {
         return verifyQuery(query, true, result);
     }
 
-    private int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
+    private final int verifyQueryWithEnumerator(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
         ResultSet rs = query.execute();
         Result result;
-        while ((result = rs.next()) != null) {
-            n += 1;
-            queryResult.check(n, result);
-        }
+        while ((result = rs.next()) != null) { queryResult.check(++n, result); }
         return n;
     }
 
     private int verifyQueryWithIterable(Query query, QueryResult queryResult) throws Exception {
         int n = 0;
         ResultSet rs = query.execute();
-        for (Result result : rs) {
-            n += 1;
-            queryResult.check(n, result);
-        }
+        for (Result result : rs) { queryResult.check(++n, result); }
         return n;
     }
 }

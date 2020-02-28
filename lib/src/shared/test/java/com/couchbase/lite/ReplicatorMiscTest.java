@@ -49,16 +49,16 @@ public class ReplicatorMiscTest extends BaseReplicatorTest {
             0
         );
         Replicator.Status status = new Replicator.Status(c4ReplicatorStatus);
-        ReplicatorChange repChange = new ReplicatorChange(repl, status);
+        ReplicatorChange repChange = new ReplicatorChange(baseTestReplicator, status);
 
-        assertEquals(repChange.getReplicator(), repl);
+        assertEquals(repChange.getReplicator(), baseTestReplicator);
         assertEquals(repChange.getStatus(), status);
         assertEquals(repChange.getStatus().getActivityLevel(), status.getActivityLevel());
         assertEquals(repChange.getStatus().getProgress().getCompleted(), completed);
         assertEquals(repChange.getStatus().getProgress().getTotal(), total);
         assertEquals(repChange.getStatus().getError().getCode(), errorCode);
         assertEquals(repChange.getStatus().getError().getDomain(), CBLError.Domain.CBLITE);
-        String changeInString = "ReplicatorChange{replicator=" + repl + ", status=" + status + '}';
+        String changeInString = "ReplicatorChange{replicator=" + baseTestReplicator + ", status=" + status + '}';
         assertEquals(repChange.toString(), changeInString);
     }
 
@@ -66,9 +66,9 @@ public class ReplicatorMiscTest extends BaseReplicatorTest {
     public void testDocumentReplication() {
         final boolean isPush = true;
         List<ReplicatedDocument> docs = new ArrayList<>();
-        DocumentReplication doc = new DocumentReplication(repl, isPush, docs);
+        DocumentReplication doc = new DocumentReplication(baseTestReplicator, isPush, docs);
         assertEquals(doc.isPush(), isPush);
-        assertEquals(doc.getReplicator(), repl);
+        assertEquals(doc.getReplicator(), baseTestReplicator);
         assertEquals(doc.getDocuments(), docs);
     }
 
