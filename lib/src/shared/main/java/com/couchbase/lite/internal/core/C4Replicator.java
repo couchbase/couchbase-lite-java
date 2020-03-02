@@ -403,6 +403,9 @@ public class C4Replicator extends C4NativePeer {
     // Null return value indicates that this replicator is dead
     @Nullable
     public Set<String> getPendingDocIDs() throws LiteCoreException {
+        final long peer = getPeerHandleUnchecked();
+        if (peer == 0) { return null; }
+
         final FLSliceResult result = new FLSliceResult(getPendingDocIds(getPeer()));
         try {
             final FLValue slice = FLValue.fromData(result);

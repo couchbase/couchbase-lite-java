@@ -223,10 +223,11 @@ abstract class AbstractDatabase {
     protected C4Database c4db;
 
     @NonNull
-    final Object lock = new Object();     // Main database lock object for thread-safety
-
-    @NonNull
     final DatabaseConfiguration config;
+
+    // Main database lock object for thread-safety
+    @NonNull
+    private final Object lock = new Object();
 
     private final String name;
 
@@ -728,7 +729,7 @@ abstract class AbstractDatabase {
 
             closeC4DB();
 
-            shutdown(SHUTDOWN_DELAY_SECS);
+            shutdown();
         }
     }
 
@@ -748,7 +749,7 @@ abstract class AbstractDatabase {
             try { c4db.delete(); }
             catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
-            shutdown(SHUTDOWN_DELAY_SECS);
+            shutdown();
         }
     }
 
@@ -820,7 +821,7 @@ abstract class AbstractDatabase {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        shutdown(0);
+        shutdownNow();
         super.finalize();
     }
 
@@ -856,8 +857,6 @@ abstract class AbstractDatabase {
     //////// DATABASES:
 
     boolean isOpen() { return c4db != null; }
-
-    SharedKeys getSharedKeys() { return sharedKeys; }
 
     File getFilePath() {
         final String path = getPath();
@@ -953,10 +952,6 @@ abstract class AbstractDatabase {
 
     void removeActiveReplicator(Replicator replicator) {
         synchronized (lock) { activeReplications.remove(replicator); }
-    }
-
-    boolean hasActiveReplicators() {
-        synchronized (lock) { return !activeReplications.isEmpty(); }
     }
 
     //////// RESOLVING REPLICATED CONFLICTS:
@@ -1083,17 +1078,6 @@ abstract class AbstractDatabase {
 
     //////// DOCUMENTS:
 
-    // called from finalizer
-    private void freeC4DB() {
-        if (shellMode) { return; }
-
-        final C4Database db = c4db;
-        c4db = null;
-
-        if (db == null) { return; }
-        path = db.getPath();
-    }
-
     // --- Database changes:
 
     @GuardedBy("lock")
@@ -1167,13 +1151,16 @@ abstract class AbstractDatabase {
 
     // called from finalizer
     @GuardedBy("lock")
-    private void freeC4Observers() {
+    private void freeC4Observers(boolean cleanup) {
+        final Map<String, DocumentChangeNotifier> notifiers = docChangeNotifiers;
+
         freeC4DBObserver();
 
-        final Map<String, DocumentChangeNotifier> notifiers = docChangeNotifiers;
         if (notifiers == null) { return; }
+
         for (DocumentChangeNotifier notifier : notifiers.values()) { notifier.stop(); }
-        notifiers.clear();
+
+        if (cleanup) { notifiers.clear(); }
     }
 
     private void postDatabaseChanged() {
@@ -1547,20 +1534,53 @@ abstract class AbstractDatabase {
         }
     }
 
-    // called from finalizer
+    private boolean hasActiveReplicators() {
+        synchronized (lock) { return !activeReplications.isEmpty(); }
+    }
+
     @GuardedBy("lock")
-    private void shutdown(int waitSecs) {
+    private void shutdown() {
         // cancel purge
         if (purgeStrategy != null) { purgeStrategy.cancelPurges(); }
 
         // release instances
-        freeC4Observers();
-        freeC4DB();
+        freeC4Observers(true);
+
+        if ((!shellMode) && (c4db != null)) {
+            path = c4db.getPath();
+            c4db = null;
+        }
 
         // shutdown executor service
-        postExecutor.stop(waitSecs, TimeUnit.SECONDS);
-        queryExecutor.stop(waitSecs, TimeUnit.SECONDS);
+        shutdownExecutors(postExecutor, queryExecutor, SHUTDOWN_DELAY_SECS);
+    }
+
+    // called from the finalizer
+    private void shutdownNow() {
+        final DocumentExpirationStrategy strategy = purgeStrategy;
+
+        final ExecutionService.CloseableExecutor pExec = postExecutor;
+        final ExecutionService.CloseableExecutor qExec = queryExecutor;
+
+        // cancel purge
+        if (strategy != null) { strategy.cancelPurges(); }
+
+        // release instances
+        // not guarded by "lock" here but probably ok
+        // since called only from the finalizer
+        freeC4Observers(false);
+
+        // shutdown executor service with no delay
+        shutdownExecutors(pExec, qExec, 0);
+    }
+
+    // called from the finalizer
+    private void shutdownExecutors(
+        ExecutionService.CloseableExecutor pExec,
+        ExecutionService.CloseableExecutor qExec,
+        int waitTime) {
+        // shutdown executor service
+        if (pExec != null) { pExec.stop(waitTime, TimeUnit.SECONDS); }
+        if (qExec != null) { qExec.stop(waitTime, TimeUnit.SECONDS); }
     }
 }
-
-
