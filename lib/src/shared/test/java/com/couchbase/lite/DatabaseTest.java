@@ -28,7 +28,6 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.utils.Report;
 import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertEquals;
@@ -57,7 +56,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test
     public void testGetExistingDocWithID() throws CouchbaseLiteException {
         final String docID = "doc1";
-        createDocInBaseTestDb(docID);
+        createSingleDocInBaseTestDb(docID);
         verifyGetDocument(docID);
     }
 
@@ -65,7 +64,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testGetExistingDocWithIDFromDifferentDBInstance() throws CouchbaseLiteException {
         // store doc
         String docID = "doc1";
-        createDocInBaseTestDb(docID);
+        createSingleDocInBaseTestDb(docID);
 
         // open db with same db name and default option
         Database otherDb = duplicateBaseTestDb();
@@ -95,7 +94,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testGetDocFromClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        createDocInBaseTestDb("doc1");
+        createSingleDocInBaseTestDb("doc1");
 
         // Close db:
         baseTestDb.close();
@@ -107,7 +106,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testGetDocFromDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        createDocInBaseTestDb("doc1");
+        createSingleDocInBaseTestDb("doc1");
 
         // Delete db:
         baseTestDb.delete();
@@ -123,7 +122,7 @@ public class DatabaseTest extends BaseDbTest {
     // base test method
     private void testSaveNewDocWithID(String docID) throws CouchbaseLiteException {
         // store doc
-        createDocInBaseTestDb(docID);
+        createSingleDocInBaseTestDb(docID);
 
         assertEquals(1, baseTestDb.getCount());
 
@@ -157,7 +156,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testSaveDoc() throws CouchbaseLiteException {
         // store doc
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
 
         // update doc
         doc.setValue("key", 2);
@@ -173,7 +172,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testSaveDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
 
         // Create db with default
         Database otherDb = duplicateBaseTestDb();
@@ -194,7 +193,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testSaveDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
 
         // Create db with default
         Database otherDb = openDatabase();
@@ -218,7 +217,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test
     public void testSaveSameDocTwice() throws CouchbaseLiteException {
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
         saveDocInBaseTestDb(doc);
         assertEquals(docID, doc.getId());
         assertEquals(1, baseTestDb.getCount());
@@ -270,7 +269,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test
     public void testDeleteDoc() throws CouchbaseLiteException {
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
         assertEquals(1, baseTestDb.getCount());
         baseTestDb.delete(doc);
         assertEquals(0, baseTestDb.getCount());
@@ -281,7 +280,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testDeleteDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Create db with same name:
         // Create db with default
@@ -305,7 +304,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testDeleteDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Create db with default
         Database otherDb = openDatabase();
@@ -347,7 +346,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = createDocInBaseTestDb("doc1");
+        Document doc = createSingleDocInBaseTestDb("doc1");
 
         // Close db:
         baseTestDb.close();
@@ -359,7 +358,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testDeleteDocOnDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = createDocInBaseTestDb("doc1");
+        Document doc = createSingleDocInBaseTestDb("doc1");
 
         baseTestDb.delete();
 
@@ -381,7 +380,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test
     public void testPurgeDoc() throws CouchbaseLiteException {
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Purge Doc
         purgeDocAndVerify(doc);
@@ -392,7 +391,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testPurgeDocInDifferentDBInstance() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Create db with default:
         Database otherDb = duplicateBaseTestDb();
@@ -415,7 +414,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testPurgeDocInDifferentDB() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Create db with default:
         Database otherDb = openDatabase();
@@ -438,7 +437,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testPurgeSameDocTwice() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // Get the document for the second purge:
         Document doc1 = baseTestDb.getDocument(docID);
@@ -474,7 +473,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testPurgeDocOnClosedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = createDocInBaseTestDb("doc1");
+        Document doc = createSingleDocInBaseTestDb("doc1");
 
         // Close db:
         baseTestDb.close();
@@ -486,7 +485,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testPurgeDocOnDeletedDB() throws CouchbaseLiteException {
         // Store doc:
-        Document doc = createDocInBaseTestDb("doc1");
+        Document doc = createSingleDocInBaseTestDb("doc1");
 
         // Close db:
         baseTestDb.close();
@@ -542,7 +541,7 @@ public class DatabaseTest extends BaseDbTest {
     @Test(expected = IllegalStateException.class)
     public void testCloseThenAccessBlob() throws CouchbaseLiteException {
         // Store doc with blob:
-        MutableDocument mDoc = createDocInBaseTestDb("doc1").toMutable();
+        MutableDocument mDoc = createSingleDocInBaseTestDb("doc1").toMutable();
         mDoc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
         Document doc = saveDocInBaseTestDb(mDoc);
 
@@ -619,7 +618,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testDeleteThenAccessDoc() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
 
         // Delete db:
         baseTestDb.delete();
@@ -635,7 +634,7 @@ public class DatabaseTest extends BaseDbTest {
     public void testDeleteThenAccessBlob() throws CouchbaseLiteException {
         // Store doc with blob:
         String docID = "doc1";
-        MutableDocument doc = createDocInBaseTestDb(docID).toMutable();
+        MutableDocument doc = createSingleDocInBaseTestDb(docID).toMutable();
         doc.setValue("blob", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
         saveDocInBaseTestDb(doc);
 
@@ -1217,7 +1216,7 @@ public class DatabaseTest extends BaseDbTest {
 
     @Test
     public void testDeleteNonExistingDoc() throws CouchbaseLiteException {
-        Document doc1a = createDocInBaseTestDb("doc1");
+        Document doc1a = createSingleDocInBaseTestDb("doc1");
         Document doc1b = baseTestDb.getDocument("doc1");
 
         // purge doc

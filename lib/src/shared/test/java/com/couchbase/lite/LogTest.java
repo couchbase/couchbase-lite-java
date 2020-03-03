@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.core.C4Log;
 import com.couchbase.lite.internal.core.CBLVersion;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.utils.FileUtils;
@@ -33,7 +34,9 @@ import static org.junit.Assert.assertTrue;
 
 
 public class LogTest extends BaseDbTest {
-    static class BasicLogger implements Logger {
+    private static class BasicLogger implements Logger {
+        private LogLevel level;
+        private LogDomain domain;
         private String message;
 
         @NonNull
@@ -41,12 +44,24 @@ public class LogTest extends BaseDbTest {
         public LogLevel getLevel() { return LogLevel.DEBUG; }
 
         @Override
-        public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String msg) { message = msg; }
+        public void log(@NonNull LogLevel level, @NonNull LogDomain domain, @NonNull String message) {
+            this.level = level;
+            this.domain = domain;
+            this.message = message;
+        }
 
-        public String getMessage() { return message; }
+        public void reset() {
+            this.level = null;
+            this.domain = null;
+            this.message = null;
+        }
+
+        @NonNull
+        @Override
+        public String toString() { return level + "/" + domain + ": " + message; }
     }
 
-    static class LogTestLogger implements Logger {
+    private static class LogTestLogger implements Logger {
         private final Map<LogLevel, Integer> lineCounts = new HashMap<>();
         private final StringBuilder content = new StringBuilder();
         private LogLevel level;
@@ -86,15 +101,16 @@ public class LogTest extends BaseDbTest {
     public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
-        scratchDirPath = getScratchDirectoryPath(getUniqueName("logtest"));
+        scratchDirPath = getScratchDirectoryPath(getUniqueName(getUniqueName("logging-")));
 
+        Log.initLogging();
         Database.log.reset();
     }
 
     @After
     @Override
     public void tearDown() {
-        try { FileUtils.deleteContents(getTempDir()); }
+        try { FileUtils.eraseFileOrDir(scratchDirPath); }
         finally { super.tearDown(); }
     }
 
@@ -322,18 +338,18 @@ public class LogTest extends BaseDbTest {
         Database.log.setCustom(logger);
 
         Log.d(LogDomain.DATABASE, "TEST DEBUG");
-        assertEquals("TEST DEBUG", logger.getMessage());
+        assertEquals("TEST DEBUG", logger.message);
 
         Log.d(LogDomain.DATABASE, "TEST DEBUG", new Exception("whoops"));
-        assertTrue(logger.getMessage().startsWith(
+        assertTrue(logger.message.startsWith(
             "TEST DEBUG" + nl + "java.lang.Exception: whoops" + System.lineSeparator()));
 
         // test formatting, including argument ordering
         Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", 1, "arg", 3.0F);
-        assertEquals("TEST DEBUG arg 1 3.00", logger.getMessage());
+        assertEquals("TEST DEBUG arg 1 3.00", logger.message);
 
         Log.d(LogDomain.DATABASE, "TEST DEBUG %2$s %1$d %3$.2f", new Exception("whoops"), 1, "arg", 3.0F);
-        assertTrue(logger.getMessage().startsWith(
+        assertTrue(logger.message.startsWith(
             "TEST DEBUG arg 1 3.00" + nl + "java.lang.Exception: whoops" + nl));
     }
 
@@ -488,7 +504,7 @@ public class LogTest extends BaseDbTest {
             Database.log.setCustom(logger);
 
             Log.d(LogDomain.DATABASE, "FOO", new Exception("whoops"), 1, "arg", 3.0F);
-            assertTrue(logger.getMessage().startsWith(
+            assertTrue(logger.message.startsWith(
                 "TEST DEBUG arg 1 3.00" + nl + "java.lang.Exception: whoops" + nl));
         }
         finally {
@@ -555,6 +571,35 @@ public class LogTest extends BaseDbTest {
         finally {
             reloadStandardErrorMessages();
         }
+    }
+
+    // Verify that we can set the level for log domains that the platform doesn't recognize.
+    @Test
+    public void testInternalLogging() throws CouchbaseLiteException {
+        final BasicLogger logger = new BasicLogger();
+        Database.log.setCustom(logger);
+
+        saveDocInBaseTestDb(new MutableDocument());
+        assertTrue(logger.level.getValue() < LogLevel.INFO.getValue());
+
+        logger.reset();
+        int sqlLevel = C4Log.getLevel("SQL");
+        C4Log.setLevels(LogLevel.INFO.getValue(), "SQL");
+        saveDocInBaseTestDb(new MutableDocument());
+        final LogLevel level = logger.level;
+        assertNotNull(level);
+        assertEquals(LogLevel.INFO, logger.level);
+        final LogDomain domain = logger.domain;
+        assertNotNull(domain);
+        assertEquals(LogDomain.DATABASE, domain);
+        final String message = logger.message;
+        assertNotNull(message);
+        assertTrue(message.length() > 2);
+
+        logger.reset();
+        C4Log.setLevels(sqlLevel, "SQL");
+        saveDocInBaseTestDb(new MutableDocument());
+        assertTrue(logger.level.getValue() < LogLevel.INFO.getValue());
     }
 
     private void testWithConfiguration(LogLevel level, LogFileConfiguration config, Fn.TaskThrows<Exception> task)

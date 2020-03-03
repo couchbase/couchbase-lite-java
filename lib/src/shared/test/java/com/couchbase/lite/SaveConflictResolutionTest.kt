@@ -169,7 +169,7 @@ class SaveConflictResolutionTests : BaseDbTest() {
      */
     @Test
     fun testConflictHandlerWithDeletedOldDoc1() {
-        createDocInBaseTestDb(docID)
+        createSingleDocInBaseTestDb(docID)
 
         assertEquals(1, baseTestDb.getDocument(docID).generation())
 
@@ -198,7 +198,7 @@ class SaveConflictResolutionTests : BaseDbTest() {
      */
     @Test
     fun testConflictHandlerWithDeletedOldDoc2() {
-        createDocInBaseTestDb(docID)
+        createSingleDocInBaseTestDb(docID)
 
         assertEquals(1, baseTestDb.getDocument(docID).generation())
 

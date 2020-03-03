@@ -19,6 +19,7 @@ package com.couchbase.lite.internal.support;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -88,12 +89,17 @@ public final class Log {
      * Setup logging.
      */
     public static void initLogging(@NonNull Map<String, String> errorMessages) {
-        C4Log.forceCallbackLevel(Database.log.getConsole().getLevel());
-        setC4LogLevel(LogDomain.ALL_DOMAINS, LogLevel.DEBUG);
+        initLogging();
 
         Log.errorMessages = Collections.unmodifiableMap(errorMessages);
 
         Log.i(LogDomain.DATABASE, "Couchbase Lite initialized: " + CBLVersion.getVersionInfo());
+    }
+
+    @VisibleForTesting
+    public static void initLogging() {
+        C4Log.forceCallbackLevel(Database.log.getConsole().getLevel());
+        setC4LogLevel(LogDomain.ALL_DOMAINS, LogLevel.DEBUG);
     }
 
     /**
@@ -342,7 +348,15 @@ public final class Log {
         return (domain != null) ? domain : LogDomain.DATABASE;
     }
 
-    public static void setC4LogLevel(@NonNull EnumSet<LogDomain> domains, @NonNull LogLevel level) {
+    public static void warn() {
+        if (WARNED.getAndSet(true)) { return; }
+        Log.w(
+            LogDomain.DATABASE,
+            "Database.log.getFile().getConfig() is now null: logging is disabled.  "
+                + "Log files required for product support are not being generated.");
+    }
+
+    private static void setC4LogLevel(@NonNull EnumSet<LogDomain> domains, @NonNull LogLevel level) {
         final int c4Level = level.getValue();
         for (LogDomain domain : domains) {
             switch (domain) {
@@ -367,14 +381,6 @@ public final class Log {
                     break;
             }
         }
-    }
-
-    public static void warn() {
-        if (WARNED.getAndSet(true)) { return; }
-        Log.w(
-            LogDomain.DATABASE,
-            "Database.log.getFile().getConfig() is now null: logging is disabled.  "
-                + "Log files required for product support are not being generated.");
     }
 
     private static void log(

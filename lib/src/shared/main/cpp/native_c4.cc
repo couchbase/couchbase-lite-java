@@ -120,6 +120,17 @@ JNIEXPORT jstring JNICALL Java_com_couchbase_lite_internal_core_C4_getVersion(JN
 // ----------------------------------------------------------------------------
 // com_couchbase_lite_internal_core_C4Log
 // ----------------------------------------------------------------------------
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Log
+ * Method:    getLevel
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT jint JNICALL
+Java_com_couchbase_lite_internal_core_C4Log_getLevel(JNIEnv *env, jclass clazz, jstring jdomain) {
+    jstringSlice domain(env, jdomain);
+    C4LogDomain logDomain = c4log_getDomain(domain.c_str(), false);
+    return (!logDomain) ? -1 : (jint) c4log_getLevel(logDomain);
+}
 
 /*
  * Class:     com_couchbase_lite_internal_core_C4Log

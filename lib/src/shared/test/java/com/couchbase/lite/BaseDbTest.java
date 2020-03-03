@@ -65,7 +65,7 @@ public abstract class BaseDbTest extends BaseTest {
 
     protected final void recreateBastTestDb() throws CouchbaseLiteException { baseTestDb = recreateDb(baseTestDb); }
 
-    protected final Document createDocInBaseTestDb(String docID) throws CouchbaseLiteException {
+    protected final Document createSingleDocInBaseTestDb(String docID) throws CouchbaseLiteException {
         final long n = baseTestDb.getCount() + 1;
 
         MutableDocument doc = new MutableDocument(docID);

@@ -34,13 +34,18 @@ public final class C4Log {
 
     private static LogLevel callbackLevel = LogLevel.NONE;
 
-    public static void setCallbackLevel(@NonNull LogLevel consoleLevel) {
-        setCoreCallbackLevel(getCallbackLevel(consoleLevel, Database.log.getCustom()));
+    public static void setLevels(int level, String... domains) {
+        if ((domains == null) || (domains.length <= 0)) { return; }
+        for (String domain: domains) { setLevel(domain, level); }
     }
 
     public static void forceCallbackLevel(@NonNull LogLevel logLevel) {
         setCallbackLevel(logLevel.getValue());
         callbackLevel = logLevel;
+    }
+
+    public static void setCallbackLevel(@NonNull LogLevel consoleLevel) {
+        setCoreCallbackLevel(getCallbackLevel(consoleLevel, Database.log.getCustom()));
     }
 
     // This class and this method are referenced by name, from native code.
@@ -67,7 +72,7 @@ public final class C4Log {
         CouchbaseLiteInternal.getExecutionService().getMainExecutor().execute(() -> setCoreCallbackLevel(level));
     }
 
-    static void setCoreCallbackLevel(@NonNull LogLevel logLevel) {
+    private static void setCoreCallbackLevel(@NonNull LogLevel logLevel) {
         if (callbackLevel == logLevel) { return; }
         forceCallbackLevel(logLevel);
     }
@@ -85,6 +90,8 @@ public final class C4Log {
     //-------------------------------------------------------------------------
 
     public static native void setLevel(String domain, int level);
+
+    public static native int getLevel(String domain);
 
     public static native int getBinaryFileLevel();
 

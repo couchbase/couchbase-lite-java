@@ -30,7 +30,7 @@ public class ErrorCaseTest extends BaseDbTest {
     public void testDeleteSameDocTwice() throws CouchbaseLiteException {
         // Store doc:
         String docID = "doc1";
-        Document doc = createDocInBaseTestDb(docID);
+        Document doc = createSingleDocInBaseTestDb(docID);
 
         // First time deletion:
         baseTestDb.delete(doc);
