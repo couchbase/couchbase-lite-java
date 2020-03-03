@@ -5,7 +5,7 @@
 #
 
 LITE_CORE_REPO_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
-MAVEN_URL="http://172.23.121.218/maven2/cimaven"
+MAVEN_URL="http://mobile.maven.couchbase.com/maven2/cimaven"
 
 function usage() {
     echo "Usage: $0 <build number> <edition, CE or EE>"
