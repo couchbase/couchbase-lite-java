@@ -5,7 +5,7 @@
 # to the internal maven server.
 #
 
-MAVEN_URL="http://172.23.121.218/maven2/internalmaven"
+MAVEN_URL="http://mobile.maven.couchbase.com/maven2/internalmaven"
 
 function usage() {
     echo "Usage: $0 <build number>"
