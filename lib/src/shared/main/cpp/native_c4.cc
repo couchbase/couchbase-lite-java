@@ -136,12 +136,18 @@ Java_com_couchbase_lite_internal_core_C4Log_getLevel(JNIEnv *env, jclass clazz, 
  * Class:     com_couchbase_lite_internal_core_C4Log
  * Method:    setLevel
  * Signature: (Ljava/lang/String;I)V
+ *
+ * Since the Java code can only talk about domains that are instance of the LogDomain enum,
+ * it is ok to let this code create new domains (2nd arg to c4log_getDomain).
+ * The advantage of allowing this method to create new LogDomain instances is that if,
+ * for debugging, we need to log for a dynamically created domain, we can initialize
+ * that domain at any time, including before Core creates it.
  */
 JNIEXPORT void JNICALL
 Java_com_couchbase_lite_internal_core_C4Log_setLevel(JNIEnv *env, jclass clazz, jstring jdomain,
                                            jint jlevel) {
     jstringSlice domain(env, jdomain);
-    C4LogDomain logDomain = c4log_getDomain(domain.c_str(), false);
+    C4LogDomain logDomain = c4log_getDomain(domain.c_str(), true);
     if (logDomain)
         c4log_setLevel(logDomain, (C4LogLevel) jlevel);
 }
