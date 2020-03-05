@@ -144,12 +144,10 @@ Java_com_couchbase_lite_internal_core_C4Log_getLevel(JNIEnv *env, jclass clazz, 
  * that domain at any time, including before Core creates it.
  */
 JNIEXPORT void JNICALL
-Java_com_couchbase_lite_internal_core_C4Log_setLevel(JNIEnv *env, jclass clazz, jstring jdomain,
-                                           jint jlevel) {
+Java_com_couchbase_lite_internal_core_C4Log_setLevel(JNIEnv *env, jclass clazz, jstring jdomain, jint jlevel) {
     jstringSlice domain(env, jdomain);
     C4LogDomain logDomain = c4log_getDomain(domain.c_str(), true);
-    if (logDomain)
-        c4log_setLevel(logDomain, (C4LogLevel) jlevel);
+    c4log_setLevel(logDomain, (C4LogLevel) jlevel);
 }
 
 /*
