@@ -17,6 +17,9 @@
 //
 package com.couchbase.lite.internal.fleece;
 
+import com.couchbase.lite.internal.core.C4QueryEnumerator;
+
+
 public class FLArrayIterator {
     /**
      * Create FLArrayIterator instance
@@ -66,17 +69,22 @@ public class FLArrayIterator {
 
     private final boolean managed;
 
+    // prevent GC of parent, while this object is around
+    @SuppressWarnings("FieldCanBeLocal")
+    private final Object context;
+
+
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public FLArrayIterator() {
-        this.managed = false;
-        this.handle = init();
-    }
+    public FLArrayIterator(FLArray context) { this(init(), context, false); }
 
-    public FLArrayIterator(long handle) {
-        this.managed = true;
+    public FLArrayIterator(long handle, C4QueryEnumerator context) { this(handle, context, true); }
+
+    private FLArrayIterator(long handle, Object context, boolean managed) {
         this.handle = handle;
+        this.context = context;
+        this.managed = true;
     }
 
     //-------------------------------------------------------------------------

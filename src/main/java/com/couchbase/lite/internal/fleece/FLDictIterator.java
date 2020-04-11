@@ -73,6 +73,10 @@ public class FLDictIterator {
 
     private long handle; // hold pointer to FLDictIterator
 
+    // prevent GC of parent, while this object is around
+    @SuppressWarnings("FieldCanBeLocal")
+    private final Object context;
+
     //-------------------------------------------------------------------------
     // protected methods
     //-------------------------------------------------------------------------
@@ -80,8 +84,13 @@ public class FLDictIterator {
     //-------------------------------------------------------------------------
     // public methods
     //-------------------------------------------------------------------------
-    public FLDictIterator() {
-        handle = init();
+    public FLDictIterator(FLDict context) { this((Object) context); }
+
+    public FLDictIterator(MCollection context) { this((Object) context); }
+
+    private FLDictIterator(Object context) {
+        this.handle = init();
+        this.context = context;
     }
 
     //-------------------------------------------------------------------------

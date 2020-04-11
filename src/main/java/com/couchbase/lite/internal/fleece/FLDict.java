@@ -57,7 +57,7 @@ public class FLDict {
 
     public Map<String, Object> asDict() {
         final Map<String, Object> results = new HashMap<>();
-        final FLDictIterator itr = new FLDictIterator();
+        final FLDictIterator itr = new FLDictIterator(this);
         try {
             itr.begin(this);
             String key;

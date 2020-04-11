@@ -50,7 +50,7 @@ public class FLArray {
 
     public List<Object> asArray() {
         final List<Object> results = new ArrayList<>();
-        final FLArrayIterator itr = new FLArrayIterator();
+        final FLArrayIterator itr = new FLArrayIterator(this);
         try {
             itr.begin(this);
             FLValue value;
