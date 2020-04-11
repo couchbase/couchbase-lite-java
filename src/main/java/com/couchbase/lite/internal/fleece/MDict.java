@@ -80,7 +80,7 @@ public class MDict extends MCollection implements Iterable<String> {
             }
 
             if ((flDict != null) && (flDict.count() > 0)) {
-                final FLDictIterator itr = new FLDictIterator();
+                final FLDictIterator itr = new FLDictIterator(this);
                 try {
                     itr.begin(flDict);
                     String key;
@@ -109,7 +109,7 @@ public class MDict extends MCollection implements Iterable<String> {
         valueMap.clear();
 
         if ((flDict != null) && (flDict.count() > 0)) {
-            final FLDictIterator itr = new FLDictIterator();
+            final FLDictIterator itr = new FLDictIterator(this);
             try {
                 itr.begin(flDict);
                 String key;
@@ -140,7 +140,7 @@ public class MDict extends MCollection implements Iterable<String> {
         }
 
         if ((flDict != null) && (flDict.count() > 0)) {
-            final FLDictIterator itr = new FLDictIterator();
+            final FLDictIterator itr = new FLDictIterator(this);
             try {
                 itr.begin(flDict);
                     String key;

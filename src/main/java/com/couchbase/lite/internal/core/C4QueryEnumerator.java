@@ -109,7 +109,7 @@ public class C4QueryEnumerator {
 
     // NOTE: FLArrayIterator is member variable of C4QueryEnumerator. Not necessary to release.
     public FLArrayIterator getColumns() {
-        return new FLArrayIterator(getColumns(handle));
+        return new FLArrayIterator(getColumns(handle), this);
     }
 
     // -- Accessor methods to C4QueryEnumerator --
