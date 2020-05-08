@@ -65,6 +65,7 @@ import com.couchbase.lite.utils.Fn;
  * AbstractDatabase is a base class of A Couchbase Lite Database.
  */
 abstract class AbstractDatabase {
+
     /**
      * Gets the logging controller for the Couchbase Lite library to configure the
      * logging settings and add custom logging.

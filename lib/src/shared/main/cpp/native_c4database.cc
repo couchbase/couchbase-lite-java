@@ -407,5 +407,5 @@ JNIEXPORT jboolean JNICALL Java_com_couchbase_lite_internal_core_C4Database_main
     bool success = c4db_maintenance((C4Database *) db, (C4MaintenanceType) type, &error);
     if (error.domain != 0 && error.code != 0)
         throwError(env, error);
-    return success;
+    return (jboolean) success;
 }
