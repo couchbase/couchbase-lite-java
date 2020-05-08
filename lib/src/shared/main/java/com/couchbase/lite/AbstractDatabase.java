@@ -804,6 +804,11 @@ abstract class AbstractDatabase {
         }
     }
 
+    public boolean performMaintenance(MaintenanceType type) throws CouchbaseLiteException {
+        try { return getC4Database().performMaintenance(type); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+    }
+
     //---------------------------------------------
     // Override public method
     //---------------------------------------------

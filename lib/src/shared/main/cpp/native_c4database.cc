@@ -395,3 +395,17 @@ JNIEXPORT jlong JNICALL Java_com_couchbase_lite_internal_core_C4Database_getFLSh
         (JNIEnv *env, jclass clazz, jlong db) {
     return (jlong) c4db_getFLSharedKeys((C4Database *) db);
 }
+
+/*
+ * Class:     com_couchbase_lite_internal_core_C4Database
+ * Method:    maintenance
+ * Signature: (JI)J
+ */
+JNIEXPORT jboolean JNICALL Java_com_couchbase_lite_internal_core_C4Database_maintenance
+        (JNIEnv *env, jclass clazz, jlong db, jint type) {
+    C4Error error = {};
+    bool success = c4db_maintenance((C4Database *) db, (C4MaintenanceType) type, &error);
+    if (error.domain != 0 && error.code != 0)
+        throwError(env, error);
+    return (jboolean) success;
+}
