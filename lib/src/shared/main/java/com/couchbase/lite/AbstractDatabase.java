@@ -65,7 +65,6 @@ import com.couchbase.lite.utils.Fn;
  * AbstractDatabase is a base class of A Couchbase Lite Database.
  */
 abstract class AbstractDatabase {
-
     /**
      * Gets the logging controller for the Couchbase Lite library to configure the
      * logging settings and add custom logging.
@@ -802,6 +801,11 @@ abstract class AbstractDatabase {
             try { c4db.deleteIndex(name); }
             catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
         }
+    }
+
+    public boolean performMaintenance(MaintenanceType type) throws CouchbaseLiteException {
+        try { return getC4Database().performMaintenance(type); }
+        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
     }
 
     //---------------------------------------------
