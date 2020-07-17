@@ -142,7 +142,7 @@ Java_com_couchbase_lite_internal_fleece_FLDict_get(JNIEnv *env,
                                                    jclass clazz,
                                                    jlong jdict,
                                                    jbyteArray jkeystring) {
-    jbyteArraySlice key(env, jkeystring, true);
+    jbyteArraySlice key(env, jkeystring);
     return (jlong) FLDict_Get((FLDict) jdict, (C4Slice) key);
 }
 

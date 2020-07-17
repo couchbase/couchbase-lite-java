@@ -180,6 +180,12 @@ static void logCallback(C4LogDomain domain, C4LogLevel level, const char *fmt, v
     jstring domainName = env->NewStringUTF(domainNameRaw);
     env->CallStaticVoidMethod(cls_C4Log, m_C4Log_logCallback, domainName, (jint)level, message);
 
+    // Because this method might be called from a thread that is was previously attached
+    // but be called from a long running method, we need to release the local refs.
+    env->DeleteLocalRef(message);
+    if (domainName)
+        env->DeleteLocalRef(domainName);
+
     if(getEnvStat == JNI_EDETACHED) {
         if (gJVM->DetachCurrentThread() != 0) {
             C4Warn("logCallback(): doRequestClose(): Failed to detach the current thread from a Java VM");
