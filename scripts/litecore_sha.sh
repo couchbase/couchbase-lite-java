@@ -1,10 +1,10 @@
-#!/bin/bash -ex
+#!/bin/bash
 
 function usage() {
-    echo "usage: litecore_sha -e <VAL> [-o <VAL> -v]"
-    echo "  -e|--edition <VAL>      LiteCore edition, CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
-    echo "  -o|--output-path <VAL>  The output path to write the result to"
-    echo "  -v|--verbose            Enable verbose output"
+    echo "usage: -e CE|EE [-o <path>] [-v]"
+    echo "  -e|--edition      LiteCore edition, CE or EE."
+    echo "  -o|--output-path  The output path to write the result to"
+    echo "  -v|--verbose      Enable verbose output"
     echo
 }
 
@@ -46,33 +46,22 @@ if [ -z "$EDITION" ]; then
   exit 1
 fi
 
+pushd $SCRIPT_DIR/../../couchbase-lite-core > /dev/null
+sha=`git rev-parse HEAD`
+sha=${sha:0:40}
+popd > /dev/null
+if [ $VERBOSE ]; then echo "CE SHA: '$sha'"; fi
+
 if [[ $EDITION == EE ]]; then
   pushd $SCRIPT_DIR/../../couchbase-lite-core-EE > /dev/null
-    first_sha=`git rev-parse HEAD`
-    first_sha=${first_sha:0:40}
-    if [ $VERBOSE ]; then
-        echo "EE SHA is: '$first_sha'"
-    fi
+    ee_sha=`git rev-parse HEAD`
+    ee_sha=${ee_sha:0:40}
+    if [ $VERBOSE ]; then echo "EE SHA: '$ee_sha'"; fi
+    amalgamation="${sha}${ee_sha}"
+    amalgamation=`echo -n $amalgamation | shasum -a 1`
+    sha=${amalgamation:0:40}
     popd > /dev/null
 fi
 
-pushd $SCRIPT_DIR/../../couchbase-lite-core > /dev/null
-second_sha=`git rev-parse HEAD`
-second_sha=${second_sha:0:40}
-if [ $VERBOSE ]; then
-    echo "Base SHA is: '$second_sha'"
-fi
-popd > /dev/null
-
-if [[ $EDITION == EE ]]; then
-    amalgamation="${second_sha}${first_sha}"
-    final_sha=`echo -n $amalgamation | shasum -a 1`
-    final_sha=${final_sha:0:40}
-else
-    final_sha="${second_sha}"
-fi
-
-echo $final_sha
-if [ ! -z "$OUTPUT_PATH" ]; then
-    echo $final_sha > "$OUTPUT_PATH"
-fi
+echo $sha
+if [ ! -z "$OUTPUT_PATH" ]; then echo $sha > "$OUTPUT_PATH"; fi

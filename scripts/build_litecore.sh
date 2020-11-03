@@ -1,111 +1,149 @@
-#!/bin/bash -ex
+#!/bin/bash
+
+MBEDTLS_DIR=vendor/mbedtls
+MBEDTLS_LIB=library/libmbedcrypto.a
+
+BUILD_TYPE="RelWithDebInfo"
+
+cores=`getconf _NPROCESSORS_ONLN`
+JOBS=`expr $cores + 1`
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 function usage() {
-    echo "usage: build_litecore -e <VAL> [-l <VAL>]"
-    echo "  -e|--edition <VAL>   LiteCore edition: CE or EE. The default is EE if couchbase-lite-core-EE exists, otherwise the default is CE".
-    echo "  -l|--lib <VAL>       The library to build:  LiteCore (LiteCore + mbedcrypto) or mbedcrypto (mbedcrypto only). The default is LiteCore."
+    echo "usage: $0 -e EE|CE [-d] [-l LiteCore|mbedcrypto]"
+    echo "  -e|--edition    LiteCore edition: CE or EE."
+    echo "  -d|--debug      Use build type 'Debug' instead of 'RelWithDebInfo'"
+    echo "  -l|--lib        The library to build:  LiteCore (LiteCore + mbedcrypto) or mbedcrypto (mbedcrypto only). The default is LiteCore."
     echo
 }
 
 shopt -s nocasematch
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-LIB="LiteCore"
-
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in 
-        -e|--edition)
-        EDITION="$2"
-        shift
-        shift
-        ;;
-        -l|--lib)
-        LIB="$2"
-        shift
-        shift
-        ;;
-        *)
-        echo >&2 "Unrecognized option $key, aborting..."
-        usage
-        exit 1
-        ;;
+      -e|--edition)
+         EDITION="$2"
+         shift
+         shift
+         ;;
+      -d|--debug)
+         BUILD_TYPE="Debug"
+         shift
+         ;;
+      -l|--lib)
+         TARGET="$2"
+         shift
+         shift
+         ;;
+      *)
+         echo >&2 "Unrecognized option $key, aborting..."
+         usage
+         exit 1
+         ;;
     esac
 done
 
-if [ -z "$EDITION" ]; then
-  echo >&2 "Missing --edition option, aborting..."
-  usage
-  exit 1
-fi
+case "$EDITION" in
+   CE)
+      ENT="OFF"
+      ;;
+   EE)
+      ENT="ON"
+      ;;
+   *)
+      echo >&2 "Unrecognized or missing --edition option ($EDITION): aborting..."
+      usage
+      exit 1
+      ;;
+esac
 
-echo "LiteCore Edition: $EDITION"
-echo "Library: $LIB"
+case "$TARGET" in
+   "" | LiteCore)
+      LIB="LiteCore"
+      ;;
+   mbedcrypto)
+      LIB="mbedcrypto"
+      ;;
+   *)
+      echo >&2 "Unrecognized --lib option ($TARGET): aborting..."
+      usage
+      exit 1
+      ;;
+esac
 
-ENT="OFF"
-if [[ $EDITION == EE ]]; then
-  ENT="ON"
-fi
+case "$OSTYPE" in
+   linux*)
+      OS="linux"
+      hash tar 2>/dev/null || { echo >&2 "Unable to locate tar, aborting..."; exit 1; }
+      ;;
+   darwin*)
+      OS=macos
+      hash unzip 2>/dev/null || { echo >&2 "Unable to locate unzip, aborting..."; exit 1; }
+      ;;
+   *)
+      echo "Unsupported OS ($OSTYPE), aborting..."
+      exit 1
+esac
 
-if [[ $OSTYPE == linux* ]]; then
-  OS=linux
-elif [[ $OSTYPE == darwin* ]]; then
-  OS=macos
-else
-  echo "Unsupported OS ($OSTYPE), aborting..."
-  exit 1
-fi
+echo "=== Building: $LIB"
+echo "  edition: $EDITION"
+echo "  for: $OS"
 
-pushd $SCRIPT_DIR/../../couchbase-lite-core/build_cmake > /dev/null
+OUTPUT_DIR="$SCRIPT_DIR/../lite-core/$OS/x86_64"
+mkdir -p "$OUTPUT_DIR"
 
-rm -rf $OS && mkdir -p $OS
+pushd "$SCRIPT_DIR/../../couchbase-lite-core/build_cmake" > /dev/null
+
+rm -rf $OS
+mkdir -p $OS
 pushd $OS > /dev/null
 
-CORE_COUNT=`getconf _NPROCESSORS_ONLN`
 
-OUTPUT_DIR=$SCRIPT_DIR/../lite-core/$OS/x86_64
-mkdir -p $OUTPUT_DIR
+case $OS in
+   linux)
+      # untested
+      if [[ $LIB == LiteCore ]]; then
+         cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
 
-if [[ $OS == linux ]]; then
-  if [[ $LIB == LiteCore ]]; then
-    CC=clang CXX=clang++ cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 ../..
+         make -j $JOBS LiteCore
+         cp -f libLiteCore.so $OUTPUT_DIR
 
-    make -j `expr $CORE_COUNT + 1` LiteCore
-    cp -f libLiteCore.so $OUTPUT_DIR
+         make -j $JOBS mbedcrypto
+         cp -f $MBEDTLS_DIR/$MBEDTLS_LIB $OUTPUT_DIR
+      fi
 
-    make -j `expr $CORE_COUNT + 1` mbedcrypto
-    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
-  fi
+      # works on centos6
+      if [[ $LIB == mbedcrypto ]]; then
+         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
+         make -j $JOBS mbedx509 mbedcrypto mbedtls
+         cp -f $MBEDTLS_LIB $OUTPUT_DIR
+      fi
+      ;;
 
-  if [[ $LIB == mbedcrypto ]]; then
-    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
-    make -j `expr $CORE_COUNT + 1`
-    cp -f library/libmbedcrypto.a $OUTPUT_DIR
-  fi
-fi
+   # works on several OSX versions
+   macos)
+      if [[ $LIB == LiteCore ]]; then
+         cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
-if [[ $OS == macos ]]; then
-  if [[ $LIB == LiteCore ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
+         make -j $JOBS LiteCore
+         strip -x libLiteCore.dylib
+         cp -f libLiteCore.dylib $OUTPUT_DIR
 
-    make -j `expr $CORE_COUNT + 1` LiteCore
-    strip -x libLiteCore.dylib
-    cp -f libLiteCore.dylib $OUTPUT_DIR
+         make -j $JOBS mbedcrypto
+         cp -f $MBEDTLS_DIR/$MBEDTLS_LIB $OUTPUT_DIR
+      fi
 
-    make -j `expr $CORE_COUNT + 1` mbedcrypto
-    cp -f vendor/mbedtls/library/libmbedcrypto.a $OUTPUT_DIR
-  fi
+      if [[ $LIB == mbedcrypto ]]; then
+         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../$MBEDTLS_DIR
+         make -j $JOBS mbedx509 mbedcrypto mbedtls
+         cp -f $MBEDTLS_LIB $OUTPUT_DIR
+      fi
+      ;;
+esac
 
-  if [[ $LIB == mbedcrypto ]]; then
-    cmake -DBUILD_ENTERPRISE=$ENT -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=1 ../../vendor/mbedtls
-    make -j `expr $CORE_COUNT + 1`
-    cp -f library/libmbedcrypto.a $OUTPUT_DIR
-  fi
-fi
-
+echo "=== Build complete"
+find "$OUTPUT_DIR"
+popd > /dev/null
 popd > /dev/null
 
-popd > /dev/null
-
-echo "Build $LIB Complete"

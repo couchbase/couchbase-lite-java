@@ -1,41 +1,40 @@
-@echo ON
 
-:: CI build script for building couchbase-lite-java{-ee} on Windows platforms.
+echo on
 
-SET liteCoreRepoUrl="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
+rem Build Couchbase Lite Java, Community Edition for Windows
 
-if "%3%" == "" (
-    echo Usage: build_windows.bat ^<VS Generator: 2015,2017,2019^> ^<BUILD_NUMBER^> ^<CE or EE^>
+set liteCoreRepoUrl="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
+
+if "%2%" == "" (
+    echo Usage: build_windows.bat ^<VS Generator: 2015,2017,2019^> ^<BUILD_NUMBER^>
     exit /B 1
 )
 
 set vsGen=%1%
 set buildNumber=%2%
-set edition=%3%
-
-echo "" > local.properties
 
 pushd %~dp0
 set scriptDir=%CD%
 popd
-set cblJavaDir=%scriptDir%\..\..
+set toolsDir=%scriptDir%\..\..\..\couchbase-lite-java\scripts
 
-echo ======== Download Lite Core ...
-powershell.exe -ExecutionPolicy Bypass -Command "%cblJavaDir%\scripts\fetch_litecore.ps1" %liteCoreRepoUrl% %edition% || goto error
+echo ======== BUILD Couchbase Lite Java, Community Edition
 
-echo ======== Building mbedcrypto ...
-call %cblJavaDir%\scripts\build_litecore.bat %vsGen% %edition% mbedcrypto || goto error
+echo ======== Clean up
+call %toolsDir%\clean_litecore.bat
 
-echo ======== Build Couchbase Lite Java ...
-call gradlew.bat ciCheckWindows -PbuildNumber=%buildNumber% || goto error
+echo ======== Download Lite Core
+powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\fetch_litecore.ps1" %liteCoreRepoUrl% CE
 
-echo ======== Create distribution zip for Couchbase Lite Java, %edition% Edition, Build %buildNumber%
-call gradlew.bat distZip -PbuildNumber=%buildNumber% || goto error
+echo ======== Build mbedcrypto
+call %toolsDir%\build_litecore.bat %vsGen% CE mbedcrypto
 
-echo ======== Complete
+echo ======== Build Java
+call gradlew.bat ciBuild -PbuildNumber=%buildNumber% || goto error
 
-goto :eof
+echo ======== BUILD COMPLETE
+exit /B 0
 
 :error
 echo Failed with error %ERRORLEVEL%.
-exit /b %ERRORLEVEL%
+exit /B %ERRORLEVEL%

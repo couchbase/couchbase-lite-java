@@ -4,6 +4,11 @@ param(
     [switch]$DebugLib
 )
 
+$suffix = ""
+if($DebugLib) {
+    $suffix = "-debug"
+}
+
 Push-Location $PSScriptRoot
 $Sha = & "./litecore_sha.ps1" $Edition
 Pop-Location
@@ -12,31 +17,28 @@ $OutputDir="$PSScriptRoot/../lite-core/windows/x86_64"
 New-Item -Type directory -ErrorAction Ignore $OutputDir
 Push-Location $OutputDir 
 
-$suffix = ""
-if($DebugLib) {
-    $suffix = "-debug"
-}
-
 $platform = "windows-win64"
+$ZipUrl = "$NexusRepo/couchbase-litecore-$platform/$Sha/couchbase-litecore-$platform-$Sha$suffix.zip"
+$ZipFile = "litecore-$platform$suffix.zip"
 Write-Host "Fetching for $Sha..."
 try {      
-  Write-Host $NexusRepo/couchbase-litecore-$platform/$Sha/couchbase-litecore-$platform-$Sha$suffix.zip
-  Invoke-WebRequest $NexusRepo/couchbase-litecore-$platform/$Sha/couchbase-litecore-$platform-$Sha$suffix.zip -OutFile litecore-$platform$suffix.zip
+  Write-Host $ZipUrl
+  Invoke-WebRequest $ZipUrl -OutFile $ZipFile
 } catch [System.Net.WebException] {
     Pop-Location
     if($_.Exception.Status -eq [System.Net.WebExceptionStatus]::ProtocolError) {
         $res = $_.Exception.Response.StatusCode
         if($res -eq 404) {
-            Write-Host "LiteCore for $Sha is not ready yet!"
+            Write-Host "No LiteCore available for $Sha!"
             exit 1
         }
     }
     throw
 }
 
-if(Test-Path "litecore-$platform$suffix.zip") {
-  & 7z e -y litecore-$platform$suffix$suffix.zip
-  rm litecore-$platform$suffix.zip
+if(Test-Path "$ZipFile") {
+  & 7z e -y $ZipFile
+  rm $ZipFile
 }
 
 Pop-Location

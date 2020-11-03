@@ -49,6 +49,12 @@ ext {
     CBL_NATIVE_LIBRARIES = []
 }
 
+// build platform
+def PLATFORM = "???"
+if (OperatingSystem.current().isLinux()) PLATFORM = ""
+if (OperatingSystem.current().isMacOsX()) PLATFORM = "-macos"
+if (OperatingSystem.current().isWindows()) PLATFORM = "-windows"
+
 // comma separated list of annotations for tests that should not be run.
 def TEST_FILTER = (!project.hasProperty("testFilter")) ? null : testFilter
 
@@ -172,6 +178,7 @@ model {
     toolChains {
         visualCpp(VisualCpp)
         clang(Clang)
+        gcc(Gcc)
     }
 
     repositories {
@@ -244,11 +251,8 @@ model {
                     if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
                     cppCompiler.args '-I', "${JAVA_HOME}/include"
                     cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
-                    cppCompiler.args '-std=c++11'
-                    cppCompiler.args '-stdlib=libc++'
                     def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
                     if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
-                    linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
@@ -459,7 +463,7 @@ publishing {
     publications {
         couchbaseLiteJava(MavenPublication) {
             groupId group
-            artifactId CBL_ARTIFACT_ID
+            artifactId "${CBL_ARTIFACT_ID}${PLATFORM}"
             version BUILD_VERSION
 
             from components.java
@@ -514,16 +518,21 @@ publishing {
 // Tasks
 // ----------------------------------------------------------------
 
-task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
+task smokeTest(dependsOn: ['compileJava', 'checkstyle', 'pmd', 'findbugsHtml', 'testClasses'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
 task fullTest(dependsOn: ['unitTest'])
 
-task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
-task ciCheckWindows(dependsOn: ['pmd', 'findbugsXml', 'test'])
-task ciPublish(dependsOn: ['generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
+///////// CI tasks
+task ciCheck(dependsOn: ['compileJava', 'checkstyle', 'pmd', 'findbugsXml'])
+task ciBuild(dependsOn: ['assemble'])
+task ciTest(dependsOn: ['test'])
+task ciPublish(dependsOn: ['distZip', 'generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
+    tasks.withType(Javadoc) { shouldRunAfter test }
+    test.shouldRunAfter smokeTest
+
     tasks.withType(FindBugs) { shouldRunAfter tasks.withType(Pmd) }
 
     tasks.whenTaskAdded {
@@ -582,7 +591,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
     processResources.dependsOn(["generateNativeLibraryMD5"])
 }
 
-def getNativeLibraryResourcePath(platform) {
+static def getNativeLibraryResourcePath(platform) {
     def os = ""
     if (platform.operatingSystem.isMacOsX())
         os = "macos";
@@ -594,7 +603,6 @@ def getNativeLibraryResourcePath(platform) {
         os = platform.operatingSystem.name
     return "${os}/x86_64"
 }
-
 
 def getLicenseVersion() {
     def version = "master"

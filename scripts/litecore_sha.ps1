@@ -12,26 +12,26 @@ Write-Host "LiteCore Edition : $Edition"
 
 if($Edition -eq "EE") {
     Push-Location $PSScriptRoot\..\..\couchbase-lite-core-EE
-    $FirstSha = (& git rev-parse HEAD).Substring(0, 40)
+    $EeSha = (& git rev-parse HEAD).Substring(0, 40)
     if($Verbose) {
-        Write-Host "EE SHA is: '$FirstSha'"
+        Write-Host "EE SHA is: '$EeSha'"
     }
     Pop-Location
 }
 
 Push-Location $PSScriptRoot\..\..\couchbase-lite-core
-$SecondSha = (& git rev-parse HEAD).Substring(0, 40)
+$CeSha = (& git rev-parse HEAD).Substring(0, 40)
 if($Verbose) {
-    Write-Host "Base SHA is: '$SecondSha'"
+    Write-Host "Base SHA is: '$CeSha'"
 }
 Pop-Location
 
 if($Edition -eq "EE") {
     $sha1 = New-Object System.Security.Cryptography.SHA1CryptoServiceProvider
-    $amalgamation = $SecondSha + $FirstSha
+    $amalgamation = $CeSha + $EeSha
     $finalSha = [System.BitConverter]::ToString($sha1.ComputeHash([System.Text.Encoding]::ASCII.GetBytes($amalgamation)))
 } else {
-    $finalSha = $SecondSha
+    $finalSha = $CeSha
 }
 
 Write-Output $finalSha.ToLowerInvariant().Replace("-", "")

@@ -1,54 +1,68 @@
-#!/bin/bash -ex
-
+#!/bin/bash
 #
-# CI build script for building couchbase-lite-java{-ee} on linux platforms.
+# Build Couchbase Lite Java, Community Edition for MacOS, Windows, Linux
+# This script assumes the the OSX and Windows builds are available on latestbuilds
 #
-
-LITE_CORE_REPO_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
-MAVEN_URL="http://mobile.maven.couchbase.com/maven2/cimaven"
-
-function usage() {
-    echo "Usage: $0 <build number> <edition, CE or EE>"
-    exit 1
-}
-
-if [ "$#" -ne 2 ]; then
-    usage
-fi
-
-BUILD_NUMBER="$1"
-if [ -z "$BUILD_NUMBER" ]; then
-    usage
-fi
-
-EDITION="$2"
-if [ -z "$EDITION" ]; then
-    usage
-fi
-
-touch local.properties
+PRODUCT="couchbase-lite-java"
+LATESTBUILDS_URL="http://latestbuilds.service.couchbase.com/builds/latestbuilds"
+NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-CBL_JAVA_DIR=$SCRIPT_DIR/../..
+TOOLS_DIR="${SCRIPT_DIR}/../../../couchbase-lite-java/scripts"
+
+function usage() {
+   echo "Usage: $0 <release version> <build number> <workspace path> <distro>"
+   exit 1
+}
+
+if [ "$#" -ne 4 ]; then
+   usage
+fi
+
+VERSION="$1"
+if [ -z "${VERSION}" ]; then
+   usage
+fi
+
+BUILD_NUMBER="$2"
+if [ -z "${BUILD_NUMBER}" ]; then
+   usage
+fi
+
+WORKSPACE="$3"
+if [ -z "${WORKSPACE}" ]; then
+   usage
+fi
+
+DISTRO="$4"
+if [ -z "${DISTRO}" ]; then
+   usage
+fi
+
+echo "======== BUILD Couchbase Lite Java, Community Edition v`cat ../version.txt`-${BUILD_NUMBER} (${DISTRO})"
+
+echo "======== Static analysis ..."
+touch local.properties
+./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
+
+echo "======== Clean up ..." 
+"${TOOLS_DIR}/clean_litecore.sh" -p "${DISTRO}"
+
+echo "======== Download platform artifiacts ..."
+for PLATFORM in macos windows; do
+   ARTIFACT="${PRODUCT}-${VERSION}-${BUILD_NUMBER}-${PLATFORM}.zip"
+   ARTIFACT_URL="${LATESTBUILDS_URL}/couchbase-lite-java/${VERSION}/${BUILD_NUMBER}"
+   "${TOOLS_DIR}/extract_libs.sh" "${ARTIFACT_URL}" "${ARTIFACT}" "${WORKSPACE}/zip-tmp" || exit 1
+done
 
 echo "======== Download Lite Core ..."
-$CBL_JAVA_DIR/scripts/fetch_litecore.sh -n $LITE_CORE_REPO_URL -v linux -e $EDITION
+"${TOOLS_DIR}/fetch_litecore.sh" -p "${DISTRO}" -e CE -n "${NEXUS_URL}"
 
-echo "======== Building mbedcrypto ..."
-$CBL_JAVA_DIR/scripts/build_litecore.sh -e $EDITION -l mbedcrypto
+echo "======== Build mbedcrypto ..."
+"${TOOLS_DIR}/build_litecore.sh" -l mbedcrypto -e CE
 
-# Set load library path for building and testing:
-SUPPORT_DIR="${CBL_JAVA_DIR}/lite-core/support/linux/x86_64"
-export LD_LIBRARY_PATH="${SUPPORT_DIR}/libicu:${SUPPORT_DIR}/libz:${SUPPORT_DIR}/libc++"
-
-# Set libc++ include and lib directory from cbdeps:
-echo "LINUX_LIBCXX_INCDIR=${LIBCXX_INCDIR}/c++/v1" >> local.properties
-echo "LINUX_LIBCXX_LIBDIR=${LIBCXX_LIBDIR}" >> local.properties
-
-echo "======== Build Couchbase Lite Java, $EDITION v`cat ../version.txt`-${BUILD_NUMBER}"
-./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" --info || exit 1
-
-echo "======== Publish build candidates to CI maven"
-./gradlew ciPublish -PbuildNumber="${BUILD_NUMBER}" -PmavenUrl="${MAVEN_URL}" --info || exit 1
+echo "======== Build Java"
+./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 echo "======== BUILD COMPLETE"
+find lib/build/distributions
