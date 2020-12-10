@@ -4,7 +4,7 @@ echo on
 rem Publish Couchbase Lite Java, Community Edition for Windows
 
 set product=couchbase-lite-java
-set mavenUrl="http://mobile.maven.couchbase.com/maven2/internalmaven"
+set mavenUrl="http://proget.build.couchbase.com/maven2/internalmaven"
 
 if "%3%" == "" (
     echo Usage: publish_windows.bat ^<VERSION^> ^<BUILD_NUMBER^> ^<ARTIFACTS^>
